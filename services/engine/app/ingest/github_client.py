@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+
+import httpx
+
+from app.ingest.github_types import GitHubArtifactPayload
+
+
+class GitHubClient:
+    def __init__(
+        self,
+        token: str | None = None,
+        *,
+        base_url: str = "https://api.github.com",
+        client: httpx.Client | None = None,
+    ) -> None:
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "DecisionAtlas"
+        }
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+
+        self.base_url = base_url.rstrip("/")
+        self.client = client or httpx.Client(base_url=self.base_url, headers=headers, timeout=30.0)
+
+    def fetch_issues(self, repo: str) -> list[GitHubArtifactPayload]:
+        items = self._paginate(f"/repos/{repo}/issues", params={"state": "all"})
+        issues: list[GitHubArtifactPayload] = []
+        for item in items:
+            if "pull_request" in item:
+                continue
+            issues.append(
+                GitHubArtifactPayload(
+                    artifact_type="issue",
+                    source_id=str(item["id"]),
+                    repo=repo,
+                    title=item.get("title"),
+                    content=item.get("body") or "",
+                    author=(item.get("user") or {}).get("login"),
+                    url=item.get("html_url"),
+                    timestamp=self._parse_datetime(item.get("created_at")),
+                    metadata_json={"number": item.get("number"), "state": item.get("state")},
+                )
+            )
+        return issues
+
+    def fetch_pull_requests(self, repo: str) -> list[GitHubArtifactPayload]:
+        items = self._paginate(f"/repos/{repo}/pulls", params={"state": "all"})
+        pulls: list[GitHubArtifactPayload] = []
+        for item in items:
+            content = "\n\n".join(part for part in [item.get("title"), item.get("body") or ""] if part)
+            pulls.append(
+                GitHubArtifactPayload(
+                    artifact_type="pr",
+                    source_id=str(item["id"]),
+                    repo=repo,
+                    title=item.get("title"),
+                    content=content,
+                    author=(item.get("user") or {}).get("login"),
+                    url=item.get("html_url"),
+                    timestamp=self._parse_datetime(item.get("created_at")),
+                    metadata_json={"number": item.get("number"), "state": item.get("state")},
+                )
+            )
+        return pulls
+
+    def fetch_commits(self, repo: str) -> list[GitHubArtifactPayload]:
+        items = self._paginate(f"/repos/{repo}/commits")
+        commits: list[GitHubArtifactPayload] = []
+        for item in items:
+            commit = item.get("commit") or {}
+            author = (item.get("author") or {}).get("login") or ((commit.get("author") or {}).get("name"))
+            commits.append(
+                GitHubArtifactPayload(
+                    artifact_type="commit",
+                    source_id=item.get("sha"),
+                    repo=repo,
+                    title=(commit.get("message") or "").splitlines()[0] if commit.get("message") else None,
+                    content=commit.get("message") or "",
+                    author=author,
+                    url=item.get("html_url"),
+                    timestamp=self._parse_datetime((commit.get("author") or {}).get("date")),
+                    metadata_json={},
+                )
+            )
+        return commits
+
+    def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        page = 1
+        results: list[dict[str, Any]] = []
+        while True:
+            request_params = {"per_page": 100, "page": page}
+            if params:
+                request_params.update(params)
+            response = self.client.get(path, params=request_params)
+            response.raise_for_status()
+            payload = response.json()
+            if not payload:
+                break
+            results.extend(payload)
+            if len(payload) < 100:
+                break
+            page += 1
+        return results
+
+    @staticmethod
+    def _parse_datetime(value: str | None) -> datetime | None:
+        if not value:
+            return None
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))

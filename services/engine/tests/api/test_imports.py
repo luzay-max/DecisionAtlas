@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from app.db.models import Workspace
+from app.main import create_app
+
+
+def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "api.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    def fake_run_github_import(*, workspace_slug: str, repo: str):
+        return {"job_id": "job-123", "imported_count": 7}
+
+    monkeypatch.setattr("app.api.imports.run_github_import", fake_run_github_import)
+
+    client = TestClient(create_app())
+
+    response = client.post(
+        "/imports/github",
+        json={"workspace_slug": "demo-workspace", "repo": "org/repo"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"job_id": "job-123", "imported_count": 7}

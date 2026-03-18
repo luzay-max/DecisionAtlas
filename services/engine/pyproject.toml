@@ -1,0 +1,25 @@
+[project]
+name = "decisionatlas-engine"
+version = "0.1.0"
+description = "DecisionAtlas engine service"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.16.5",
+    "fastapi>=0.115.11",
+    "httpx>=0.28.1",
+    "psycopg[binary]>=3.2.10",
+    "pydantic-settings>=2.8.1",
+    "sqlalchemy>=2.0.43",
+    "uvicorn>=0.34.0"
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.uv]
+package = false
