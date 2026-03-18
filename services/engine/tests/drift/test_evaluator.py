@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Decision, SourceRef, Workspace
 from app.drift.evaluator import DriftEvaluator
+from app.indexing.embedder import FakeEmbedder
 from app.repositories.drift_alerts import DriftAlertRepository
 
 
@@ -79,7 +80,7 @@ def test_evaluator_persists_possible_drift_for_violating_artifact(tmp_path: Path
         session.commit()
 
     with Session(engine) as session:
-        result = DriftEvaluator(session).evaluate_workspace("demo-workspace")
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
 
     assert result.evaluated_rules == 1
@@ -134,8 +135,113 @@ def test_evaluator_skips_non_violating_artifact(tmp_path: Path, monkeypatch) -> 
         session.commit()
 
     with Session(engine) as session:
-        result = DriftEvaluator(session).evaluate_workspace("demo-workspace")
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
 
     assert result.created_alerts == 0
     assert alerts == []
+
+
+def test_evaluator_adds_semantic_supersession_alert_when_rule_does_not_fire(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "semantic-alert.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Use Redis Cache",
+                status="active",
+                review_state="accepted",
+                problem="Latency too high",
+                context=None,
+                constraints="Redis stays cache-only.",
+                chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+                tradeoffs="Extra dependency",
+                confidence=0.92,
+                created_at=baseline,
+            )
+        )
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pull_request",
+                source_id="3",
+                repo="org/repo",
+                title="Replace Redis cache with Dragonfly",
+                content="This proposal will replace the Redis cache with Dragonfly to cut cost while keeping low latency.",
+                author="carol",
+                url="https://github.com/org/repo/pull/3",
+                timestamp=baseline + timedelta(days=2),
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "possible_supersession"
+
+
+def test_evaluator_keeps_semantic_checks_after_rule_checks(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "semantic-order.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Use Redis Cache",
+                status="active",
+                review_state="accepted",
+                problem="Latency too high",
+                context=None,
+                constraints="Redis stays cache-only.",
+                chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+                tradeoffs="Extra dependency",
+                confidence=0.92,
+                created_at=baseline,
+            )
+        )
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pull_request",
+                source_id="4",
+                repo="org/repo",
+                title="Replace Redis cache and persist sessions",
+                content="This proposal will replace the Redis cache and persist session state in Redis as the primary database.",
+                author="dana",
+                url="https://github.com/org/repo/pull/4",
+                timestamp=baseline + timedelta(days=2),
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "possible_drift"

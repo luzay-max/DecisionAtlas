@@ -4,8 +4,11 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.drift.semantic_classifier import classify_semantic_drift
+from app.drift.semantic_recall import recall_related_decisions
 from app.drift.rule_extractor import extract_rules
 from app.drift.rules import find_rule_match
+from app.indexing.embedder import Embedder, FakeEmbedder
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -21,8 +24,9 @@ class DriftEvaluationResult:
 
 
 class DriftEvaluator:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, embedder: Embedder | None = None) -> None:
         self.session = session
+        self.embedder = embedder or FakeEmbedder()
         self.artifacts = ArtifactRepository(session)
         self.decisions = DecisionRepository(session)
         self.alerts = DriftAlertRepository(session)
@@ -38,17 +42,21 @@ class DriftEvaluator:
         artifacts = self.artifacts.list_by_workspace(workspace.id)
         evaluated_rules = 0
         created_alerts = 0
+        source_artifact_ids: set[int] = set()
+        rule_flagged_artifact_ids: set[int] = set()
 
         for decision in accepted:
             rules = extract_rules(decision)
             if not rules:
+                source_artifact_ids.update(source_ref.artifact_id for source_ref in self.source_refs.list_by_decision(decision.id))
                 continue
 
-            source_artifact_ids = {source_ref.artifact_id for source_ref in self.source_refs.list_by_decision(decision.id)}
+            decision_source_artifact_ids = {source_ref.artifact_id for source_ref in self.source_refs.list_by_decision(decision.id)}
+            source_artifact_ids.update(decision_source_artifact_ids)
             for rule in rules:
                 evaluated_rules += 1
                 for artifact in artifacts:
-                    if artifact.id in source_artifact_ids:
+                    if artifact.id in decision_source_artifact_ids:
                         continue
                     if artifact.timestamp and decision.created_at and artifact.timestamp <= decision.created_at:
                         continue
@@ -71,6 +79,32 @@ class DriftEvaluator:
                     )
                     if created:
                         created_alerts += 1
+                    rule_flagged_artifact_ids.add(artifact.id)
+
+        for artifact in artifacts:
+            if artifact.id in source_artifact_ids or artifact.id in rule_flagged_artifact_ids:
+                continue
+
+            candidates = recall_related_decisions(
+                session=self.session,
+                workspace_slug=workspace.slug,
+                artifact=artifact,
+                embedder=self.embedder,
+            )
+            classification = classify_semantic_drift(artifact=artifact, candidates=candidates)
+            if classification is None:
+                continue
+
+            _, created = self.alerts.create_or_update(
+                workspace_id=workspace.id,
+                artifact_id=artifact.id,
+                decision_id=classification.decision_id,
+                alert_type=classification.alert_type,
+                summary=classification.summary,
+                status="open",
+            )
+            if created:
+                created_alerts += 1
 
         self.session.commit()
         return DriftEvaluationResult(

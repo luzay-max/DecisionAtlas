@@ -1,6 +1,7 @@
 import React from "react";
 
 import { DriftAlertItem, getDriftAlerts } from "../../lib/api";
+import { AlertDetail } from "../../components/drift/alert-detail";
 
 export function DriftPageContent({ alerts }: { alerts: DriftAlertItem[] }) {
   return (
@@ -15,30 +16,7 @@ export function DriftPageContent({ alerts }: { alerts: DriftAlertItem[] }) {
         </div>
         {alerts.length === 0 ? <p>No drift alerts yet.</p> : null}
         {alerts.map((alert) => (
-          <article key={alert.id} className="card stack">
-            <div className="card-head">
-              <div>
-                <strong>{alert.alert_type}</strong>
-                <p>{alert.summary}</p>
-              </div>
-              <span className="badge">{alert.status}</span>
-            </div>
-            {alert.decision ? (
-              <p>
-                Decision: <strong>{alert.decision.title}</strong>
-              </p>
-            ) : null}
-            {alert.artifact ? (
-              <p>
-                Artifact:{" "}
-                {alert.artifact.url ? (
-                  <a href={alert.artifact.url}>{alert.artifact.title ?? `Artifact ${alert.artifact.id}`}</a>
-                ) : (
-                  <strong>{alert.artifact.title ?? `Artifact ${alert.artifact.id}`}</strong>
-                )}
-              </p>
-            ) : null}
-          </article>
+          <AlertDetail key={alert.id} alert={alert} />
         ))}
       </section>
     </main>

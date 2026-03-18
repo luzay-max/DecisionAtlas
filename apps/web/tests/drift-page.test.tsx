@@ -10,14 +10,16 @@ describe("DriftPageContent", () => {
         alerts={[
           {
             id: 1,
-            alert_type: "possible_drift",
-            summary: "Accepted decision 'Use Redis Cache' keeps Redis cache-only.",
+            alert_type: "possible_supersession",
+            summary: "Artifact 'Replace Redis cache with Dragonfly' may supersede accepted decision 'Use Redis Cache'.",
             status: "open",
+            confidence_label: "medium",
             created_at: "2026-03-18T10:00:00",
             decision: {
               id: 7,
               title: "Use Redis Cache",
               review_state: "accepted",
+              chosen_option: "Use Redis as cache only",
             },
             artifact: {
               id: 12,
@@ -32,6 +34,7 @@ describe("DriftPageContent", () => {
 
     expect(screen.getByText("Possible decision drift")).toBeInTheDocument();
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
+    expect(screen.getByText("medium confidence")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Persist sessions in Redis" })).toBeInTheDocument();
   });
 });

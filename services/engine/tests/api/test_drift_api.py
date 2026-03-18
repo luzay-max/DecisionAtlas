@@ -74,6 +74,7 @@ def test_list_drift_alerts_returns_joined_context(tmp_path: Path, monkeypatch) -
     assert response.status_code == 200
     body = response.json()
     assert len(body) == 1
+    assert body[0]["confidence_label"] == "high"
     assert body[0]["artifact"]["title"] == "Persist sessions in Redis"
     assert body[0]["decision"]["title"] == "Use Redis Cache"
 

@@ -30,6 +30,7 @@ def list_drift_alerts(workspace_slug: str = Query(...)) -> list[dict]:
                 "alert_type": alert.alert_type,
                 "summary": alert.summary,
                 "status": alert.status,
+                "confidence_label": _confidence_label(alert.alert_type),
                 "created_at": alert.created_at.isoformat() if alert.created_at else None,
                 "artifact": _serialize_artifact(artifacts.get_by_id(alert.artifact_id) if alert.artifact_id else None),
                 "decision": _serialize_decision(decisions.get_by_id(alert.decision_id) if alert.decision_id else None),
@@ -81,4 +82,13 @@ def _serialize_decision(decision) -> dict | None:
         "id": decision.id,
         "title": decision.title,
         "review_state": decision.review_state,
+        "chosen_option": decision.chosen_option,
     }
+
+
+def _confidence_label(alert_type: str) -> str:
+    if alert_type == "possible_supersession":
+        return "medium"
+    if alert_type == "needs_review":
+        return "low"
+    return "high"

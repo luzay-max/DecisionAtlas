@@ -72,6 +72,7 @@ export type DriftAlertItem = {
   alert_type: string;
   summary: string;
   status: string;
+  confidence_label: string;
   created_at: string | null;
   artifact: {
     id: number;
@@ -83,6 +84,7 @@ export type DriftAlertItem = {
     id: number;
     title: string;
     review_state: string;
+    chosen_option: string;
   } | null;
 };
 
