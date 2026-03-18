@@ -20,8 +20,13 @@ class RuntimeProviders:
 def build_runtime_providers(settings: Settings | None = None) -> RuntimeProviders:
     resolved = settings or get_settings()
     mode = resolved.llm_provider_mode.lower()
+    embedding_mode = resolved.embedding_provider_mode.lower()
     if mode not in {"auto", "fake", "openai_compatible"}:
         raise ProviderConfigurationError(f"Unsupported llm_provider_mode: {resolved.llm_provider_mode}")
+    if embedding_mode not in {"auto", "fake", "openai_compatible"}:
+        raise ProviderConfigurationError(
+            f"Unsupported embedding_provider_mode: {resolved.embedding_provider_mode}"
+        )
 
     if mode == "fake" or (mode == "auto" and not resolved.llm_api_key):
         return RuntimeProviders(
@@ -35,12 +40,22 @@ def build_runtime_providers(settings: Settings | None = None) -> RuntimeProvider
         raise ProviderConfigurationError("LLM_API_KEY is required when using a live provider")
     if not resolved.llm_model:
         raise ProviderConfigurationError("LLM_MODEL is required when using a live provider")
-    if not resolved.embedding_model:
-        raise ProviderConfigurationError("EMBEDDING_MODEL is required when using a live provider")
+    if embedding_mode == "fake" or (embedding_mode == "auto" and not resolved.embedding_api_key):
+        embedder: Embedder = FakeEmbedder()
+    else:
+        if not resolved.embedding_model:
+            raise ProviderConfigurationError("EMBEDDING_MODEL is required when using a live embedder")
 
-    embedding_api_key = resolved.embedding_api_key or resolved.llm_api_key
-    if not embedding_api_key:
-        raise ProviderConfigurationError("EMBEDDING_API_KEY or LLM_API_KEY is required for embeddings")
+        embedding_api_key = resolved.embedding_api_key or resolved.llm_api_key
+        if not embedding_api_key:
+            raise ProviderConfigurationError("EMBEDDING_API_KEY or LLM_API_KEY is required for embeddings")
+
+        embedder = OpenAICompatibleEmbedder(
+            api_key=embedding_api_key,
+            model=resolved.embedding_model,
+            base_url=resolved.llm_base_url,
+            timeout=resolved.llm_timeout_seconds,
+        )
 
     return RuntimeProviders(
         extraction_provider=OpenAICompatibleProvider(
@@ -49,12 +64,7 @@ def build_runtime_providers(settings: Settings | None = None) -> RuntimeProvider
             base_url=resolved.llm_base_url,
             timeout=resolved.llm_timeout_seconds,
         ),
-        embedder=OpenAICompatibleEmbedder(
-            api_key=embedding_api_key,
-            model=resolved.embedding_model,
-            base_url=resolved.llm_base_url,
-            timeout=resolved.llm_timeout_seconds,
-        ),
+        embedder=embedder,
         mode="openai_compatible",
         is_live=True,
     )

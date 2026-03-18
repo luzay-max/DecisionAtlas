@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./decisionatlas.db"
     github_token: str | None = None
     llm_provider_mode: str = "auto"
+    embedding_provider_mode: str = "auto"
     llm_api_key: str | None = None
     embedding_api_key: str | None = None
     llm_base_url: str = "https://api.openai.com/v1"
