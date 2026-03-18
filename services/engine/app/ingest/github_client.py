@@ -109,12 +109,14 @@ class GitHubClient:
             if params:
                 request_params.update(params)
             response = self.client.get(path, params=request_params)
+            if response.status_code == 422 and page > 1:
+                break
             response.raise_for_status()
             payload = response.json()
             if not payload:
                 break
             results.extend(payload)
-            if len(payload) < 100:
+            if "next" not in response.links:
                 break
             page += 1
         return results

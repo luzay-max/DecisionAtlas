@@ -123,3 +123,53 @@ def test_fetch_commits_forwards_since_parameter() -> None:
     client.fetch_commits("org/repo", since=GitHubClient._parse_datetime("2026-03-18T00:00:00Z"))
 
     assert captured_since == ["2026-03-18T00:00:00+00:00"]
+
+
+def test_paginate_stops_without_next_link_even_when_page_is_full() -> None:
+    request_pages: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_pages.append(request.url.params.get("page"))
+        return httpx.Response(
+            200,
+            json=[{"id": index} for index in range(100)],
+        )
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    client.fetch_issues("org/repo")
+
+    assert request_pages == ["1"]
+
+
+def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
+    request_pages: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        page = request.url.params.get("page")
+        request_pages.append(page)
+        if page == "1":
+            return httpx.Response(
+                200,
+                headers={"Link": '<https://api.github.com/repos/org/repo/issues?per_page=100&page=2>; rel="next"'},
+                json=[
+                    {
+                        "id": 1,
+                        "number": 10,
+                        "title": "Issue title",
+                        "body": "Issue body",
+                        "user": {"login": "alice"},
+                        "html_url": "https://github.com/org/repo/issues/10",
+                        "state": "open",
+                        "created_at": "2026-03-18T00:00:00Z",
+                    }
+                ],
+            )
+        return httpx.Response(422, json={"message": "Validation Failed"})
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    issues = client.fetch_issues("org/repo")
+
+    assert len(issues) == 1
+    assert request_pages == ["1", "2"]

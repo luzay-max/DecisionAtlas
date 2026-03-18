@@ -1,6 +1,7 @@
 import { dashboardRoute } from "./routes/dashboard";
 import { decisionsRoute } from "./routes/decisions";
 import { driftRoute } from "./routes/drift";
+import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { getEnv } from "./plugins/env";
 import { healthRoute } from "./routes/health";
@@ -10,6 +11,10 @@ import { timelineRoute } from "./routes/timeline";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
+  app.register(cors, {
+    origin: true,
+    methods: ["GET", "POST", "OPTIONS"],
+  });
   app.register(healthRoute);
   app.register(importsRoute);
   app.register(decisionsRoute);

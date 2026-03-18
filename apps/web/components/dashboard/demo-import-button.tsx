@@ -20,6 +20,9 @@ export function DemoImportButton({ workspaceSlug, repo }: { workspaceSlug: strin
         return;
       }
       setMessage(`Imported ${job.imported_count} artifacts from ${job.repo ?? repo}`);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "unknown error";
+      setMessage(`Import failed: ${detail}`);
     } finally {
       setLoading(false);
     }
