@@ -88,6 +88,11 @@ export type DriftAlertItem = {
   } | null;
 };
 
+export type ImportResult = {
+  job_id: string;
+  imported_count: number;
+};
+
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
 
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
@@ -153,6 +158,23 @@ export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlertI
   });
   if (!response.ok) {
     throw new Error("Failed to load drift alerts");
+  }
+  return response.json();
+}
+
+export async function startGithubImport(workspaceSlug: string, repo: string): Promise<ImportResult> {
+  const response = await fetch(`${apiBaseUrl}/imports/github`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      workspace_slug: workspaceSlug,
+      repo
+    })
+  });
+  if (!response.ok) {
+    throw new Error("Failed to start GitHub import");
   }
   return response.json();
 }

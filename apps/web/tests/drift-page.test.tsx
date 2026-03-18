@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import { DriftPageContent } from "../app/drift/page";
+import { DriftPageContent } from "../components/drift/drift-page-content";
 
 describe("DriftPageContent", () => {
   it("renders persisted alerts with decision and artifact context", () => {

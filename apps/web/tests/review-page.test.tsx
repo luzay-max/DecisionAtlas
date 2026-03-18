@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import { ReviewPageContent } from "../app/review/page";
+import { ReviewPageContent } from "../components/review/review-page-content";
 
 describe("ReviewPageContent", () => {
   it("renders candidate review actions", () => {

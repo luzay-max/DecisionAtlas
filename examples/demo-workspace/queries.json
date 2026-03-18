@@ -1,0 +1,22 @@
+[
+  {
+    "id": "q1",
+    "question": "why use redis cache"
+  },
+  {
+    "id": "q2",
+    "question": "why keep postgresql as the primary database"
+  },
+  {
+    "id": "q3",
+    "question": "why is redis cache-only"
+  },
+  {
+    "id": "q4",
+    "question": "why do candidate decisions need review"
+  },
+  {
+    "id": "q5",
+    "question": "why would a change trigger drift review"
+  }
+]

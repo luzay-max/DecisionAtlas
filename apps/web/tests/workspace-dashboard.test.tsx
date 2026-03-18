@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 
-import { WorkspaceDashboardContent } from "../app/workspaces/[slug]/page";
+import { WorkspaceDashboardContent } from "../components/dashboard/workspace-dashboard-content";
 
 describe("WorkspaceDashboardContent", () => {
   it("renders summary KPIs and alerts", () => {
@@ -23,6 +23,7 @@ describe("WorkspaceDashboardContent", () => {
     );
 
     expect(screen.getByText("demo-workspace")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Run Demo Import" })).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("No alerts yet.")).toBeInTheDocument();
