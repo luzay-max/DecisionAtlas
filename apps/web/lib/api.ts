@@ -67,6 +67,25 @@ export type DashboardSummary = {
   }>;
 };
 
+export type DriftAlertItem = {
+  id: number;
+  alert_type: string;
+  summary: string;
+  status: string;
+  created_at: string | null;
+  artifact: {
+    id: number;
+    type: string;
+    title: string | null;
+    url: string | null;
+  } | null;
+  decision: {
+    id: number;
+    title: string;
+    review_state: string;
+  } | null;
+};
+
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
 
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
@@ -122,6 +141,16 @@ export async function getDashboardSummary(workspaceSlug: string): Promise<Dashbo
   );
   if (!response.ok) {
     throw new Error("Failed to load dashboard summary");
+  }
+  return response.json();
+}
+
+export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlertItem[]> {
+  const response = await fetch(`${apiBaseUrl}/drift?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    throw new Error("Failed to load drift alerts");
   }
   return response.json();
 }

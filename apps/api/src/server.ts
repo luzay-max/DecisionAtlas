@@ -1,5 +1,6 @@
 import { dashboardRoute } from "./routes/dashboard";
 import { decisionsRoute } from "./routes/decisions";
+import { driftRoute } from "./routes/drift";
 import Fastify from "fastify";
 import { getEnv } from "./plugins/env";
 import { healthRoute } from "./routes/health";
@@ -15,6 +16,7 @@ export function buildServer() {
   app.register(queryRoute);
   app.register(timelineRoute);
   app.register(dashboardRoute);
+  app.register(driftRoute);
   return app;
 }
 

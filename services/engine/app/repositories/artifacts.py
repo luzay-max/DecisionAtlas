@@ -60,5 +60,11 @@ class ArtifactRepository:
         stmt = select(Artifact).where(Artifact.workspace_id == workspace_id).order_by(Artifact.id)
         return list(self.session.scalars(stmt))
 
+    def get_by_id(self, artifact_id: int | None) -> Artifact | None:
+        if artifact_id is None:
+            return None
+        stmt = select(Artifact).where(Artifact.id == artifact_id)
+        return self.session.scalar(stmt)
+
     def count_by_workspace(self, workspace_id: int) -> int:
         return len(self.list_by_workspace(workspace_id))
