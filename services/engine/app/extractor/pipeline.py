@@ -57,7 +57,10 @@ class CandidateExtractionPipeline:
                     prompt=prompt,
                 )
             )
-            parsed = parse_extraction_response(raw_response)
+            try:
+                parsed = parse_extraction_response(raw_response)
+            except ValueError:
+                continue
             if parsed is None:
                 continue
 

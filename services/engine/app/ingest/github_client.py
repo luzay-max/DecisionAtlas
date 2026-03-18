@@ -14,6 +14,7 @@ class GitHubClient:
         token: str | None = None,
         *,
         base_url: str = "https://api.github.com",
+        max_pages: int = 5,
         client: httpx.Client | None = None,
     ) -> None:
         headers = {
@@ -25,6 +26,7 @@ class GitHubClient:
             headers["Authorization"] = f"Bearer {token}"
 
         self.base_url = base_url.rstrip("/")
+        self.max_pages = max_pages
         self.client = client or httpx.Client(base_url=self.base_url, headers=headers, timeout=30.0)
 
     def fetch_issues(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
@@ -105,6 +107,8 @@ class GitHubClient:
         page = 1
         results: list[dict[str, Any]] = []
         while True:
+            if page > self.max_pages:
+                break
             request_params = {"per_page": 100, "page": page}
             if params:
                 request_params.update(params)

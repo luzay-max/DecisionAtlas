@@ -30,6 +30,11 @@ class StubProvider:
         """
 
 
+class InvalidJsonProvider:
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        return "not valid json"
+
+
 def test_pipeline_skips_low_signal_and_creates_candidate_decision(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "extractor.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -123,3 +128,39 @@ def test_pipeline_is_idempotent_for_already_linked_artifacts(tmp_path: Path, mon
 
     assert created == 0
     assert len(decisions) == 1
+
+
+def test_pipeline_skips_invalid_json_responses(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "extractor-invalid.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="issue",
+                source_id="1",
+                repo="org/repo",
+                title="Cache decision",
+                content="We decided to use Redis as a cache because latency mattered.",
+                author="alice",
+                url="https://github.com/org/repo/issues/1",
+                timestamp=None,
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        created = CandidateExtractionPipeline(session, InvalidJsonProvider()).run(workspace_slug="demo-workspace")
+        decisions = session.scalars(select(Decision)).all()
+
+    assert created == 0
+    assert decisions == []

@@ -173,3 +173,38 @@ def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
 
     assert len(issues) == 1
     assert request_pages == ["1", "2"]
+
+
+def test_paginate_respects_max_pages_limit() -> None:
+    request_pages: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_pages.append(request.url.params.get("page"))
+        page = int(request.url.params.get("page", "1"))
+        next_page = page + 1
+        return httpx.Response(
+            200,
+            headers={"Link": f'<https://api.github.com/repos/org/repo/issues?per_page=100&page={next_page}>; rel="next"'},
+            json=[
+                {
+                    "id": page,
+                    "number": page,
+                    "title": f"Issue {page}",
+                    "body": "Issue body",
+                    "user": {"login": "alice"},
+                    "html_url": f"https://github.com/org/repo/issues/{page}",
+                    "state": "open",
+                    "created_at": "2026-03-18T00:00:00Z",
+                }
+            ],
+        )
+
+    client = GitHubClient(
+        max_pages=3,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    issues = client.fetch_issues("org/repo")
+
+    assert len(issues) == 3
+    assert request_pages == ["1", "2", "3"]

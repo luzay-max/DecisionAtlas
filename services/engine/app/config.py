@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     port: int = 8000
     database_url: str = "sqlite:///./decisionatlas.db"
     github_token: str | None = None
+    github_import_max_pages: int = 5
     llm_provider_mode: str = "auto"
     embedding_provider_mode: str = "auto"
     llm_api_key: str | None = None

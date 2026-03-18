@@ -8,13 +8,29 @@ export function DemoImportButton({ workspaceSlug, repo }: { workspaceSlug: strin
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  async function waitForJob(jobId: string) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const job = await getImportJob(jobId);
+      if (job.status === "failed" || job.status === "succeeded") {
+        return job;
+      }
+      setMessage(`Import ${job.status ?? "running"}...`);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return null;
+  }
+
   async function handleClick() {
     setLoading(true);
     setMessage("Queued demo import...");
     try {
       setMessage("Running demo import...");
       const response = await startGithubImport(workspaceSlug, repo);
-      const job = await getImportJob(response.job_id);
+      const job = await waitForJob(response.job_id);
+      if (job === null) {
+        setMessage("Import started in background. Refresh the dashboard in a bit to see the result.");
+        return;
+      }
       if (job.status === "failed") {
         setMessage(`Import failed: ${job.error_message ?? "unknown error"}`);
         return;

@@ -15,10 +15,28 @@ from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.workspaces import WorkspaceRepository
 
 
-def run_github_import(*, workspace_slug: str, repo: str, mode: str = "full") -> dict[str, int | str | None]:
+def queue_github_import(*, workspace_slug: str, repo: str, mode: str = "full") -> dict[str, int | str | None]:
     settings = get_settings()
     session = get_db_session()
     job_id = str(uuid4())
+    try:
+        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
+        if workspace is None:
+            raise ValueError(f"Workspace not found: {workspace_slug}")
+        if mode not in {"full", "since_last_sync"}:
+            raise ValueError(f"Unsupported import mode: {mode}")
+
+        jobs = ImportJobRepository(session)
+        job = jobs.create(job_id=job_id, workspace_id=workspace.id, repo=repo, mode=mode)
+        session.commit()
+        return serialize_import_job(job)
+    finally:
+        session.close()
+
+
+def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str = "full") -> dict[str, int | str | None]:
+    settings = get_settings()
+    session = get_db_session()
     logger = get_logger()
     try:
         workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
@@ -26,8 +44,6 @@ def run_github_import(*, workspace_slug: str, repo: str, mode: str = "full") -> 
             raise ValueError(f"Workspace not found: {workspace_slug}")
 
         jobs = ImportJobRepository(session)
-        jobs.create(job_id=job_id, workspace_id=workspace.id, repo=repo, mode=mode)
-        session.commit()
         jobs.mark_running(job_id)
         session.commit()
 
@@ -37,7 +53,13 @@ def run_github_import(*, workspace_slug: str, repo: str, mode: str = "full") -> 
             if last_success is not None and last_success.job_id != job_id:
                 since = last_success.finished_at or last_success.started_at or last_success.created_at
 
-        importer = GitHubImporter(session, GitHubClient(token=getattr(settings, "github_token", None)))
+        importer = GitHubImporter(
+            session,
+            GitHubClient(
+                token=getattr(settings, "github_token", None),
+                max_pages=settings.github_import_max_pages,
+            ),
+        )
         runtime = build_runtime_providers(settings)
         logger.info(
             "github import started",
@@ -71,8 +93,6 @@ def run_github_import(*, workspace_slug: str, repo: str, mode: str = "full") -> 
         if job is not None:
             failed_job = jobs.mark_failed(job_id, error_message=str(exc))
             session.commit()
-            if isinstance(exc, ValueError):
-                raise
             return serialize_import_job(failed_job)
         raise
     finally:
