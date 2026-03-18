@@ -9,7 +9,7 @@
   },
   {
     "id": "q3",
-    "question": "why is redis cache-only"
+    "question": "why move long-running jobs to a queue"
   },
   {
     "id": "q4",
@@ -17,6 +17,6 @@
   },
   {
     "id": "q5",
-    "question": "why would a change trigger drift review"
+    "question": "why is redis cache-only"
   }
 ]

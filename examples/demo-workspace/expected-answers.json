@@ -2,26 +2,36 @@
   {
     "id": "q1",
     "expected_topic": "redis cache",
+    "expected_status": "ok",
+    "expected_terms": ["redis", "cache"],
     "min_citations": 2
   },
   {
     "id": "q2",
     "expected_topic": "postgresql primary",
+    "expected_status": "ok",
+    "expected_terms": ["postgresql", "primary"],
     "min_citations": 2
   },
   {
     "id": "q3",
-    "expected_topic": "cache-only rule",
+    "expected_topic": "queueing long-running work",
+    "expected_status": "ok",
+    "expected_terms": ["queue", "long-running"],
     "min_citations": 2
   },
   {
     "id": "q4",
     "expected_topic": "human review workflow",
-    "min_citations": 1
+    "expected_status": "ok",
+    "expected_terms": ["review", "acceptance"],
+    "min_citations": 2
   },
   {
     "id": "q5",
-    "expected_topic": "drift alerting",
-    "min_citations": 1
+    "expected_topic": "cache-only rule",
+    "expected_status": "ok",
+    "expected_terms": ["redis", "cache only"],
+    "min_citations": 2
   }
 ]

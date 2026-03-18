@@ -33,7 +33,8 @@ def answer_why_question(
 
     decisions = DecisionRepository(session)
     source_refs = SourceRefRepository(session)
-    top_hits = hits[:2]
+    top_score = hits[0].score
+    top_hits = [hit for hit in hits if hit.score >= (top_score * 0.5)][:2]
     citations = []
     answer_parts = []
     for hit in top_hits:

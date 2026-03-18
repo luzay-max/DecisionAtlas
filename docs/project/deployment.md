@@ -55,6 +55,14 @@ pnpm --filter @decisionatlas/api dev
 pnpm --filter @decisionatlas/web dev
 ```
 
+For the fastest local operator path, use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+That script runs the curated demo on an isolated SQLite database in `.tmp/`. It is intended for evaluation and screenshots, while the manual flow above stays closer to the hosted Postgres/Redis topology.
+
 ## Demo verification
 
 After startup:
@@ -66,3 +74,10 @@ After startup:
 5. Verify `/drift`
 
 If the import succeeds but candidate decisions remain sparse, verify the live provider variables are set and the demo repo is reachable.
+
+## Local operator commands
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-demo-stack.ps1
+```

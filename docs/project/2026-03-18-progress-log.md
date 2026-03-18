@@ -2,7 +2,7 @@
 
 ## Summary
 
-Today the project moved from the finished Week 12 MVP into the first delivered slice of `v0.2` public-demo hardening.
+Today the project moved from the finished Week 12 MVP into two delivered slices of `v0.2` public-demo hardening.
 
 Completed scope:
 
@@ -19,6 +19,7 @@ Completed scope:
 - Week 11: benchmark fixtures, structured logging, browser smoke flow
 - Week 12: README, quick start, release checklist, GitHub community files, CI workflow
 - v0.2 slice 1: configurable live provider runtime, persisted import jobs, incremental GitHub import, demo-focused UI and docs
+- v0.2 slice 2: benchmark alignment for the curated demo repo, one-command local bring-up, retrieval ranking cleanup, and updated smoke coverage
 
 ## Commits Pushed Today
 
@@ -56,6 +57,10 @@ The current build can:
 - expose import job status through engine, API, and dashboard
 - run import -> index -> candidate extraction in one GitHub import job
 - prepare a local demo environment with `scripts/dev/prepare-demo.ps1`
+- start and stop an isolated local demo stack with:
+  - `scripts/dev/start-demo-stack.ps1`
+  - `scripts/dev/stop-demo-stack.ps1`
+- validate the curated demo workspace against fixture and live benchmarks
 
 ## v0.2 Work Completed
 
@@ -92,8 +97,26 @@ The current build can:
 - Drift page empty state now tells the user what to do next
 - Added local demo preparation script:
   - `scripts/dev/prepare-demo.ps1`
-- Demo workspace now defaults to:
-  - `https://github.com/openai/openai-cookbook`
+- Demo workspace and curated benchmark fixtures now default to:
+  - `https://github.com/encode/httpx`
+
+### Demo hardening follow-up
+
+- Added one-command local operator scripts:
+  - `scripts/dev/start-demo-stack.ps1`
+  - `scripts/dev/stop-demo-stack.ps1`
+- The one-command demo flow now uses an isolated SQLite database under `.tmp/`
+  so the curated demo is reproducible even when local Docker/PostgreSQL state is dirty
+- Updated smoke seed data to cover:
+  - Redis cache-only rationale
+  - PostgreSQL as source of truth
+  - queueing long-running jobs
+  - human review before acceptance
+  - one candidate decision and one drift alert
+- Updated benchmark/example questions to match the curated demo data
+- Tightened retrieval ranking by filtering stopword noise from full-text scoring
+- Tightened answer assembly so weak secondary hits do not pollute why-answers
+- Updated Playwright smoke expectations to match the new curated demo content
 
 ### Docs and release direction
 
@@ -124,14 +147,16 @@ Fix applied locally:
 
 ## Verification Run
 
-Latest verification status after the v0.2 slice landed:
+Latest verification status after the current v0.2 work:
 
-- `python -m uv run pytest -q` in `services/engine`: `54 passed`
+- `python -m uv run pytest -q` in `services/engine`: `56 passed`
 - `pnpm test`: passed
 - `pnpm typecheck`: passed
 - `python scripts/ci/run_benchmark.py`: passed
+- `python scripts/ci/run_benchmark.py --live --base-url http://127.0.0.1:3001 --workspace-slug demo-workspace`: passed
 - `pnpm --filter @decisionatlas/web exec playwright test`: passed
 - `powershell -ExecutionPolicy Bypass -File .\scripts\dev\prepare-demo.ps1`: passed
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1`: passed
 
 ## Known Current State
 
@@ -150,10 +175,9 @@ Untracked local-only files and folders:
 
 Continue v0.2 with the still-open items:
 
-- calibrate benchmark fixtures and example questions against the real demo repo import
 - add stronger import failure summaries for markdown/text/docx paths
-- make deployment more turnkey than documentation alone
 - prepare one hosted public demo environment
+- finish live-provider validation with a non-fake model path once local credentials are configured safely
 
 ## Stop Point
 
@@ -165,5 +189,7 @@ The current stop point is:
 - import job persistence delivered
 - demo UX improved
 - local demo preparation path verified
+- curated benchmark/live benchmark aligned to `encode/httpx`
+- one-command local bring-up verified
 
 The next implementation slice should focus on benchmark calibration and hosted demo bring-up.

@@ -52,13 +52,21 @@ For a live provider-backed demo, set these before starting services:
 - `EMBEDDING_MODEL=...`
 - optionally `EMBEDDING_API_KEY` and `LLM_BASE_URL`
 
+For a one-command local bring-up:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+This script starts an isolated, SQLite-backed demo workspace and does not depend on the Docker PostgreSQL volume state. It is the fastest way to experience the product locally.
+
 Then open:
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001/health`
 - Engine: `http://localhost:8000/health`
 
-The `.env.example` file already points `DATABASE_URL` at the local PostgreSQL container.
+The `.env.example` file still points `DATABASE_URL` at the local PostgreSQL container for manual deployment-style runs.
 
 Project docs:
 

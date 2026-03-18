@@ -3,6 +3,25 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $repoRoot
 
+$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/decisionatlas"
+$env:REDIS_URL = "redis://127.0.0.1:6379/0"
+$env:ENGINE_BASE_URL = "http://127.0.0.1:8000"
+$env:API_BASE_URL = "http://127.0.0.1:3001"
+
+function Invoke-Uv {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+  )
+
+  if (Get-Command uv -ErrorAction SilentlyContinue) {
+    & uv @Arguments
+    return
+  }
+
+  & python -m uv @Arguments
+}
+
 if (-not (Test-Path ".env")) {
   Copy-Item .env.example .env
   Write-Host "Created .env from .env.example" -ForegroundColor Yellow
@@ -11,13 +30,16 @@ if (-not (Test-Path ".env")) {
 Write-Host "Starting demo infrastructure..." -ForegroundColor Cyan
 docker compose up -d postgres redis
 
+Write-Host "Aligning local PostgreSQL credentials for the demo stack..." -ForegroundColor Cyan
+docker exec decisionatlas-postgres psql -U postgres -d postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';" | Out-Null
+
 Write-Host "Syncing engine environment..." -ForegroundColor Cyan
-python -m uv sync --project services/engine
+Invoke-Uv sync --project services/engine
 
 Write-Host "Running migrations and seeding the workspace..." -ForegroundColor Cyan
 Set-Location (Join-Path $repoRoot "services\engine")
-python -m uv run alembic upgrade head
-python -m uv run python -m app.db.seed_demo
+Invoke-Uv run alembic upgrade head
+Invoke-Uv run python ..\..\scripts\ci\seed_smoke_demo.py
 
 Set-Location $repoRoot
 Write-Host ""

@@ -25,6 +25,14 @@ Fast path for the local demo:
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\prepare-demo.ps1
 ```
 
+Full one-command startup:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+This path starts an isolated SQLite demo database under `.tmp/` so the curated demo stays reproducible even if your local PostgreSQL container already has old state.
+
 For a live public demo, edit `.env` and set:
 
 - `LLM_PROVIDER_MODE=openai_compatible`
@@ -46,7 +54,7 @@ Expected local ports:
 
 ## Prepare the engine database
 
-The copied `.env` file points the engine at local PostgreSQL and Redis.
+The copied `.env` file points the engine at local PostgreSQL and Redis. Use this path when you want a deployment-like local environment instead of the isolated one-command demo.
 
 ```powershell
 cd services/engine
