@@ -35,10 +35,11 @@ Completed scope:
 - `ab42f23` `feat: start v0.2 demo hardening`
 - `f59552e` `feat: improve demo experience flow`
 - `5ea5fbe` `feat: align demo benchmark and one-click startup`
+- `4789676` `feat: improve workspace navigation flow`
 
 Remote status:
 
-- `origin/main` is at `5ea5fbe`
+- `origin/main` is at `4789676`
 - GitHub repo: `https://github.com/luzay-max/DecisionAtlas.git`
 
 ## Functional State
