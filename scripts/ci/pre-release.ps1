@@ -3,11 +3,25 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 Set-Location $repoRoot
 
+function Invoke-Uv {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+  )
+
+  if (Get-Command uv -ErrorAction SilentlyContinue) {
+    & uv @Arguments
+    return
+  }
+
+  & python -m uv @Arguments
+}
+
 pnpm test
 pnpm typecheck
 
 Set-Location (Join-Path $repoRoot "services\engine")
-python -m uv run pytest -q
+Invoke-Uv run pytest -q
 
 Set-Location $repoRoot
 python scripts\ci\run_benchmark.py

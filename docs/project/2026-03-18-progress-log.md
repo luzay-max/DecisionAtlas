@@ -2,7 +2,7 @@
 
 ## Summary
 
-Today the project moved from planning into a working MVP foundation with browser-visible flows.
+Today the project moved from planning to a full Week 12 MVP build with local verification, browser smoke coverage, and release packaging.
 
 Completed scope:
 
@@ -15,6 +15,9 @@ Completed scope:
 - Week 7: why-query retrieval and citation-first answering
 - Week 8: search page, timeline, workspace dashboard
 - Week 9: first rule-first drift detection flow
+- Week 10: semantic drift enrichment and conservative classifier
+- Week 11: benchmark fixtures, structured logging, browser smoke flow
+- Week 12: README, quick start, release checklist, GitHub community files, CI workflow
 
 ## Commits Pushed Today
 
@@ -22,10 +25,13 @@ Completed scope:
 - `2eb537e` `feat: add review queue and why-query foundations`
 - `219c304` `feat: add workspace timeline and dashboard views`
 - `231639f` `feat: add rule-first drift detection`
+- `40b3260` `feat: add semantic drift enrichment`
+- `61ac692` `feat: add benchmark and smoke validation`
+- `f559573` `docs: add release packaging and ci`
 
 Remote status:
 
-- `origin/main` is at `231639f`
+- `origin/main` is at `f559573`
 - GitHub repo: `https://github.com/luzay-max/DecisionAtlas.git`
 
 ## Functional State
@@ -38,52 +44,59 @@ The current build can:
 - extract candidate decisions with source refs
 - review candidate decisions in the browser
 - answer why-questions with citations
-- show an accepted decision timeline
-- show workspace KPIs and recent alerts
-- detect one conservative drift rule family and persist `possible_drift` alerts
+- show accepted decision timeline and workspace KPIs
+- detect rule-first drift and add semantic drift enrichment
+- run benchmark validation and browser smoke automation
 
-## Drift Rule Implemented
+## CI Follow-Up
 
-The first drift rule family is intentionally narrow and explainable:
+After the Week 12 push, GitHub Actions failed in `Sync engine environment` on Windows with:
 
-- accepted decisions that say Redis is `cache-only` produce a machine-checkable rule
-- new artifacts are scanned for text suggesting Redis is being used as a primary or persistent store
-- matches create persisted `possible_drift` alerts
+- `python.exe: No module named uv`
 
-This is implemented in:
+Root cause:
 
-- `services/engine/app/drift/rule_extractor.py`
-- `services/engine/app/drift/evaluator.py`
-- `services/engine/app/api/drift.py`
-- `apps/web/app/drift/page.tsx`
+- `astral-sh/setup-uv` installs the `uv` CLI on `PATH`
+- the workflow incorrectly called `python -m uv ...`, which requires a Python package install that is not present on the runner
+
+Fix applied locally:
+
+- CI now uses `uv sync --project services/engine`
+- engine tests now use `uv run pytest -q`
+- release and smoke scripts were updated to use `uv run ...`
+- setup docs now match the actual CLI usage instead of recommending `python -m uv ...`
 
 ## Verification Run
 
-Final verification status before stopping:
+Latest verification status before the CI fix push:
 
-- `python -m uv run pytest -q` in `services/engine`: `38 passed`
+- `python -m uv run pytest -q` in `services/engine`: `46 passed`
 - `pnpm test`: passed
 - `pnpm typecheck`: passed
+- `python scripts/ci/run_benchmark.py`: passed
+- `pnpm --filter @decisionatlas/web exec playwright test`: passed
 
 ## Known Current State
 
 - Docker is working locally for `postgres` and `redis`
-- the project is in a clean committed state except for two intentionally untracked local research files
-- those files were not pushed to GitHub
+- the repo is committed and pushed through Week 12
+- local-only research and tooling folders remain intentionally untracked
 
-Untracked local-only files:
+Untracked local-only files and folders:
 
+- `.codex/`
+- `openspec/`
 - `1.txt`
 - `github_open_source_project_research_report_zh_final.docx`
 
 ## Recommended Next Step
 
-Resume at Week 10:
+After the CI fix is pushed and green:
 
-- add semantic drift candidate recall
-- add conservative semantic alert labels such as `possible_supersession` and `needs_review`
-- extend the drift page to show semantic context in alert detail
+- start `v0.2` with real model provider credentials
+- add GitHub App auth for production-style imports
+- add deployment config for a hosted demo
 
 ## Stop Point
 
-Development stopped after Week 9 completion and successful push to `origin/main`.
+Development reached the end of the 12-week MVP plan. The next phase starts after CI is green again.

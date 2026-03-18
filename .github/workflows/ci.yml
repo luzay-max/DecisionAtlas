@@ -38,7 +38,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Sync engine environment
-        run: python -m uv sync --project services/engine
+        run: uv sync --project services/engine
 
       - name: Run Node tests
         run: pnpm test
@@ -48,7 +48,7 @@ jobs:
 
       - name: Run engine tests
         working-directory: services/engine
-        run: python -m uv run pytest -q
+        run: uv run pytest -q
 
       - name: Run benchmark fixture validation
         run: python scripts/ci/run_benchmark.py

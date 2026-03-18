@@ -30,16 +30,18 @@ Quick start:
 
 ```powershell
 pnpm install
-python -m uv sync --project services/engine
+uv sync --project services/engine
 Copy-Item .env.example .env
 docker compose up -d postgres redis
 cd services/engine
-python -m uv run alembic upgrade head
-python -m uv run python app/db/seed_demo.py
+uv run alembic upgrade head
+uv run python app/db/seed_demo.py
 cd ..\..
 pnpm --filter @decisionatlas/api dev
 pnpm --filter @decisionatlas/web dev
 ```
+
+If `uv` is not on `PATH` but `python -m uv --version` works, replace `uv ...` with `python -m uv ...` for local shell commands.
 
 Then open:
 

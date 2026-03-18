@@ -15,7 +15,7 @@ From the repository root:
 
 ```powershell
 pnpm install
-python -m uv sync --project services/engine
+uv sync --project services/engine
 Copy-Item .env.example .env
 ```
 
@@ -36,8 +36,8 @@ The copied `.env` file points the engine at local PostgreSQL and Redis.
 
 ```powershell
 cd services/engine
-python -m uv run alembic upgrade head
-python -m uv run python app/db/seed_demo.py
+uv run alembic upgrade head
+uv run python app/db/seed_demo.py
 cd ..\..
 ```
 
@@ -47,7 +47,7 @@ Terminal 1:
 
 ```powershell
 cd services/engine
-python -m uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Terminal 2:
@@ -96,6 +96,6 @@ pnpm --filter @decisionatlas/web exec playwright test
 
 ## Common issues
 
-- If `uv` is not on `PATH`, use `python -m uv ...`
+- If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. CI uses the `uv` CLI directly.
 - If Docker is running but services are unavailable, retry `docker compose up -d postgres redis`
 - If `.docx` import is skipped, confirm `pandoc` is installed and available from the terminal

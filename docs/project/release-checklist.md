@@ -11,7 +11,7 @@
 
 - [ ] `pnpm test`
 - [ ] `pnpm typecheck`
-- [ ] `cd services/engine && python -m uv run pytest -q`
+- [ ] `cd services/engine && uv run pytest -q`
 - [ ] `python scripts/ci/run_benchmark.py`
 - [ ] `pnpm --filter @decisionatlas/web exec playwright test`
 

@@ -9,8 +9,22 @@ if (-not (Test-Path $dbDir)) {
   New-Item -ItemType Directory -Path $dbDir | Out-Null
 }
 
+function Invoke-Uv {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+  )
+
+  if (Get-Command uv -ErrorAction SilentlyContinue) {
+    & uv @Arguments
+    return
+  }
+
+  & python -m uv @Arguments
+}
+
 $env:DATABASE_URL = "sqlite:///$($dbPath -replace '\\','/')"
 Set-Location $engineDir
-python -m uv run alembic upgrade head
-python -m uv run python ..\..\scripts\ci\seed_smoke_demo.py
-python -m uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+Invoke-Uv run alembic upgrade head
+Invoke-Uv run python ..\..\scripts\ci\seed_smoke_demo.py
+Invoke-Uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
