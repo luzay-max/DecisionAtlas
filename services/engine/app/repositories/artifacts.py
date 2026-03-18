@@ -55,3 +55,7 @@ class ArtifactRepository:
 
         self.session.flush()
         return artifact
+
+    def list_by_workspace(self, workspace_id: int) -> list[Artifact]:
+        stmt = select(Artifact).where(Artifact.workspace_id == workspace_id).order_by(Artifact.id)
+        return list(self.session.scalars(stmt))
