@@ -2,7 +2,7 @@
 
 ## Summary
 
-Today the project moved from planning to a full Week 12 MVP build with local verification, browser smoke coverage, and release packaging.
+Today the project moved from the finished Week 12 MVP into the first delivered slice of `v0.2` public-demo hardening.
 
 Completed scope:
 
@@ -18,6 +18,7 @@ Completed scope:
 - Week 10: semantic drift enrichment and conservative classifier
 - Week 11: benchmark fixtures, structured logging, browser smoke flow
 - Week 12: README, quick start, release checklist, GitHub community files, CI workflow
+- v0.2 slice 1: configurable live provider runtime, persisted import jobs, incremental GitHub import, demo-focused UI and docs
 
 ## Commits Pushed Today
 
@@ -28,10 +29,13 @@ Completed scope:
 - `40b3260` `feat: add semantic drift enrichment`
 - `61ac692` `feat: add benchmark and smoke validation`
 - `f559573` `docs: add release packaging and ci`
+- `9574c30` `fix: use uv cli in ci workflow`
+- `ab42f23` `feat: start v0.2 demo hardening`
+- `f59552e` `feat: improve demo experience flow`
 
 Remote status:
 
-- `origin/main` is at `f559573`
+- `origin/main` is at `f59552e`
 - GitHub repo: `https://github.com/luzay-max/DecisionAtlas.git`
 
 ## Functional State
@@ -47,6 +51,58 @@ The current build can:
 - show accepted decision timeline and workspace KPIs
 - detect rule-first drift and add semantic drift enrichment
 - run benchmark validation and browser smoke automation
+- switch between fake-provider mode and OpenAI-compatible live provider mode
+- persist import jobs with `full` and `since_last_sync` modes
+- expose import job status through engine, API, and dashboard
+- run import -> index -> candidate extraction in one GitHub import job
+- prepare a local demo environment with `scripts/dev/prepare-demo.ps1`
+
+## v0.2 Work Completed
+
+### Provider runtime
+
+- Added configurable provider settings:
+  - `LLM_PROVIDER_MODE`
+  - `LLM_API_KEY`
+  - `EMBEDDING_API_KEY`
+  - `LLM_BASE_URL`
+  - `LLM_MODEL`
+  - `EMBEDDING_MODEL`
+  - `LLM_TIMEOUT_SECONDS`
+- Added runtime provider selection with fake/live fallback
+- Added explicit provider errors for configuration, timeout, rate limit, request, and response failures
+- Wired the runtime into why-query and semantic drift evaluation
+
+### Import hardening
+
+- Added `import_jobs` persistence and migration
+- Added GitHub import `mode` support:
+  - `full`
+  - `since_last_sync`
+- Added `GET /imports/:jobId`
+- Dashboard now shows the configured demo repo and latest import state
+- Import jobs now continue through indexing and candidate extraction
+- Candidate extraction now skips already-linked artifacts to reduce duplicate candidates on reruns
+
+### Demo experience
+
+- Homepage now explains the 3-step public demo path
+- Review queue now surfaces high-confidence candidates first
+- Search page now includes example questions, better empty states, and failure messaging
+- Drift page empty state now tells the user what to do next
+- Added local demo preparation script:
+  - `scripts/dev/prepare-demo.ps1`
+- Demo workspace now defaults to:
+  - `https://github.com/openai/openai-cookbook`
+
+### Docs and release direction
+
+- Added:
+  - `docs/project/deployment.md`
+  - `docs/project/release-notes-v0.2.md`
+  - `docs/plans/2026-03-18-decisionatlas-v0.2-implementation-plan.md`
+  - `docs/plans/2026-03-18-decisionatlas-v0.3-backlog.md`
+- Updated `README.md`, `quick-start.md`, and `demo-script.md` to reflect the v0.2 demo path
 
 ## CI Follow-Up
 
@@ -68,18 +124,19 @@ Fix applied locally:
 
 ## Verification Run
 
-Latest verification status before the CI fix push:
+Latest verification status after the v0.2 slice landed:
 
-- `python -m uv run pytest -q` in `services/engine`: `46 passed`
+- `python -m uv run pytest -q` in `services/engine`: `54 passed`
 - `pnpm test`: passed
 - `pnpm typecheck`: passed
 - `python scripts/ci/run_benchmark.py`: passed
 - `pnpm --filter @decisionatlas/web exec playwright test`: passed
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev\prepare-demo.ps1`: passed
 
 ## Known Current State
 
 - Docker is working locally for `postgres` and `redis`
-- the repo is committed and pushed through Week 12
+- the repo is committed and pushed through the first v0.2 demo-hardening slice
 - local-only research and tooling folders remain intentionally untracked
 
 Untracked local-only files and folders:
@@ -91,12 +148,22 @@ Untracked local-only files and folders:
 
 ## Recommended Next Step
 
-After the CI fix is pushed and green:
+Continue v0.2 with the still-open items:
 
-- start `v0.2` with real model provider credentials
-- add GitHub App auth for production-style imports
-- add deployment config for a hosted demo
+- calibrate benchmark fixtures and example questions against the real demo repo import
+- add stronger import failure summaries for markdown/text/docx paths
+- make deployment more turnkey than documentation alone
+- prepare one hosted public demo environment
 
 ## Stop Point
 
-Development reached the end of the 12-week MVP plan. The next phase starts after CI is green again.
+Development is now inside `v0.2` rather than the original 12-week MVP plan.
+
+The current stop point is:
+
+- provider runtime delivered
+- import job persistence delivered
+- demo UX improved
+- local demo preparation path verified
+
+The next implementation slice should focus on benchmark calibration and hosted demo bring-up.
