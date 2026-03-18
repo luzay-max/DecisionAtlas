@@ -12,8 +12,19 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
         <div>
           <p className="eyebrow">Workspace Dashboard</p>
           <h1>{summary.workspace_slug}</h1>
+          <p>Demo repo: {summary.github_repo}</p>
         </div>
-        <DemoImportButton workspaceSlug={summary.workspace_slug} />
+        <DemoImportButton workspaceSlug={summary.workspace_slug} repo={summary.github_repo} />
+        {summary.latest_import ? (
+          <div className="stack">
+            <p className="eyebrow">Latest Import</p>
+            <p>
+              {summary.latest_import.status} via {summary.latest_import.mode} mode,{" "}
+              {summary.latest_import.imported_count} artifacts
+            </p>
+            {summary.latest_import.error_message ? <p>{summary.latest_import.error_message}</p> : null}
+          </div>
+        ) : null}
         <KpiStrip summary={summary} />
         <RecentAlerts summary={summary} />
       </section>

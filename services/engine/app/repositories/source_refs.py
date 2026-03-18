@@ -37,3 +37,7 @@ class SourceRefRepository:
     def list_by_decision(self, decision_id: int) -> list[SourceRef]:
         stmt = select(SourceRef).where(SourceRef.decision_id == decision_id).order_by(SourceRef.id)
         return list(self.session.scalars(stmt))
+
+    def exists_for_artifact(self, artifact_id: int) -> bool:
+        stmt = select(SourceRef.id).where(SourceRef.artifact_id == artifact_id).limit(1)
+        return self.session.scalar(stmt) is not None

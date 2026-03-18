@@ -25,8 +25,8 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
         session.add(Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"))
         session.commit()
 
-    def fake_run_github_import(*, workspace_slug: str, repo: str):
-        return {"job_id": "job-123", "imported_count": 7}
+    def fake_run_github_import(*, workspace_slug: str, repo: str, mode: str):
+        return {"job_id": "job-123", "repo": repo, "mode": mode, "status": "succeeded", "imported_count": 7}
 
     monkeypatch.setattr("app.api.imports.run_github_import", fake_run_github_import)
 
@@ -34,8 +34,27 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
 
     response = client.post(
         "/imports/github",
-        json={"workspace_slug": "demo-workspace", "repo": "org/repo"},
+        json={"workspace_slug": "demo-workspace", "repo": "org/repo", "mode": "full"},
     )
 
     assert response.status_code == 200
-    assert response.json() == {"job_id": "job-123", "imported_count": 7}
+    assert response.json() == {
+        "job_id": "job-123",
+        "repo": "org/repo",
+        "mode": "full",
+        "status": "succeeded",
+        "imported_count": 7,
+    }
+
+
+def test_get_import_job_status_returns_job(monkeypatch) -> None:
+    def fake_get_import_job_status(job_id: str):
+        return {"job_id": job_id, "repo": "org/repo", "mode": "full", "status": "succeeded", "imported_count": 9}
+
+    monkeypatch.setattr("app.api.imports.get_import_job_status", fake_get_import_job_status)
+
+    client = TestClient(create_app())
+    response = client.get("/imports/job-123")
+
+    assert response.status_code == 200
+    assert response.json()["job_id"] == "job-123"

@@ -5,7 +5,21 @@ test("demo smoke flow", async ({ page }) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ job_id: "demo-job", imported_count: 2 })
+      body: JSON.stringify({ job_id: "demo-job", repo: "openai/openai-cookbook", mode: "full", status: "succeeded", imported_count: 2 })
+    });
+  });
+
+  await page.route("**/imports/demo-job", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        job_id: "demo-job",
+        repo: "openai/openai-cookbook",
+        mode: "full",
+        status: "succeeded",
+        imported_count: 2
+      })
     });
   });
 
@@ -30,7 +44,7 @@ test("demo smoke flow", async ({ page }) => {
   await page.goto("/workspaces/demo-workspace");
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
   await page.getByRole("button", { name: "Run Demo Import" }).click();
-  await expect(page.getByText("Imported 2 artifacts")).toBeVisible();
+  await expect(page.getByText("Imported 2 artifacts from openai/openai-cookbook")).toBeVisible();
 
   await page.goto("/review");
   await expect(page.getByText("Adopt Queue for Async Jobs")).toBeVisible();

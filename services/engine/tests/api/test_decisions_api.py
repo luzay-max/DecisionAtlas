@@ -47,6 +47,20 @@ def _seed_review_fixture(db_path: Path) -> None:
         session.add(decision)
         session.flush()
         session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Add Queue",
+                status="active",
+                review_state="candidate",
+                problem="Background tasks are slow",
+                context="Need more reliability",
+                constraints=None,
+                chosen_option="Queue long-running jobs",
+                tradeoffs="More infra",
+                confidence=0.55,
+            )
+        )
+        session.add(
             SourceRef(
                 decision_id=decision.id,
                 artifact_id=artifact.id,
@@ -73,8 +87,9 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
+    assert len(body) == 2
     assert body[0]["review_state"] == "candidate"
+    assert body[0]["title"] == "Use Redis Cache"
 
 
 def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -> None:

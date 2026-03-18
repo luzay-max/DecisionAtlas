@@ -13,6 +13,7 @@ Example why-questions:
 What the MVP already does:
 
 - imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
+- supports fake-provider local mode and OpenAI-compatible live provider mode
 - extracts candidate decisions with source references
 - lets a reviewer accept, reject, or supersede decisions
 - answers why-questions with citation-first responses
@@ -43,6 +44,14 @@ pnpm --filter @decisionatlas/web dev
 
 If `uv` is not on `PATH` but `python -m uv --version` works, replace `uv ...` with `python -m uv ...` for local shell commands.
 
+For a live provider-backed demo, set these before starting services:
+
+- `LLM_PROVIDER_MODE=openai_compatible`
+- `LLM_API_KEY=...`
+- `LLM_MODEL=...`
+- `EMBEDDING_MODEL=...`
+- optionally `EMBEDDING_API_KEY` and `LLM_BASE_URL`
+
 Then open:
 
 - Web: `http://localhost:3000`
@@ -55,10 +64,13 @@ Project docs:
 
 - [Quick Start](./docs/project/quick-start.md)
 - [Demo Script](./docs/project/demo-script.md)
+- [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
 - [Release Checklist](./docs/project/release-checklist.md)
+- [v0.2 Release Notes](./docs/project/release-notes-v0.2.md)
 - [Project Blueprint](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Implementation Plan](./docs/plans/2026-03-18-decisionatlas-implementation-plan.md)
+- [v0.2 Implementation Plan](./docs/plans/2026-03-18-decisionatlas-v0.2-implementation-plan.md)
 
 Screenshots:
 
@@ -72,3 +84,4 @@ Known limitations:
 - MVP auth and multi-user permissions are not implemented yet
 - semantic drift labels are conservative and intentionally narrow
 - demo flows are optimized for one seeded workspace
+- GitHub import still uses token mode, not GitHub App auth

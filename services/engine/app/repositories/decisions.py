@@ -46,7 +46,10 @@ class DecisionRepository:
         stmt = select(Decision).where(Decision.workspace_id == workspace_id)
         if review_state is not None:
             stmt = stmt.where(Decision.review_state == review_state)
-        stmt = stmt.order_by(Decision.id.desc())
+        if review_state == "candidate":
+            stmt = stmt.order_by(Decision.confidence.desc(), Decision.created_at.desc(), Decision.id.desc())
+        else:
+            stmt = stmt.order_by(Decision.id.desc())
         return list(self.session.scalars(stmt))
 
     def get_by_id(self, decision_id: int) -> Decision | None:

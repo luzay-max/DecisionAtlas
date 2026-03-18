@@ -24,4 +24,5 @@ def test_initial_tables_exist(tmp_path: Path) -> None:
         "source_refs",
         "relations",
         "drift_alerts",
+        "import_jobs",
     }.issubset(table_names)

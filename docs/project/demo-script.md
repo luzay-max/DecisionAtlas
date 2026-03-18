@@ -2,7 +2,7 @@
 
 This walkthrough is designed for a 60-90 second open-source demo.
 
-## 1. Open the workspace dashboard
+## 1. Open the workspace dashboard and trigger import
 
 Route:
 
@@ -10,7 +10,7 @@ Route:
 
 Narration:
 
-- "DecisionAtlas starts with one workspace and shows the current artifact count, accepted decisions, candidate decisions, and recent alerts."
+- "DecisionAtlas starts from one demo workspace. Run the demo import to pull a public GitHub repository, then watch the workspace become decision-aware."
 
 ## 2. Show the review queue
 
@@ -20,7 +20,7 @@ Route:
 
 Narration:
 
-- "Candidate decisions are not auto-promoted. They wait in a review queue so the system stays evidence-first and human-approved."
+- "Candidate decisions are not auto-promoted. The highest-confidence items show up first so the review path stays fast and evidence-first."
 
 ## 3. Show why-search
 

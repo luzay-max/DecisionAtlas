@@ -25,4 +25,4 @@ def test_seed_demo_creates_workspace(tmp_path: Path, monkeypatch) -> None:
 
     assert stored is not None
     assert stored.slug == "demo-workspace"
-    assert stored.repo_url == "https://github.com/example/example"
+    assert stored.repo_url == "https://github.com/openai/openai-cookbook"

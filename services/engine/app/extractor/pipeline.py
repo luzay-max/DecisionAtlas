@@ -46,6 +46,8 @@ class CandidateExtractionPipeline:
         for artifact in self.artifacts.list_by_workspace(workspace.id):
             if not _has_decision_signal(artifact.content):
                 continue
+            if self.source_refs.exists_for_artifact(artifact.id):
+                continue
 
             raw_response = self.provider.extract_candidate(
                 ExtractionRequest(

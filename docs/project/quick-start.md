@@ -19,6 +19,14 @@ uv sync --project services/engine
 Copy-Item .env.example .env
 ```
 
+For a live public demo, edit `.env` and set:
+
+- `LLM_PROVIDER_MODE=openai_compatible`
+- `LLM_API_KEY`
+- `LLM_MODEL`
+- `EMBEDDING_MODEL`
+- optional: `EMBEDDING_API_KEY`, `LLM_BASE_URL`, `DEMO_REPO`
+
 ## Start local infrastructure
 
 ```powershell
@@ -97,5 +105,6 @@ pnpm --filter @decisionatlas/web exec playwright test
 ## Common issues
 
 - If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. CI uses the `uv` CLI directly.
+- If import succeeds but no meaningful candidates appear, verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set for a live provider-backed demo.
 - If Docker is running but services are unavailable, retry `docker compose up -d postgres redis`
 - If `.docx` import is skipped, confirm `pandoc` is installed and available from the terminal

@@ -9,6 +9,7 @@ export function ReviewPageContent({ decisions }: { decisions: ReviewDecision[] }
       <section className="panel">
         <p className="eyebrow">Review Queue</p>
         <h1>Candidate decisions waiting for review</h1>
+        <p>Highest-confidence candidates appear first so the demo path stays easy to review.</p>
         <ReviewList decisions={decisions} />
       </section>
     </main>

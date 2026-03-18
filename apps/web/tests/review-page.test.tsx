@@ -26,6 +26,8 @@ describe("ReviewPageContent", () => {
     );
 
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
+    expect(screen.getByText(/highest-confidence candidates appear first/i)).toBeInTheDocument();
+    expect(screen.getByText("0.88")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Supersede" })).toBeInTheDocument();

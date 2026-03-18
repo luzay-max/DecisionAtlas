@@ -11,5 +11,7 @@ describe("HomePage", () => {
     expect(screen.getByText("Import")).toBeInTheDocument();
     expect(screen.getByText("Decisions")).toBeInTheDocument();
     expect(screen.getByText("Why")).toBeInTheDocument();
+    expect(screen.getByText(/run the demo import/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open the public demo workspace/i })).toBeInTheDocument();
   });
 });

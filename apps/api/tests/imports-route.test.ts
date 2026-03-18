@@ -5,7 +5,7 @@ describe("POST /imports/github", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => ({ job_id: "job-123", imported_count: 5 })
+      json: async () => ({ job_id: "job-123", mode: "full", status: "succeeded", imported_count: 5 })
     } as Response);
 
     const app = buildServer();
@@ -14,12 +14,13 @@ describe("POST /imports/github", () => {
       url: "/imports/github",
       payload: {
         workspace_slug: "demo-workspace",
-        repo: "org/repo"
+        repo: "org/repo",
+        mode: "full"
       }
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ job_id: "job-123", imported_count: 5 });
+    expect(response.json()).toEqual({ job_id: "job-123", mode: "full", status: "succeeded", imported_count: 5 });
 
     global.fetch = originalFetch;
   });
@@ -37,5 +38,24 @@ describe("POST /imports/github", () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toHaveProperty("error", "Invalid request payload");
+  });
+
+  it("proxies GET /imports/:jobId", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      json: async () => ({ job_id: "job-123", status: "succeeded", imported_count: 8 })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "GET",
+      url: "/imports/job-123"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ job_id: "job-123", status: "succeeded", imported_count: 8 });
+
+    global.fetch = originalFetch;
   });
 });

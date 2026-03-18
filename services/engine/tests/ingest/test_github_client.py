@@ -109,3 +109,17 @@ def test_client_works_without_token_for_public_repo() -> None:
     client.fetch_issues("org/repo")
 
     assert captured_auth_headers == [None]
+
+
+def test_fetch_commits_forwards_since_parameter() -> None:
+    captured_since: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_since.append(request.url.params.get("since"))
+        return httpx.Response(200, json=[])
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    client.fetch_commits("org/repo", since=GitHubClient._parse_datetime("2026-03-18T00:00:00Z"))
+
+    assert captured_since == ["2026-03-18T00:00:00+00:00"]

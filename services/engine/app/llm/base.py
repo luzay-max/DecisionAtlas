@@ -15,3 +15,27 @@ class ExtractionRequest:
 class ExtractionProvider(Protocol):
     def extract_candidate(self, request: ExtractionRequest) -> str | None:
         ...
+
+
+class ProviderError(RuntimeError):
+    pass
+
+
+class ProviderConfigurationError(ProviderError):
+    pass
+
+
+class ProviderTimeoutError(ProviderError):
+    pass
+
+
+class ProviderRateLimitError(ProviderError):
+    pass
+
+
+class ProviderRequestError(ProviderError):
+    pass
+
+
+class ProviderResponseError(ProviderError):
+    pass

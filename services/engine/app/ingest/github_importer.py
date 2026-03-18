@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.ingest.github_client import GitHubClient
@@ -14,16 +16,27 @@ class GitHubImporter:
         self.artifacts = ArtifactRepository(session)
         self.workspaces = WorkspaceRepository(session)
 
-    def import_repo(self, *, workspace_slug: str, repo: str) -> int:
+    def import_repo(
+        self,
+        *,
+        workspace_slug: str,
+        repo: str,
+        mode: str = "full",
+        since: datetime | None = None,
+    ) -> int:
         workspace = self.workspaces.get_by_slug(workspace_slug)
         if workspace is None:
             raise ValueError(f"Workspace not found: {workspace_slug}")
+        if mode not in {"full", "since_last_sync"}:
+            raise ValueError(f"Unsupported import mode: {mode}")
+
+        effective_since = since if mode == "since_last_sync" else None
 
         total = 0
         for payload in (
-            self.client.fetch_issues(repo)
-            + self.client.fetch_pull_requests(repo)
-            + self.client.fetch_commits(repo)
+            self.client.fetch_issues(repo, since=effective_since)
+            + self.client.fetch_pull_requests(repo, since=effective_since)
+            + self.client.fetch_commits(repo, since=effective_since)
         ):
             self.artifacts.upsert(
                 workspace_id=workspace.id,

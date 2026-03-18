@@ -15,6 +15,7 @@ export function ReviewList({ decisions }: { decisions: ReviewDecision[] }) {
             </div>
             <span className="badge">{decision.review_state}</span>
           </div>
+          <p><strong>Confidence:</strong> {decision.confidence.toFixed(2)}</p>
           <p><strong>Problem:</strong> {decision.problem}</p>
           <p><strong>Chosen option:</strong> {decision.chosen_option}</p>
           <p><strong>Tradeoffs:</strong> {decision.tradeoffs}</p>

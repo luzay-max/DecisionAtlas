@@ -27,8 +27,11 @@ class GitHubClient:
         self.base_url = base_url.rstrip("/")
         self.client = client or httpx.Client(base_url=self.base_url, headers=headers, timeout=30.0)
 
-    def fetch_issues(self, repo: str) -> list[GitHubArtifactPayload]:
-        items = self._paginate(f"/repos/{repo}/issues", params={"state": "all"})
+    def fetch_issues(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        params: dict[str, Any] = {"state": "all"}
+        if since is not None:
+            params["since"] = since.isoformat()
+        items = self._paginate(f"/repos/{repo}/issues", params=params)
         issues: list[GitHubArtifactPayload] = []
         for item in items:
             if "pull_request" in item:
@@ -48,10 +51,16 @@ class GitHubClient:
             )
         return issues
 
-    def fetch_pull_requests(self, repo: str) -> list[GitHubArtifactPayload]:
-        items = self._paginate(f"/repos/{repo}/pulls", params={"state": "all"})
+    def fetch_pull_requests(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        items = self._paginate(
+            f"/repos/{repo}/pulls",
+            params={"state": "all", "sort": "updated", "direction": "desc"},
+        )
         pulls: list[GitHubArtifactPayload] = []
         for item in items:
+            updated_at = self._parse_datetime(item.get("updated_at") or item.get("created_at"))
+            if since is not None and updated_at is not None and updated_at <= since:
+                continue
             content = "\n\n".join(part for part in [item.get("title"), item.get("body") or ""] if part)
             pulls.append(
                 GitHubArtifactPayload(
@@ -68,8 +77,11 @@ class GitHubClient:
             )
         return pulls
 
-    def fetch_commits(self, repo: str) -> list[GitHubArtifactPayload]:
-        items = self._paginate(f"/repos/{repo}/commits")
+    def fetch_commits(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        params: dict[str, Any] = {}
+        if since is not None:
+            params["since"] = since.isoformat()
+        items = self._paginate(f"/repos/{repo}/commits", params=params or None)
         commits: list[GitHubArtifactPayload] = []
         for item in items:
             commit = item.get("commit") or {}

@@ -5,7 +5,8 @@ import { logInfo } from "../plugins/logging";
 
 const githubImportSchema = z.object({
   workspace_slug: z.string().min(1),
-  repo: z.string().min(3)
+  repo: z.string().min(3),
+  mode: z.enum(["full", "since_last_sync"]).default("full")
 });
 
 export async function importsRoute(app: FastifyInstance) {
@@ -34,6 +35,21 @@ export async function importsRoute(app: FastifyInstance) {
     logInfo(app.log, "github import completed", {
       job_id: typeof json?.job_id === "string" ? json.job_id : "unknown"
     });
+    return reply.status(response.status).send(json);
+  });
+
+  app.get("/imports/:jobId", async (request, reply) => {
+    const params = z.object({ jobId: z.string().min(1) }).safeParse(request.params);
+    if (!params.success) {
+      return reply.status(400).send({
+        error: "Invalid import job id",
+        issues: params.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const response = await fetch(`${env.ENGINE_BASE_URL}/imports/${params.data.jobId}`);
+    const json = await response.json();
     return reply.status(response.status).send(json);
   });
 }

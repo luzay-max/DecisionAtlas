@@ -13,7 +13,7 @@ from app.ingest.github_types import GitHubArtifactPayload
 
 
 class FakeGitHubClient:
-    def fetch_issues(self, repo: str):
+    def fetch_issues(self, repo: str, *, since=None):
         return [
             GitHubArtifactPayload(
                 artifact_type="issue",
@@ -28,7 +28,7 @@ class FakeGitHubClient:
             )
         ]
 
-    def fetch_pull_requests(self, repo: str):
+    def fetch_pull_requests(self, repo: str, *, since=None):
         return [
             GitHubArtifactPayload(
                 artifact_type="pr",
@@ -43,7 +43,7 @@ class FakeGitHubClient:
             )
         ]
 
-    def fetch_commits(self, repo: str):
+    def fetch_commits(self, repo: str, *, since=None):
         return [
             GitHubArtifactPayload(
                 artifact_type="commit",
@@ -85,3 +85,30 @@ def test_github_importer_persists_artifacts(tmp_path: Path, monkeypatch) -> None
     assert artifacts[0].repo == "org/repo"
     assert artifacts[1].author == "alice"
     assert artifacts[2].source_id == "2"
+
+
+def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "importer-repeat.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    with Session(engine) as session:
+        importer = GitHubImporter(session, FakeGitHubClient())
+        importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+
+    with Session(engine) as session:
+        importer = GitHubImporter(session, FakeGitHubClient())
+        importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+
+    with Session(engine) as session:
+        artifacts = session.scalars(select(Artifact)).all()
+
+    assert len(artifacts) == 3

@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db.session import get_db_session
 from app.drift.evaluator import DriftEvaluator
+from app.llm.base import ProviderConfigurationError, ProviderError
+from app.llm.provider_factory import build_runtime_providers
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -49,11 +51,16 @@ def evaluate_drift(payload: dict) -> dict:
 
     session = get_db_session()
     try:
-        evaluator = DriftEvaluator(session)
         try:
+            runtime = build_runtime_providers()
+            evaluator = DriftEvaluator(session, embedder=runtime.embedder)
             result = evaluator.evaluate_workspace(workspace_slug)
         except ValueError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
+        except ProviderConfigurationError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        except ProviderError as error:
+            raise HTTPException(status_code=502, detail=str(error)) from error
         return {
             "status": "ok",
             "workspace_slug": result.workspace_slug,

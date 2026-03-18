@@ -9,7 +9,10 @@ describe("WorkspaceDashboardContent", () => {
       <WorkspaceDashboardContent
         summary={{
           workspace_slug: "demo-workspace",
+          repo_url: "https://github.com/openai/openai-cookbook",
+          github_repo: "openai/openai-cookbook",
           import_status: "ready",
+          latest_import: null,
           artifact_count: 12,
           decision_counts: {
             candidate: 2,
@@ -24,6 +27,7 @@ describe("WorkspaceDashboardContent", () => {
 
     expect(screen.getByText("demo-workspace")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Run Demo Import" })).toBeInTheDocument();
+    expect(screen.getByText("Demo repo: openai/openai-cookbook")).toBeInTheDocument();
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("No alerts yet.")).toBeInTheDocument();

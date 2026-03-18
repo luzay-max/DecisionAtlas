@@ -51,7 +51,18 @@ export type TimelineItem = {
 
 export type DashboardSummary = {
   workspace_slug: string;
+  repo_url: string | null;
+  github_repo: string;
   import_status: string;
+  latest_import: {
+    job_id: string;
+    mode: string;
+    status: string;
+    imported_count: number;
+    error_message: string | null;
+    started_at: string | null;
+    finished_at: string | null;
+  } | null;
   artifact_count: number;
   decision_counts: {
     candidate: number;
@@ -90,7 +101,13 @@ export type DriftAlertItem = {
 
 export type ImportResult = {
   job_id: string;
+  repo?: string;
+  mode?: string;
+  status?: string;
   imported_count: number;
+  error_message?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
 };
 
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
@@ -170,11 +187,20 @@ export async function startGithubImport(workspaceSlug: string, repo: string): Pr
     },
     body: JSON.stringify({
       workspace_slug: workspaceSlug,
-      repo
+      repo,
+      mode: "full"
     })
   });
   if (!response.ok) {
     throw new Error("Failed to start GitHub import");
+  }
+  return response.json();
+}
+
+export async function getImportJob(jobId: string): Promise<ImportResult> {
+  const response = await fetch(`${apiBaseUrl}/imports/${jobId}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Failed to load import job");
   }
   return response.json();
 }
