@@ -7,6 +7,7 @@ describe("AlertDetail", () => {
   it("renders semantic context with confidence, decision, and artifact", () => {
     render(
       <AlertDetail
+        workspaceSlug="demo-workspace"
         alert={{
           id: 1,
           alert_type: "needs_review",
@@ -34,5 +35,9 @@ describe("AlertDetail", () => {
     expect(screen.getByText(/Matched decision:/)).toBeInTheDocument();
     expect(screen.getByText(/Chosen option: Use Redis as cache only/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Evaluate Redis alternatives" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
+      "href",
+      "/decisions/7?workspace=demo-workspace"
+    );
   });
 });

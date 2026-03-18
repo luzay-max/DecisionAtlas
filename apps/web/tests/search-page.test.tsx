@@ -21,7 +21,7 @@ describe("QueryForm", () => {
       })
     } as Response);
 
-    render(<QueryForm />);
+    render(<QueryForm workspaceSlug="demo-workspace" />);
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {
@@ -39,7 +39,7 @@ describe("QueryForm", () => {
       ok: false
     } as Response);
 
-    render(<QueryForm />);
+    render(<QueryForm workspaceSlug="demo-workspace" />);
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {

@@ -7,6 +7,7 @@ describe("ReviewPageContent", () => {
   it("renders candidate review actions", () => {
     render(
       <ReviewPageContent
+        workspaceSlug="demo-workspace"
         decisions={[
           {
             id: 1,
@@ -31,5 +32,9 @@ describe("ReviewPageContent", () => {
     expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Supersede" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
+      "href",
+      "/decisions/1?workspace=demo-workspace"
+    );
   });
 });

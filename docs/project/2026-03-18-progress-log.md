@@ -2,7 +2,7 @@
 
 ## Summary
 
-Today the project moved from the finished Week 12 MVP into two delivered slices of `v0.2` public-demo hardening.
+Today the project moved from the finished Week 12 MVP into three delivered slices of `v0.2` public-demo hardening.
 
 Completed scope:
 
@@ -20,6 +20,7 @@ Completed scope:
 - Week 12: README, quick start, release checklist, GitHub community files, CI workflow
 - v0.2 slice 1: configurable live provider runtime, persisted import jobs, incremental GitHub import, demo-focused UI and docs
 - v0.2 slice 2: benchmark alignment for the curated demo repo, one-command local bring-up, retrieval ranking cleanup, and updated smoke coverage
+- v0.2 slice 3: workspace-aware navigation, direct detail links, and smoother page-to-page demo routing
 
 ## Commits Pushed Today
 
@@ -62,6 +63,7 @@ The current build can:
   - `scripts/dev/start-demo-stack.ps1`
   - `scripts/dev/stop-demo-stack.ps1`
 - validate the curated demo workspace against fixture and live benchmarks
+- preserve workspace context across dashboard, review, search, timeline, drift, and decision detail pages
 
 ## v0.2 Work Completed
 
@@ -119,6 +121,23 @@ The current build can:
 - Tightened answer assembly so weak secondary hits do not pollute why-answers
 - Updated Playwright smoke expectations to match the new curated demo content
 
+### Routing and navigation polish
+
+- Added a shared workspace navigation bar across:
+  - dashboard
+  - review
+  - search
+  - timeline
+  - drift
+  - decision detail
+- Added direct quick links from the dashboard into review, why search, timeline, and drift
+- Preserved workspace context in route transitions with `?workspace=<slug>`
+- Added direct links from:
+  - review candidates to decision detail
+  - timeline entries to decision detail
+  - drift alerts to matched decision detail
+- Added homepage jump links so the demo path is reachable in one click from the landing page
+
 ### Docs and release direction
 
 - Added:
@@ -158,6 +177,8 @@ Latest verification status after the current v0.2 work:
 - `pnpm --filter @decisionatlas/web exec playwright test`: passed
 - `powershell -ExecutionPolicy Bypass -File .\scripts\dev\prepare-demo.ps1`: passed
 - `powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1`: passed
+- `pnpm --filter @decisionatlas/web test`: passed after the routing/navigation updates
+- `pnpm --filter @decisionatlas/web typecheck`: passed after the routing/navigation updates
 
 ## Known Current State
 
@@ -192,5 +213,6 @@ The current stop point is:
 - local demo preparation path verified
 - curated benchmark/live benchmark aligned to `encode/httpx`
 - one-command local bring-up verified
+- workspace-aware route jumps verified in the web test suite
 
 The next implementation slice should focus on benchmark calibration and hosted demo bring-up.

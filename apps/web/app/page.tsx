@@ -24,6 +24,17 @@ export default function HomePage() {
         <p>
           <Link href="/workspaces/demo-workspace">Open the public demo workspace</Link>
         </p>
+        <div className="action-row">
+          <Link href="/review?workspace=demo-workspace" className="action-link">
+            Jump to review
+          </Link>
+          <Link href="/search?workspace=demo-workspace" className="action-link">
+            Jump to why search
+          </Link>
+          <Link href="/drift?workspace=demo-workspace" className="action-link">
+            Jump to drift
+          </Link>
+        </div>
       </div>
     </main>
   );

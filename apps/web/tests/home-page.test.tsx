@@ -13,5 +13,7 @@ describe("HomePage", () => {
     expect(screen.getByText("Why")).toBeInTheDocument();
     expect(screen.getByText(/run the demo import/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open the public demo workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /jump to review/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /jump to why search/i })).toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ describe("DriftPageContent", () => {
   it("renders persisted alerts with decision and artifact context", () => {
     render(
       <DriftPageContent
+        workspaceSlug="demo-workspace"
         alerts={[
           {
             id: 1,
@@ -36,5 +37,9 @@ describe("DriftPageContent", () => {
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
     expect(screen.getByText("medium confidence")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Persist sessions in Redis" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
+      "href",
+      "/decisions/7?workspace=demo-workspace"
+    );
   });
 });

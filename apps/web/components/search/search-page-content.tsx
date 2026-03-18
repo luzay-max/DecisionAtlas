@@ -1,11 +1,13 @@
 import React from "react";
 
+import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { QueryForm } from "./query-form";
 
-export function SearchPageContent() {
+export function SearchPageContent({ workspaceSlug }: { workspaceSlug: string }) {
   return (
     <main className="page-shell">
       <section className="panel">
+        <DemoWorkspaceNav workspaceSlug={workspaceSlug} currentPath="/search" />
         <p className="eyebrow">Why Search</p>
         <h1>Ask why a decision was made</h1>
         <p className="lede">
@@ -16,7 +18,7 @@ export function SearchPageContent() {
           <li>why is redis cache-only</li>
           <li>why do candidate decisions need review</li>
         </ul>
-        <QueryForm />
+        <QueryForm workspaceSlug={workspaceSlug} />
       </section>
     </main>
   );

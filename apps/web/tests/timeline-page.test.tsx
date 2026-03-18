@@ -7,6 +7,7 @@ describe("TimelinePageContent", () => {
   it("renders accepted decisions in order", () => {
     render(
       <TimelinePageContent
+        workspaceSlug="demo-workspace"
         items={[
           {
             id: 1,
@@ -34,5 +35,9 @@ describe("TimelinePageContent", () => {
 
     const headings = screen.getAllByRole("heading", { level: 2 }).map((item) => item.textContent);
     expect(headings).toEqual(["Use Redis Cache", "Keep PostgreSQL Primary"]);
+    expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
+      "href",
+      "/decisions/1?workspace=demo-workspace"
+    );
   });
 });

@@ -46,6 +46,11 @@ body {
   place-items: start center;
 }
 
+.page-shell .panel {
+  display: grid;
+  gap: 16px;
+}
+
 .eyebrow {
   margin: 0 0 12px;
   color: var(--accent);
@@ -116,6 +121,46 @@ body {
   border-radius: 999px;
   padding: 10px 14px;
   font: inherit;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  text-decoration: none;
+}
+
+.demo-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.demo-nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.demo-nav-link.active {
+  color: var(--ink);
+  background: #f0eadc;
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line) 65%);
+}
+
+.title-link {
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent 45%);
 }
 
 .source-ref {

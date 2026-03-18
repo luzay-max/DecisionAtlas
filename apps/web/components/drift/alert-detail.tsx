@@ -1,8 +1,9 @@
+import Link from "next/link";
 import React from "react";
 
 import { DriftAlertItem } from "../../lib/api";
 
-export function AlertDetail({ alert }: { alert: DriftAlertItem }) {
+export function AlertDetail({ alert, workspaceSlug }: { alert: DriftAlertItem; workspaceSlug: string }) {
   return (
     <article className="card stack">
       <div className="card-head">
@@ -18,7 +19,15 @@ export function AlertDetail({ alert }: { alert: DriftAlertItem }) {
       {alert.decision ? (
         <div className="stack">
           <p>
-            Matched decision: <strong>{alert.decision.title}</strong>
+            Matched decision:{" "}
+            <strong>
+              <Link
+                href={`/decisions/${alert.decision.id}?workspace=${encodeURIComponent(workspaceSlug)}`}
+                className="title-link"
+              >
+                {alert.decision.title}
+              </Link>
+            </strong>
           </p>
           <p>Chosen option: {alert.decision.chosen_option}</p>
         </div>

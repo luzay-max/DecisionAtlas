@@ -5,7 +5,13 @@ import React, { useState } from "react";
 import { askWhy, WhyAnswerResponse } from "../../lib/api";
 import { SearchResults } from "./search-results";
 
-export function QueryForm({ initialQuestion = "why use redis cache" }: { initialQuestion?: string }) {
+export function QueryForm({
+  workspaceSlug,
+  initialQuestion = "why use redis cache",
+}: {
+  workspaceSlug: string;
+  initialQuestion?: string;
+}) {
   const [question, setQuestion] = useState(initialQuestion);
   const [result, setResult] = useState<WhyAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -16,7 +22,7 @@ export function QueryForm({ initialQuestion = "why use redis cache" }: { initial
     setLoading(true);
     setError(null);
     try {
-      const response = await askWhy("demo-workspace", question);
+      const response = await askWhy(workspaceSlug, question);
       setResult(response);
     } catch {
       setResult(null);
