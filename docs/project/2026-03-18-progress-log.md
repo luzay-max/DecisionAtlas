@@ -33,10 +33,11 @@ Completed scope:
 - `9574c30` `fix: use uv cli in ci workflow`
 - `ab42f23` `feat: start v0.2 demo hardening`
 - `f59552e` `feat: improve demo experience flow`
+- `5ea5fbe` `feat: align demo benchmark and one-click startup`
 
 Remote status:
 
-- `origin/main` is at `f59552e`
+- `origin/main` is at `5ea5fbe`
 - GitHub repo: `https://github.com/luzay-max/DecisionAtlas.git`
 
 ## Functional State
@@ -161,7 +162,7 @@ Latest verification status after the current v0.2 work:
 ## Known Current State
 
 - Docker is working locally for `postgres` and `redis`
-- the repo is committed and pushed through the first v0.2 demo-hardening slice
+- the repo is committed and pushed through the benchmark-alignment and one-click bring-up slice
 - local-only research and tooling folders remain intentionally untracked
 
 Untracked local-only files and folders:
