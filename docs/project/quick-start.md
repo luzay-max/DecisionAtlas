@@ -19,6 +19,12 @@ uv sync --project services/engine
 Copy-Item .env.example .env
 ```
 
+Fast path for the local demo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\prepare-demo.ps1
+```
+
 For a live public demo, edit `.env` and set:
 
 - `LLM_PROVIDER_MODE=openai_compatible`
@@ -45,7 +51,7 @@ The copied `.env` file points the engine at local PostgreSQL and Redis.
 ```powershell
 cd services/engine
 uv run alembic upgrade head
-uv run python app/db/seed_demo.py
+uv run python -m app.db.seed_demo
 cd ..\..
 ```
 

@@ -36,7 +36,7 @@ Copy-Item .env.example .env
 docker compose up -d postgres redis
 cd services/engine
 uv run alembic upgrade head
-uv run python app/db/seed_demo.py
+uv run python -m app.db.seed_demo
 cd ..\..
 pnpm --filter @decisionatlas/api dev
 pnpm --filter @decisionatlas/web dev

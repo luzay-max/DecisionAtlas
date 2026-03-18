@@ -3,18 +3,24 @@
 import React, { useState } from "react";
 
 import { askWhy, WhyAnswerResponse } from "../../lib/api";
+import { SearchResults } from "./search-results";
 
 export function QueryForm({ initialQuestion = "why use redis cache" }: { initialQuestion?: string }) {
   const [question, setQuestion] = useState(initialQuestion);
   const [result, setResult] = useState<WhyAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const response = await askWhy("demo-workspace", question);
       setResult(response);
+    } catch {
+      setResult(null);
+      setError("Why search is unavailable right now. Confirm the API, engine, and provider configuration.");
     } finally {
       setLoading(false);
     }
@@ -29,24 +35,9 @@ export function QueryForm({ initialQuestion = "why use redis cache" }: { initial
         </label>
         <button type="submit">{loading ? "Searching..." : "Search"}</button>
       </form>
-      {result ? (
-        <section className="card">
-          <p className="eyebrow">Answer</p>
-          <p>{result.answer}</p>
-          <div className="stack">
-            {result.citations.map((citation, index) => (
-              <article key={`${citation.quote}-${index}`} className="source-ref">
-                <blockquote>{citation.quote}</blockquote>
-                {citation.url ? (
-                  <a href={citation.url} target="_blank" rel="noreferrer">
-                    {citation.url}
-                  </a>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      {!result && !error ? <p>Ask one of the example questions after the demo import finishes.</p> : null}
+      {error ? <p>{error}</p> : null}
+      {result ? <SearchResults result={result} /> : null}
     </div>
   );
 }
