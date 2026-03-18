@@ -1,9 +1,11 @@
+import { dashboardRoute } from "./routes/dashboard";
 import { decisionsRoute } from "./routes/decisions";
 import Fastify from "fastify";
 import { getEnv } from "./plugins/env";
 import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
 import { queryRoute } from "./routes/query";
+import { timelineRoute } from "./routes/timeline";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
@@ -11,6 +13,8 @@ export function buildServer() {
   app.register(importsRoute);
   app.register(decisionsRoute);
   app.register(queryRoute);
+  app.register(timelineRoute);
+  app.register(dashboardRoute);
   return app;
 }
 

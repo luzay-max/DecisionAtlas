@@ -59,3 +59,6 @@ class ArtifactRepository:
     def list_by_workspace(self, workspace_id: int) -> list[Artifact]:
         stmt = select(Artifact).where(Artifact.workspace_id == workspace_id).order_by(Artifact.id)
         return list(self.session.scalars(stmt))
+
+    def count_by_workspace(self, workspace_id: int) -> int:
+        return len(self.list_by_workspace(workspace_id))

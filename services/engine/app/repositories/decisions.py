@@ -62,3 +62,10 @@ class DecisionRepository:
             decision.status = "superseded"
         self.session.flush()
         return decision
+
+    def counts_by_review_state(self, workspace_id: int) -> dict[str, int]:
+        decisions = self.list_by_workspace(workspace_id)
+        counts: dict[str, int] = {}
+        for decision in decisions:
+            counts[decision.review_state] = counts.get(decision.review_state, 0) + 1
+        return counts

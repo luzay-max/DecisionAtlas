@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 
+from app.api.dashboard import router as dashboard_router
 from app.api.decisions import router as decisions_router
 from app.api.health import router as health_router
 from app.api.imports import router as imports_router
 from app.api.query import router as query_router
+from app.api.timeline import router as timeline_router
 from app.config import get_settings
 
 
@@ -14,6 +16,8 @@ def create_app() -> FastAPI:
     app.include_router(imports_router)
     app.include_router(decisions_router)
     app.include_router(query_router)
+    app.include_router(timeline_router)
+    app.include_router(dashboard_router)
     return app
 
 
