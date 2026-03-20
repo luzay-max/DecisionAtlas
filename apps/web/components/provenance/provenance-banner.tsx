@@ -10,14 +10,18 @@ export function ProvenanceBanner({
   sourceSummary,
   context,
 }: {
-  workspaceMode: WorkspaceMode;
-  sourceSummary?: string;
+  workspaceMode?: WorkspaceMode | null;
+  sourceSummary?: string | null;
   context: "dashboard" | "answer" | "timeline" | "drift" | "detail";
 }) {
   const { messages } = useI18n();
-  const modeLabel = messages.provenance.modes[workspaceMode] ?? workspaceMode;
+  const modeLabel = workspaceMode
+    ? (messages.provenance.modes[workspaceMode] ?? workspaceMode)
+    : messages.common.noData;
   const contextLabel = messages.provenance.contexts[context];
-  const summary = messages.provenance.summaries[workspaceMode] ?? sourceSummary ?? "";
+  const summary = workspaceMode
+    ? (messages.provenance.summaries[workspaceMode] ?? sourceSummary ?? messages.common.noData)
+    : (sourceSummary ?? messages.common.noData);
 
   return (
     <div className="card provenance-banner">

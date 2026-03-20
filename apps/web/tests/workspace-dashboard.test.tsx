@@ -1,7 +1,14 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { WorkspaceDashboardContent } from "../components/dashboard/workspace-dashboard-content";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("WorkspaceDashboardContent", () => {
   it("renders summary KPIs and alerts", () => {
@@ -88,5 +95,32 @@ describe("WorkspaceDashboardContent", () => {
       screen.getByText(/Imported 2 repository docs from 3 high-signal selections and skipped 13 files outside scope\./i)
     ).toBeInTheDocument();
     expect(screen.getByText(/limited high-signal evidence/i)).toBeInTheDocument();
+  });
+
+  it("falls back to N/A when provenance fields are temporarily unavailable", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "demo-workspace",
+          workspace_mode: undefined as never,
+          source_summary: undefined as never,
+          repo_url: "https://github.com/encode/httpx",
+          github_repo: "encode/httpx",
+          import_status: "running",
+          latest_import: null,
+          artifact_count: 12,
+          decision_counts: {
+            candidate: 2,
+            accepted: 5,
+            rejected: 0,
+            superseded: 0,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
+    expect(screen.getAllByText("N/A").length).toBeGreaterThanOrEqual(2);
   });
 });

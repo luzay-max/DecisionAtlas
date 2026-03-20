@@ -112,6 +112,8 @@ $env:DATABASE_URL = $sqliteUrl
 $env:ENGINE_BASE_URL = "http://127.0.0.1:8000"
 $env:API_BASE_URL = "http://127.0.0.1:3001"
 $env:DEMO_REPO = "encode/httpx"
+$env:LLM_PROVIDER_MODE = "fake"
+$env:EMBEDDING_PROVIDER_MODE = "fake"
 
 Remove-Item $dbPath -Force -ErrorAction SilentlyContinue
 
@@ -129,6 +131,8 @@ foreach ($port in 8000, 3001, 3000) {
 $engineCommand = @"
 `$env:DATABASE_URL = '$sqliteUrl'
 `$env:DEMO_REPO = 'encode/httpx'
+`$env:LLM_PROVIDER_MODE = 'fake'
+`$env:EMBEDDING_PROVIDER_MODE = 'fake'
 Set-Location '$($repoRoot.Path)\services\engine'
 if (Get-Command uv -ErrorAction SilentlyContinue) {
   uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
