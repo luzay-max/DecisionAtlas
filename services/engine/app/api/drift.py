@@ -6,6 +6,7 @@ from app.db.session import get_db_session
 from app.drift.evaluator import DriftEvaluator
 from app.llm.base import ProviderConfigurationError, ProviderError
 from app.llm.provider_factory import build_runtime_providers
+from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/drift", tags=["drift"])
 
 
 @router.get("")
-def list_drift_alerts(workspace_slug: str = Query(...)) -> list[dict]:
+def list_drift_alerts(workspace_slug: str = Query(...)) -> dict:
     session = get_db_session()
     try:
         workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
@@ -24,21 +25,27 @@ def list_drift_alerts(workspace_slug: str = Query(...)) -> list[dict]:
 
         alerts = DriftAlertRepository(session).list_by_workspace(workspace.id)
         artifacts = ArtifactRepository(session)
+        workspace_artifacts = artifacts.list_by_workspace(workspace.id)
+        provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=workspace_artifacts)
         decisions = DecisionRepository(session)
 
-        return [
-            {
-                "id": alert.id,
-                "alert_type": alert.alert_type,
-                "summary": alert.summary,
-                "status": alert.status,
-                "confidence_label": _confidence_label(alert.alert_type),
-                "created_at": alert.created_at.isoformat() if alert.created_at else None,
-                "artifact": _serialize_artifact(artifacts.get_by_id(alert.artifact_id) if alert.artifact_id else None),
-                "decision": _serialize_decision(decisions.get_by_id(alert.decision_id) if alert.decision_id else None),
-            }
-            for alert in alerts
-        ]
+        return {
+            "workspace_mode": provenance.workspace_mode,
+            "source_summary": provenance.source_summary,
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "alert_type": alert.alert_type,
+                    "summary": alert.summary,
+                    "status": alert.status,
+                    "confidence_label": _confidence_label(alert.alert_type),
+                    "created_at": alert.created_at.isoformat() if alert.created_at else None,
+                    "artifact": _serialize_artifact(artifacts.get_by_id(alert.artifact_id) if alert.artifact_id else None),
+                    "decision": _serialize_decision(decisions.get_by_id(alert.decision_id) if alert.decision_id else None),
+                }
+                for alert in alerts
+            ],
+        }
     finally:
         session.close()
 

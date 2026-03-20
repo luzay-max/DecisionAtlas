@@ -12,6 +12,13 @@ export type ReviewDecision = {
   confidence: number;
 };
 
+export type WorkspaceMode = "demo" | "imported" | "mixed";
+
+export type WorkspaceProvenance = {
+  workspace_mode: WorkspaceMode;
+  source_summary: string;
+};
+
 export type SourceRef = {
   id: number;
   artifact_id: number;
@@ -22,7 +29,8 @@ export type SourceRef = {
   relevance_score: number | null;
 };
 
-export type DecisionDetail = ReviewDecision & {
+export type DecisionDetail = ReviewDecision &
+  WorkspaceProvenance & {
   source_refs: SourceRef[];
 };
 
@@ -30,6 +38,7 @@ export type WhyAnswerResponse = {
   status: string;
   question: string;
   answer: string;
+  answer_context: WorkspaceProvenance;
   citations: Array<{
     decision_id?: number;
     source_ref_id?: number;
@@ -49,7 +58,11 @@ export type TimelineItem = {
   created_at: string | null;
 };
 
-export type DashboardSummary = {
+export type TimelineResponse = WorkspaceProvenance & {
+  items: TimelineItem[];
+};
+
+export type DashboardSummary = WorkspaceProvenance & {
   workspace_slug: string;
   repo_url: string | null;
   github_repo: string;
@@ -76,6 +89,10 @@ export type DashboardSummary = {
     summary: string;
     status: string;
   }>;
+};
+
+export type DriftAlertsResponse = WorkspaceProvenance & {
+  alerts: DriftAlertItem[];
 };
 
 export type DriftAlertItem = {
@@ -148,7 +165,7 @@ export async function askWhy(workspaceSlug: string, question: string): Promise<W
   return response.json();
 }
 
-export async function getTimeline(workspaceSlug: string): Promise<TimelineItem[]> {
+export async function getTimeline(workspaceSlug: string): Promise<TimelineResponse> {
   const response = await fetch(`${apiBaseUrl}/timeline?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
     cache: "no-store"
   });
@@ -169,7 +186,7 @@ export async function getDashboardSummary(workspaceSlug: string): Promise<Dashbo
   return response.json();
 }
 
-export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlertItem[]> {
+export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlertsResponse> {
   const response = await fetch(`${apiBaseUrl}/drift?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
     cache: "no-store"
   });

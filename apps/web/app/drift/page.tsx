@@ -10,6 +10,6 @@ export default async function DriftPage({
 }) {
   const params = (await searchParams) ?? {};
   const workspaceSlug = params.workspace ?? "demo-workspace";
-  const alerts = await getDriftAlerts(workspaceSlug);
-  return <DriftPageContent alerts={alerts} workspaceSlug={workspaceSlug} />;
+  const drift = await getDriftAlerts(workspaceSlug);
+  return <DriftPageContent drift={drift} workspaceSlug={workspaceSlug} />;
 }

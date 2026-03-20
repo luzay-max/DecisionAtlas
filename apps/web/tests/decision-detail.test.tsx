@@ -12,6 +12,8 @@ describe("Decision detail components", () => {
           decision={{
             id: 1,
             workspace_id: 1,
+            workspace_mode: "demo",
+            source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
             title: "Use Redis Cache",
             status: "active",
             review_state: "candidate",
@@ -51,6 +53,8 @@ describe("Decision detail components", () => {
     );
 
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
+    expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
+    expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
     expect(screen.getByText(/Latency too high/)).toBeInTheDocument();
     expect(screen.getByText("Source References")).toBeInTheDocument();
     expect(screen.getByText("We decided to use Redis as a cache because latency mattered.")).toBeInTheDocument();

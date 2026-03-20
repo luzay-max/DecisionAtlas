@@ -8,6 +8,10 @@ describe("POST /query/why", () => {
       json: async () => ({
         status: "ok",
         answer: "Use Redis Cache: Use Redis as cache only",
+        answer_context: {
+          workspace_mode: "demo",
+          source_summary: "This workspace is using seeded demo data for a guided product walkthrough."
+        },
         citations: [{ quote: "We decided to use Redis as cache" }]
       })
     } as Response);

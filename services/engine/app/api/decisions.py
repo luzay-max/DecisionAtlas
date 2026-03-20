@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from app.db.session import get_db_session
+from app.db.models import Workspace
+from app.provenance import get_workspace_provenance
+from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
@@ -56,8 +60,14 @@ def get_decision(decision_id: int) -> dict:
         decision = decisions.get_by_id(decision_id)
         if decision is None:
             raise HTTPException(status_code=404, detail=f"Decision not found: {decision_id}")
+        workspace = session.scalar(select(Workspace).where(Workspace.id == decision.workspace_id))
+        if workspace is None:
+            raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
+        provenance = get_workspace_provenance(session=session, workspace=workspace)
         return {
             **_serialize_decision(decision),
+            "workspace_mode": provenance.workspace_mode,
+            "source_summary": provenance.source_summary,
             "source_refs": [
                 {
                     "id": source_ref.id,

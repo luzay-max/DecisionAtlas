@@ -8,7 +8,13 @@ import { useI18n } from "../i18n/language-provider";
 
 export function TimelineList({ items, workspaceSlug }: { items: TimelineItem[]; workspaceSlug: string }) {
   const { language, messages } = useI18n();
-  const dateFormatter = new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US");
+  const dateFormatter = new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
     <div className="stack">

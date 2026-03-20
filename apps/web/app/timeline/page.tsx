@@ -10,6 +10,6 @@ export default async function TimelinePage({
 }) {
   const params = (await searchParams) ?? {};
   const workspaceSlug = params.workspace ?? "demo-workspace";
-  const items = await getTimeline(workspaceSlug);
-  return <TimelinePageContent items={items} workspaceSlug={workspaceSlug} />;
+  const timeline = await getTimeline(workspaceSlug);
+  return <TimelinePageContent timeline={timeline} workspaceSlug={workspaceSlug} />;
 }

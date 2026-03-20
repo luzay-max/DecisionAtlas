@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from app.indexing.embedder import Embedder
+from app.provenance import get_workspace_provenance
 from app.repositories.decisions import DecisionRepository
 from app.repositories.source_refs import SourceRefRepository
+from app.repositories.workspaces import WorkspaceRepository
 from app.retrieval.hybrid import hybrid_search
 from app.retrieval.query_rewrite import rewrite_query
 from sqlalchemy.orm import Session
@@ -15,6 +17,10 @@ def answer_why_question(
     question: str,
     embedder: Embedder,
 ) -> dict:
+    workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
+    if workspace is None:
+        raise ValueError(f"Workspace not found: {workspace_slug}")
+    provenance = get_workspace_provenance(session=session, workspace=workspace)
     rewritten = rewrite_query(question)
     hits = hybrid_search(
         session=session,
@@ -29,6 +35,10 @@ def answer_why_question(
             "question": question,
             "answer": "Insufficient evidence. Review more artifacts or accept more decisions first.",
             "citations": [],
+            "answer_context": {
+                "workspace_mode": provenance.workspace_mode,
+                "source_summary": provenance.source_summary,
+            },
         }
 
     decisions = DecisionRepository(session)
@@ -60,6 +70,10 @@ def answer_why_question(
             "question": question,
             "answer": "Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
             "citations": citations,
+            "answer_context": {
+                "workspace_mode": provenance.workspace_mode,
+                "source_summary": provenance.source_summary,
+            },
         }
 
     return {
@@ -67,4 +81,8 @@ def answer_why_question(
         "question": question,
         "answer": " ".join(answer_parts),
         "citations": citations[:4],
+        "answer_context": {
+            "workspace_mode": provenance.workspace_mode,
+            "source_summary": provenance.source_summary,
+        },
     }

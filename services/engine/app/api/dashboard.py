@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.config import get_settings
 from app.db.session import get_db_session
+from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -26,12 +27,16 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
         alerts = DriftAlertRepository(session)
         jobs = ImportJobRepository(session)
         decision_counts = decisions.counts_by_review_state(workspace.id)
+        workspace_artifacts = artifacts.list_by_workspace(workspace.id)
+        provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=workspace_artifacts)
         recent_alerts = alerts.list_recent_by_workspace(workspace.id)
         latest_job = jobs.latest_for_workspace(workspace.id)
         return {
             "workspace_slug": workspace.slug,
             "repo_url": workspace.repo_url,
             "github_repo": _repo_ref(workspace.repo_url) or settings.demo_repo,
+            "workspace_mode": provenance.workspace_mode,
+            "source_summary": provenance.source_summary,
             "import_status": latest_job.status if latest_job is not None else "ready",
             "latest_import": (
                 {
@@ -46,7 +51,7 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
                 if latest_job is not None
                 else None
             ),
-            "artifact_count": artifacts.count_by_workspace(workspace.id),
+            "artifact_count": len(workspace_artifacts),
             "decision_counts": {
                 "candidate": decision_counts.get("candidate", 0),
                 "accepted": decision_counts.get("accepted", 0),

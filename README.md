@@ -60,6 +60,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
 
 This script starts an isolated, SQLite-backed demo workspace and does not depend on the Docker PostgreSQL volume state. It is the fastest way to experience the product locally.
 
+The public `demo-workspace` is intentionally seeded for a stable walkthrough. Imported workspaces use real repository artifacts and may produce different decision, why-answer, and drift coverage depending on the source repo.
+
 Then open:
 
 - Web: `http://localhost:3000`
@@ -91,5 +93,5 @@ Known limitations:
 
 - MVP auth and multi-user permissions are not implemented yet
 - semantic drift labels are conservative and intentionally narrow
-- demo flows are optimized for one seeded workspace
+- the public demo workspace is seeded and should not be confused with a fully imported repository workspace
 - GitHub import still uses token mode, not GitHub App auth

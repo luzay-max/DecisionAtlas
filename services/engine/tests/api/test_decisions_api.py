@@ -15,7 +15,7 @@ from app.main import create_app
 def _seed_review_fixture(db_path: Path) -> None:
     engine = create_engine(f"sqlite:///{db_path}")
     with Session(engine) as session:
-        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
         session.add(workspace)
         session.flush()
         artifact = Artifact(
@@ -83,7 +83,7 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     _seed_review_fixture(db_path)
 
     client = TestClient(create_app())
-    response = client.get("/decisions", params={"workspace_slug": "demo-workspace", "review_state": "candidate"})
+    response = client.get("/decisions", params={"workspace_slug": "imported-workspace", "review_state": "candidate"})
 
     assert response.status_code == 200
     body = response.json()
@@ -106,6 +106,8 @@ def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -
     assert response.status_code == 200
     body = response.json()
     assert body["title"] == "Use Redis Cache"
+    assert body["workspace_mode"] == "imported"
+    assert "source_summary" in body
     assert len(body["source_refs"]) == 1
 
 

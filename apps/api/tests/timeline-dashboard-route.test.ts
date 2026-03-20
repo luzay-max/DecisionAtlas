@@ -5,7 +5,11 @@ describe("timeline and dashboard routes", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => [{ id: 1, title: "Use Redis Cache" }]
+      json: async () => ({
+        workspace_mode: "demo",
+        source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+        items: [{ id: 1, title: "Use Redis Cache" }]
+      })
     } as Response);
 
     const app = buildServer();
@@ -15,7 +19,11 @@ describe("timeline and dashboard routes", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual([{ id: 1, title: "Use Redis Cache" }]);
+    expect(response.json()).toEqual({
+      workspace_mode: "demo",
+      source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+      items: [{ id: 1, title: "Use Redis Cache" }]
+    });
 
     global.fetch = originalFetch;
   });
@@ -25,6 +33,8 @@ describe("timeline and dashboard routes", () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
       json: async () => ({
+        workspace_mode: "demo",
+        source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
         import_status: "ready",
         artifact_count: 12,
         decision_counts: { candidate: 2, accepted: 5, rejected: 0, superseded: 0 },

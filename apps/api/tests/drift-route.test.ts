@@ -5,7 +5,11 @@ describe("drift routes", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => [{ id: 1, alert_type: "possible_drift", status: "open" }]
+      json: async () => ({
+        workspace_mode: "demo",
+        source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+        alerts: [{ id: 1, alert_type: "possible_drift", status: "open" }]
+      })
     } as Response);
 
     const app = buildServer();
@@ -15,7 +19,11 @@ describe("drift routes", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual([{ id: 1, alert_type: "possible_drift", status: "open" }]);
+    expect(response.json()).toEqual({
+      workspace_mode: "demo",
+      source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+      alerts: [{ id: 1, alert_type: "possible_drift", status: "open" }]
+    });
 
     global.fetch = originalFetch;
   });

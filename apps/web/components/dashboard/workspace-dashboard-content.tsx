@@ -9,6 +9,7 @@ import { KpiStrip } from "./kpi-strip";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
+import { ProvenanceBanner } from "../provenance/provenance-banner";
 
 export function WorkspaceDashboardContent({ summary }: { summary: DashboardSummary }) {
   const { messages } = useI18n();
@@ -31,6 +32,11 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
             {messages.dashboard.demoRepo}: {summary.github_repo}
           </p>
         </div>
+        <ProvenanceBanner
+          workspaceMode={summary.workspace_mode}
+          sourceSummary={summary.source_summary}
+          context="dashboard"
+        />
         <DemoImportButton workspaceSlug={summary.workspace_slug} repo={summary.github_repo} />
         <div className="action-row">
           <Link href={`/review?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">

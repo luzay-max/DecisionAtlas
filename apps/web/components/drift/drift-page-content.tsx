@@ -2,13 +2,22 @@
 
 import React from "react";
 
-import { DriftAlertItem } from "../../lib/api";
+import { DriftAlertsResponse } from "../../lib/api";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { useI18n } from "../i18n/language-provider";
 import { AlertDetail } from "./alert-detail";
+import { ProvenanceBanner } from "../provenance/provenance-banner";
 
-export function DriftPageContent({ alerts, workspaceSlug }: { alerts: DriftAlertItem[]; workspaceSlug: string }) {
+export function DriftPageContent({
+  drift,
+  workspaceSlug,
+}: {
+  drift: DriftAlertsResponse | DriftAlertsResponse["alerts"];
+  workspaceSlug: string;
+}) {
   const { messages } = useI18n();
+  const alerts = Array.isArray(drift) ? drift : drift.alerts;
+  const provenance = Array.isArray(drift) ? null : drift;
 
   return (
     <main className="page-shell">
@@ -19,6 +28,13 @@ export function DriftPageContent({ alerts, workspaceSlug }: { alerts: DriftAlert
           <h1>{messages.drift.title}</h1>
           <p className="lede">{messages.drift.lede}</p>
         </div>
+        {provenance ? (
+          <ProvenanceBanner
+            workspaceMode={provenance.workspace_mode}
+            sourceSummary={provenance.source_summary}
+            context="drift"
+          />
+        ) : null}
         {alerts.length === 0 ? (
           <p>{messages.drift.none}</p>
         ) : null}

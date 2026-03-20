@@ -28,6 +28,7 @@ export default function HomePage() {
             <li key={step}>{step}</li>
           ))}
         </ol>
+        <p>{messages.home.note}</p>
         <p>
           <Link href="/workspaces/demo-workspace">{messages.home.openDemo}</Link>
         </p>

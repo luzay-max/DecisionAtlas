@@ -247,3 +247,48 @@ Current status after this addendum:
 - the demo path now supports an English/Chinese UI toggle without changing API payloads
 - the switch is persistent in the browser via localStorage
 - the default demo flow still opens in English, so existing demo scripts remain valid
+
+## 2026-03-20 Provenance Addendum
+
+Today also completed the `clarify-demo-vs-live-data` implementation slice on branch `feat/clarify-demo-vs-live-data`.
+
+Delivered:
+
+- added workspace-level provenance classification in the engine:
+  - `demo`
+  - `imported`
+  - `mixed`
+- extended these backend responses with provenance summary fields:
+  - dashboard summary
+  - why query
+  - timeline
+  - drift alerts
+  - decision detail
+- added a shared provenance banner to trust-sensitive web surfaces:
+  - dashboard
+  - why search results
+  - timeline
+  - drift
+  - decision detail
+- updated homepage and demo script copy so seeded walkthrough behavior is explicitly distinguished from imported repository behavior
+- updated engine, API proxy, and web tests to validate the new provenance behavior
+
+Verification for this addendum:
+
+- `python -m uv run pytest tests/test_provenance.py tests/api/test_timeline_dashboard_api.py tests/api/test_query_api.py tests/api/test_drift_api.py tests/api/test_decisions_api.py -q`: passed
+- `pnpm --filter @decisionatlas/api test`: passed
+- `pnpm --filter @decisionatlas/web test`: passed
+- `pnpm --filter @decisionatlas/web typecheck`: passed
+
+Current status after this addendum:
+
+- demo-facing pages now explain whether the user is seeing seeded walkthrough data or imported repository data
+- the timeline, why search, drift page, and decision detail no longer imply that seeded demo content is live repository output
+- the project is ready to keep building on this branch or merge the provenance slice once reviewed
+
+Compatibility follow-up:
+
+- added defensive web compatibility handling for legacy API shapes during local development and hot reload cycles
+- why search no longer crashes if `answer_context` is temporarily absent
+- timeline no longer crashes if it still receives a legacy array response
+- drift no longer crashes if it still receives a legacy array response

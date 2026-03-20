@@ -17,7 +17,7 @@ def _seed_drift_fixture(db_path: Path) -> None:
     engine = create_engine(f"sqlite:///{db_path}")
     baseline = datetime(2026, 3, 18, 9, 0, 0)
     with Session(engine) as session:
-        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
         session.add(workspace)
         session.flush()
         artifact = Artifact(
@@ -69,14 +69,15 @@ def test_list_drift_alerts_returns_joined_context(tmp_path: Path, monkeypatch) -
     _seed_drift_fixture(db_path)
 
     client = TestClient(create_app())
-    response = client.get("/drift", params={"workspace_slug": "demo-workspace"})
+    response = client.get("/drift", params={"workspace_slug": "imported-workspace"})
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["confidence_label"] == "high"
-    assert body[0]["artifact"]["title"] == "Persist sessions in Redis"
-    assert body[0]["decision"]["title"] == "Use Redis Cache"
+    assert body["workspace_mode"] == "imported"
+    assert len(body["alerts"]) == 1
+    assert body["alerts"][0]["confidence_label"] == "high"
+    assert body["alerts"][0]["artifact"]["title"] == "Persist sessions in Redis"
+    assert body["alerts"][0]["decision"]["title"] == "Use Redis Cache"
 
 
 def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None:
@@ -89,7 +90,7 @@ def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None
     baseline = datetime(2026, 3, 18, 9, 0, 0)
 
     with Session(engine) as session:
-        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
         session.add(workspace)
         session.flush()
         session.add(
@@ -124,7 +125,7 @@ def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None
         session.commit()
 
     client = TestClient(create_app())
-    response = client.post("/drift/evaluate", json={"workspace_slug": "demo-workspace"})
+    response = client.post("/drift/evaluate", json={"workspace_slug": "imported-workspace"})
 
     assert response.status_code == 200
     body = response.json()

@@ -21,7 +21,7 @@ def test_post_query_why_returns_answer_with_citations(tmp_path: Path, monkeypatc
     engine = create_engine(f"sqlite:///{db_path}")
 
     with Session(engine) as session:
-        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
         session.add(workspace)
         session.flush()
         artifact = Artifact(
@@ -79,10 +79,11 @@ def test_post_query_why_returns_answer_with_citations(tmp_path: Path, monkeypatc
     client = TestClient(create_app())
     response = client.post(
         "/query/why",
-        json={"workspace_slug": "demo-workspace", "question": "why use redis cache"},
+        json={"workspace_slug": "imported-workspace", "question": "why use redis cache"},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
+    assert body["answer_context"]["workspace_mode"] == "imported"
     assert len(body["citations"]) >= 2

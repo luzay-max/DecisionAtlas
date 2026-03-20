@@ -4,6 +4,7 @@ import React from "react";
 
 import { DecisionDetail } from "../../lib/api";
 import { useI18n } from "../i18n/language-provider";
+import { ProvenanceBanner } from "../provenance/provenance-banner";
 
 export function DecisionCard({ decision }: { decision: DecisionDetail }) {
   const { messages } = useI18n();
@@ -11,6 +12,11 @@ export function DecisionCard({ decision }: { decision: DecisionDetail }) {
 
   return (
     <article className="card">
+      <ProvenanceBanner
+        workspaceMode={decision.workspace_mode}
+        sourceSummary={decision.source_summary}
+        context="detail"
+      />
       <div className="card-head">
         <div>
           <p className="eyebrow">{messages.detail.eyebrow}</p>

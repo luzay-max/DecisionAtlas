@@ -12,6 +12,7 @@ export const messages = {
       switchToEnglish: "Switch to English",
       switchToChinese: "Switch to Chinese",
       noData: "N/A",
+      liveVsDemo: "Demo workspaces show seeded walkthrough data. Imported workspaces reflect real repository analysis.",
     },
     nav: {
       workspaceNavigation: "Workspace navigation",
@@ -26,6 +27,7 @@ export const messages = {
       title: "Engineering decision memory with citations.",
       lede:
         "Import a public GitHub repository, review extracted decisions, answer why-questions with traceable evidence, and inspect drift before it turns into accidental architecture change.",
+      note: "The public demo workspace is seeded for a stable walkthrough. Imported workspaces use real repository data.",
       conceptsLabel: "MVP concepts",
       pills: ["Import", "Decisions", "Why"],
       steps: [
@@ -140,6 +142,27 @@ export const messages = {
       sourceRefs: "Source References",
       na: "N/A",
     },
+    provenance: {
+      workspaceType: "Workspace Type",
+      dataSource: "Data Source",
+      contexts: {
+        dashboard: "Workspace context",
+        answer: "Answer context",
+        timeline: "Timeline context",
+        drift: "Drift context",
+        detail: "Decision context",
+      },
+      modes: {
+        demo: "Demo Workspace",
+        imported: "Imported Workspace",
+        mixed: "Mixed Workspace",
+      },
+      summaries: {
+        demo: "Seeded demo data for a guided product walkthrough.",
+        imported: "Imported repository data from GitHub-backed analysis.",
+        mixed: "Seeded demo data combined with imported repository data.",
+      },
+    },
     status: {
       candidate: "candidate",
       accepted: "accepted",
@@ -165,6 +188,7 @@ export const messages = {
       switchToEnglish: "切换到英文",
       switchToChinese: "切换到中文",
       noData: "无",
+      liveVsDemo: "演示工作区展示的是稳定的 seed 演示数据，导入工作区展示的才是真实仓库分析结果。",
     },
     nav: {
       workspaceNavigation: "工作区导航",
@@ -179,6 +203,7 @@ export const messages = {
       title: "带引用的工程决策记忆。",
       lede:
         "导入公开 GitHub 仓库，审阅抽取出的决策，用可追溯证据回答为什么，并在架构漂移变成事故前发现它。",
+      note: "公开演示工作区使用 seed 数据保证流程稳定，真实导入工作区才反映仓库分析结果。",
       conceptsLabel: "MVP 概念",
       pills: ["导入", "决策", "为什么"],
       steps: ["为工作区运行演示导入。", "审阅置信度最高的候选决策。", "提一个为什么问题并查看漂移提醒。"],
@@ -284,6 +309,27 @@ export const messages = {
       confidence: "置信度",
       sourceRefs: "引用来源",
       na: "无",
+    },
+    provenance: {
+      workspaceType: "工作区类型",
+      dataSource: "数据来源",
+      contexts: {
+        dashboard: "工作区上下文",
+        answer: "答案上下文",
+        timeline: "时间线上下文",
+        drift: "漂移上下文",
+        detail: "决策上下文",
+      },
+      modes: {
+        demo: "演示工作区",
+        imported: "导入工作区",
+        mixed: "混合工作区",
+      },
+      summaries: {
+        demo: "用于稳定产品演示的 seed 数据。",
+        imported: "来自 GitHub 导入与分析的真实仓库数据。",
+        mixed: "seed 演示数据与导入仓库数据同时存在。",
+      },
     },
     status: {
       candidate: "待审",

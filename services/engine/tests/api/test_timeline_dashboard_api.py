@@ -15,7 +15,7 @@ from app.main import create_app
 def _seed_dashboard_fixture(db_path: Path) -> None:
     engine = create_engine(f"sqlite:///{db_path}")
     with Session(engine) as session:
-        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
         session.add(workspace)
         session.flush()
         session.add_all(
@@ -70,12 +70,13 @@ def test_timeline_returns_accepted_decisions(tmp_path: Path, monkeypatch) -> Non
     _seed_dashboard_fixture(db_path)
 
     client = TestClient(create_app())
-    response = client.get("/timeline", params={"workspace_slug": "demo-workspace"})
+    response = client.get("/timeline", params={"workspace_slug": "imported-workspace"})
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["title"] == "Use Redis Cache"
+    assert body["workspace_mode"] == "imported"
+    assert len(body["items"]) == 1
+    assert body["items"][0]["title"] == "Use Redis Cache"
 
 
 def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
@@ -87,10 +88,12 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     _seed_dashboard_fixture(db_path)
 
     client = TestClient(create_app())
-    response = client.get("/dashboard/summary", params={"workspace_slug": "demo-workspace"})
+    response = client.get("/dashboard/summary", params={"workspace_slug": "imported-workspace"})
 
     assert response.status_code == 200
     body = response.json()
+    assert body["workspace_mode"] == "imported"
+    assert "source_summary" in body
     assert body["artifact_count"] == 1
     assert body["decision_counts"]["accepted"] == 1
     assert body["decision_counts"]["candidate"] == 1
