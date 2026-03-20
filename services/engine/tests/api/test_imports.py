@@ -28,11 +28,32 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
     scheduled: list[dict] = []
 
     def fake_queue_github_import(*, workspace_slug: str, repo: str, mode: str):
-        return {"job_id": "job-123", "repo": repo, "mode": mode, "status": "queued", "imported_count": 0}
+        return {
+            "job_id": "job-123",
+            "repo": repo,
+            "mode": mode,
+            "status": "queued",
+            "imported_count": 0,
+            "summary": None,
+        }
 
     def fake_run_github_import(**kwargs):
         scheduled.append(kwargs)
-        return {"job_id": kwargs["job_id"], "repo": kwargs["repo"], "mode": kwargs["mode"], "status": "succeeded", "imported_count": 7}
+        return {
+            "job_id": kwargs["job_id"],
+            "repo": kwargs["repo"],
+            "mode": kwargs["mode"],
+            "status": "succeeded",
+            "imported_count": 7,
+            "summary": {
+                "artifact_counts": {"issue": 1, "pr": 1, "commit": 3, "doc": 2},
+                "document_summary": {
+                    "selected": 3,
+                    "imported": 2,
+                    "skipped": {"outside_high_signal_paths": 4, "non_markdown": 8, "generated_or_vendor_path": 1},
+                },
+            },
+        }
 
     monkeypatch.setattr("app.api.imports.queue_github_import", fake_queue_github_import)
     monkeypatch.setattr("app.api.imports.run_github_import", fake_run_github_import)
@@ -51,6 +72,7 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
         "mode": "full",
         "status": "queued",
         "imported_count": 0,
+        "summary": None,
     }
     assert scheduled == [
         {
@@ -64,7 +86,21 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
 
 def test_get_import_job_status_returns_job(monkeypatch) -> None:
     def fake_get_import_job_status(job_id: str):
-        return {"job_id": job_id, "repo": "org/repo", "mode": "full", "status": "succeeded", "imported_count": 9}
+        return {
+            "job_id": job_id,
+            "repo": "org/repo",
+            "mode": "full",
+            "status": "succeeded",
+            "imported_count": 9,
+            "summary": {
+                "artifact_counts": {"issue": 1, "pr": 2, "commit": 4, "doc": 2},
+                "document_summary": {
+                    "selected": 2,
+                    "imported": 2,
+                    "skipped": {"outside_high_signal_paths": 6, "non_markdown": 9, "generated_or_vendor_path": 1},
+                },
+            },
+        }
 
     monkeypatch.setattr("app.api.imports.get_import_job_status", fake_get_import_job_status)
 
@@ -73,3 +109,4 @@ def test_get_import_job_status_returns_job(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["job_id"] == "job-123"
+    assert response.json()["summary"]["artifact_counts"]["doc"] == 2

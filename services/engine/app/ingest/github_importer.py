@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import PurePosixPath
 
 from sqlalchemy.orm import Session
 
 from app.ingest.github_client import GitHubClient
+from app.ingest.github_document_selection import select_high_signal_repository_documents
+from app.ingest.github_types import GitHubImportResult
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.workspaces import WorkspaceRepository
 
@@ -23,7 +26,7 @@ class GitHubImporter:
         repo: str,
         mode: str = "full",
         since: datetime | None = None,
-    ) -> int:
+    ) -> GitHubImportResult:
         workspace = self.workspaces.get_by_slug(workspace_slug)
         if workspace is None:
             raise ValueError(f"Workspace not found: {workspace_slug}")
@@ -32,12 +35,16 @@ class GitHubImporter:
 
         effective_since = since if mode == "since_last_sync" else None
 
+        issues = self.client.fetch_issues(repo, since=effective_since)
+        pulls = self.client.fetch_pull_requests(repo, since=effective_since)
+        commits = self.client.fetch_commits(repo, since=effective_since)
+        default_branch = self.client.get_default_branch(repo)
+        repository_files = self.client.list_repository_files(repo, ref=default_branch)
+        selected_documents, skipped_document_counts = select_high_signal_repository_documents(repository_files)
+
         total = 0
-        for payload in (
-            self.client.fetch_issues(repo, since=effective_since)
-            + self.client.fetch_pull_requests(repo, since=effective_since)
-            + self.client.fetch_commits(repo, since=effective_since)
-        ):
+        artifact_counts = {"issue": 0, "pr": 0, "commit": 0, "doc": 0}
+        for payload in issues + pulls + commits:
             self.artifacts.upsert(
                 workspace_id=workspace.id,
                 artifact_type=payload.artifact_type,
@@ -51,6 +58,35 @@ class GitHubImporter:
                 metadata_json=payload.metadata_json,
             )
             total += 1
+            artifact_counts[payload.artifact_type] += 1
+
+        for repository_file in selected_documents:
+            source_id = repository_file.path
+            self.artifacts.upsert(
+                workspace_id=workspace.id,
+                artifact_type="doc",
+                source_id=source_id,
+                repo=repo,
+                title=PurePosixPath(source_id).stem,
+                content=self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch),
+                author=None,
+                url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
+                timestamp=None,
+                metadata_json={"path": source_id, "ref": default_branch, "source": "github_repo_doc"},
+            )
+            total += 1
+            artifact_counts["doc"] += 1
 
         self.session.commit()
-        return total
+        return GitHubImportResult(
+            imported_count=total,
+            artifact_counts=artifact_counts,
+            selected_document_count=len(selected_documents),
+            imported_document_count=artifact_counts["doc"],
+            skipped_document_counts=skipped_document_counts,
+        )
+
+
+def _repo_doc_url(repo_url: str | None, *, repo: str, ref: str, path: str) -> str:
+    base = repo_url.rstrip("/") if repo_url else f"https://github.com/{repo}"
+    return f"{base}/blob/{ref}/{path}"

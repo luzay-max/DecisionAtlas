@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 from typing import Any
 
 import httpx
 
-from app.ingest.github_types import GitHubArtifactPayload
+from app.ingest.github_types import GitHubArtifactPayload, GitHubRepositoryFile
 
 
 class GitHubClient:
@@ -102,6 +103,38 @@ class GitHubClient:
                 )
             )
         return commits
+
+    def get_default_branch(self, repo: str) -> str:
+        response = self.client.get(f"/repos/{repo}")
+        response.raise_for_status()
+        payload = response.json()
+        return payload.get("default_branch") or "main"
+
+    def list_repository_files(self, repo: str, *, ref: str | None = None) -> list[GitHubRepositoryFile]:
+        branch = ref or self.get_default_branch(repo)
+        response = self.client.get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})
+        response.raise_for_status()
+        payload = response.json()
+        tree = payload.get("tree") or []
+        return [
+            GitHubRepositoryFile(
+                path=item["path"],
+                sha=item.get("sha"),
+                size=item.get("size"),
+            )
+            for item in tree
+            if item.get("type") == "blob" and item.get("path")
+        ]
+
+    def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+        response = self.client.get(f"/repos/{repo}/contents/{path}", params={"ref": ref})
+        response.raise_for_status()
+        payload = response.json()
+        encoded = payload.get("content")
+        encoding = payload.get("encoding")
+        if not encoded or encoding != "base64":
+            raise ValueError(f"Unsupported GitHub content encoding for {path}")
+        return base64.b64decode(encoded).decode("utf-8")
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         page = 1

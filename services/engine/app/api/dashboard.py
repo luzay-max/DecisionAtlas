@@ -44,6 +44,7 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
                     "mode": latest_job.mode,
                     "status": latest_job.status,
                     "imported_count": latest_job.imported_count,
+                    "summary": latest_job.summary_json,
                     "error_message": latest_job.error_message,
                     "started_at": latest_job.started_at.isoformat() if latest_job.started_at else None,
                     "finished_at": latest_job.finished_at.isoformat() if latest_job.finished_at else None,

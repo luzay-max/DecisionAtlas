@@ -15,3 +15,19 @@ class GitHubArtifactPayload:
     url: str | None
     timestamp: datetime | None
     metadata_json: dict
+
+
+@dataclass(slots=True)
+class GitHubRepositoryFile:
+    path: str
+    sha: str | None
+    size: int | None
+
+
+@dataclass(slots=True)
+class GitHubImportResult:
+    imported_count: int
+    artifact_counts: dict[str, int]
+    selected_document_count: int
+    imported_document_count: int
+    skipped_document_counts: dict[str, int]

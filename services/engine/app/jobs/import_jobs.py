@@ -65,7 +65,7 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             "github import started",
             extra=build_log_context(job_id=job_id, workspace_id=workspace.id),
         )
-        imported_count = importer.import_repo(
+        import_result = importer.import_repo(
             workspace_slug=workspace_slug,
             repo=repo,
             mode=mode,
@@ -80,7 +80,18 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                 embedder=runtime.embedder,
             )
         CandidateExtractionPipeline(session, runtime.extraction_provider).run(workspace_slug=workspace_slug)
-        job = jobs.mark_succeeded(job_id, imported_count=imported_count)
+        job = jobs.mark_succeeded(
+            job_id,
+            imported_count=import_result.imported_count,
+            summary_json={
+                "artifact_counts": import_result.artifact_counts,
+                "document_summary": {
+                    "selected": import_result.selected_document_count,
+                    "imported": import_result.imported_document_count,
+                    "skipped": import_result.skipped_document_counts,
+                },
+            },
+        )
         session.commit()
         logger.info(
             "github import completed",
@@ -117,6 +128,7 @@ def serialize_import_job(job) -> dict[str, int | str | None]:
         "mode": job.mode,
         "status": job.status,
         "imported_count": job.imported_count,
+        "summary": job.summary_json,
         "error_message": job.error_message,
         "started_at": job.started_at.isoformat() if job.started_at else None,
         "finished_at": job.finished_at.isoformat() if job.finished_at else None,

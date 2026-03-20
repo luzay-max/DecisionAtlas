@@ -110,6 +110,7 @@ class ImportJob(Base):
     mode: Mapped[str] = mapped_column(String(50), nullable=False, default="full")
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="queued")
     imported_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    summary_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

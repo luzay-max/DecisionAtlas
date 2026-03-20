@@ -19,6 +19,20 @@ export type WorkspaceProvenance = {
   source_summary: string;
 };
 
+export type ImportSummary = {
+  artifact_counts: {
+    issue: number;
+    pr: number;
+    commit: number;
+    doc: number;
+  };
+  document_summary: {
+    selected: number;
+    imported: number;
+    skipped: Record<string, number>;
+  };
+};
+
 export type SourceRef = {
   id: number;
   artifact_id: number;
@@ -72,6 +86,7 @@ export type DashboardSummary = WorkspaceProvenance & {
     mode: string;
     status: string;
     imported_count: number;
+    summary?: ImportSummary | null;
     error_message: string | null;
     started_at: string | null;
     finished_at: string | null;
@@ -122,6 +137,7 @@ export type ImportResult = {
   mode?: string;
   status?: string;
   imported_count: number;
+  summary?: ImportSummary | null;
   error_message?: string | null;
   started_at?: string | null;
   finished_at?: string | null;

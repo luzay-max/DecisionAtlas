@@ -9,7 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
 from app.ingest.github_importer import GitHubImporter
+from app.ingest.github_document_selection import select_high_signal_repository_documents
 from app.ingest.github_types import GitHubArtifactPayload
+from app.ingest.github_types import GitHubRepositoryFile
 
 
 class FakeGitHubClient:
@@ -58,6 +60,38 @@ class FakeGitHubClient:
             )
         ]
 
+    def get_default_branch(self, repo: str) -> str:
+        return "main"
+
+    def list_repository_files(self, repo: str, *, ref: str | None = None):
+        return [
+            GitHubRepositoryFile(path="README.md", sha="readme-sha", size=120),
+            GitHubRepositoryFile(path="docs/adr/0001-choice.md", sha="adr-sha", size=80),
+            GitHubRepositoryFile(path="src/main.py", sha="code-sha", size=20),
+            GitHubRepositoryFile(path="package-lock.json", sha="lock-sha", size=50),
+        ]
+
+    def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+        return {
+            "README.md": "# Demo Repo",
+            "docs/adr/0001-choice.md": "# ADR",
+        }[path]
+
+
+def test_document_selection_prefers_high_signal_markdown_paths() -> None:
+    selected, skipped = select_high_signal_repository_documents(
+        [
+            GitHubRepositoryFile(path="README.md", sha="1", size=10),
+            GitHubRepositoryFile(path="docs/guide.md", sha="2", size=10),
+            GitHubRepositoryFile(path="src/index.ts", sha="3", size=10),
+            GitHubRepositoryFile(path="vendor/ARCHITECTURE.md", sha="4", size=10),
+        ]
+    )
+
+    assert [item.path for item in selected] == ["README.md", "docs/guide.md"]
+    assert skipped["non_markdown"] == 1
+    assert skipped["generated_or_vendor_path"] == 1
+
 
 def test_github_importer_persists_artifacts(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "importer.db"
@@ -75,16 +109,21 @@ def test_github_importer_persists_artifacts(tmp_path: Path, monkeypatch) -> None
 
     with Session(engine) as session:
         importer = GitHubImporter(session, FakeGitHubClient())
-        imported_count = importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+        import_result = importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
 
     with Session(engine) as session:
         artifacts = session.scalars(select(Artifact).order_by(Artifact.type)).all()
 
-    assert imported_count == 3
-    assert [artifact.type for artifact in artifacts] == ["commit", "issue", "pr"]
+    assert import_result.imported_count == 5
+    assert import_result.artifact_counts == {"issue": 1, "pr": 1, "commit": 1, "doc": 2}
+    assert import_result.selected_document_count == 2
+    assert import_result.skipped_document_counts["non_markdown"] == 2
+    assert [artifact.type for artifact in artifacts] == ["commit", "doc", "doc", "issue", "pr"]
     assert artifacts[0].repo == "org/repo"
-    assert artifacts[1].author == "alice"
-    assert artifacts[2].source_id == "2"
+    assert artifacts[1].source_id == "README.md"
+    assert artifacts[1].url == "https://github.com/org/repo/blob/main/README.md"
+    assert artifacts[3].author == "alice"
+    assert artifacts[4].source_id == "2"
 
 
 def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatch) -> None:
@@ -111,4 +150,4 @@ def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatc
     with Session(engine) as session:
         artifacts = session.scalars(select(Artifact)).all()
 
-    assert len(artifacts) == 3
+    assert len(artifacts) == 5

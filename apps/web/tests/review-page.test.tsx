@@ -37,4 +37,12 @@ describe("ReviewPageContent", () => {
       "/decisions/1?workspace=demo-workspace"
     );
   });
+
+  it("explains sparse imported workspaces when no candidates exist", () => {
+    render(<ReviewPageContent workspaceSlug="imported-workspace" decisions={[]} />);
+
+    expect(
+      screen.getByText(/imported repository did not contain enough high-signal decision evidence/i)
+    ).toBeInTheDocument();
+  });
 });

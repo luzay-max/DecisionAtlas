@@ -5,7 +5,20 @@ describe("POST /imports/github", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => ({ job_id: "job-123", mode: "full", status: "succeeded", imported_count: 5 })
+      json: async () => ({
+        job_id: "job-123",
+        mode: "full",
+        status: "succeeded",
+        imported_count: 5,
+        summary: {
+          artifact_counts: { issue: 1, pr: 1, commit: 2, doc: 1 },
+          document_summary: {
+            selected: 2,
+            imported: 1,
+            skipped: { outside_high_signal_paths: 4, non_markdown: 6, generated_or_vendor_path: 1 }
+          }
+        }
+      })
     } as Response);
 
     const app = buildServer();
@@ -20,7 +33,20 @@ describe("POST /imports/github", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ job_id: "job-123", mode: "full", status: "succeeded", imported_count: 5 });
+    expect(response.json()).toEqual({
+      job_id: "job-123",
+      mode: "full",
+      status: "succeeded",
+      imported_count: 5,
+      summary: {
+        artifact_counts: { issue: 1, pr: 1, commit: 2, doc: 1 },
+        document_summary: {
+          selected: 2,
+          imported: 1,
+          skipped: { outside_high_signal_paths: 4, non_markdown: 6, generated_or_vendor_path: 1 }
+        }
+      }
+    });
 
     global.fetch = originalFetch;
   });
@@ -44,7 +70,19 @@ describe("POST /imports/github", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => ({ job_id: "job-123", status: "succeeded", imported_count: 8 })
+      json: async () => ({
+        job_id: "job-123",
+        status: "succeeded",
+        imported_count: 8,
+        summary: {
+          artifact_counts: { issue: 1, pr: 2, commit: 3, doc: 2 },
+          document_summary: {
+            selected: 3,
+            imported: 2,
+            skipped: { outside_high_signal_paths: 4, non_markdown: 9, generated_or_vendor_path: 1 }
+          }
+        }
+      })
     } as Response);
 
     const app = buildServer();
@@ -54,7 +92,19 @@ describe("POST /imports/github", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ job_id: "job-123", status: "succeeded", imported_count: 8 });
+    expect(response.json()).toEqual({
+      job_id: "job-123",
+      status: "succeeded",
+      imported_count: 8,
+      summary: {
+        artifact_counts: { issue: 1, pr: 2, commit: 3, doc: 2 },
+        document_summary: {
+          selected: 3,
+          imported: 2,
+          skipped: { outside_high_signal_paths: 4, non_markdown: 9, generated_or_vendor_path: 1 }
+        }
+      }
+    });
 
     global.fetch = originalFetch;
   });

@@ -292,3 +292,32 @@ Compatibility follow-up:
 - why search no longer crashes if `answer_context` is temporarily absent
 - timeline no longer crashes if it still receives a legacy array response
 - drift no longer crashes if it still receives a legacy array response
+
+## 2026-03-20 Repository Ingest Addendum
+
+Started and completed the `expand-real-repo-ingest` slice on branch `feat/expand-real-repo-ingest`.
+
+Delivered:
+
+- expanded GitHub import beyond issues, pull requests, and commits to also ingest selected high-signal repository markdown documents
+- added a repository document selection layer with explicit skip categories:
+  - `non_markdown`
+  - `generated_or_vendor_path`
+  - `outside_high_signal_paths`
+- reused the existing `doc` artifact type so remote repository documents flow into indexing and extraction without a second artifact model
+- extended import job responses with structured summary data for:
+  - artifact counts by type
+  - selected/imported repository document counts
+  - skipped document totals by category
+- updated imported-workspace dashboard and review empty states so sparse decision output is explained as limited evidence, not as a failed import
+
+Verification for this addendum:
+
+- `python -m uv run pytest tests/ingest/test_github_importer.py tests/api/test_imports.py tests/api/test_import_job_status_api.py tests/api/test_timeline_dashboard_api.py -q`: passed
+- `pnpm --filter @decisionatlas/api test`: passed
+- `pnpm --filter @decisionatlas/web test`: passed
+- `pnpm --filter @decisionatlas/web typecheck`: passed
+
+Known validation note:
+
+- `python -m uv run pytest -q` in `services/engine` now passes all targeted feature tests, but one existing schema smoke test still fails against the local default PostgreSQL DSN because the local `postgres` password does not match the configured `DATABASE_URL`

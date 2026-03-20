@@ -20,6 +20,11 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
     ? (messages.dashboard.importMode[summary.latest_import.mode as keyof typeof messages.dashboard.importMode] ??
       summary.latest_import.mode)
     : null;
+  const latestImportSummary = summary.latest_import?.summary;
+  const skippedDocumentCount = latestImportSummary
+    ? Object.values(latestImportSummary.document_summary.skipped).reduce((total, count) => total + count, 0)
+    : 0;
+  const showLowSignalHint = summary.workspace_mode !== "demo" && summary.decision_counts.candidate === 0;
 
   return (
     <main className="page-shell">
@@ -59,9 +64,18 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
               {latestImportStatus} · {latestImportMode} · {summary.latest_import.imported_count}{" "}
               {messages.kpi.artifacts}
             </p>
+            {latestImportSummary ? (
+              <p>
+                {messages.dashboard.docImportSummary
+                  .replace("{docs}", String(latestImportSummary.document_summary.imported))
+                  .replace("{selected}", String(latestImportSummary.document_summary.selected))
+                  .replace("{skipped}", String(skippedDocumentCount))}
+              </p>
+            ) : null}
             {summary.latest_import.error_message ? <p>{summary.latest_import.error_message}</p> : null}
           </div>
         ) : null}
+        {showLowSignalHint ? <p>{messages.dashboard.lowSignalHint}</p> : null}
         <KpiStrip summary={summary} />
         <RecentAlerts summary={summary} />
       </section>

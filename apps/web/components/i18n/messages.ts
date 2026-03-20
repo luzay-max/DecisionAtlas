@@ -48,6 +48,9 @@ export const messages = {
       inspectDrift: "Inspect drift",
       openTimeline: "Open timeline",
       latestImport: "Latest Import",
+      docImportSummary: "Imported {docs} repository docs from {selected} high-signal selections and skipped {skipped} files outside scope.",
+      lowSignalHint:
+        "This imported workspace currently has limited high-signal evidence. A successful import can still produce few candidate decisions.",
       importMode: {
         full: "full",
         since_last_sync: "since last sync",
@@ -78,6 +81,9 @@ export const messages = {
       eyebrow: "Review Queue",
       title: "Candidate decisions waiting for review",
       lede: "Highest-confidence candidates appear first so the demo path stays easy to review.",
+      emptyDemo: "Run the demo import first, then come back to review the extracted candidate decisions.",
+      emptyImported:
+        "No candidate decisions are available yet. This usually means the imported repository did not contain enough high-signal decision evidence.",
       candidateDecision: "Candidate Decision",
       confidence: "Confidence",
       problem: "Problem",
@@ -220,6 +226,8 @@ export const messages = {
       inspectDrift: "查看漂移",
       openTimeline: "打开时间线",
       latestImport: "最近导入",
+      docImportSummary: "从 {selected} 个高信号候选文件中导入了 {docs} 个仓库文档，另有 {skipped} 个文件被跳过。",
+      lowSignalHint: "这个导入工作区当前高信号证据有限。即使导入成功，也可能只产生很少的候选决策。",
       importMode: {
         full: "完整",
         since_last_sync: "自上次同步以来",
@@ -250,6 +258,8 @@ export const messages = {
       eyebrow: "审阅队列",
       title: "等待审阅的候选决策",
       lede: "先展示置信度最高的候选项，方便演示流程快速完成审阅。",
+      emptyDemo: "先运行演示导入，再回来审阅抽取出的候选决策。",
+      emptyImported: "当前还没有候选决策。这通常意味着导入的仓库里缺少足够高信号的决策证据。",
       candidateDecision: "候选决策",
       confidence: "置信度",
       problem: "问题",

@@ -16,7 +16,7 @@ class GitHubImportRequest(BaseModel):
 
 
 @router.post("/github")
-def import_github(request: GitHubImportRequest, background_tasks: BackgroundTasks) -> dict[str, int | str | None]:
+def import_github(request: GitHubImportRequest, background_tasks: BackgroundTasks) -> dict:
     try:
         job = queue_github_import(workspace_slug=request.workspace_slug, repo=request.repo, mode=request.mode)
         background_tasks.add_task(
@@ -34,7 +34,7 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
 
 
 @router.get("/{job_id}")
-def get_import_job(job_id: str) -> dict[str, int | str | None]:
+def get_import_job(job_id: str) -> dict:
     try:
         return get_import_job_status(job_id)
     except ValueError as exc:

@@ -27,6 +27,7 @@ class ImportJobRepository:
             mode=mode,
             status="queued",
             imported_count=0,
+            summary_json=None,
         )
         self.session.add(job)
         self.session.flush()
@@ -64,10 +65,11 @@ class ImportJobRepository:
         self.session.flush()
         return job
 
-    def mark_succeeded(self, job_id: str, *, imported_count: int) -> ImportJob:
+    def mark_succeeded(self, job_id: str, *, imported_count: int, summary_json: dict | None = None) -> ImportJob:
         job = self._require(job_id)
         job.status = "succeeded"
         job.imported_count = imported_count
+        job.summary_json = summary_json
         job.finished_at = datetime.utcnow()
         self.session.flush()
         return job

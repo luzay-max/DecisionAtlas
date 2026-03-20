@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, Workspace
+from app.db.models import Artifact, Decision, ImportJob, Workspace
 from app.main import create_app
 
 
@@ -58,6 +58,24 @@ def _seed_dashboard_fixture(db_path: Path) -> None:
                 ),
             ]
         )
+        session.add(
+            ImportJob(
+                job_id="job-123",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=5,
+                summary_json={
+                    "artifact_counts": {"issue": 1, "pr": 1, "commit": 2, "doc": 1},
+                    "document_summary": {
+                        "selected": 2,
+                        "imported": 1,
+                        "skipped": {"outside_high_signal_paths": 4, "non_markdown": 6, "generated_or_vendor_path": 1},
+                    },
+                },
+            )
+        )
         session.commit()
 
 
@@ -97,3 +115,4 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["artifact_count"] == 1
     assert body["decision_counts"]["accepted"] == 1
     assert body["decision_counts"]["candidate"] == 1
+    assert body["latest_import"]["summary"]["artifact_counts"]["doc"] == 1
