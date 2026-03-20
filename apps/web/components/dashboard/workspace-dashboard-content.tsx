@@ -21,10 +21,23 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
       summary.latest_import.mode)
     : null;
   const latestImportSummary = summary.latest_import?.summary;
+  const latestImportStage = latestImportSummary?.stage
+    ? (messages.status[latestImportSummary.stage as keyof typeof messages.status] ?? latestImportSummary.stage)
+    : null;
+  const latestImportOutcome = latestImportSummary?.outcome
+    ? (messages.status[latestImportSummary.outcome as keyof typeof messages.status] ?? latestImportSummary.outcome)
+    : null;
+  const latestImportFailure = latestImportSummary?.failure_category
+    ? (messages.status[latestImportSummary.failure_category as keyof typeof messages.status] ??
+      latestImportSummary.failure_category)
+    : null;
   const skippedDocumentCount = latestImportSummary
-    ? Object.values(latestImportSummary.document_summary.skipped).reduce((total, count) => total + count, 0)
+    ? Object.values(latestImportSummary.document_summary?.skipped ?? {}).reduce((total, count) => total + count, 0)
     : 0;
-  const showLowSignalHint = summary.workspace_mode !== "demo" && summary.decision_counts.candidate === 0;
+  const showLowSignalHint =
+    summary.workspace_mode !== "demo" &&
+    summary.decision_counts.candidate === 0 &&
+    summary.latest_import?.status !== "failed";
 
   return (
     <main className="page-shell">
@@ -64,7 +77,22 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
               {latestImportStatus} · {latestImportMode} · {summary.latest_import.imported_count}{" "}
               {messages.kpi.artifacts}
             </p>
-            {latestImportSummary ? (
+            {latestImportStage ? (
+              <p>
+                {messages.dashboard.stageLabel}: {latestImportStage}
+              </p>
+            ) : null}
+            {latestImportOutcome ? (
+              <p>
+                {messages.dashboard.outcomeLabel}: {latestImportOutcome}
+              </p>
+            ) : null}
+            {latestImportFailure ? (
+              <p>
+                {messages.dashboard.failureLabel}: {latestImportFailure}
+              </p>
+            ) : null}
+            {latestImportSummary?.document_summary ? (
               <p>
                 {messages.dashboard.docImportSummary
                   .replace("{docs}", String(latestImportSummary.document_summary.imported))

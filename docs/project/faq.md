@@ -43,3 +43,13 @@ python scripts/ci/run_benchmark.py
 pnpm --filter @decisionatlas/web exec playwright install chromium
 pnpm --filter @decisionatlas/web exec playwright test
 ```
+
+## Does live analysis support any repository?
+
+Not yet. This phase supports one-off analysis of public GitHub repositories only.
+
+- no private repository auth
+- no GitHub App installation flow
+- no persistent multi-repository connection management
+
+If a repository is thin on ADRs, docs, or rationale, the correct outcome may be `insufficient_evidence` rather than a rich answer set.

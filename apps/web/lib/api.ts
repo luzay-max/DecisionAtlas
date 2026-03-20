@@ -12,6 +12,8 @@ export type ReviewDecision = {
   confidence: number;
 };
 
+export type ReviewState = "candidate" | "accepted" | "rejected" | "superseded";
+
 export type WorkspaceMode = "demo" | "imported" | "mixed";
 
 export type WorkspaceProvenance = {
@@ -20,17 +22,20 @@ export type WorkspaceProvenance = {
 };
 
 export type ImportSummary = {
-  artifact_counts: {
+  stage?: string;
+  outcome?: string;
+  failure_category?: string;
+  artifact_counts?: {
     issue: number;
     pr: number;
     commit: number;
     doc: number;
-  };
-  document_summary: {
+  } | null;
+  document_summary?: {
     selected: number;
     imported: number;
     skipped: Record<string, number>;
-  };
+  } | null;
 };
 
 export type SourceRef = {
@@ -83,6 +88,7 @@ export type DashboardSummary = WorkspaceProvenance & {
   import_status: string;
   latest_import: {
     job_id: string;
+    workspace_slug?: string | null;
     mode: string;
     status: string;
     imported_count: number;
@@ -133,6 +139,7 @@ export type DriftAlertItem = {
 
 export type ImportResult = {
   job_id: string;
+  workspace_slug?: string | null;
   repo?: string;
   mode?: string;
   status?: string;
@@ -160,6 +167,22 @@ export async function getDecisionDetail(id: string): Promise<DecisionDetail> {
   const response = await fetch(`${apiBaseUrl}/decisions/${id}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load decision detail");
+  }
+  return response.json();
+}
+
+export async function reviewDecision(decisionId: number, reviewState: ReviewState): Promise<ReviewDecision> {
+  const response = await fetch(`${apiBaseUrl}/decisions/${decisionId}/review`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      review_state: reviewState
+    })
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update decision review state");
   }
   return response.json();
 }
@@ -212,17 +235,24 @@ export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlerts
   return response.json();
 }
 
-export async function startGithubImport(workspaceSlug: string, repo: string): Promise<ImportResult> {
+export async function startGithubImport(workspaceSlug: string | null, repo: string): Promise<ImportResult> {
   const response = await fetch(`${apiBaseUrl}/imports/github`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
-    body: JSON.stringify({
-      workspace_slug: workspaceSlug,
-      repo,
-      mode: "full"
-    })
+    body: JSON.stringify(
+      workspaceSlug
+        ? {
+            workspace_slug: workspaceSlug,
+            repo,
+            mode: "full"
+          }
+        : {
+            repo,
+            mode: "full"
+          }
+    )
   });
   if (!response.ok) {
     throw new Error("Failed to start GitHub import");

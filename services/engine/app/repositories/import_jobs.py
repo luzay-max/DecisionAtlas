@@ -27,7 +27,7 @@ class ImportJobRepository:
             mode=mode,
             status="queued",
             imported_count=0,
-            summary_json=None,
+            summary_json={"stage": "queued"},
         )
         self.session.add(job)
         self.session.flush()
@@ -57,11 +57,24 @@ class ImportJobRepository:
         )
         return self.session.scalar(stmt)
 
-    def mark_running(self, job_id: str) -> ImportJob:
+    def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
         job = self._require(job_id)
         job.status = "running"
         job.started_at = datetime.utcnow()
         job.error_message = None
+        summary = dict(job.summary_json or {})
+        summary["stage"] = stage
+        job.summary_json = summary
+        self.session.flush()
+        return job
+
+    def update_stage(self, job_id: str, *, stage: str, summary_json: dict | None = None) -> ImportJob:
+        job = self._require(job_id)
+        summary = dict(job.summary_json or {})
+        summary["stage"] = stage
+        if summary_json:
+            summary.update(summary_json)
+        job.summary_json = summary
         self.session.flush()
         return job
 
@@ -69,15 +82,30 @@ class ImportJobRepository:
         job = self._require(job_id)
         job.status = "succeeded"
         job.imported_count = imported_count
-        job.summary_json = summary_json
+        summary = dict(job.summary_json or {})
+        if summary_json:
+            summary.update(summary_json)
+        summary["stage"] = "completed"
+        job.summary_json = summary
         job.finished_at = datetime.utcnow()
         self.session.flush()
         return job
 
-    def mark_failed(self, job_id: str, *, error_message: str) -> ImportJob:
+    def mark_failed(
+        self,
+        job_id: str,
+        *,
+        error_message: str,
+        stage: str,
+        failure_category: str,
+    ) -> ImportJob:
         job = self._require(job_id)
         job.status = "failed"
         job.error_message = error_message
+        summary = dict(job.summary_json or {})
+        summary["stage"] = stage
+        summary["failure_category"] = failure_category
+        job.summary_json = summary
         job.finished_at = datetime.utcnow()
         self.session.flush()
         return job

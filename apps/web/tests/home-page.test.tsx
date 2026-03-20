@@ -1,6 +1,15 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
+
 import HomePage from "../app/page";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("HomePage", () => {
   it("renders the project name and MVP concepts", () => {
@@ -16,5 +25,7 @@ describe("HomePage", () => {
     expect(screen.getByRole("link", { name: /open the public demo workspace/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /jump to review/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /jump to why search/i })).toBeInTheDocument();
+    expect(screen.getByText(/analyze a real public github repository/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /run live analysis/i })).toBeInTheDocument();
   });
 });

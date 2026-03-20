@@ -11,6 +11,27 @@ def load_json(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def validate_live_repo_set(repositories: list[dict]) -> int:
+    if not repositories:
+        print("Live benchmark repository set is empty.", file=sys.stderr)
+        return 1
+
+    print(f"Loaded {len(repositories)} live benchmark repositories.")
+    for repository in repositories:
+        expectations = repository.get("expectations", {})
+        if not repository.get("repo") or "/" not in repository["repo"]:
+            print(f"Invalid repository entry: {repository}", file=sys.stderr)
+            return 1
+        if expectations.get("minimum_candidate_decisions", 0) < 0:
+            print(f"Invalid minimum candidate count for {repository['repo']}.", file=sys.stderr)
+            return 1
+        print(
+            f"{repository['id']}: repo={repository['repo']} "
+            f"min_candidates={expectations.get('minimum_candidate_decisions', 0)}"
+        )
+    return 0
+
+
 def validate_fixtures(queries: list[dict], expected_answers: list[dict]) -> int:
     root = Path(__file__).resolve().parents[2]
     query_ids = [item["id"] for item in queries]
@@ -78,12 +99,18 @@ def main() -> int:
 
     root = Path(__file__).resolve().parents[2]
     workspace_dir = root / "examples" / "demo-workspace"
+    live_repo_dir = root / "examples" / "live-benchmarks"
     queries = load_json(workspace_dir / "queries.json")
     expected_answers = load_json(workspace_dir / "expected-answers.json")
+    live_repositories = load_json(live_repo_dir / "repositories.json")
 
     fixture_status = validate_fixtures(queries, expected_answers)
     if fixture_status != 0:
         return fixture_status
+
+    live_repo_status = validate_live_repo_set(live_repositories)
+    if live_repo_status != 0:
+        return live_repo_status
 
     if not args.live:
         return 0

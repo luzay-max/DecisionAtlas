@@ -1,9 +1,17 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 
 import HomePage from "../app/page";
 import { LanguageProvider } from "../components/i18n/language-provider";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("language toggle", () => {
   it("switches the homepage between English and Chinese", async () => {

@@ -1,7 +1,18 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 
 import { ReviewPageContent } from "../components/review/review-page-content";
+import * as api from "../lib/api";
+
+vi.mock("../lib/api", async () => {
+  const actual = await vi.importActual<typeof import("../lib/api")>("../lib/api");
+  return {
+    ...actual,
+    reviewDecision: vi.fn(),
+  };
+});
 
 describe("ReviewPageContent", () => {
   it("renders candidate review actions", () => {
@@ -35,6 +46,53 @@ describe("ReviewPageContent", () => {
     expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
       "href",
       "/decisions/1?workspace=demo-workspace"
+    );
+  });
+
+  it("submits a review action and removes the candidate from the list", async () => {
+    vi.mocked(api.reviewDecision).mockResolvedValue({
+      id: 1,
+      workspace_id: 1,
+      title: "Use Redis Cache",
+      status: "active",
+      review_state: "accepted",
+      problem: "Latency too high",
+      context: "Read load increased",
+      constraints: "Budget is limited",
+      chosen_option: "Use Redis as cache only",
+      tradeoffs: "Extra dependency",
+      confidence: 0.88,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ReviewPageContent
+        workspaceSlug="demo-workspace"
+        decisions={[
+          {
+            id: 1,
+            workspace_id: 1,
+            title: "Use Redis Cache",
+            status: "active",
+            review_state: "candidate",
+            problem: "Latency too high",
+            context: "Read load increased",
+            constraints: "Budget is limited",
+            chosen_option: "Use Redis as cache only",
+            tradeoffs: "Extra dependency",
+            confidence: 0.88,
+          },
+        ]}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Accept" }));
+
+    await waitFor(() =>
+      expect(api.reviewDecision).toHaveBeenCalledWith(1, "accepted")
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("Use Redis Cache")).not.toBeInTheDocument()
     );
   });
 

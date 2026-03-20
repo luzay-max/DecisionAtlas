@@ -208,3 +208,27 @@ def test_paginate_respects_max_pages_limit() -> None:
 
     assert len(issues) == 3
     assert request_pages == ["1", "2", "3"]
+
+
+def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_content() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "api.github.com":
+            return httpx.Response(
+                200,
+                json={
+                    "name": "CHANGELOG.md",
+                    "path": "CHANGELOG.md",
+                    "encoding": "none",
+                    "content": "",
+                    "download_url": "https://raw.githubusercontent.com/org/repo/main/CHANGELOG.md",
+                },
+            )
+        if request.url.host == "raw.githubusercontent.com":
+            return httpx.Response(200, text="# Changelog\n\nLarge markdown body")
+        raise AssertionError(f"Unexpected request: {request.url}")
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    content = client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main")
+
+    assert content == "# Changelog\n\nLarge markdown body"

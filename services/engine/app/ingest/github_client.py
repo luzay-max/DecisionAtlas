@@ -132,9 +132,16 @@ class GitHubClient:
         payload = response.json()
         encoded = payload.get("content")
         encoding = payload.get("encoding")
-        if not encoded or encoding != "base64":
-            raise ValueError(f"Unsupported GitHub content encoding for {path}")
-        return base64.b64decode(encoded).decode("utf-8")
+        if encoded and encoding == "base64":
+            return base64.b64decode(encoded).decode("utf-8")
+
+        download_url = payload.get("download_url")
+        if isinstance(download_url, str) and download_url:
+            download_response = self.client.get(download_url)
+            download_response.raise_for_status()
+            return download_response.text
+
+        raise ValueError(f"Unsupported GitHub content encoding for {path}")
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         page = 1

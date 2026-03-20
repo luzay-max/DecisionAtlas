@@ -1,33 +1,4 @@
-# repository-document-ingest Specification
-
-## Purpose
-TBD - created by archiving change expand-real-repo-ingest. Update Purpose after archive.
-## Requirements
-### Requirement: GitHub import includes high-signal repository markdown documents
-The system SHALL import a conservative set of high-signal markdown repository documents alongside issues, pull requests, and commits for real GitHub workspace imports.
-
-#### Scenario: Import top-level decision-oriented markdown
-- **WHEN** the user imports a GitHub repository that contains top-level markdown files such as `README.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `CHANGELOG.md`, or `RELEASE_NOTES.md`
-- **THEN** the system SHALL ingest those files as document artifacts for the workspace
-
-#### Scenario: Import docs and decision subdirectories
-- **WHEN** the imported repository contains markdown files under `docs/`, ADR directories, ADRS directories, or RFC directories
-- **THEN** the system SHALL ingest those high-signal markdown files as document artifacts for the workspace
-
-#### Scenario: Exclude non-markdown and out-of-scope repository files
-- **WHEN** the imported repository contains source files, config files, lockfiles, binaries, or non-markdown files outside the supported high-signal paths
-- **THEN** the system SHALL skip those files during repository document ingest
-
-### Requirement: Imported repository documents preserve stable artifact identity
-The system SHALL persist remote repository documents in a way that keeps imports idempotent and traceable to the original repository path.
-
-#### Scenario: Document artifacts use repo-relative identity
-- **WHEN** the system imports a supported repository document
-- **THEN** the resulting artifact SHALL use a stable repo-relative path identity so repeat imports update the same artifact rather than duplicating it
-
-#### Scenario: Document artifacts link back to the repository source
-- **WHEN** the system imports a supported repository document
-- **THEN** the resulting artifact SHALL include a repository URL that lets the user open the original file in GitHub
+## MODIFIED Requirements
 
 ### Requirement: Import jobs report document coverage and skip reasons
 The system SHALL expose enough import summary detail for the product to explain what repository document content was imported, what was skipped, and which analysis stage the job has reached.

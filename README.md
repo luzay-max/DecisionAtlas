@@ -14,6 +14,7 @@ What the MVP already does:
 
 - imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
 - supports fake-provider local mode and OpenAI-compatible live provider mode
+- supports one-off live analysis runs for public GitHub repositories through imported workspaces
 - extracts candidate decisions with source references
 - lets a reviewer accept, reject, or supersede decisions
 - answers why-questions with citation-first responses
@@ -62,6 +63,12 @@ This script starts an isolated, SQLite-backed demo workspace and does not depend
 
 The public `demo-workspace` is intentionally seeded for a stable walkthrough. Imported workspaces use real repository artifacts and may produce different decision, why-answer, and drift coverage depending on the source repo.
 
+For live analysis, the current supported scope is:
+
+- public GitHub repositories only
+- one-off imported workspace analysis, not long-lived GitHub App connections
+- results may end in either useful evidence or explicit `insufficient_evidence` depending on repository signal
+
 Then open:
 
 - Web: `http://localhost:3000`
@@ -95,3 +102,4 @@ Known limitations:
 - semantic drift labels are conservative and intentionally narrow
 - the public demo workspace is seeded and should not be confused with a fully imported repository workspace
 - GitHub import still uses token mode, not GitHub App auth
+- live analysis currently supports public repositories only, not private repo auth flows

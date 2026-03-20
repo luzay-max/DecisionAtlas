@@ -67,6 +67,8 @@ def _seed_dashboard_fixture(db_path: Path) -> None:
                 status="succeeded",
                 imported_count=5,
                 summary_json={
+                    "stage": "completed",
+                    "outcome": "ok",
                     "artifact_counts": {"issue": 1, "pr": 1, "commit": 2, "doc": 1},
                     "document_summary": {
                         "selected": 2,
@@ -115,4 +117,6 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["artifact_count"] == 1
     assert body["decision_counts"]["accepted"] == 1
     assert body["decision_counts"]["candidate"] == 1
+    assert body["latest_import"]["summary"]["stage"] == "completed"
+    assert body["latest_import"]["summary"]["outcome"] == "ok"
     assert body["latest_import"]["summary"]["artifact_counts"]["doc"] == 1

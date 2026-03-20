@@ -10,7 +10,7 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 
 
 class GitHubImportRequest(BaseModel):
-    workspace_slug: str
+    workspace_slug: str | None = None
     repo: str
     mode: str = "full"
 
@@ -22,13 +22,13 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
         background_tasks.add_task(
             run_github_import,
             job_id=str(job["job_id"]),
-            workspace_slug=request.workspace_slug,
-            repo=request.repo,
+            workspace_slug=str(job["workspace_slug"]),
+            repo=str(job["repo"]),
             mode=request.mode,
         )
         return job
     except ValueError as exc:
-        if "Unsupported import mode" in str(exc):
+        if "Unsupported import mode" in str(exc) or "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

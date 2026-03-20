@@ -101,6 +101,8 @@ Open the web app:
 - `http://localhost:3000/search`
 - `http://localhost:3000/drift`
 
+For a real public repository analysis run, use the live-analysis form on the homepage and submit either `owner/repo` or a full GitHub URL. The resulting imported workspace will be separate from `demo-workspace`.
+
 ## Demo-specific validation
 
 Run the benchmark fixture check:
@@ -108,6 +110,8 @@ Run the benchmark fixture check:
 ```powershell
 python scripts/ci/run_benchmark.py
 ```
+
+This now validates both the guided demo fixtures and the curated live-analysis benchmark repository set under `examples/live-benchmarks/`.
 
 Run browser smoke coverage:
 
@@ -120,5 +124,6 @@ pnpm --filter @decisionatlas/web exec playwright test
 
 - If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. CI uses the `uv` CLI directly.
 - If import succeeds but no meaningful candidates appear, verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set for a live provider-backed demo.
+- Live analysis currently supports public GitHub repositories only. Private repositories and GitHub App flows are out of scope for this phase.
 - If Docker is running but services are unavailable, retry `docker compose up -d postgres redis`
 - If `.docx` import is skipped, confirm `pandoc` is installed and available from the terminal

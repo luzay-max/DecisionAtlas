@@ -1,0 +1,32 @@
+[
+  {
+    "id": "httpx",
+    "repo": "encode/httpx",
+    "workspace_slug": "github-encode-httpx",
+    "expectations": {
+      "analysis_scope": "doc-heavy library with strong public rationale",
+      "minimum_candidate_decisions": 3,
+      "expected_outcomes": ["ok", "insufficient_evidence"]
+    }
+  },
+  {
+    "id": "fastapi",
+    "repo": "fastapi/fastapi",
+    "workspace_slug": "github-fastapi-fastapi",
+    "expectations": {
+      "analysis_scope": "large public framework with mixed issue and documentation evidence",
+      "minimum_candidate_decisions": 2,
+      "expected_outcomes": ["ok", "insufficient_evidence"]
+    }
+  },
+  {
+    "id": "rich",
+    "repo": "Textualize/rich",
+    "workspace_slug": "github-textualize-rich",
+    "expectations": {
+      "analysis_scope": "public library where decision evidence may be thinner than the guided demo",
+      "minimum_candidate_decisions": 1,
+      "expected_outcomes": ["ok", "insufficient_evidence"]
+    }
+  }
+]

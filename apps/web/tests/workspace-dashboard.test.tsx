@@ -123,4 +123,43 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getAllByText("N/A").length).toBeGreaterThanOrEqual(2);
   });
+
+  it("does not show the low-signal hint when the latest import failed", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "imported-workspace",
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          repo_url: "https://github.com/org/repo",
+          github_repo: "org/repo",
+          import_status: "failed",
+          latest_import: {
+            job_id: "job-456",
+            mode: "full",
+            status: "failed",
+            imported_count: 0,
+            summary: {
+              stage: "importing_artifacts",
+              failure_category: "analysis_execution_failed",
+            },
+            error_message: "Unsupported GitHub content encoding for CHANGELOG.md",
+            started_at: null,
+            finished_at: null,
+          },
+          artifact_count: 1131,
+          decision_counts: {
+            candidate: 0,
+            accepted: 0,
+            rejected: 0,
+            superseded: 0,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.queryByText(/limited high-signal evidence/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Unsupported GitHub content encoding for CHANGELOG\.md/i)).toBeInTheDocument();
+  });
 });

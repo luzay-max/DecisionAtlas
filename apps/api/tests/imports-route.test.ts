@@ -7,10 +7,13 @@ describe("POST /imports/github", () => {
       status: 200,
       json: async () => ({
         job_id: "job-123",
+        workspace_slug: "demo-workspace",
         mode: "full",
         status: "succeeded",
         imported_count: 5,
         summary: {
+          stage: "completed",
+          outcome: "ok",
           artifact_counts: { issue: 1, pr: 1, commit: 2, doc: 1 },
           document_summary: {
             selected: 2,
@@ -35,10 +38,13 @@ describe("POST /imports/github", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       job_id: "job-123",
+      workspace_slug: "demo-workspace",
       mode: "full",
       status: "succeeded",
       imported_count: 5,
       summary: {
+        stage: "completed",
+        outcome: "ok",
         artifact_counts: { issue: 1, pr: 1, commit: 2, doc: 1 },
         document_summary: {
           selected: 2,
@@ -72,9 +78,12 @@ describe("POST /imports/github", () => {
       status: 200,
       json: async () => ({
         job_id: "job-123",
+        workspace_slug: "imported-workspace",
         status: "succeeded",
         imported_count: 8,
         summary: {
+          stage: "completed",
+          outcome: "insufficient_evidence",
           artifact_counts: { issue: 1, pr: 2, commit: 3, doc: 2 },
           document_summary: {
             selected: 3,
@@ -94,9 +103,12 @@ describe("POST /imports/github", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       job_id: "job-123",
+      workspace_slug: "imported-workspace",
       status: "succeeded",
       imported_count: 8,
       summary: {
+        stage: "completed",
+        outcome: "insufficient_evidence",
         artifact_counts: { issue: 1, pr: 2, commit: 3, doc: 2 },
         document_summary: {
           selected: 3,

@@ -18,8 +18,10 @@ export function DemoImportButton({ workspaceSlug, repo }: { workspaceSlug: strin
       if (job.status === "failed" || job.status === "succeeded") {
         return job;
       }
-      const status = messages.status[job.status as keyof typeof messages.status] ?? job.status ?? "running";
-      setMessage(messages.importButton.statusRunning.replace("{status}", status));
+      const stage = job.summary?.stage
+        ? (messages.status[job.summary.stage as keyof typeof messages.status] ?? job.summary.stage)
+        : (messages.status[job.status as keyof typeof messages.status] ?? job.status ?? "running");
+      setMessage(messages.importButton.stageRunning.replace("{stage}", stage));
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
     return null;

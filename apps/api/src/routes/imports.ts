@@ -4,7 +4,7 @@ import { getEnv } from "../plugins/env";
 import { logInfo } from "../plugins/logging";
 
 const githubImportSchema = z.object({
-  workspace_slug: z.string().min(1),
+  workspace_slug: z.string().min(1).optional(),
   repo: z.string().min(3),
   mode: z.enum(["full", "since_last_sync"]).default("full")
 });
