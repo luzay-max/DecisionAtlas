@@ -141,6 +141,14 @@ body {
   flex-wrap: wrap;
 }
 
+.demo-nav-shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .demo-nav-link {
   display: inline-flex;
   align-items: center;
@@ -156,6 +164,24 @@ body {
   color: var(--ink);
   background: #f0eadc;
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line) 65%);
+}
+
+.language-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.language-toggle-active {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .title-link {
@@ -200,4 +226,8 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
+}
+
+.home-toolbar {
+  justify-content: flex-end;
 }

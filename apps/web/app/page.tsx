@@ -1,38 +1,45 @@
-import React from "react";
+"use client";
+
 import Link from "next/link";
+import React from "react";
+
+import { LanguageToggle } from "../components/i18n/language-toggle";
+import { useI18n } from "../components/i18n/language-provider";
 
 export default function HomePage() {
+  const { messages } = useI18n();
+
   return (
     <main className="home">
       <div className="panel">
-        <p className="eyebrow">DecisionAtlas</p>
-        <h1>Engineering decision memory with citations.</h1>
-        <p className="lede">
-          Import a public GitHub repository, review extracted decisions, answer why-questions with traceable
-          evidence, and inspect drift before it turns into accidental architecture change.
-        </p>
-        <ul className="pill-row" aria-label="MVP concepts">
-          <li>Import</li>
-          <li>Decisions</li>
-          <li>Why</li>
+        <div className="action-row home-toolbar">
+          <LanguageToggle />
+        </div>
+        <p className="eyebrow">{messages.home.eyebrow}</p>
+        <h1>{messages.home.title}</h1>
+        <p className="lede">{messages.home.lede}</p>
+        <ul className="pill-row" aria-label={messages.home.conceptsLabel}>
+          {messages.home.pills.map((pill) => (
+            <li key={pill}>{pill}</li>
+          ))}
         </ul>
         <ol>
-          <li>Run the demo import for the workspace.</li>
-          <li>Review the highest-confidence candidate decisions.</li>
-          <li>Ask a why-question and inspect drift alerts.</li>
+          {messages.home.steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
         </ol>
         <p>
-          <Link href="/workspaces/demo-workspace">Open the public demo workspace</Link>
+          <Link href="/workspaces/demo-workspace">{messages.home.openDemo}</Link>
         </p>
         <div className="action-row">
           <Link href="/review?workspace=demo-workspace" className="action-link">
-            Jump to review
+            {messages.home.jumpReview}
           </Link>
           <Link href="/search?workspace=demo-workspace" className="action-link">
-            Jump to why search
+            {messages.home.jumpSearch}
           </Link>
           <Link href="/drift?workspace=demo-workspace" className="action-link">
-            Jump to drift
+            {messages.home.jumpDrift}
           </Link>
         </div>
       </div>

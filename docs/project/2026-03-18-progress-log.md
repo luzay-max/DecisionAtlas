@@ -217,3 +217,33 @@ The current stop point is:
 - workspace-aware route jumps verified in the web test suite
 
 The next implementation slice should focus on benchmark calibration and hosted demo bring-up.
+
+## 2026-03-20 Addendum
+
+Today added a lightweight bilingual UI layer to the web app:
+
+- Introduced a shared client-side language provider with persisted `en` / `zh` selection
+- Added a visible language toggle in the home page and workspace navigation
+- Localized the main demo path:
+  - homepage
+  - workspace dashboard
+  - review queue
+  - why search
+  - timeline
+  - drift alerts
+  - decision detail
+- Localized the primary action buttons and helper text used in the demo flow
+- Made timeline dates follow the active UI language
+- Added a regression test that verifies the homepage switches to Chinese and updates `html lang`
+
+Verification for this addendum:
+
+- `pnpm --filter @decisionatlas/web test`: passed
+- `pnpm --filter @decisionatlas/web typecheck`: passed
+- `pnpm --filter @decisionatlas/web exec playwright test`: passed
+
+Current status after this addendum:
+
+- the demo path now supports an English/Chinese UI toggle without changing API payloads
+- the switch is persistent in the browser via localStorage
+- the default demo flow still opens in English, so existing demo scripts remain valid

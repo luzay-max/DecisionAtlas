@@ -1,16 +1,24 @@
+"use client";
+
 import Link from "next/link";
 import React from "react";
 
 import { TimelineItem } from "../../lib/api";
+import { useI18n } from "../i18n/language-provider";
 
 export function TimelineList({ items, workspaceSlug }: { items: TimelineItem[]; workspaceSlug: string }) {
+  const { language, messages } = useI18n();
+  const dateFormatter = new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : "en-US");
+
   return (
     <div className="stack">
       {items.map((item) => (
         <article key={item.id} className="card">
           <div className="card-head">
             <div>
-              <p className="eyebrow">{item.created_at ? new Date(item.created_at).toLocaleDateString() : "Undated"}</p>
+              <p className="eyebrow">
+                {item.created_at ? dateFormatter.format(new Date(item.created_at)) : messages.timeline.undated}
+              </p>
               <h2>
                 <Link
                   href={`/decisions/${item.id}?workspace=${encodeURIComponent(workspaceSlug)}`}
@@ -20,11 +28,17 @@ export function TimelineList({ items, workspaceSlug }: { items: TimelineItem[]; 
                 </Link>
               </h2>
             </div>
-            <span className="badge">{item.review_state}</span>
+            <span className="badge">{messages.status[item.review_state as keyof typeof messages.status] ?? item.review_state}</span>
           </div>
-          <p><strong>Problem:</strong> {item.problem}</p>
-          <p><strong>Chosen option:</strong> {item.chosen_option}</p>
-          <p><strong>Tradeoffs:</strong> {item.tradeoffs}</p>
+          <p>
+            <strong>{messages.timeline.problem}:</strong> {item.problem}
+          </p>
+          <p>
+            <strong>{messages.timeline.chosenOption}:</strong> {item.chosen_option}
+          </p>
+          <p>
+            <strong>{messages.timeline.tradeoffs}:</strong> {item.tradeoffs}
+          </p>
         </article>
       ))}
     </div>

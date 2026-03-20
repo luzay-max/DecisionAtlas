@@ -1,9 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import React from "react";
 
 import { DriftAlertItem } from "../../lib/api";
+import { useI18n } from "../i18n/language-provider";
 
 export function AlertDetail({ alert, workspaceSlug }: { alert: DriftAlertItem; workspaceSlug: string }) {
+  const { messages } = useI18n();
+  const confidence = messages.status[alert.confidence_label as keyof typeof messages.status] ?? alert.confidence_label;
+  const alertStatus = messages.status[alert.status as keyof typeof messages.status] ?? alert.status;
+
   return (
     <article className="card stack">
       <div className="card-head">
@@ -12,14 +19,16 @@ export function AlertDetail({ alert, workspaceSlug }: { alert: DriftAlertItem; w
           <p>{alert.summary}</p>
         </div>
         <div className="stack">
-          <span className="badge">{alert.status}</span>
-          <span className="badge">{alert.confidence_label} confidence</span>
+          <span className="badge">{alertStatus}</span>
+          <span className="badge">
+            {confidence} {messages.drift.confidence}
+          </span>
         </div>
       </div>
       {alert.decision ? (
         <div className="stack">
           <p>
-            Matched decision:{" "}
+            {messages.drift.matchedDecision}:{" "}
             <strong>
               <Link
                 href={`/decisions/${alert.decision.id}?workspace=${encodeURIComponent(workspaceSlug)}`}
@@ -29,12 +38,14 @@ export function AlertDetail({ alert, workspaceSlug }: { alert: DriftAlertItem; w
               </Link>
             </strong>
           </p>
-          <p>Chosen option: {alert.decision.chosen_option}</p>
+          <p>
+            {messages.review.chosenOption}: {alert.decision.chosen_option}
+          </p>
         </div>
       ) : null}
       {alert.artifact ? (
         <p>
-          Triggering artifact:{" "}
+          {messages.drift.triggeringArtifact}:{" "}
           {alert.artifact.url ? (
             <a href={alert.artifact.url}>{alert.artifact.title ?? `Artifact ${alert.artifact.id}`}</a>
           ) : (

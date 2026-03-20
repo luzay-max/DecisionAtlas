@@ -1,8 +1,11 @@
+"use client";
+
 import React from "react";
 
 import { ReviewDecision } from "../../lib/api";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { ReviewList } from "./review-list";
+import { useI18n } from "../i18n/language-provider";
 
 export function ReviewPageContent({
   decisions,
@@ -11,13 +14,15 @@ export function ReviewPageContent({
   decisions: ReviewDecision[];
   workspaceSlug: string;
 }) {
+  const { messages } = useI18n();
+
   return (
     <main className="page-shell">
       <section className="panel">
         <DemoWorkspaceNav workspaceSlug={workspaceSlug} currentPath="/review" />
-        <p className="eyebrow">Review Queue</p>
-        <h1>Candidate decisions waiting for review</h1>
-        <p>Highest-confidence candidates appear first so the demo path stays easy to review.</p>
+        <p className="eyebrow">{messages.review.eyebrow}</p>
+        <h1>{messages.review.title}</h1>
+        <p>{messages.review.lede}</p>
         <ReviewList decisions={decisions} workspaceSlug={workspaceSlug} />
       </section>
     </main>

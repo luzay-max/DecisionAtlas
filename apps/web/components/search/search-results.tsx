@@ -1,17 +1,22 @@
+"use client";
+
 import React from "react";
 
 import { WhyAnswerResponse } from "../../lib/api";
+import { useI18n } from "../i18n/language-provider";
 
 export function SearchResults({ result }: { result: WhyAnswerResponse }) {
+  const { messages } = useI18n();
   return (
     <section className="card">
-      <p className="eyebrow">Answer</p>
+      <p className="eyebrow">{messages.search.answer}</p>
       <p>
-        <strong>Status:</strong> {result.status}
+        <strong>{messages.search.status}:</strong>{" "}
+        {messages.status[result.status as keyof typeof messages.status] ?? result.status}
       </p>
       <p>{result.answer}</p>
       {result.citations.length === 0 ? (
-        <p>No citations were returned. Import more evidence or accept more decisions before trusting this answer.</p>
+        <p>{messages.search.noCitations}</p>
       ) : null}
       <div className="stack">
         {result.citations.map((citation, index) => (
