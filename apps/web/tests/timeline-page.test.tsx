@@ -37,13 +37,20 @@ describe("TimelinePageContent", () => {
       />
     );
 
-    const headings = screen.getAllByRole("heading", { level: 2 }).map((item) => item.textContent);
-    expect(headings).toEqual(["Use Redis Cache", "Keep PostgreSQL Primary"]);
+    expect(screen.getByText(/Inspect accepted demo decisions over time/i)).toBeInTheDocument();
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
-    expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Continue to drift" })).toHaveAttribute(
+      "href",
+      "/drift?workspace=demo-workspace"
+    );
     expect(screen.getByRole("link", { name: "Use Redis Cache" })).toHaveAttribute(
       "href",
       "/decisions/1?workspace=demo-workspace"
+    );
+    expect(screen.getByRole("link", { name: "Keep PostgreSQL Primary" })).toHaveAttribute(
+      "href",
+      "/decisions/2?workspace=demo-workspace"
     );
     expect(screen.getByText(/3\/18\/2026, 12:00/i)).toBeInTheDocument();
     expect(screen.getByText(/3\/19\/2026, 12:00/i)).toBeInTheDocument();

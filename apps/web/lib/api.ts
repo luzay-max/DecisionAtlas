@@ -150,6 +150,14 @@ export type ImportResult = {
   finished_at?: string | null;
 };
 
+export type ProviderModeState = {
+  mode: string;
+  is_live: boolean;
+  llm_provider_mode: string;
+  embedding_provider_mode: string;
+  override_active: boolean;
+};
+
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
 
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
@@ -264,6 +272,28 @@ export async function getImportJob(jobId: string): Promise<ImportResult> {
   const response = await fetch(`${apiBaseUrl}/imports/${jobId}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load import job");
+  }
+  return response.json();
+}
+
+export async function getProviderMode(): Promise<ProviderModeState> {
+  const response = await fetch(`${apiBaseUrl}/runtime/provider-mode`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("Failed to load provider mode");
+  }
+  return response.json();
+}
+
+export async function setProviderMode(mode: "fake" | "live"): Promise<ProviderModeState> {
+  const response = await fetch(`${apiBaseUrl}/runtime/provider-mode`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ mode })
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update provider mode");
   }
   return response.json();
 }

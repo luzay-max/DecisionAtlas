@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 
 import { DashboardSummary } from "../../lib/api";
+import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { DemoImportButton } from "./demo-import-button";
 import { KpiStrip } from "./kpi-strip";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
@@ -13,6 +14,8 @@ import { ProvenanceBanner } from "../provenance/provenance-banner";
 
 export function WorkspaceDashboardContent({ summary }: { summary: DashboardSummary }) {
   const { messages } = useI18n();
+  const guidedDemoSteps = messages.guidedDemo.steps;
+  const isGuidedDemoWorkspace = summary.workspace_slug === "demo-workspace";
   const latestImportStatus = summary.latest_import
     ? (messages.status[summary.latest_import.status as keyof typeof messages.status] ?? summary.latest_import.status)
     : null;
@@ -34,10 +37,44 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
   const skippedDocumentCount = latestImportSummary
     ? Object.values(latestImportSummary.document_summary?.skipped ?? {}).reduce((total, count) => total + count, 0)
     : 0;
+  const hasAcceptedOrSupersededDecisions =
+    summary.decision_counts.accepted > 0 || summary.decision_counts.superseded > 0;
   const showLowSignalHint =
     summary.workspace_mode !== "demo" &&
     summary.decision_counts.candidate === 0 &&
-    summary.latest_import?.status !== "failed";
+    !hasAcceptedOrSupersededDecisions &&
+    summary.latest_import?.status !== "failed" &&
+    latestImportSummary?.outcome === "insufficient_evidence";
+  const isImportRunning = summary.import_status === "queued" || summary.import_status === "running";
+  const isImportFailed = summary.latest_import?.status === "failed";
+  let guidedDemoStep = 1;
+  let guidedDemoTitle: string = messages.guidedDemo.dashboardTitle;
+  let guidedDemoDescription: string = messages.guidedDemo.dashboardDescription;
+  let guidedDemoStatus: string = messages.guidedDemo.dashboardReadyStatus;
+  let guidedDemoNextHref: string | undefined;
+  let guidedDemoNextLabel: string | undefined;
+  let guidedDemoTone: "default" | "success" | "warning" = "default";
+
+  if (isImportRunning) {
+    guidedDemoStatus = messages.guidedDemo.importInProgressStatus;
+  } else if (isImportFailed) {
+    guidedDemoTone = "warning";
+    guidedDemoStatus = messages.guidedDemo.importFailedStatus;
+  } else if (summary.decision_counts.candidate > 0) {
+    guidedDemoStep = 2;
+    guidedDemoTitle = messages.guidedDemo.reviewTitle;
+    guidedDemoDescription = messages.guidedDemo.reviewDescription;
+    guidedDemoNextHref = `/review?workspace=${encodeURIComponent(summary.workspace_slug)}`;
+    guidedDemoNextLabel = messages.dashboard.reviewCandidates;
+  } else if (summary.decision_counts.accepted > 0) {
+    guidedDemoStep = 3;
+    guidedDemoTitle = messages.guidedDemo.searchTitle;
+    guidedDemoDescription = messages.guidedDemo.searchDescription;
+    guidedDemoNextHref = `/search?workspace=${encodeURIComponent(summary.workspace_slug)}`;
+    guidedDemoNextLabel = messages.guidedDemo.searchNext;
+    guidedDemoStatus = messages.guidedDemo.reviewCompletedStatus;
+    guidedDemoTone = "success";
+  }
 
   return (
     <main className="page-shell">
@@ -55,6 +92,19 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
           sourceSummary={summary.source_summary}
           context="dashboard"
         />
+        {isGuidedDemoWorkspace ? (
+          <GuidedDemoPanel
+            step={guidedDemoStep}
+            total={guidedDemoSteps.length}
+            title={guidedDemoTitle}
+            description={guidedDemoDescription}
+            steps={guidedDemoSteps}
+            status={guidedDemoStatus}
+            nextHref={guidedDemoNextHref}
+            nextLabel={guidedDemoNextLabel}
+            tone={guidedDemoTone}
+          />
+        ) : null}
         <DemoImportButton workspaceSlug={summary.workspace_slug} repo={summary.github_repo} />
         <div className="action-row">
           <Link href={`/review?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">

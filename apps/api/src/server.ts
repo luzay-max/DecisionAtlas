@@ -7,6 +7,7 @@ import { getEnv } from "./plugins/env";
 import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
 import { queryRoute } from "./routes/query";
+import { runtimeRoute } from "./routes/runtime";
 import { timelineRoute } from "./routes/timeline";
 
 export function buildServer() {
@@ -19,6 +20,7 @@ export function buildServer() {
   app.register(importsRoute);
   app.register(decisionsRoute);
   app.register(queryRoute);
+  app.register(runtimeRoute);
   app.register(timelineRoute);
   app.register(dashboardRoute);
   app.register(driftRoute);

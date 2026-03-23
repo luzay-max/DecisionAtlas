@@ -32,6 +32,16 @@ describe("timeline and dashboard routes", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          workspace_mode: "demo",
+          source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+          import_status: "ready",
+          artifact_count: 12,
+          decision_counts: { candidate: 2, accepted: 5, rejected: 0, superseded: 0 },
+          recent_alerts: []
+        }),
       json: async () => ({
         workspace_mode: "demo",
         source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
@@ -50,6 +60,26 @@ describe("timeline and dashboard routes", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toHaveProperty("artifact_count", 12);
+
+    global.fetch = originalFetch;
+  });
+
+  it("returns a readable error payload when the engine sends plain text", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 500,
+      ok: false,
+      text: async () => "Internal Server Error"
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "GET",
+      url: "/dashboard/summary?workspace_slug=demo-workspace"
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.json()).toEqual({ error: "Internal Server Error" });
 
     global.fetch = originalFetch;
   });

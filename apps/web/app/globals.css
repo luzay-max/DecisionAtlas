@@ -123,6 +123,12 @@ body {
   font: inherit;
 }
 
+.action-link-primary,
+.action-row button.action-link-primary {
+  background: color-mix(in srgb, var(--accent) 14%, white 86%);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line) 65%);
+}
+
 .action-link {
   display: inline-flex;
   align-items: center;
@@ -149,6 +155,19 @@ body {
   flex-wrap: wrap;
 }
 
+.nav-primary {
+  flex: 1;
+}
+
+.guided-demo-badge {
+  padding: 14px 18px;
+}
+
+.guided-demo-badge p:last-child {
+  margin: 0;
+  color: var(--muted);
+}
+
 .demo-nav-link {
   display: inline-flex;
   align-items: center;
@@ -164,6 +183,72 @@ body {
   color: var(--ink);
   background: #f0eadc;
   border-color: color-mix(in srgb, var(--accent) 35%, var(--line) 65%);
+}
+
+.guided-demo-panel {
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.72) 80%, #fef7dd 20%);
+}
+
+.guided-demo-panel-success {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line) 65%);
+}
+
+.guided-demo-panel-warning {
+  border-color: color-mix(in srgb, #b56b26 35%, var(--line) 65%);
+}
+
+.guided-demo-step-list {
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.guided-demo-step {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+}
+
+.guided-demo-step.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.guided-demo-step.completed {
+  color: color-mix(in srgb, var(--accent) 75%, var(--muted) 25%);
+}
+
+.guided-demo-step-index {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.8rem;
+  background: #fff;
+}
+
+.guided-demo-status {
+  margin: 0;
+  color: var(--muted);
+}
+
+.advanced-controls summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.advanced-controls-body {
+  margin-top: 16px;
+}
+
+.advanced-controls-body p:last-child {
+  color: var(--muted);
 }
 
 .language-toggle {
@@ -230,4 +315,8 @@ body {
 
 .home-toolbar {
   justify-content: flex-end;
+}
+
+.import-progress-list {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }

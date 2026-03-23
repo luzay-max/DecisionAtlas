@@ -26,6 +26,7 @@ describe("QueryForm", () => {
     } as Response);
 
     render(<QueryForm workspaceSlug="demo-workspace" />);
+    expect(screen.getByRole("button", { name: "Try the demo question" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {
@@ -35,6 +36,10 @@ describe("QueryForm", () => {
     expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
     expect(screen.getByText("Status:")).toBeInTheDocument();
     expect(screen.getByText("We decided to use Redis as cache")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Continue to timeline" })).toHaveAttribute(
+      "href",
+      "/timeline?workspace=demo-workspace"
+    );
 
     global.fetch = originalFetch;
   });

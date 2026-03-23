@@ -1,10 +1,16 @@
 from pathlib import Path
+from threading import Lock
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+_runtime_override_lock = Lock()
+_runtime_provider_overrides: dict[str, str | None] = {
+    "llm_provider_mode": None,
+    "embedding_provider_mode": None,
+}
 
 
 class Settings(BaseSettings):
@@ -39,4 +45,21 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    with _runtime_override_lock:
+        if _runtime_provider_overrides["llm_provider_mode"] is not None:
+            settings.llm_provider_mode = str(_runtime_provider_overrides["llm_provider_mode"])
+        if _runtime_provider_overrides["embedding_provider_mode"] is not None:
+            settings.embedding_provider_mode = str(_runtime_provider_overrides["embedding_provider_mode"])
+    return settings
+
+
+def set_runtime_provider_modes(*, llm_provider_mode: str | None, embedding_provider_mode: str | None) -> None:
+    with _runtime_override_lock:
+        _runtime_provider_overrides["llm_provider_mode"] = llm_provider_mode
+        _runtime_provider_overrides["embedding_provider_mode"] = embedding_provider_mode
+
+
+def get_runtime_provider_modes() -> dict[str, str | None]:
+    with _runtime_override_lock:
+        return dict(_runtime_provider_overrides)

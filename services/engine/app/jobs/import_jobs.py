@@ -198,6 +198,10 @@ def _resolve_workspace(*, workspaces: WorkspaceRepository, workspace_slug: str |
         workspace = workspaces.get_by_slug(workspace_slug)
         if workspace is None:
             raise ValueError(f"Workspace not found: {workspace_slug}")
+        if workspace.repo_url and workspace.repo_url != repo_url:
+            raise ValueError(
+                f"Workspace {workspace_slug} is already linked to {workspace.repo_url} and cannot import {repo_ref}"
+            )
         return workspace
 
     existing = workspaces.get_by_repo_url(repo_url)

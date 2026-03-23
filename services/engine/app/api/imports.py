@@ -28,7 +28,13 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
         )
         return job
     except ValueError as exc:
-        if "Unsupported import mode" in str(exc) or "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
+        if (
+            "Unsupported import mode" in str(exc)
+            or "owner/repo" in str(exc)
+            or "public GitHub" in str(exc)
+            or "Repository URL" in str(exc)
+            or "cannot import" in str(exc)
+        ):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

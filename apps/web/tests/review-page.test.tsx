@@ -39,6 +39,8 @@ describe("ReviewPageContent", () => {
 
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
     expect(screen.getByText(/highest-confidence candidates appear first/i)).toBeInTheDocument();
+    expect(screen.getByText(/This review queue is using seeded walkthrough decisions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review the seeded candidate decisions/i)).toBeInTheDocument();
     expect(screen.getByText("0.88")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
@@ -91,8 +93,11 @@ describe("ReviewPageContent", () => {
     await waitFor(() =>
       expect(api.reviewDecision).toHaveBeenCalledWith(1, "accepted")
     );
-    await waitFor(() =>
-      expect(screen.queryByText("Use Redis Cache")).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("Use Redis Cache")).not.toBeInTheDocument());
+    expect(screen.getByText(/The seeded review step is complete/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /continue to why-search/i })).toHaveAttribute(
+      "href",
+      "/search?workspace=demo-workspace"
     );
   });
 

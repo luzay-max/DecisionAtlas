@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { getEnv } from "../plugins/env";
 import { logInfo } from "../plugins/logging";
+import { fetchUpstreamPayload } from "../proxy";
 
 const githubImportSchema = z.object({
   workspace_slug: z.string().min(1).optional(),
@@ -23,19 +24,22 @@ export async function importsRoute(app: FastifyInstance) {
     const env = getEnv();
     logInfo(app.log, "github import requested", { job_id: "pending" });
 
-    const response = await fetch(`${env.ENGINE_BASE_URL}/imports/github`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const json = await response.json();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/github`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }),
+      app.log,
+      "POST /imports/github"
+    );
+    const json = upstream.payload as Record<string, unknown> | null;
     logInfo(app.log, "github import completed", {
       job_id: typeof json?.job_id === "string" ? json.job_id : "unknown"
     });
-    return reply.status(response.status).send(json);
+    return reply.status(upstream.status).send(upstream.payload);
   });
 
   app.get("/imports/:jobId", async (request, reply) => {
@@ -48,8 +52,11 @@ export async function importsRoute(app: FastifyInstance) {
     }
 
     const env = getEnv();
-    const response = await fetch(`${env.ENGINE_BASE_URL}/imports/${params.data.jobId}`);
-    const json = await response.json();
-    return reply.status(response.status).send(json);
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/${params.data.jobId}`),
+      app.log,
+      "GET /imports/:jobId"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
   });
 }

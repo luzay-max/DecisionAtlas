@@ -5,6 +5,25 @@ describe("POST /imports/github", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          job_id: "job-123",
+          workspace_slug: "demo-workspace",
+          mode: "full",
+          status: "succeeded",
+          imported_count: 5,
+          summary: {
+            stage: "completed",
+            outcome: "ok",
+            artifact_counts: { issue: 1, pr: 1, commit: 2, doc: 1 },
+            document_summary: {
+              selected: 2,
+              imported: 1,
+              skipped: { outside_high_signal_paths: 4, non_markdown: 6, generated_or_vendor_path: 1 }
+            }
+          }
+        }),
       json: async () => ({
         job_id: "job-123",
         workspace_slug: "demo-workspace",
@@ -76,6 +95,24 @@ describe("POST /imports/github", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          job_id: "job-123",
+          workspace_slug: "imported-workspace",
+          status: "succeeded",
+          imported_count: 8,
+          summary: {
+            stage: "completed",
+            outcome: "insufficient_evidence",
+            artifact_counts: { issue: 1, pr: 2, commit: 3, doc: 2 },
+            document_summary: {
+              selected: 3,
+              imported: 2,
+              skipped: { outside_high_signal_paths: 4, non_markdown: 9, generated_or_vendor_path: 1 }
+            }
+          }
+        }),
       json: async () => ({
         job_id: "job-123",
         workspace_slug: "imported-workspace",
@@ -116,6 +153,30 @@ describe("POST /imports/github", () => {
           skipped: { outside_high_signal_paths: 4, non_markdown: 9, generated_or_vendor_path: 1 }
         }
       }
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it("returns 502 when the engine request itself fails", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED"));
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/imports/github",
+      payload: {
+        workspace_slug: "demo-workspace",
+        repo: "org/repo",
+        mode: "full"
+      }
+    });
+
+    expect(response.statusCode).toBe(502);
+    expect(response.json()).toEqual({
+      error: "Upstream engine request failed",
+      detail: "connect ECONNREFUSED"
     });
 
     global.fetch = originalFetch;

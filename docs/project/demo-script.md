@@ -1,8 +1,19 @@
 # Demo Script
 
-This walkthrough is designed for a 60-90 second open-source demo.
+This walkthrough is designed for a 60-90 second MVP demo. The primary story is a stable guided demo, not the advanced real-repo lane.
 
-## 1. Open the workspace dashboard and trigger import
+## Opening posture
+
+Route:
+
+- `http://localhost:3000/`
+
+Narration:
+
+- "Tonight's main path is the guided demo. It uses seeded walkthrough data so the product story stays stable."
+- "Live analysis and provider controls still exist, but they are intentionally moved into an advanced section because they are not required for the core demo."
+
+## 1. Open the guided demo workspace
 
 Route:
 
@@ -10,24 +21,36 @@ Route:
 
 Narration:
 
-- "DecisionAtlas starts from one demo workspace. Run the demo import to pull a public GitHub repository, then watch the workspace become decision-aware."
-- "The workspace banner makes it explicit whether you're looking at seeded walkthrough data or imported repository data."
+- "The dashboard is now the walkthrough control panel. It tells us which step we are on and what to do next."
+- "The provenance banner makes it explicit that this workspace is seeded demo data, not imported repository output."
 
-## 2. Show the review queue
+## 2. Run or confirm the demo import
 
 Route:
 
-- `http://localhost:3000/review`
+- `http://localhost:3000/workspaces/demo-workspace`
 
 Narration:
 
-- "Candidate decisions are not auto-promoted. The highest-confidence items show up first so the review path stays fast and evidence-first."
+- "If the demo needs to be reset, the import action now shows stage-aware progress instead of leaving the audience guessing."
+- "Once the workspace is ready, the UI points directly to the review step."
 
-## 3. Show why-search
+## 3. Show the review queue
 
 Route:
 
-- `http://localhost:3000/search`
+- `http://localhost:3000/review?workspace=demo-workspace`
+
+Narration:
+
+- "Candidate decisions are not auto-promoted. The review step makes the human checkpoint explicit."
+- "The page explains the goal of this step and hands us off directly to why-search when we're done."
+
+## 4. Show why-search
+
+Route:
+
+- `http://localhost:3000/search?workspace=demo-workspace`
 
 Suggested question:
 
@@ -35,31 +58,31 @@ Suggested question:
 
 Narration:
 
-- "Why-answers fail closed when evidence is weak. When evidence exists, every answer carries direct citations."
-- "The answer context banner explains whether the response came from demo walkthrough evidence or imported repository evidence."
+- "Why-search starts from a recommended demo question, so we do not need to improvise during the walkthrough."
+- "When evidence exists, the answer includes citations. When it doesn't, the system fails closed instead of bluffing."
 
-## 4. Show the timeline
+## 5. Show the timeline
 
 Route:
 
-- `http://localhost:3000/timeline`
+- `http://localhost:3000/timeline?workspace=demo-workspace`
 
 Narration:
 
 - "Accepted decisions become a time-ordered memory instead of disappearing into issues and pull requests."
-- "The timeline banner prevents demo history from being mistaken for a real repository's decision history."
+- "The guided demo framing keeps the story moving and points clearly to the drift step."
 
-## 5. Show drift alerts
+## 6. Show drift alerts and close
 
 Route:
 
-- `http://localhost:3000/drift`
+- `http://localhost:3000/drift?workspace=demo-workspace`
 
 Narration:
 
-- "Rule-first drift detection catches high-signal contradictions, and semantic drift adds conservative review flags when a new artifact may supersede an older decision."
-- "The drift banner tells the audience whether an alert is part of the seeded walkthrough or was evaluated from imported artifacts."
+- "Drift makes the memory operational by checking newer artifacts against accepted decisions."
+- "The last step closes the loop and makes it obvious that we completed the demo lane, not an experimental analysis flow."
 
 ## Closing line
 
-- "The product is not training a new model. It is turning engineering decisions into durable, reviewable, searchable operating memory."
+- "DecisionAtlas is not training a new model. It is turning engineering decisions into durable, reviewable, searchable operating memory."

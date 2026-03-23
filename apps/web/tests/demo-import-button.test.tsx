@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -51,5 +51,32 @@ describe("DemoImportButton", () => {
       expect(screen.getByText("Imported 11 artifacts from encode/httpx")).toBeInTheDocument();
     });
     expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the button while an import is running", async () => {
+    const user = userEvent.setup();
+    let resolveImport: ((value: { job_id: string }) => void) | undefined;
+    startGithubImport.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveImport = resolve;
+        })
+    );
+
+    render(
+      <LanguageProvider>
+        <DemoImportButton workspaceSlug="demo-workspace" repo="encode/httpx" />
+      </LanguageProvider>
+    );
+
+    const button = screen.getByRole("button", { name: "Run Demo Import" });
+    await user.click(button);
+
+    expect(startGithubImport).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Importing..." })).toBeDisabled();
+
+    await act(async () => {
+      resolveImport?.({ job_id: "job-123" });
+    });
   });
 });

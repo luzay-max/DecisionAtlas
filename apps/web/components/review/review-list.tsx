@@ -4,12 +4,15 @@ import Link from "next/link";
 import React, { useState } from "react";
 
 import { reviewDecision, ReviewDecision, ReviewState } from "../../lib/api";
+import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { useI18n } from "../i18n/language-provider";
 import { ReviewActions } from "./review-actions";
 
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
+  const startedWithItems = decisions.length > 0;
+  const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
 
   async function handleReview(decisionId: number, reviewState: ReviewState) {
     await reviewDecision(decisionId, reviewState);
@@ -19,7 +22,21 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
   return (
     <div className="stack">
       {items.length === 0 ? (
-        <p>{workspaceSlug === "demo-workspace" ? messages.review.emptyDemo : messages.review.emptyImported}</p>
+        isGuidedDemoWorkspace && startedWithItems ? (
+          <GuidedDemoPanel
+            step={2}
+            total={messages.guidedDemo.steps.length}
+            title={messages.review.completed}
+            description={messages.guidedDemo.reviewDescription}
+            steps={messages.guidedDemo.steps}
+            status={messages.guidedDemo.reviewCompletedStatus}
+            nextHref={`/search?workspace=${encodeURIComponent(workspaceSlug)}`}
+            nextLabel={messages.guidedDemo.reviewNext}
+            tone="success"
+          />
+        ) : (
+          <p>{workspaceSlug === "demo-workspace" ? messages.review.emptyDemo : messages.review.emptyImported}</p>
+        )
       ) : null}
       {items.map((decision) => (
         <article key={decision.id} className="card">

@@ -12,7 +12,7 @@ export function ProvenanceBanner({
 }: {
   workspaceMode?: WorkspaceMode | null;
   sourceSummary?: string | null;
-  context: "dashboard" | "answer" | "timeline" | "drift" | "detail";
+  context: "dashboard" | "review" | "answer" | "timeline" | "drift" | "detail";
 }) {
   const { messages } = useI18n();
   const modeLabel = workspaceMode

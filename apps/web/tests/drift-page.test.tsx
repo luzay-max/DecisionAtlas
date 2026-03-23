@@ -39,7 +39,12 @@ describe("DriftPageContent", () => {
 
     expect(screen.getByText("Possible decision drift")).toBeInTheDocument();
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
-    expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
+    expect(screen.getByText(/The guided demo is complete/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to dashboard" })).toHaveAttribute(
+      "href",
+      "/workspaces/demo-workspace"
+    );
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
     expect(screen.getByText("medium confidence")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Persist sessions in Redis" })).toBeInTheDocument();

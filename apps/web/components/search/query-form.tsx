@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState } from "react";
 
 import { askWhy, WhyAnswerResponse } from "../../lib/api";
@@ -18,13 +19,13 @@ export function QueryForm({
   const [result, setResult] = useState<WhyAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function runQuestion(nextQuestion: string) {
     setLoading(true);
     setError(null);
     try {
-      const response = await askWhy(workspaceSlug, question);
+      const response = await askWhy(workspaceSlug, nextQuestion);
       setResult(response);
     } catch {
       setResult(null);
@@ -34,8 +35,20 @@ export function QueryForm({
     }
   }
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await runQuestion(question);
+  }
+
   return (
     <div className="stack">
+      {isGuidedDemoWorkspace ? (
+        <div className="action-row">
+          <button type="button" className="action-link action-link-primary" onClick={() => void runQuestion(question)} disabled={loading}>
+            {messages.guidedDemo.searchRunExample}
+          </button>
+        </div>
+      ) : null}
       <form className="search-form" onSubmit={handleSubmit}>
         <label className="field">
           <span>{messages.search.askWhy}</span>
@@ -46,6 +59,13 @@ export function QueryForm({
       {!result && !error ? <p>{messages.search.intro}</p> : null}
       {error ? <p>{error}</p> : null}
       {result ? <SearchResults result={result} /> : null}
+      {result && isGuidedDemoWorkspace ? (
+        <div className="action-row">
+          <Link href={`/timeline?workspace=${encodeURIComponent(workspaceSlug)}`} className="action-link action-link-primary">
+            {messages.guidedDemo.searchNext}
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

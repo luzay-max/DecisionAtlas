@@ -6,6 +6,7 @@ from app.api.drift import router as drift_router
 from app.api.health import router as health_router
 from app.api.imports import router as imports_router
 from app.api.query import router as query_router
+from app.api.runtime import router as runtime_router
 from app.api.timeline import router as timeline_router
 from app.config import get_settings
 
@@ -17,6 +18,7 @@ def create_app() -> FastAPI:
     app.include_router(imports_router)
     app.include_router(decisions_router)
     app.include_router(query_router)
+    app.include_router(runtime_router)
     app.include_router(timeline_router)
     app.include_router(dashboard_router)
     app.include_router(drift_router)

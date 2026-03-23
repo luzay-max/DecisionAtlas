@@ -163,3 +163,32 @@ def test_post_imports_github_creates_live_workspace_when_slug_missing(tmp_path: 
             "mode": "full",
         }
     ]
+
+
+def test_post_imports_github_rejects_repo_workspace_mismatch(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "mismatch-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(
+            Workspace(
+                slug="demo-workspace",
+                name="Demo",
+                repo_url="https://github.com/original/repo",
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/github",
+        json={"workspace_slug": "demo-workspace", "repo": "other/repo", "mode": "full"},
+    )
+
+    assert response.status_code == 400
+    assert "cannot import other/repo" in response.json()["detail"]
