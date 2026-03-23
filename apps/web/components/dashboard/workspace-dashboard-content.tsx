@@ -10,6 +10,7 @@ import { KpiStrip } from "./kpi-strip";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
+import { ImportedReadinessCard } from "../imported/imported-readiness-card";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
 
 export function WorkspaceDashboardContent({ summary }: { summary: DashboardSummary }) {
@@ -105,7 +106,15 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
             tone={guidedDemoTone}
           />
         ) : null}
-        <DemoImportButton workspaceSlug={summary.workspace_slug} repo={summary.github_repo} />
+        {!isGuidedDemoWorkspace && summary.workspace_readiness ? (
+          <ImportedReadinessCard readiness={summary.workspace_readiness} workspaceSlug={summary.workspace_slug} />
+        ) : null}
+        <DemoImportButton
+          workspaceSlug={summary.workspace_slug}
+          repo={summary.github_repo}
+          latestImport={summary.latest_import}
+          importStatus={summary.import_status}
+        />
         <div className="action-row">
           <Link href={`/review?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">
             {messages.dashboard.reviewCandidates}
@@ -148,6 +157,18 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
                   .replace("{docs}", String(latestImportSummary.document_summary.imported))
                   .replace("{selected}", String(latestImportSummary.document_summary.selected))
                   .replace("{skipped}", String(skippedDocumentCount))}
+              </p>
+            ) : null}
+            {latestImportSummary?.evidence_summary ? (
+              <p>
+                {messages.dashboard.evidenceContributionSummary
+                  .replace("{decisions}", String(latestImportSummary.evidence_summary.reviewable_decisions))
+                  .replace(
+                    "{signals}",
+                    Object.entries(latestImportSummary.evidence_summary.decision_source_types)
+                      .map(([artifactType, count]) => `${artifactType}:${count}`)
+                      .join(", ") || messages.common.noData
+                  )}
               </p>
             ) : null}
             {summary.latest_import.error_message ? <p>{summary.latest_import.error_message}</p> : null}

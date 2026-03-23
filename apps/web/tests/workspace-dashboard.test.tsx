@@ -102,6 +102,76 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByText(/limited high-signal evidence/i)).toBeInTheDocument();
   });
 
+  it("renders imported readiness guidance when candidates are ready for review", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "imported-workspace",
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          repo_url: "https://github.com/org/repo",
+          github_repo: "org/repo",
+          import_status: "succeeded",
+          latest_import: {
+            job_id: "job-review-ready",
+            mode: "full",
+            status: "succeeded",
+            imported_count: 12,
+            summary: {
+              outcome: "ok",
+              artifact_counts: { issue: 2, pr: 2, commit: 6, doc: 2 },
+              evidence_summary: {
+                reviewable_decisions: 2,
+                decision_source_types: { doc: 1, issue: 1 },
+                contributing_doc_categories: { architecture: 1 },
+                contributing_doc_paths: ["docs/architecture.md"],
+              },
+              document_summary: {
+                selected: 3,
+                imported: 2,
+                skipped: {
+                  outside_high_signal_paths: 4,
+                  non_markdown: 8,
+                  generated_or_vendor_path: 1,
+                },
+              },
+            },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          },
+          artifact_count: 12,
+          decision_counts: {
+            candidate: 2,
+            accepted: 0,
+            rejected: 0,
+            superseded: 0,
+          },
+          workspace_readiness: {
+            state: "review_ready",
+            next_action: "review_candidates",
+            why_state: "review_required",
+            drift_state: "review_required",
+          },
+          drift_status: {
+            state: "review_required",
+            can_evaluate: false,
+            next_action: "review_candidates",
+            last_evaluated_at: null,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Imported workspace is ready for review")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review imported candidates" })).toHaveAttribute(
+      "href",
+      "/review?workspace=imported-workspace"
+    );
+    expect(screen.getByText(/Contributing signal mix/i)).toBeInTheDocument();
+  });
+
   it("does not show the low-signal hint when accepted decisions already exist", () => {
     render(
       <WorkspaceDashboardContent
@@ -212,6 +282,6 @@ describe("WorkspaceDashboardContent", () => {
     );
 
     expect(screen.queryByText(/limited high-signal evidence/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Unsupported GitHub content encoding for CHANGELOG\.md/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Unsupported GitHub content encoding for CHANGELOG\.md/i).length).toBeGreaterThan(0);
   });
 });

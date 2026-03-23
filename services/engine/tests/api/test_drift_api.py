@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, DriftAlert, Workspace
+from app.db.models import Artifact, Decision, DriftAlert, ImportJob, Workspace
 from app.main import create_app
 
 
@@ -44,9 +44,30 @@ def _seed_drift_fixture(db_path: Path) -> None:
             tradeoffs="Extra dependency",
             confidence=0.92,
             created_at=baseline,
+            updated_at=baseline,
         )
         session.add_all([artifact, decision])
         session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-drift-1",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=2,
+                finished_at=baseline + timedelta(days=1),
+                summary_json={
+                    "stage": "completed",
+                    "outcome": "ok",
+                    "drift_evaluation": {
+                        "evaluated_at": (baseline + timedelta(days=1, minutes=1)).isoformat(),
+                        "evaluated_rules": 1,
+                        "created_alerts": 1,
+                    },
+                },
+            )
+        )
         session.add(
             DriftAlert(
                 workspace_id=workspace.id,
@@ -74,6 +95,7 @@ def test_list_drift_alerts_returns_joined_context(tmp_path: Path, monkeypatch) -
     assert response.status_code == 200
     body = response.json()
     assert body["workspace_mode"] == "imported"
+    assert body["evaluation"]["state"] == "alerts_present"
     assert len(body["alerts"]) == 1
     assert body["alerts"][0]["confidence_label"] == "high"
     assert body["alerts"][0]["artifact"]["title"] == "Persist sessions in Redis"
@@ -120,6 +142,18 @@ def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None
                 tradeoffs="Extra dependency",
                 confidence=0.92,
                 created_at=baseline,
+                updated_at=baseline,
+            )
+        )
+        session.add(
+            ImportJob(
+                job_id="job-drift-eval",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=2,
+                summary_json={"stage": "completed", "outcome": "ok"},
             )
         )
         session.commit()
@@ -131,3 +165,4 @@ def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None
     body = response.json()
     assert body["status"] == "ok"
     assert body["created_alerts"] == 1
+    assert body["evaluation"]["state"] == "alerts_present"

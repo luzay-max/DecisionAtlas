@@ -25,6 +25,15 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
         if expectations.get("minimum_candidate_decisions", 0) < 0:
             print(f"Invalid minimum candidate count for {repository['repo']}.", file=sys.stderr)
             return 1
+        if not expectations.get("expected_readiness_states"):
+            print(f"Missing readiness expectations for {repository['repo']}.", file=sys.stderr)
+            return 1
+        if not expectations.get("expected_why_states"):
+            print(f"Missing why expectations for {repository['repo']}.", file=sys.stderr)
+            return 1
+        if not expectations.get("expected_drift_states"):
+            print(f"Missing drift expectations for {repository['repo']}.", file=sys.stderr)
+            return 1
         print(
             f"{repository['id']}: repo={repository['repo']} "
             f"min_candidates={expectations.get('minimum_candidate_decisions', 0)}"

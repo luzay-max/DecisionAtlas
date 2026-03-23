@@ -321,3 +321,70 @@ Verification for this addendum:
 Known validation note:
 
 - `python -m uv run pytest -q` in `services/engine` now passes all targeted feature tests, but one existing schema smoke test still fails against the local default PostgreSQL DSN because the local `postgres` password does not match the configured `DATABASE_URL`
+
+## 2026-03-23 Demo Hardening And Closure Addendum
+
+Today the remaining `v0.2` credibility and walkthrough work was closed out and archived.
+
+Completed changes since the previous log entry:
+
+- archived `harden-live-repo-analysis`
+- completed and archived `stabilize-guided-demo-lane`
+- clarified the fake/live provider toggle so it is framed as a control for the next run, not as a retroactive rewrite of current workspace results
+- added direct return paths from workspace pages back to:
+  - the homepage
+  - the guided demo lane
+
+Delivered in this round:
+
+- live repository analysis now has:
+  - workspace-aware routing
+  - stage-aware import status
+  - improved failure handling
+  - clearer imported workspace messaging
+- the guided demo is now the clear primary product path:
+  - homepage emphasizes guided demo first
+  - provider toggle and live analysis are demoted into an advanced / experimental section
+  - dashboard, review, why-search, timeline, and drift now form an explicit 5-step walkthrough
+  - each step includes continuation or completion guidance
+- review and why-search now better communicate:
+  - seeded walkthrough behavior
+  - imported repository behavior
+  - the difference between current displayed results and future runs
+
+OpenSpec state after this round:
+
+- active changes: none
+- archived changes:
+  - `2026-03-20-clarify-demo-vs-live-data`
+  - `2026-03-20-expand-real-repo-ingest`
+  - `2026-03-20-harden-live-repo-analysis`
+  - `2026-03-23-stabilize-guided-demo-lane`
+- main specs now include:
+  - `data-provenance-labeling`
+  - `repository-document-ingest`
+  - `live-repository-analysis`
+  - `guided-demo-experience`
+
+Current functional state:
+
+- the local guided demo path is stable and has been manually rehearsed end to end
+- the fake/live provider switch is available, but is now explicitly framed as a control for:
+  - the next live analysis run
+  - the next future extraction flow
+- demo vs imported workspace boundaries are now much clearer across the main trust-sensitive pages
+- the project is no longer in MVP construction mode; it is now in post-`v0.2` packaging and next-phase planning mode
+
+Recommended immediate next step:
+
+- stop adding horizontal MVP features
+- finish release-style cleanup and validation
+- prepare either:
+  - a hosted public demo slice
+  - or a small release polish slice
+
+Suggested stop point:
+
+- `v0.2` guided demo hardening is complete
+- no active OpenSpec changes remain
+- the next work should start as a new, clearly scoped change rather than continuing ad hoc edits

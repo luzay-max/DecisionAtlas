@@ -74,6 +74,13 @@ def _seed_dashboard_fixture(db_path: Path) -> None:
                         "selected": 2,
                         "imported": 1,
                         "skipped": {"outside_high_signal_paths": 4, "non_markdown": 6, "generated_or_vendor_path": 1},
+                        "categories": {"architecture": 1},
+                    },
+                    "evidence_summary": {
+                        "reviewable_decisions": 2,
+                        "decision_source_types": {"doc": 1, "issue": 1},
+                        "contributing_doc_categories": {"architecture": 1},
+                        "contributing_doc_paths": ["docs/architecture.md"],
                     },
                 },
             )
@@ -120,3 +127,5 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["latest_import"]["summary"]["stage"] == "completed"
     assert body["latest_import"]["summary"]["outcome"] == "ok"
     assert body["latest_import"]["summary"]["artifact_counts"]["doc"] == 1
+    assert body["workspace_readiness"]["state"] == "review_ready"
+    assert body["drift_status"]["state"] == "unevaluated"

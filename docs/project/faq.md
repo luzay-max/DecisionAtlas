@@ -23,6 +23,8 @@ The current MVP supports:
 - rule-first alerts for high-signal contradictions such as violating a cache-only Redis rule
 - semantic drift enrichment for conservative labels such as `possible_supersession` and `needs_review`
 
+It is not a continuous Git watcher yet. Today it compares accepted decisions against later imported artifacts inside a workspace when drift evaluation is run.
+
 ## What is missing from the MVP?
 
 - production auth and permissions
@@ -53,3 +55,7 @@ Not yet. This phase supports one-off analysis of public GitHub repositories only
 - no persistent multi-repository connection management
 
 If a repository is thin on ADRs, docs, or rationale, the correct outcome may be `insufficient_evidence` rather than a rich answer set.
+
+## What does the fake/live provider switch change?
+
+It changes the provider used for the next real analysis or future extraction run. It does not rewrite the demo data or imported results that are already on screen.

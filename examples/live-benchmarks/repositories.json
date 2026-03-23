@@ -6,7 +6,10 @@
     "expectations": {
       "analysis_scope": "doc-heavy library with strong public rationale",
       "minimum_candidate_decisions": 3,
-      "expected_outcomes": ["ok", "insufficient_evidence"]
+      "expected_outcomes": ["ok", "insufficient_evidence"],
+      "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
+      "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
   },
   {
@@ -16,7 +19,10 @@
     "expectations": {
       "analysis_scope": "large public framework with mixed issue and documentation evidence",
       "minimum_candidate_decisions": 2,
-      "expected_outcomes": ["ok", "insufficient_evidence"]
+      "expected_outcomes": ["ok", "insufficient_evidence"],
+      "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
+      "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
   },
   {
@@ -26,7 +32,10 @@
     "expectations": {
       "analysis_scope": "public library where decision evidence may be thinner than the guided demo",
       "minimum_candidate_decisions": 1,
-      "expected_outcomes": ["ok", "insufficient_evidence"]
+      "expected_outcomes": ["ok", "insufficient_evidence"],
+      "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
+      "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
   }
 ]

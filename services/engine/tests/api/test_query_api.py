@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, SourceRef, Workspace
+from app.db.models import Artifact, Decision, ImportJob, SourceRef, Workspace
 from app.main import create_app
 
 
@@ -86,4 +86,56 @@ def test_post_query_why_returns_answer_with_citations(tmp_path: Path, monkeypatc
     body = response.json()
     assert body["status"] == "ok"
     assert body["answer_context"]["workspace_mode"] == "imported"
+    assert body["answer_context"]["workspace_readiness"]["state"] == "why_ready"
     assert len(body["citations"]) >= 2
+
+
+def test_post_query_why_requires_review_for_imported_workspace_without_accepted_decisions(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "query-review-required.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Use Queue",
+                status="active",
+                review_state="candidate",
+                problem="Sync calls too slow",
+                context=None,
+                constraints=None,
+                chosen_option="Use queue",
+                tradeoffs="More infra",
+                confidence=0.6,
+            )
+        )
+        session.add(
+            ImportJob(
+                job_id="job-why-1",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=3,
+                summary_json={"stage": "completed", "outcome": "ok"},
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/query/why",
+        json={"workspace_slug": "imported-workspace", "question": "why use queue"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "review_required"
+    assert body["answer_context"]["workspace_readiness"]["state"] == "review_ready"

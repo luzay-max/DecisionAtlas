@@ -55,8 +55,9 @@ class OpenAICompatibleProvider:
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 429:
                 raise ProviderRateLimitError("Extraction provider rate limit exceeded") from exc
+            detail = _response_detail(exc.response)
             raise ProviderRequestError(
-                f"Extraction provider request failed with status {exc.response.status_code}"
+                f"Extraction provider request failed with status {exc.response.status_code}: {detail}"
             ) from exc
         except httpx.HTTPError as exc:
             raise ProviderRequestError("Extraction provider request failed") from exc
@@ -69,3 +70,22 @@ class OpenAICompatibleProvider:
         if content is None or not isinstance(content, str):
             raise ProviderResponseError("Extraction provider returned an invalid response payload")
         return content
+
+
+def _response_detail(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        text = response.text.strip()
+        return text[:200] if text else "no response body"
+
+    if isinstance(payload, dict):
+        for key in ("error", "message", "detail"):
+            value = payload.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()[:200]
+            if isinstance(value, dict):
+                nested = value.get("message") or value.get("detail")
+                if isinstance(nested, str) and nested.strip():
+                    return nested.strip()[:200]
+    return str(payload)[:200]

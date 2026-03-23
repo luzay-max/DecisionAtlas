@@ -1,20 +1,23 @@
 from __future__ import annotations
 
+from time import monotonic
 from urllib.parse import urlparse
 from uuid import uuid4
 
 from app.config import get_settings
 from app.db.session import get_db_session
-from app.extractor.pipeline import CandidateExtractionPipeline
+from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
 from app.ingest.github_client import GitHubClient
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
 from app.llm.provider_factory import build_runtime_providers
 from app.observability.logging import build_log_context, get_logger
+from app.outcomes.real_workspaces import summarize_imported_evidence
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.import_jobs import ImportJobRepository
+from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
 
 
@@ -85,6 +88,7 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                     "selected": import_result.selected_document_count,
                     "imported": import_result.imported_document_count,
                     "skipped": import_result.skipped_document_counts,
+                    "categories": import_result.selected_document_categories,
                 },
             },
         )
@@ -99,10 +103,40 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                 embedder=runtime.embedder,
             )
         current_stage = "extracting_decisions"
-        jobs.update_stage(job_id, stage=current_stage)
+        jobs.update_stage(
+            job_id,
+            stage=current_stage,
+            summary_json={
+                "extraction_summary": {
+                    "total_artifacts": 0,
+                    "processed_artifacts": 0,
+                    "created_candidates": 0,
+                    "skipped_provider_400": 0,
+                    "skipped_provider_timeout": 0,
+                    "skipped_invalid_json": 0,
+                    "elapsed_seconds": 0,
+                    "estimated_remaining_seconds": None,
+                    "current_artifact_title": None,
+                }
+            },
+        )
         session.commit()
 
-        created_candidates = CandidateExtractionPipeline(session, runtime.extraction_provider).run(workspace_slug=workspace_slug)
+        extraction_pipeline = CandidateExtractionPipeline(session, runtime.extraction_provider)
+        progress_reporter = _build_extraction_progress_reporter(job_id=job_id)
+        created_candidates = extraction_pipeline.run(
+            workspace_slug=workspace_slug,
+            progress_callback=progress_reporter,
+        )
+        source_refs = SourceRefRepository(session)
+        decisions_repo = DecisionRepository(session)
+        workspace_artifacts = ArtifactRepository(session).list_by_workspace(workspace.id)
+        workspace_decisions = decisions_repo.list_by_workspace(workspace.id)
+        evidence_summary = summarize_imported_evidence(
+            workspace_artifacts,
+            workspace_decisions,
+            {decision.id: source_refs.list_by_decision(decision.id) for decision in workspace_decisions},
+        )
         decision_counts = DecisionRepository(session).counts_by_review_state(workspace.id)
         has_decision_signal = created_candidates > 0 or any(
             decision_counts.get(state, 0) > 0 for state in ("candidate", "accepted", "superseded")
@@ -116,7 +150,10 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                     "selected": import_result.selected_document_count,
                     "imported": import_result.imported_document_count,
                     "skipped": import_result.skipped_document_counts,
+                    "categories": import_result.selected_document_categories,
                 },
+                "extraction_summary": extraction_pipeline.last_run_stats.to_summary(),
+                "evidence_summary": evidence_summary,
                 "outcome": "ok" if has_decision_signal else "insufficient_evidence",
             },
         )
@@ -236,3 +273,36 @@ def _classify_failure(exc: Exception) -> str:
     if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
         return "invalid_repository"
     return "analysis_execution_failed"
+
+
+def _build_extraction_progress_reporter(*, job_id: str):
+    last_reported_processed = -1
+    last_reported_at = 0.0
+
+    def report(stats: ExtractionRunStats) -> None:
+        nonlocal last_reported_processed, last_reported_at
+        now = monotonic()
+        should_report = (
+            stats.processed_artifacts == 0
+            or stats.processed_artifacts >= stats.total_artifacts
+            or stats.processed_artifacts - last_reported_processed >= 5
+            or now - last_reported_at >= 3.0
+        )
+        if not should_report:
+            return
+
+        progress_session = get_db_session()
+        try:
+            ImportJobRepository(progress_session).merge_summary(
+                job_id,
+                summary_json={
+                    "extraction_summary": stats.to_summary(),
+                },
+            )
+            progress_session.commit()
+            last_reported_processed = stats.processed_artifacts
+            last_reported_at = now
+        finally:
+            progress_session.close()
+
+    return report

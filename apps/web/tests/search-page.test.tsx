@@ -60,6 +60,43 @@ describe("QueryForm", () => {
     global.fetch = originalFetch;
   });
 
+  it("shows review-required next action for imported why responses", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "review_required",
+        question: "why use queue",
+        answer: "Accepted imported decisions are required before why-search is trustworthy. Review candidate decisions first.",
+        answer_context: {
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          workspace_readiness: {
+            state: "review_ready",
+            next_action: "review_candidates",
+            why_state: "review_required",
+            drift_state: "review_required"
+          }
+        },
+        citations: []
+      })
+    } as Response);
+
+    render(<QueryForm workspaceSlug="imported-workspace" />);
+    expect(screen.getByText(/imported why-search becomes trustworthy/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/review required/i)).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: "Review imported candidates" })).toHaveAttribute(
+      "href",
+      "/review?workspace=imported-workspace"
+    );
+
+    global.fetch = originalFetch;
+  });
+
   it("does not crash when a legacy why response omits provenance context", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({

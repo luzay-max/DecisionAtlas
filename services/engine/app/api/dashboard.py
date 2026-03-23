@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.config import get_settings
 from app.db.session import get_db_session
+from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
@@ -31,6 +32,27 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
         provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=workspace_artifacts)
         recent_alerts = alerts.list_recent_by_workspace(workspace.id)
         latest_job = jobs.latest_for_workspace(workspace.id)
+        drift_status = build_imported_drift_status(
+            candidate_count=decision_counts.get("candidate", 0),
+            accepted_count=decision_counts.get("accepted", 0),
+            latest_import_finished_at=latest_job.finished_at if latest_job is not None else None,
+            latest_accepted_change_at=max(
+                (decision.updated_at for decision in decisions.list_by_review_state(workspace.id, "accepted")),
+                default=None,
+            ),
+            latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+            alert_count=len(recent_alerts),
+        )
+        workspace_readiness = (
+            build_imported_workspace_readiness(
+                latest_import_status=latest_job.status if latest_job is not None else None,
+                latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+                decision_counts=decision_counts,
+                drift_status=drift_status,
+            )
+            if provenance.workspace_mode != "demo"
+            else None
+        )
         return {
             "workspace_slug": workspace.slug,
             "repo_url": workspace.repo_url,
@@ -59,6 +81,8 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
                 "rejected": decision_counts.get("rejected", 0),
                 "superseded": decision_counts.get("superseded", 0),
             },
+            "workspace_readiness": workspace_readiness,
+            "drift_status": drift_status if provenance.workspace_mode != "demo" else None,
             "recent_alerts": [
                 {
                     "id": alert.id,

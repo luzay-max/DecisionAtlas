@@ -83,12 +83,13 @@ def test_document_selection_prefers_high_signal_markdown_paths() -> None:
         [
             GitHubRepositoryFile(path="README.md", sha="1", size=10),
             GitHubRepositoryFile(path="docs/guide.md", sha="2", size=10),
+            GitHubRepositoryFile(path="MIGRATION_GUIDE.md", sha="4", size=10),
             GitHubRepositoryFile(path="src/index.ts", sha="3", size=10),
             GitHubRepositoryFile(path="vendor/ARCHITECTURE.md", sha="4", size=10),
         ]
     )
 
-    assert [item.path for item in selected] == ["README.md", "docs/guide.md"]
+    assert [item.path for item in selected] == ["README.md", "docs/guide.md", "MIGRATION_GUIDE.md"]
     assert skipped["non_markdown"] == 1
     assert skipped["generated_or_vendor_path"] == 1
 
@@ -117,10 +118,12 @@ def test_github_importer_persists_artifacts(tmp_path: Path, monkeypatch) -> None
     assert import_result.imported_count == 5
     assert import_result.artifact_counts == {"issue": 1, "pr": 1, "commit": 1, "doc": 2}
     assert import_result.selected_document_count == 2
+    assert import_result.selected_document_categories == {"general": 1, "decision": 1}
     assert import_result.skipped_document_counts["non_markdown"] == 2
     assert [artifact.type for artifact in artifacts] == ["commit", "doc", "doc", "issue", "pr"]
     assert artifacts[0].repo == "org/repo"
     assert artifacts[1].source_id == "README.md"
+    assert artifacts[1].metadata_json["signal_category"] == "general"
     assert artifacts[1].url == "https://github.com/org/repo/blob/main/README.md"
     assert artifacts[3].author == "alice"
     assert artifacts[4].source_id == "2"

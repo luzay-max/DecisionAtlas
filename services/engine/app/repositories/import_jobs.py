@@ -78,6 +78,14 @@ class ImportJobRepository:
         self.session.flush()
         return job
 
+    def merge_summary(self, job_id: str, *, summary_json: dict) -> ImportJob:
+        job = self._require(job_id)
+        summary = dict(job.summary_json or {})
+        summary.update(summary_json)
+        job.summary_json = summary
+        self.session.flush()
+        return job
+
     def mark_succeeded(self, job_id: str, *, imported_count: int, summary_json: dict | None = None) -> ImportJob:
         job = self._require(job_id)
         job.status = "succeeded"

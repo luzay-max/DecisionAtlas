@@ -48,14 +48,30 @@ describe("DemoImportButton", () => {
     await user.click(screen.getByRole("button", { name: "Run Demo Import" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Imported 11 artifacts from encode/httpx")).toBeInTheDocument();
+      expect(screen.getAllByText("Imported 11 artifacts from encode/httpx").length).toBeGreaterThan(0);
     });
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it("disables the button while an import is running", async () => {
     const user = userEvent.setup();
     let resolveImport: ((value: { job_id: string }) => void) | undefined;
+    getImportJob
+      .mockResolvedValueOnce({
+        job_id: "job-123",
+        status: "running",
+        imported_count: 0,
+        summary: { stage: "queued" },
+        repo: "encode/httpx",
+      })
+      .mockResolvedValue({
+        job_id: "job-123",
+        status: "succeeded",
+        imported_count: 1,
+        summary: { stage: "completed" },
+        repo: "encode/httpx",
+      });
     startGithubImport.mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -78,5 +94,98 @@ describe("DemoImportButton", () => {
     await act(async () => {
       resolveImport?.({ job_id: "job-123" });
     });
+  });
+
+  it("continues polling an existing running import when the page loads mid-flight", async () => {
+    getImportJob
+      .mockResolvedValueOnce({
+        job_id: "job-running",
+        status: "running",
+        summary: { stage: "indexing_artifacts" },
+        imported_count: 0,
+        repo: "encode/httpx",
+      })
+      .mockResolvedValueOnce({
+        job_id: "job-running",
+        status: "succeeded",
+        imported_count: 7,
+        repo: "encode/httpx",
+        summary: { stage: "completed" },
+      })
+      .mockResolvedValue({
+        job_id: "job-running",
+        status: "succeeded",
+        imported_count: 7,
+        repo: "encode/httpx",
+        summary: { stage: "completed" },
+      });
+
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="demo-workspace"
+          repo="encode/httpx"
+          importStatus="running"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "indexing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Import indexing artifacts/i).length).toBeGreaterThan(0);
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("Imported 7 artifacts from encode/httpx").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
+  });
+
+  it("shows extraction progress details and eta while extracting decisions", () => {
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          importStatus="running"
+          latestImport={{
+            job_id: "job-extracting",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: {
+              stage: "extracting_decisions",
+              extraction_summary: {
+                total_artifacts: 20,
+                processed_artifacts: 5,
+                created_candidates: 1,
+                skipped_provider_400: 0,
+                skipped_provider_timeout: 1,
+                skipped_invalid_json: 0,
+                elapsed_seconds: 25,
+                estimated_remaining_seconds: 75,
+                current_artifact_title: "Architecture RFC",
+              },
+            },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(screen.getByText("Processed 5 of 20 extraction items.")).toBeInTheDocument();
+    expect(screen.getByText("Estimated time remaining: 1m 15s.")).toBeInTheDocument();
+    expect(screen.getByText("Current artifact: Architecture RFC")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "81");
   });
 });

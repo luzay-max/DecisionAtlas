@@ -8,6 +8,7 @@ describe("drift routes", () => {
       json: async () => ({
         workspace_mode: "demo",
         source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+        evaluation: null,
         alerts: [{ id: 1, alert_type: "possible_drift", status: "open" }]
       })
     } as Response);
@@ -22,6 +23,7 @@ describe("drift routes", () => {
     expect(response.json()).toEqual({
       workspace_mode: "demo",
       source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+      evaluation: null,
       alerts: [{ id: 1, alert_type: "possible_drift", status: "open" }]
     });
 
@@ -32,7 +34,12 @@ describe("drift routes", () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
-      json: async () => ({ status: "ok", created_alerts: 1, evaluated_rules: 1 })
+      json: async () => ({
+        status: "ok",
+        created_alerts: 1,
+        evaluated_rules: 1,
+        evaluation: { state: "alerts_present", can_evaluate: true, next_action: "inspect_alerts", last_evaluated_at: null }
+      })
     } as Response);
 
     const app = buildServer();
@@ -43,7 +50,12 @@ describe("drift routes", () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ status: "ok", created_alerts: 1, evaluated_rules: 1 });
+    expect(response.json()).toEqual({
+      status: "ok",
+      created_alerts: 1,
+      evaluated_rules: 1,
+      evaluation: { state: "alerts_present", can_evaluate: true, next_action: "inspect_alerts", last_evaluated_at: null }
+    });
 
     global.fetch = originalFetch;
   });

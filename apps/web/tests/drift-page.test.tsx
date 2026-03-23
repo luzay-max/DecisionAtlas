@@ -1,7 +1,14 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { DriftPageContent } from "../components/drift/drift-page-content";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
 
 describe("DriftPageContent", () => {
   it("renders persisted alerts with decision and artifact context", () => {
@@ -85,5 +92,28 @@ describe("DriftPageContent", () => {
 
     expect(screen.getByText("Use Redis Cache")).toBeInTheDocument();
     expect(screen.queryByText(/Workspace Type/i)).not.toBeInTheDocument();
+  });
+
+  it("shows imported evaluation state before alerts exist", () => {
+    render(
+      <DriftPageContent
+        workspaceSlug="imported-workspace"
+        drift={{
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          evaluation: {
+            state: "unevaluated",
+            can_evaluate: true,
+            next_action: "evaluate_drift",
+            last_evaluated_at: null,
+          },
+          alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Drift has not been evaluated yet")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Evaluate drift now" })).toBeInTheDocument();
+    expect(screen.getByText(/use the evaluation card above/i)).toBeInTheDocument();
   });
 });

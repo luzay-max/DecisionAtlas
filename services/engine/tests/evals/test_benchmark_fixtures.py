@@ -25,3 +25,6 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert all(item["workspace_slug"].startswith("github-") for item in repositories)
     assert all(item["expectations"]["minimum_candidate_decisions"] >= 0 for item in repositories)
     assert all(item["expectations"]["expected_outcomes"] for item in repositories)
+    assert all(item["expectations"]["expected_readiness_states"] for item in repositories)
+    assert all(item["expectations"]["expected_why_states"] for item in repositories)
+    assert all(item["expectations"]["expected_drift_states"] for item in repositories)

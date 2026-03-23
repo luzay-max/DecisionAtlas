@@ -2,6 +2,13 @@
 
 DecisionAtlas turns engineering repo context into a searchable decision memory with citations and drift alerts.
 
+Current project stage:
+
+- core MVP complete
+- `v0.2` demo hardening complete
+- guided demo lane stable
+- next priority: strengthen real repository analysis so the product can complete real-world tasks more credibly
+
 Example why-questions:
 
 - Why did we choose Redis as cache only?
@@ -10,7 +17,7 @@ Example why-questions:
 - Why did this pull request trigger a drift alert?
 - Why did we move this workflow into a queue?
 
-What the MVP already does:
+What the product already does:
 
 - imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
 - supports fake-provider local mode and OpenAI-compatible live provider mode
@@ -69,6 +76,12 @@ For live analysis, the current supported scope is:
 - one-off imported workspace analysis, not long-lived GitHub App connections
 - results may end in either useful evidence or explicit `insufficient_evidence` depending on repository signal
 
+Current operating model:
+
+- `demo-workspace` is the stable product walkthrough
+- imported workspaces are the real-capability lane
+- fake/live provider switching affects the next real run or extraction path, not the already-rendered demo results on screen
+
 Then open:
 
 - Web: `http://localhost:3000`
@@ -84,17 +97,26 @@ Project docs:
 - [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
 - [Release Checklist](./docs/project/release-checklist.md)
+- [Real Repository Validation Baseline](./docs/project/real-repository-validation-baseline.md)
 - [v0.2 Release Notes](./docs/project/release-notes-v0.2.md)
 - [Project Blueprint](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Implementation Plan](./docs/plans/2026-03-18-decisionatlas-implementation-plan.md)
 - [v0.2 Implementation Plan](./docs/plans/2026-03-18-decisionatlas-v0.2-implementation-plan.md)
+- [Post-v0.2 Next Steps](./docs/plans/2026-03-23-post-v0.2-next-steps.md)
+- [v0.3 Backlog](./docs/plans/2026-03-18-decisionatlas-v0.3-backlog.md)
 
-Screenshots:
+Next recommended direction:
 
-- dashboard screenshot: pending
-- review queue screenshot: pending
-- why-search screenshot: pending
-- drift alerts screenshot: pending
+1. keep the guided demo stable
+2. improve the real imported-workspace path so live analysis produces more useful decisions, answers, and drift signals on public repositories
+3. only after that, move on to hosted demo delivery and later v0.3 platform work
+
+Real-functionality priorities:
+
+- improve end-to-end live-provider validation on public repositories
+- widen the set of real repository signals that can turn into accepted decisions
+- make drift evaluation more operational after real imports
+- measure repository outcomes instead of relying on demo-only confidence
 
 Known limitations:
 
@@ -103,3 +125,4 @@ Known limitations:
 - the public demo workspace is seeded and should not be confused with a fully imported repository workspace
 - GitHub import still uses token mode, not GitHub App auth
 - live analysis currently supports public repositories only, not private repo auth flows
+- real imported workspaces can still be sparse depending on repository signal quality

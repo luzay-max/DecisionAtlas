@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -61,6 +63,7 @@ class DecisionRepository:
         if decision is None:
             return None
         decision.review_state = review_state
+        decision.updated_at = datetime.utcnow()
         if review_state == "superseded":
             decision.status = "superseded"
         self.session.flush()

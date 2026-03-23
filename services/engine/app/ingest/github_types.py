@@ -31,3 +31,4 @@ class GitHubImportResult:
     selected_document_count: int
     imported_document_count: int
     skipped_document_counts: dict[str, int]
+    selected_document_categories: dict[str, int]

@@ -24,6 +24,14 @@ export function SearchResults({ result }: { result: WhyAnswerResponse }) {
         <strong>{messages.search.status}:</strong>{" "}
         {messages.status[result.status as keyof typeof messages.status] ?? result.status}
       </p>
+      {answerContext?.workspace_readiness ? (
+        <p>
+          <strong>{messages.dashboard.nextAction}:</strong>{" "}
+          {messages.importedReadiness.actions[
+            answerContext.workspace_readiness.next_action as keyof typeof messages.importedReadiness.actions
+          ] ?? answerContext.workspace_readiness.next_action}
+        </p>
+      ) : null}
       <p>{result.answer}</p>
       {result.citations.length === 0 ? (
         <p>{messages.search.noCitations}</p>

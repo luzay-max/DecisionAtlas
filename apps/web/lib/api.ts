@@ -21,6 +21,22 @@ export type WorkspaceProvenance = {
   source_summary: string;
 };
 
+export type WorkspaceReadiness = {
+  state: string;
+  next_action: string;
+  why_state: string;
+  drift_state: string;
+};
+
+export type DriftEvaluation = {
+  state: string;
+  can_evaluate: boolean;
+  next_action: string;
+  last_evaluated_at: string | null;
+  evaluated_rules?: number | null;
+  created_alerts?: number | null;
+};
+
 export type ImportSummary = {
   stage?: string;
   outcome?: string;
@@ -35,6 +51,24 @@ export type ImportSummary = {
     selected: number;
     imported: number;
     skipped: Record<string, number>;
+    categories?: Record<string, number>;
+  } | null;
+  evidence_summary?: {
+    reviewable_decisions: number;
+    decision_source_types: Record<string, number>;
+    contributing_doc_categories: Record<string, number>;
+    contributing_doc_paths: string[];
+  } | null;
+  extraction_summary?: {
+    total_artifacts: number;
+    processed_artifacts: number;
+    created_candidates: number;
+    skipped_provider_400: number;
+    skipped_provider_timeout: number;
+    skipped_invalid_json: number;
+    elapsed_seconds?: number | null;
+    estimated_remaining_seconds?: number | null;
+    current_artifact_title?: string | null;
   } | null;
 };
 
@@ -57,7 +91,9 @@ export type WhyAnswerResponse = {
   status: string;
   question: string;
   answer: string;
-  answer_context: WorkspaceProvenance;
+  answer_context: WorkspaceProvenance & {
+    workspace_readiness?: WorkspaceReadiness | null;
+  };
   citations: Array<{
     decision_id?: number;
     source_ref_id?: number;
@@ -89,6 +125,7 @@ export type DashboardSummary = WorkspaceProvenance & {
   latest_import: {
     job_id: string;
     workspace_slug?: string | null;
+    repo?: string | null;
     mode: string;
     status: string;
     imported_count: number;
@@ -104,6 +141,8 @@ export type DashboardSummary = WorkspaceProvenance & {
     rejected: number;
     superseded: number;
   };
+  workspace_readiness?: WorkspaceReadiness | null;
+  drift_status?: DriftEvaluation | null;
   recent_alerts: Array<{
     id: number;
     alert_type: string;
@@ -113,6 +152,7 @@ export type DashboardSummary = WorkspaceProvenance & {
 };
 
 export type DriftAlertsResponse = WorkspaceProvenance & {
+  evaluation?: DriftEvaluation | null;
   alerts: DriftAlertItem[];
 };
 
@@ -148,6 +188,14 @@ export type ImportResult = {
   error_message?: string | null;
   started_at?: string | null;
   finished_at?: string | null;
+};
+
+export type DriftEvaluationResult = {
+  status: string;
+  workspace_slug: string;
+  evaluated_rules: number;
+  created_alerts: number;
+  evaluation?: DriftEvaluation | null;
 };
 
 export type ProviderModeState = {
@@ -239,6 +287,20 @@ export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlerts
   });
   if (!response.ok) {
     throw new Error("Failed to load drift alerts");
+  }
+  return response.json();
+}
+
+export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluationResult> {
+  const response = await fetch(`${apiBaseUrl}/drift/evaluate`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ workspace_slug: workspaceSlug })
+  });
+  if (!response.ok) {
+    throw new Error("Failed to evaluate drift");
   }
   return response.json();
 }

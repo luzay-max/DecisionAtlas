@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db.session import get_db_session
 from app.drift.evaluator import DriftEvaluator
 from app.llm.base import ProviderConfigurationError, ProviderError
 from app.llm.provider_factory import build_runtime_providers
+from app.outcomes.real_workspaces import build_imported_drift_status
 from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
+from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.workspaces import WorkspaceRepository
 
 router = APIRouter(prefix="/drift", tags=["drift"])
@@ -28,10 +32,21 @@ def list_drift_alerts(workspace_slug: str = Query(...)) -> dict:
         workspace_artifacts = artifacts.list_by_workspace(workspace.id)
         provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=workspace_artifacts)
         decisions = DecisionRepository(session)
+        accepted_decisions = decisions.list_by_review_state(workspace.id, "accepted")
+        latest_job = ImportJobRepository(session).latest_for_workspace(workspace.id)
+        drift_status = build_imported_drift_status(
+            candidate_count=decisions.counts_by_review_state(workspace.id).get("candidate", 0),
+            accepted_count=len(accepted_decisions),
+            latest_import_finished_at=latest_job.finished_at if latest_job is not None else None,
+            latest_accepted_change_at=max((decision.updated_at for decision in accepted_decisions), default=None),
+            latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+            alert_count=len(alerts),
+        )
 
         return {
             "workspace_mode": provenance.workspace_mode,
             "source_summary": provenance.source_summary,
+            "evaluation": drift_status if provenance.workspace_mode != "demo" else None,
             "alerts": [
                 {
                     "id": alert.id,
@@ -68,11 +83,40 @@ def evaluate_drift(payload: dict) -> dict:
             raise HTTPException(status_code=503, detail=str(error)) from error
         except ProviderError as error:
             raise HTTPException(status_code=502, detail=str(error)) from error
+        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
+        if workspace is None:
+            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
+        jobs = ImportJobRepository(session)
+        latest_job = jobs.latest_for_workspace(workspace.id)
+        if latest_job is not None:
+            jobs.merge_summary(
+                latest_job.job_id,
+                summary_json={
+                    "drift_evaluation": {
+                        "evaluated_at": datetime.utcnow().isoformat(),
+                        "evaluated_rules": result.evaluated_rules,
+                        "created_alerts": result.created_alerts,
+                    }
+                },
+            )
+            session.commit()
+            latest_job = jobs.latest_for_workspace(workspace.id)
+        alerts = DriftAlertRepository(session).list_by_workspace(workspace.id)
+        accepted_decisions = DecisionRepository(session).list_by_review_state(workspace.id, "accepted")
+        drift_status = build_imported_drift_status(
+            candidate_count=DecisionRepository(session).counts_by_review_state(workspace.id).get("candidate", 0),
+            accepted_count=len(accepted_decisions),
+            latest_import_finished_at=latest_job.finished_at if latest_job is not None else None,
+            latest_accepted_change_at=max((decision.updated_at for decision in accepted_decisions), default=None),
+            latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+            alert_count=len(alerts),
+        )
         return {
             "status": "ok",
             "workspace_slug": result.workspace_slug,
             "evaluated_rules": result.evaluated_rules,
             "created_alerts": result.created_alerts,
+            "evaluation": drift_status,
         }
     finally:
         session.close()

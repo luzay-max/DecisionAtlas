@@ -2,12 +2,20 @@
 
 import React from "react";
 
+import { DashboardSummary } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
+import { ImportedReadinessCard } from "../imported/imported-readiness-card";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { QueryForm } from "./query-form";
 import { useI18n } from "../i18n/language-provider";
 
-export function SearchPageContent({ workspaceSlug }: { workspaceSlug: string }) {
+export function SearchPageContent({
+  workspaceSlug,
+  summary,
+}: {
+  workspaceSlug: string;
+  summary: DashboardSummary;
+}) {
   const { messages } = useI18n();
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
 
@@ -26,6 +34,9 @@ export function SearchPageContent({ workspaceSlug }: { workspaceSlug: string }) 
             description={messages.guidedDemo.searchDescription}
             steps={messages.guidedDemo.steps}
           />
+        ) : null}
+        {!isGuidedDemoWorkspace && summary.workspace_readiness ? (
+          <ImportedReadinessCard readiness={summary.workspace_readiness} workspaceSlug={workspaceSlug} />
         ) : null}
         <h2>{messages.search.examplesTitle}</h2>
         <ul className="stack" aria-label={messages.search.examplesTitle}>

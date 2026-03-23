@@ -4,6 +4,7 @@ import React from "react";
 
 import { DriftAlertsResponse } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
+import { DriftEvaluationCard } from "./drift-evaluation-card";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { useI18n } from "../i18n/language-provider";
 import { AlertDetail } from "./alert-detail";
@@ -50,9 +51,10 @@ export function DriftPageContent({
             tone="success"
           />
         ) : null}
-        {alerts.length === 0 ? (
-          <p>{messages.drift.none}</p>
+        {!isGuidedDemoWorkspace && provenance?.evaluation ? (
+          <DriftEvaluationCard evaluation={provenance.evaluation} workspaceSlug={workspaceSlug} />
         ) : null}
+        {alerts.length === 0 ? <p>{isGuidedDemoWorkspace ? messages.drift.none : messages.drift.noneImported}</p> : null}
         {alerts.map((alert) => (
           <AlertDetail key={alert.id} alert={alert} workspaceSlug={workspaceSlug} />
         ))}

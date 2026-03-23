@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import datetime
 from pathlib import PurePosixPath
 
 from sqlalchemy.orm import Session
 
 from app.ingest.github_client import GitHubClient
-from app.ingest.github_document_selection import select_high_signal_repository_documents
+from app.ingest.github_document_selection import classify_repository_document, select_high_signal_repository_documents
 from app.ingest.github_types import GitHubImportResult
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.workspaces import WorkspaceRepository
@@ -41,6 +42,7 @@ class GitHubImporter:
         default_branch = self.client.get_default_branch(repo)
         repository_files = self.client.list_repository_files(repo, ref=default_branch)
         selected_documents, skipped_document_counts = select_high_signal_repository_documents(repository_files)
+        selected_document_categories = Counter(classify_repository_document(file.path) for file in selected_documents)
 
         total = 0
         artifact_counts = {"issue": 0, "pr": 0, "commit": 0, "doc": 0}
@@ -62,6 +64,7 @@ class GitHubImporter:
 
         for repository_file in selected_documents:
             source_id = repository_file.path
+            signal_category = classify_repository_document(source_id)
             self.artifacts.upsert(
                 workspace_id=workspace.id,
                 artifact_type="doc",
@@ -72,7 +75,12 @@ class GitHubImporter:
                 author=None,
                 url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
                 timestamp=None,
-                metadata_json={"path": source_id, "ref": default_branch, "source": "github_repo_doc"},
+                metadata_json={
+                    "path": source_id,
+                    "ref": default_branch,
+                    "source": "github_repo_doc",
+                    "signal_category": signal_category,
+                },
             )
             total += 1
             artifact_counts["doc"] += 1
@@ -84,6 +92,7 @@ class GitHubImporter:
             selected_document_count=len(selected_documents),
             imported_document_count=artifact_counts["doc"],
             skipped_document_counts=skipped_document_counts,
+            selected_document_categories=dict(selected_document_categories),
         )
 
 
