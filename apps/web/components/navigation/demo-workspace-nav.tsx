@@ -31,6 +31,16 @@ export function DemoWorkspaceNav({
         <div className="card guided-demo-badge">
           <p className="eyebrow">{messages.guidedDemo.demoBadge}</p>
           <p>{messages.guidedDemo.demoSummary}</p>
+          <div className="action-row">
+            <Link href="/" className="action-link">
+              {messages.nav.home}
+            </Link>
+            {workspaceSlug !== "demo-workspace" ? (
+              <Link href="/workspaces/demo-workspace" className="action-link">
+                {messages.nav.backToDemo}
+              </Link>
+            ) : null}
+          </div>
         </div>
         <div className="demo-nav">
           {navItems.map((item) => {

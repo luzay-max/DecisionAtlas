@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 
 import { getProviderMode, ProviderModeState, setProviderMode } from "../../lib/api";
@@ -62,6 +63,15 @@ export function ProviderModeToggle() {
         {messages.providerToggle.current}:{" "}
         {currentMode === "live" ? messages.providerToggle.liveActive : messages.providerToggle.fakeActive}
       </p>
+      <p>{messages.providerToggle.scope}</p>
+      <div className="action-row">
+        <Link href="/" className="action-link">
+          {messages.providerToggle.home}
+        </Link>
+        <Link href="/#advanced-controls" className="action-link">
+          {messages.providerToggle.liveEntry}
+        </Link>
+      </div>
       {error ? <p>{error}</p> : null}
     </div>
   );

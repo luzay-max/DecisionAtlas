@@ -50,8 +50,14 @@ describe("ProviderModeToggle", () => {
     await waitFor(() => {
       expect(screen.getByText("Provider mode: Fake provider")).toBeInTheDocument();
     });
+    expect(
+      screen.getByText(
+        "This only affects the next live analysis or future extraction run. It does not rewrite the workspace results already on screen."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
 
-    await user.click(screen.getByRole("button", { name: "Use live" }));
+    await user.click(screen.getByRole("button", { name: "Use live for next run" }));
 
     await waitFor(() => {
       expect(setProviderMode).toHaveBeenCalledWith("live");

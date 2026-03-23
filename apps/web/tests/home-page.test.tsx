@@ -43,8 +43,9 @@ describe("HomePage", () => {
     expect(screen.getByText(/advanced \/ experimental/i)).toBeInTheDocument();
     expect(screen.getByText(/analyze a real public github repository/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /run live analysis/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /use fake/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /use live/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /use fake for next run/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /use live for next run/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /back to home/i })).toHaveAttribute("href", "/");
 
     await waitFor(() => {
       expect(screen.getByText("Provider mode: Fake provider")).toBeInTheDocument();

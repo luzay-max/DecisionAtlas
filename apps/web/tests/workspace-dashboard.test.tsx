@@ -46,6 +46,7 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByText("ready")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("No alerts yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     expect(screen.getAllByRole("link", { name: "Review candidates" })).toHaveLength(2);
     expect(screen.getByRole("link", { name: "Ask why" })).toBeInTheDocument();
   });
@@ -97,6 +98,7 @@ describe("WorkspaceDashboardContent", () => {
     expect(
       screen.getByText(/Imported 2 repository docs from 3 high-signal selections and skipped 13 files outside scope\./i)
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to guided demo" })).toHaveAttribute("href", "/workspaces/demo-workspace");
     expect(screen.getByText(/limited high-signal evidence/i)).toBeInTheDocument();
   });
 
