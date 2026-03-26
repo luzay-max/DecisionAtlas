@@ -5,6 +5,8 @@
   "packageManager": "pnpm@10.6.0",
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:real": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-real-stack.ps1",
+    "dev:real:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\stop-real-stack.ps1",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "turbo run test",
