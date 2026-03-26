@@ -37,5 +37,19 @@
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
       "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
+  },
+  {
+    "id": "n8n",
+    "repo": "n8n-io/n8n",
+    "workspace_slug": "github-n8n-io-n8n",
+    "expectations": {
+      "analysis_scope": "large public repository used as a stress case for screened-in but low-conversion extraction runs",
+      "minimum_candidate_decisions": 0,
+      "minimum_screened_in_artifacts": 10,
+      "expected_outcomes": ["ok", "insufficient_evidence"],
+      "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited", "conversion_limited"],
+      "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
+    }
   }
 ]

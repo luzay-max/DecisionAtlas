@@ -64,6 +64,7 @@ def build_imported_workspace_readiness(
     accepted_count = decision_counts.get("accepted", 0)
     summary = dict(latest_import_summary or {})
     outcome = summary.get("outcome")
+    conversion_limited = _is_conversion_limited(summary, candidate_count=candidate_count, accepted_count=accepted_count)
 
     if latest_import_status == "failed":
         state = "analysis_failed"
@@ -77,6 +78,10 @@ def build_imported_workspace_readiness(
         state = "why_ready"
         next_action = "ask_why"
         why_state = "ready"
+    elif conversion_limited:
+        state = "conversion_limited"
+        next_action = "inspect_import_summary"
+        why_state = "evidence_limited"
     elif outcome == "insufficient_evidence":
         state = "evidence_limited"
         next_action = "inspect_import_summary"
@@ -92,6 +97,18 @@ def build_imported_workspace_readiness(
         "why_state": why_state,
         "drift_state": drift_status["state"],
     }
+
+
+def _is_conversion_limited(summary: dict, *, candidate_count: int, accepted_count: int) -> bool:
+    if candidate_count > 0 or accepted_count > 0:
+        return False
+    extraction_summary = dict(summary.get("extraction_summary") or {})
+    screened_in = int(extraction_summary.get("screened_in_artifacts") or 0)
+    full_requests = int(extraction_summary.get("full_extraction_requests") or 0)
+    created_candidates = int(extraction_summary.get("created_candidates") or 0)
+    conversion_losses = sum(int(count) for count in dict(extraction_summary.get("conversion_loss_reasons") or {}).values())
+    significant_attempts = max(screened_in, full_requests) >= 5
+    return created_candidates == 0 and significant_attempts and conversion_losses >= 3
 
 
 def summarize_imported_evidence(artifacts: list, decisions: list, source_refs_by_decision: dict[int, list]) -> dict:

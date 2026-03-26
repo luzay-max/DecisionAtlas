@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 
 from app.llm.base import (
+    DecisionScreeningRequest,
     ExtractionRequest,
     ProviderRateLimitError,
     ProviderRequestError,
@@ -33,20 +36,56 @@ class OpenAICompatibleProvider:
             timeout=timeout,
         )
 
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        content = self._post_chat_completion(
+            system_prompt=request.prompt,
+            user_content=request.artifact_content,
+            max_tokens=8,
+        )
+        normalized = content.strip().lower()
+        if normalized in {"true", "yes"}:
+            return True
+        if normalized in {"false", "no", "null"}:
+            return False
+        try:
+            payload = json.loads(content)
+        except ValueError:
+            return "true" in normalized and "false" not in normalized
+        if isinstance(payload, bool):
+            return payload
+        if isinstance(payload, dict):
+            value = payload.get("decision_like")
+            if isinstance(value, bool):
+                return value
+        return False
+
     def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        return self._post_chat_completion(
+            system_prompt=request.prompt,
+            user_content=request.artifact_content,
+        )
+
+    def _post_chat_completion(
+        self,
+        *,
+        system_prompt: str,
+        user_content: str,
+        max_tokens: int | None = None,
+    ) -> str:
         try:
             response = self.client.post(
                 "/chat/completions",
                 json={
                     "model": self.model,
                     "messages": [
-                        {"role": "system", "content": request.prompt},
+                        {"role": "system", "content": system_prompt},
                         {
                             "role": "user",
-                            "content": request.artifact_content,
+                            "content": user_content,
                         },
                     ],
                     "temperature": 0,
+                    **({"max_tokens": max_tokens} if max_tokens is not None else {}),
                 },
             )
             response.raise_for_status()

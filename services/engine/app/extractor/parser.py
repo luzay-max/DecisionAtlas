@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -16,29 +18,150 @@ class ParsedDecision:
     source_quote: str
 
 
-def parse_extraction_response(raw_response: str | None) -> ParsedDecision | None:
-    if raw_response is None:
-        return None
+@dataclass(slots=True)
+class ExtractionParseResult:
+    decision: ParsedDecision | None
+    loss_reason: str | None = None
+    salvaged: bool = False
+
+
+FALLBACK_CONFIDENCE = 0.55
+
+
+def parse_extraction_response(
+    raw_response: str | None,
+    *,
+    artifact_title: str | None = None,
+) -> ExtractionParseResult:
+    if raw_response is None or not raw_response.strip():
+        return ExtractionParseResult(decision=None, loss_reason="null_decision")
+
+    payload_text = _extract_json_payload(raw_response)
     try:
-        payload = json.loads(raw_response)
-    except json.JSONDecodeError as exc:
-        raise ValueError("Invalid JSON extraction response") from exc
+        payload = json.loads(payload_text)
+    except json.JSONDecodeError:
+        return ExtractionParseResult(decision=None, loss_reason="invalid_json")
 
     if payload is None:
-        return None
+        return ExtractionParseResult(decision=None, loss_reason="null_decision")
+    if isinstance(payload, dict) and isinstance(payload.get("decision"), dict):
+        payload = payload["decision"]
+    if not isinstance(payload, dict):
+        return ExtractionParseResult(decision=None, loss_reason="invalid_json")
 
-    required = ["title", "problem", "chosen_option", "tradeoffs", "confidence", "source_quote"]
-    missing = [key for key in required if key not in payload or payload[key] in (None, "")]
-    if missing:
-        raise ValueError(f"Missing required extraction fields: {', '.join(missing)}")
+    return _normalize_payload(payload, artifact_title=artifact_title)
 
-    return ParsedDecision(
-        title=str(payload["title"]),
-        problem=str(payload["problem"]),
-        context=None if payload.get("context") is None else str(payload["context"]),
-        constraints=None if payload.get("constraints") is None else str(payload["constraints"]),
-        chosen_option=str(payload["chosen_option"]),
-        tradeoffs=str(payload["tradeoffs"]),
-        confidence=float(payload["confidence"]),
-        source_quote=str(payload["source_quote"]),
+
+def _extract_json_payload(raw_response: str) -> str:
+    cleaned = raw_response.strip()
+    fenced = re.match(r"^```(?:json)?\s*(.*?)\s*```$", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        return fenced.group(1).strip()
+    if cleaned.lower().startswith("json\n"):
+        cleaned = cleaned.split("\n", 1)[1].strip()
+    if cleaned.startswith("{") or cleaned.startswith("[") or cleaned == "null":
+        return cleaned
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return cleaned[start : end + 1]
+    return cleaned
+
+
+def _normalize_payload(payload: dict[str, Any], *, artifact_title: str | None) -> ExtractionParseResult:
+    salvaged = False
+
+    title, title_key = _pick_text(payload, "title", "decision_title", "decisionTitle", "name", "summary_title")
+    if not title and artifact_title:
+        title = artifact_title.strip()
+        salvaged = True
+
+    problem, problem_key = _pick_text(
+        payload,
+        "problem",
+        "problem_statement",
+        "problemStatement",
+        "question",
+        "motivation",
+        "decision_problem",
     )
+    context, context_key = _pick_text(payload, "context", "background", "decision_context", "notes")
+    constraints, constraints_key = _pick_text(payload, "constraints", "constraint", "guardrails")
+    chosen_option, chosen_key = _pick_text(
+        payload,
+        "chosen_option",
+        "chosenOption",
+        "selected_option",
+        "selectedOption",
+        "decision",
+        "resolution",
+        "recommendation",
+    )
+    tradeoffs, tradeoffs_key = _pick_text(
+        payload,
+        "tradeoffs",
+        "trade_offs",
+        "tradeOffs",
+        "downsides",
+        "risks",
+        "cons",
+        "considerations",
+        "rationale",
+        "reasoning",
+    )
+    source_quote, quote_key = _pick_text(
+        payload,
+        "source_quote",
+        "sourceQuote",
+        "quote",
+        "evidence_quote",
+        "evidenceQuote",
+    )
+    confidence, confidence_key = _pick_float(payload, "confidence", "score", "certainty")
+    if confidence is None:
+        confidence = FALLBACK_CONFIDENCE
+        salvaged = True
+
+    for key in (title_key, problem_key, context_key, constraints_key, chosen_key, tradeoffs_key, quote_key, confidence_key):
+        if key is not None and key not in {"title", "problem", "context", "constraints", "chosen_option", "tradeoffs", "source_quote", "confidence"}:
+            salvaged = True
+
+    if not title or not problem or not chosen_option or not tradeoffs or not source_quote:
+        return ExtractionParseResult(decision=None, loss_reason="missing_required_fields", salvaged=salvaged)
+
+    return ExtractionParseResult(
+        decision=ParsedDecision(
+            title=title,
+            problem=problem,
+            context=context,
+            constraints=constraints,
+            chosen_option=chosen_option,
+            tradeoffs=tradeoffs,
+            confidence=confidence,
+            source_quote=source_quote,
+        ),
+        salvaged=salvaged,
+    )
+
+
+def _pick_text(payload: dict[str, Any], *keys: str) -> tuple[str | None, str | None]:
+    for key in keys:
+        value = payload.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            return text, key
+    return None, None
+
+
+def _pick_float(payload: dict[str, Any], *keys: str) -> tuple[float | None, str | None]:
+    for key in keys:
+        value = payload.get(key)
+        if value in (None, ""):
+            continue
+        try:
+            return float(value), key
+        except (TypeError, ValueError):
+            continue
+    return None, None

@@ -120,6 +120,20 @@ describe("WorkspaceDashboardContent", () => {
             summary: {
               outcome: "ok",
               artifact_counts: { issue: 2, pr: 2, commit: 6, doc: 2 },
+              extraction_summary: {
+                shortlisted_artifacts: 6,
+                screened_artifacts: 6,
+                screened_in_artifacts: 3,
+                screened_out_artifacts: 3,
+                full_extraction_requests: 3,
+                completed_full_extractions: 3,
+                total_artifacts: 9,
+                processed_artifacts: 9,
+                created_candidates: 2,
+                skipped_provider_400: 0,
+                skipped_provider_timeout: 0,
+                skipped_invalid_json: 1,
+              },
               evidence_summary: {
                 reviewable_decisions: 2,
                 decision_source_types: { doc: 1, issue: 1 },
@@ -170,6 +184,78 @@ describe("WorkspaceDashboardContent", () => {
       "/review?workspace=imported-workspace"
     );
     expect(screen.getByText(/Contributing signal mix/i)).toBeInTheDocument();
+    expect(screen.getByText(/Extraction funnel shortlisted 6, screened in 3, and created 2 candidate decisions\./i)).toBeInTheDocument();
+  });
+
+  it("renders conversion-limited imported readiness without low-signal wording", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "imported-workspace",
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          repo_url: "https://github.com/org/repo",
+          github_repo: "org/repo",
+          import_status: "succeeded",
+          latest_import: {
+            job_id: "job-conversion-limited",
+            mode: "full",
+            status: "succeeded",
+            imported_count: 12,
+            summary: {
+              outcome: "insufficient_evidence",
+              extraction_summary: {
+                shortlisted_artifacts: 12,
+                screened_artifacts: 12,
+                screened_in_artifacts: 6,
+                screened_out_artifacts: 6,
+                full_extraction_requests: 6,
+                completed_full_extractions: 6,
+                total_artifacts: 18,
+                processed_artifacts: 18,
+                created_candidates: 0,
+                salvaged_candidates: 0,
+                skipped_provider_400: 0,
+                skipped_provider_timeout: 0,
+                skipped_invalid_json: 2,
+                conversion_loss_reasons: {
+                  invalid_json: 2,
+                  missing_required_fields: 3,
+                  ungrounded_quote: 1,
+                },
+              },
+            },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          },
+          artifact_count: 12,
+          decision_counts: {
+            candidate: 0,
+            accepted: 0,
+            rejected: 0,
+            superseded: 0,
+          },
+          workspace_readiness: {
+            state: "conversion_limited",
+            next_action: "inspect_import_summary",
+            why_state: "evidence_limited",
+            drift_state: "evidence_limited",
+          },
+          drift_status: {
+            state: "evidence_limited",
+            can_evaluate: false,
+            next_action: "review_candidates",
+            last_evaluated_at: null,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Imported workspace is conversion-limited")).toBeInTheDocument();
+    expect(screen.getByText(/Conversion losses during full extraction/i)).toBeInTheDocument();
+    expect(screen.queryByText(/limited high-signal evidence/i)).not.toBeInTheDocument();
   });
 
   it("does not show the low-signal hint when accepted decisions already exist", () => {

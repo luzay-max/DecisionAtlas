@@ -40,6 +40,16 @@ It has two purposes:
   - `insufficient_evidence` remains a valid outcome, but the workspace should explain why the run is sparse
   - drift should remain interpretable even when there are no alerts
 
+### `n8n-io/n8n`
+
+- Repo: `n8n-io/n8n`
+- Workspace slug: `github-n8n-io-n8n`
+- Why it matters: large public repository that already exposed a `screened-in -> candidate` conversion bottleneck in live testing
+- Expected signals:
+  - at least `10` screened-in artifacts on a healthy real-analysis run
+  - zero candidates is no longer enough information by itself; the run must explain whether it is evidence-limited or conversion-limited
+  - `conversion_limited` is an acceptable readiness outcome until full extraction quality improves further
+
 ## Current Sparse-Evidence Patterns
 
 These are the patterns we want to improve without pretending every public repo is rich in rationale.
@@ -90,6 +100,16 @@ Observed symptoms:
 
 - provider connectivity failures are visible as operational failures
 - users may not separate provider/runtime problems from repository-signal problems
+
+### 6. Screened-in artifacts can still fail to convert into candidates
+
+Recent `n8n-io/n8n` runs showed that throughput and visibility can improve while candidate yield remains at zero.
+
+Observed symptoms:
+
+- the run can shortlist and screen in many artifacts, complete full extraction attempts, and still create no candidate decisions
+- the product needs to expose that full extraction quality, not only repository evidence coverage, limited the result
+- future validation should compare `screened_in_artifacts` against `created_candidates`, not just import completion and candidate totals
 
 ## Validation Use
 

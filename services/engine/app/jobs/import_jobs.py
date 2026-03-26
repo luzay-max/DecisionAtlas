@@ -108,15 +108,27 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             stage=current_stage,
             summary_json={
                 "extraction_summary": {
+                    "shortlisted_artifacts": 0,
+                    "screened_artifacts": 0,
+                    "screened_in_artifacts": 0,
+                    "screened_out_artifacts": 0,
+                    "full_extraction_requests": 0,
+                    "completed_full_extractions": 0,
                     "total_artifacts": 0,
                     "processed_artifacts": 0,
                     "created_candidates": 0,
+                    "salvaged_candidates": 0,
                     "skipped_provider_400": 0,
                     "skipped_provider_timeout": 0,
                     "skipped_invalid_json": 0,
+                    "selected_extraction_families": {},
+                    "conversion_loss_reasons": {},
                     "elapsed_seconds": 0,
                     "estimated_remaining_seconds": None,
+                    "average_full_extraction_latency_ms": None,
                     "current_artifact_title": None,
+                    "current_phase": "screening",
+                    "current_extraction_family": None,
                 }
             },
         )

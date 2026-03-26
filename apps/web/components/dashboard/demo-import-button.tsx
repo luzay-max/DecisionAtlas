@@ -65,23 +65,54 @@ export function DemoImportButton({
   }
 
   function buildExtractionDetails(summary?: ImportSummary | null) {
-    if (!summary || summary.stage !== "extracting_decisions") {
+    if (!summary) {
       return [];
     }
     const extraction = summary.extraction_summary;
     if (!extraction) {
-      return [messages.importButton.extractionPreparing];
+      return summary.stage === "extracting_decisions" ? [messages.importButton.extractionPreparing] : [];
     }
 
     const details: string[] = [];
+    if (extraction.current_phase) {
+      details.push(
+        messages.importButton.extractionPhase.replace(
+          "{phase}",
+          messages.status[extraction.current_phase as keyof typeof messages.status] ?? extraction.current_phase
+        )
+      );
+    }
+    if (extraction.current_extraction_family) {
+      details.push(
+        messages.importButton.extractionFamily.replace(
+          "{family}",
+          messages.status[extraction.current_extraction_family as keyof typeof messages.status] ??
+            extraction.current_extraction_family
+        )
+      );
+    }
     if (extraction.total_artifacts > 0) {
       details.push(
         messages.importButton.extractionProgress
           .replace("{processed}", String(extraction.processed_artifacts))
           .replace("{total}", String(extraction.total_artifacts))
       );
-    } else {
+    } else if (summary.stage === "extracting_decisions") {
       details.push(messages.importButton.extractionPreparing);
+    }
+    if ((extraction.shortlisted_artifacts ?? 0) > 0) {
+      details.push(
+        messages.importButton.extractionScreeningProgress
+          .replace("{screened}", String(extraction.screened_artifacts ?? 0))
+          .replace("{shortlisted}", String(extraction.shortlisted_artifacts ?? 0))
+      );
+    }
+    if ((extraction.full_extraction_requests ?? 0) > 0) {
+      details.push(
+        messages.importButton.extractionFullProgress
+          .replace("{completed}", String(extraction.completed_full_extractions ?? 0))
+          .replace("{requests}", String(extraction.full_extraction_requests ?? 0))
+      );
     }
 
     const eta = formatEta(extraction.estimated_remaining_seconds);
@@ -90,6 +121,31 @@ export function DemoImportButton({
     }
     if (extraction.current_artifact_title) {
       details.push(messages.importButton.extractionCurrentArtifact.replace("{title}", extraction.current_artifact_title));
+    }
+    if (summary.stage === "completed" || summary.stage === "extracting_decisions") {
+      details.push(
+        messages.importButton.extractionOutcome
+          .replace("{shortlisted}", String(extraction.shortlisted_artifacts ?? 0))
+          .replace("{screenedIn}", String(extraction.screened_in_artifacts ?? 0))
+          .replace("{created}", String(extraction.created_candidates ?? 0))
+      );
+      const skippedCount =
+        (extraction.skipped_provider_timeout ?? 0) +
+        (extraction.skipped_provider_400 ?? 0) +
+        (extraction.skipped_invalid_json ?? 0);
+      if (skippedCount > 0) {
+        details.push(messages.importButton.extractionSkips.replace("{count}", String(skippedCount)));
+      }
+      const lossSummary = Object.entries(extraction.conversion_loss_reasons ?? {})
+        .filter(([, count]) => count > 0)
+        .map(([reason, count]) => {
+          const label = messages.status[reason as keyof typeof messages.status] ?? reason;
+          return `${label}:${count}`;
+        })
+        .join(", ");
+      if (lossSummary) {
+        details.push(messages.importButton.extractionLosses.replace("{summary}", lossSummary));
+      }
     }
     return details;
   }

@@ -45,7 +45,17 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
     summary.decision_counts.candidate === 0 &&
     !hasAcceptedOrSupersededDecisions &&
     summary.latest_import?.status !== "failed" &&
-    latestImportSummary?.outcome === "insufficient_evidence";
+    latestImportSummary?.outcome === "insufficient_evidence" &&
+    summary.workspace_readiness?.state !== "conversion_limited";
+  const conversionLossSummary = latestImportSummary?.extraction_summary?.conversion_loss_reasons
+    ? Object.entries(latestImportSummary.extraction_summary.conversion_loss_reasons)
+        .filter(([, count]) => count > 0)
+        .map(([reason, count]) => {
+          const label = messages.status[reason as keyof typeof messages.status] ?? reason;
+          return `${label}:${count}`;
+        })
+        .join(", ")
+    : "";
   const isImportRunning = summary.import_status === "queued" || summary.import_status === "running";
   const isImportFailed = summary.latest_import?.status === "failed";
   let guidedDemoStep = 1;
@@ -170,6 +180,17 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
                       .join(", ") || messages.common.noData
                   )}
               </p>
+            ) : null}
+            {latestImportSummary?.extraction_summary ? (
+              <p>
+                {messages.dashboard.extractionOutcomeSummary
+                  .replace("{shortlisted}", String(latestImportSummary.extraction_summary.shortlisted_artifacts ?? 0))
+                  .replace("{screenedIn}", String(latestImportSummary.extraction_summary.screened_in_artifacts ?? 0))
+                  .replace("{created}", String(latestImportSummary.extraction_summary.created_candidates ?? 0))}
+              </p>
+            ) : null}
+            {conversionLossSummary ? (
+              <p>{messages.dashboard.conversionLossSummary.replace("{summary}", conversionLossSummary)}</p>
             ) : null}
             {summary.latest_import.error_message ? <p>{summary.latest_import.error_message}</p> : null}
           </div>

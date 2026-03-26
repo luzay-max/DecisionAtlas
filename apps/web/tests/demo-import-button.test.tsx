@@ -164,6 +164,12 @@ describe("DemoImportButton", () => {
             summary: {
               stage: "extracting_decisions",
               extraction_summary: {
+                shortlisted_artifacts: 12,
+                screened_artifacts: 8,
+                screened_in_artifacts: 5,
+                screened_out_artifacts: 3,
+                full_extraction_requests: 5,
+                completed_full_extractions: 1,
                 total_artifacts: 20,
                 processed_artifacts: 5,
                 created_candidates: 1,
@@ -173,6 +179,7 @@ describe("DemoImportButton", () => {
                 elapsed_seconds: 25,
                 estimated_remaining_seconds: 75,
                 current_artifact_title: "Architecture RFC",
+                current_phase: "extracting",
               },
             },
             error_message: null,
@@ -184,6 +191,9 @@ describe("DemoImportButton", () => {
     );
 
     expect(screen.getByText("Processed 5 of 20 extraction items.")).toBeInTheDocument();
+    expect(screen.getByText("Current extraction phase: full extraction.")).toBeInTheDocument();
+    expect(screen.getByText("Screened 8 of 12 shortlisted artifacts.")).toBeInTheDocument();
+    expect(screen.getByText("Completed 1 of 5 full extraction requests.")).toBeInTheDocument();
     expect(screen.getByText("Estimated time remaining: 1m 15s.")).toBeInTheDocument();
     expect(screen.getByText("Current artifact: Architecture RFC")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "81");

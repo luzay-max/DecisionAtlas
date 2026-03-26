@@ -60,15 +60,27 @@ export type ImportSummary = {
     contributing_doc_paths: string[];
   } | null;
   extraction_summary?: {
+    shortlisted_artifacts?: number;
+    screened_artifacts?: number;
+    screened_in_artifacts?: number;
+    screened_out_artifacts?: number;
+    full_extraction_requests?: number;
+    completed_full_extractions?: number;
     total_artifacts: number;
     processed_artifacts: number;
     created_candidates: number;
+    salvaged_candidates?: number;
     skipped_provider_400: number;
     skipped_provider_timeout: number;
     skipped_invalid_json: number;
+    selected_extraction_families?: Record<string, number>;
+    conversion_loss_reasons?: Record<string, number>;
     elapsed_seconds?: number | null;
     estimated_remaining_seconds?: number | null;
+    average_full_extraction_latency_ms?: number | null;
     current_artifact_title?: string | null;
+    current_phase?: string | null;
+    current_extraction_family?: string | null;
   } | null;
 };
 

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Artifact, Workspace
 from app.ingest.github_types import GitHubImportResult
 from app.jobs.import_jobs import queue_github_import, run_github_import
-from app.llm.base import ExtractionRequest, ProviderTimeoutError
+from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderTimeoutError
 
 
 def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Path, monkeypatch) -> None:
@@ -125,6 +125,9 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
             return [[0.1, 0.2, 0.3] for _ in chunks]
 
     class TimeoutProvider:
+        def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+            return True
+
         def extract_candidate(self, request: ExtractionRequest) -> str | None:
             raise ProviderTimeoutError("Timed out while calling extraction provider")
 
@@ -146,6 +149,10 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
     assert result["summary"]["stage"] == "completed"
     assert result["summary"]["outcome"] == "insufficient_evidence"
     assert result["summary"]["extraction_summary"]["created_candidates"] == 0
+    assert result["summary"]["extraction_summary"]["shortlisted_artifacts"] == 1
+    assert result["summary"]["extraction_summary"]["screened_in_artifacts"] == 1
+    assert result["summary"]["extraction_summary"]["full_extraction_requests"] == 1
     assert result["summary"]["extraction_summary"]["skipped_provider_timeout"] == 1
-    assert result["summary"]["extraction_summary"]["total_artifacts"] == 1
-    assert result["summary"]["extraction_summary"]["processed_artifacts"] == 1
+    assert result["summary"]["extraction_summary"]["conversion_loss_reasons"]["provider_timeout"] == 1
+    assert result["summary"]["extraction_summary"]["total_artifacts"] == 2
+    assert result["summary"]["extraction_summary"]["processed_artifacts"] == 2
