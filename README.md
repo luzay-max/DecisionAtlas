@@ -22,10 +22,10 @@ What the product already does:
 - imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
 - supports fake-provider local mode and OpenAI-compatible live provider mode
 - supports one-off live analysis runs for public GitHub repositories through imported workspaces
-- extracts candidate decisions with source references
+- extracts candidate decisions with source references and stage-aware extraction progress
 - lets a reviewer accept, reject, or supersede decisions
 - answers why-questions with citation-first responses
-- flags rule-first and semantic drift alerts
+- flags rule-first and semantic drift alerts after manual evaluation
 
 Architecture snapshot:
 
@@ -68,19 +68,53 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
 
 This script starts an isolated, SQLite-backed demo workspace and does not depend on the Docker PostgreSQL volume state. It is the fastest way to experience the product locally.
 
+For a one-command real stack bring-up:
+
+```powershell
+pnpm run dev:real
+```
+
+or double-click:
+
+```text
+scripts\dev\start-real-stack.bat
+```
+
+This real-stack script:
+
+- starts Docker `postgres` and `redis`
+- runs engine migrations against PostgreSQL
+- seeds `demo-workspace` into PostgreSQL
+- starts `engine`, `api`, and `web`
+- records managed process state under `.tmp/real-stack.json`
+
+To stop the managed real stack:
+
+```powershell
+pnpm run dev:real:stop
+```
+
+or double-click:
+
+```text
+scripts\dev\stop-real-stack.bat
+```
+
 The public `demo-workspace` is intentionally seeded for a stable walkthrough. Imported workspaces use real repository artifacts and may produce different decision, why-answer, and drift coverage depending on the source repo.
 
 For live analysis, the current supported scope is:
 
 - public GitHub repositories only
 - one-off imported workspace analysis, not long-lived GitHub App connections
-- results may end in either useful evidence or explicit `insufficient_evidence` depending on repository signal
+- results may end in useful candidates, explicit `insufficient_evidence`, or `conversion_limited` diagnostics depending on repository signal and extraction quality
+- drift evaluation is available for imported workspaces but is currently triggered manually from the product UI
 
 Current operating model:
 
 - `demo-workspace` is the stable product walkthrough
 - imported workspaces are the real-capability lane
 - fake/live provider switching affects the next real run or extraction path, not the already-rendered demo results on screen
+- imported-workspace dashboards now expose extraction funnel progress and post-run conversion diagnostics
 
 Then open:
 
@@ -125,4 +159,6 @@ Known limitations:
 - the public demo workspace is seeded and should not be confused with a fully imported repository workspace
 - GitHub import still uses token mode, not GitHub App auth
 - live analysis currently supports public repositories only, not private repo auth flows
-- real imported workspaces can still be sparse depending on repository signal quality
+- real imported workspaces can still be sparse or conversion-limited depending on repository signal quality and extraction grounding
+- indexing chunking is still MVP-style and not yet structure-aware
+- why-search can still over-merge adjacent accepted decisions into one answer when multiple nearby hits score well
