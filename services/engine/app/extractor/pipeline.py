@@ -119,6 +119,7 @@ class ExtractionRunStats:
     processed_artifacts: int = 0
     created_candidates: int = 0
     salvaged_candidates: int = 0
+    thin_source_ref_decisions: int = 0
     skipped_provider_400: int = 0
     skipped_provider_timeout: int = 0
     skipped_invalid_json: int = 0
@@ -185,6 +186,75 @@ def _find_span(content: str, quote: str) -> tuple[int | None, int | None]:
     if start == -1:
         return None, None
     return start, start + len(quote)
+
+
+def _tokenize_signal_terms(*parts: str | None) -> list[str]:
+    tokens: list[str] = []
+    for part in parts:
+        if not part:
+            continue
+        for token in re.findall(r"[a-z0-9_]{4,}", part.lower()):
+            if token not in tokens:
+                tokens.append(token)
+    return tokens
+
+
+def _candidate_support_quotes(content: str, parsed_decision) -> list[str]:
+    candidates = list(parsed_decision.source_quotes)
+    if len(candidates) >= 2:
+        return candidates
+
+    signal_terms = _tokenize_signal_terms(
+        parsed_decision.problem,
+        parsed_decision.chosen_option,
+        parsed_decision.tradeoffs,
+        parsed_decision.context,
+        parsed_decision.constraints,
+    )
+    if not signal_terms:
+        return candidates
+
+    blocks = [block.strip() for block in re.split(r"\n\s*\n", content) if block.strip()]
+    snippets: list[tuple[int, str]] = []
+    existing = {quote.casefold() for quote in candidates}
+    for block in blocks:
+        fragments = [fragment.strip() for fragment in re.split(r"(?<=[.!?])\s+", block) if fragment.strip()]
+        for fragment in fragments or [block]:
+            lowered = fragment.lower()
+            if len(fragment) < 30 or len(fragment) > 280:
+                continue
+            if lowered.casefold() in existing:
+                continue
+            overlap = sum(1 for token in signal_terms if token in lowered)
+            if overlap < 2:
+                continue
+            snippets.append((overlap, fragment))
+
+    for _, snippet in sorted(snippets, key=lambda item: (-item[0], len(item[1])))[:3]:
+        key = snippet.casefold()
+        if key in existing:
+            continue
+        existing.add(key)
+        candidates.append(snippet)
+        if len(candidates) >= 3:
+            break
+
+    return candidates
+
+
+def _ground_quotes(content: str, quotes: list[str]) -> list[tuple[int, int, str]]:
+    grounded: list[tuple[int, int, str]] = []
+    seen_spans: set[tuple[int, int]] = set()
+    for quote in quotes:
+        span_start, span_end = _find_span(content, quote)
+        if span_start is None or span_end is None:
+            continue
+        span = (span_start, span_end)
+        if span in seen_spans:
+            continue
+        seen_spans.add(span)
+        grounded.append((span_start, span_end, quote))
+    return grounded
 
 
 def _prepare_screening_content(artifact) -> str:
@@ -419,8 +489,11 @@ class CandidateExtractionPipeline:
                             stats.skipped_invalid_json += 1
                         _record_conversion_loss(stats, parsed.loss_reason or "null_decision")
                     else:
-                        span_start, span_end = _find_span(completed.artifact.content, parsed.decision.source_quote)
-                        if span_start is None or span_end is None:
+                        grounded_quotes = _ground_quotes(
+                            completed.artifact.content,
+                            _candidate_support_quotes(completed.artifact.content, parsed.decision),
+                        )
+                        if not grounded_quotes:
                             _record_conversion_loss(stats, "ungrounded_quote")
                         else:
                             decision = self.decisions.create_candidate(
@@ -433,18 +506,22 @@ class CandidateExtractionPipeline:
                                 tradeoffs=parsed.decision.tradeoffs,
                                 confidence=parsed.decision.confidence,
                             )
-                            self.source_refs.create(
-                                decision_id=decision.id,
-                                artifact_id=completed.artifact.id,
-                                span_start=span_start,
-                                span_end=span_end,
-                                quote=parsed.decision.source_quote,
-                                url=completed.artifact.url,
-                                relevance_score=parsed.decision.confidence,
-                            )
+                            for span_start, span_end, quote in grounded_quotes:
+                                self.source_refs.create(
+                                    decision_id=decision.id,
+                                    artifact_id=completed.artifact.id,
+                                    span_start=span_start,
+                                    span_end=span_end,
+                                    quote=quote,
+                                    url=completed.artifact.url,
+                                    relevance_score=parsed.decision.confidence,
+                                )
                             stats.created_candidates += 1
                             if parsed.salvaged:
                                 stats.salvaged_candidates += 1
+                            if len(grounded_quotes) == 1:
+                                stats.thin_source_ref_decisions += 1
+                                _record_conversion_loss(stats, "thin_source_ref_coverage")
                 _refresh_work_totals(stats)
                 _update_progress(stats, started_at)
                 if progress_callback is not None:

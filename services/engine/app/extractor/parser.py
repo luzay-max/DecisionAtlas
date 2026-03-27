@@ -16,6 +16,7 @@ class ParsedDecision:
     tradeoffs: str
     confidence: float
     source_quote: str
+    source_quotes: list[str]
 
 
 @dataclass(slots=True)
@@ -117,6 +118,15 @@ def _normalize_payload(payload: dict[str, Any], *, artifact_title: str | None) -
         "evidence_quote",
         "evidenceQuote",
     )
+    source_quotes = _pick_text_list(
+        payload,
+        "source_quotes",
+        "sourceQuotes",
+        "supporting_quotes",
+        "supportingQuotes",
+        "evidence_quotes",
+        "evidenceQuotes",
+    )
     confidence, confidence_key = _pick_float(payload, "confidence", "score", "certainty")
     if confidence is None:
         confidence = FALLBACK_CONFIDENCE
@@ -125,6 +135,8 @@ def _normalize_payload(payload: dict[str, Any], *, artifact_title: str | None) -
     for key in (title_key, problem_key, context_key, constraints_key, chosen_key, tradeoffs_key, quote_key, confidence_key):
         if key is not None and key not in {"title", "problem", "context", "constraints", "chosen_option", "tradeoffs", "source_quote", "confidence"}:
             salvaged = True
+
+    normalized_quotes = _normalize_quotes(source_quote=source_quote, additional_quotes=source_quotes)
 
     if not title or not problem or not chosen_option or not tradeoffs or not source_quote:
         return ExtractionParseResult(decision=None, loss_reason="missing_required_fields", salvaged=salvaged)
@@ -139,6 +151,7 @@ def _normalize_payload(payload: dict[str, Any], *, artifact_title: str | None) -
             tradeoffs=tradeoffs,
             confidence=confidence,
             source_quote=source_quote,
+            source_quotes=normalized_quotes,
         ),
         salvaged=salvaged,
     )
@@ -165,3 +178,32 @@ def _pick_float(payload: dict[str, Any], *keys: str) -> tuple[float | None, str 
         except (TypeError, ValueError):
             continue
     return None, None
+
+
+def _pick_text_list(payload: dict[str, Any], *keys: str) -> list[str]:
+    values: list[str] = []
+    for key in keys:
+        raw_value = payload.get(key)
+        if raw_value is None:
+            continue
+        candidates = raw_value if isinstance(raw_value, list) else [raw_value]
+        for candidate in candidates:
+            text = str(candidate).strip()
+            if text:
+                values.append(text)
+    return values
+
+
+def _normalize_quotes(*, source_quote: str | None, additional_quotes: list[str]) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for candidate in [source_quote, *additional_quotes]:
+        if not candidate:
+            continue
+        quote = candidate.strip()
+        key = quote.casefold()
+        if not quote or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(quote)
+    return normalized

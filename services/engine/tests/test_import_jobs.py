@@ -156,3 +156,87 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
     assert result["summary"]["extraction_summary"]["conversion_loss_reasons"]["provider_timeout"] == 1
     assert result["summary"]["extraction_summary"]["total_artifacts"] == 2
     assert result["summary"]["extraction_summary"]["processed_artifacts"] == 2
+
+
+def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "import-job-thin-coverage.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(Workspace(slug="github-org-repo", name="org/repo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    class SingleArtifactImporter:
+        def __init__(self, session, client) -> None:
+            self.session = session
+
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+            workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
+            assert workspace is not None
+            self.session.add(
+                Artifact(
+                    workspace_id=workspace.id,
+                    type="pr",
+                    source_id="release-1",
+                    repo=repo,
+                    title="GitHub App token for release candidates",
+                    content="Use a GitHub App identity when ensuring release candidate branches.",
+                    author="alice",
+                    url="https://github.com/org/repo/pull/10",
+                    timestamp=None,
+                    metadata_json=None,
+                )
+            )
+            self.session.commit()
+            return GitHubImportResult(
+                imported_count=1,
+                artifact_counts={"issue": 0, "pr": 1, "commit": 0, "doc": 0},
+                selected_document_count=0,
+                imported_document_count=0,
+                skipped_document_counts={},
+                selected_document_categories={},
+            )
+
+    class FakeEmbedder:
+        def embed(self, chunks):
+            return [[0.1, 0.2, 0.3] for _ in chunks]
+
+    class ThinCoverageProvider:
+        def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+            return True
+
+        def extract_candidate(self, request: ExtractionRequest) -> str | None:
+            return """
+            {
+              "title": "Use GitHub App token for release candidate branch operations",
+              "problem": "Release candidate branch operations fail with the default token",
+              "chosen_option": "Use a GitHub App token for release candidate branch operations",
+              "tradeoffs": "Requires separate app identity",
+              "confidence": 0.9,
+              "source_quote": "Use a GitHub App identity when ensuring release candidate branches."
+            }
+            """
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", SingleArtifactImporter)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(embedder=FakeEmbedder(), extraction_provider=ThinCoverageProvider()),
+    )
+    monkeypatch.setattr("app.jobs.import_jobs._build_extraction_progress_reporter", lambda **kwargs: (lambda stats: None))
+
+    queued_job = queue_github_import(workspace_slug="github-org-repo", repo="org/repo", mode="full")
+    result = run_github_import(
+        job_id=str(queued_job["job_id"]),
+        workspace_slug="github-org-repo",
+        repo="org/repo",
+        mode="full",
+    )
+
+    assert result["status"] == "succeeded"
+    assert result["summary"]["extraction_summary"]["thin_source_ref_decisions"] == 1
+    assert result["summary"]["extraction_summary"]["conversion_loss_reasons"]["thin_source_ref_coverage"] == 1

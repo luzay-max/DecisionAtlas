@@ -11,7 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Decision, SourceRef, Workspace
 from app.extractor.pipeline import CandidateExtractionPipeline
+from app.indexing.embedder import FakeEmbedder
 from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderRequestError, ProviderTimeoutError
+from app.retrieval.answering import answer_why_question
 
 
 class StubProvider:
@@ -188,6 +190,28 @@ class ConversionLossProvider:
           "tradeoffs": "More operational overhead",
           "confidence": 0.7,
           "source_quote": "This quote does not exist in the artifact."
+        }
+        """
+
+
+class MultiQuoteProvider:
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return True
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        return """
+        {
+          "title": "Use GitHub App token for release candidate branch operations",
+          "problem": "Release candidate branch operations fail with the default token",
+          "chosen_option": "Use a GitHub App token for release candidate branch operations",
+          "tradeoffs": "Requires separate app identity",
+          "confidence": 0.9,
+          "source_quote": "Use a GitHub App identity when ensuring release candidate branches.",
+          "source_quotes": [
+            "Use a GitHub App identity when ensuring release candidate branches.",
+            "This will allow creation and deletion of these branches in CI.",
+            "Currently the workflow will fail due to branch protection."
+          ]
         }
         """
 
@@ -799,7 +823,7 @@ def test_pipeline_records_conversion_loss_reasons(tmp_path: Path, monkeypatch) -
                     source_id="docs/ungrounded.md",
                     repo="org/repo",
                     title="Ungrounded quote",
-                    content="We decided to move long-running work to a queue because latency mattered.",
+                    content="We decided to use a different release workflow because compliance mattered.",
                     author=None,
                     url="https://github.com/org/repo/blob/main/docs/ungrounded.md",
                     timestamp=None,
@@ -820,3 +844,98 @@ def test_pipeline_records_conversion_loss_reasons(tmp_path: Path, monkeypatch) -
         "missing_required_fields": 1,
         "ungrounded_quote": 1,
     }
+
+
+def test_pipeline_persists_multiple_grounded_source_refs_when_available(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "extractor-multi-quote.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pr",
+                source_id="release-1",
+                repo="org/repo",
+                title="GitHub App token for release candidates",
+                content=(
+                    "Use a GitHub App identity when ensuring release candidate branches. "
+                    "This will allow creation and deletion of these branches in CI. "
+                    "Currently the workflow will fail due to branch protection."
+                ),
+                author="alice",
+                url="https://github.com/org/repo/pull/10",
+                timestamp=None,
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, MultiQuoteProvider())
+        created = pipeline.run(workspace_slug="imported-workspace")
+        decisions = session.scalars(select(Decision)).all()
+        source_refs = session.scalars(select(SourceRef)).all()
+
+    assert created == 1
+    assert len(decisions) == 1
+    assert len(source_refs) >= 2
+    assert pipeline.last_run_stats.thin_source_ref_decisions == 0
+
+
+def test_improved_source_ref_coverage_can_upgrade_imported_why_answer_to_ok(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "extractor-why-upgrade.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pr",
+                source_id="release-1",
+                repo="org/repo",
+                title="GitHub App token for release candidates",
+                content=(
+                    "Use a GitHub App identity when ensuring release candidate branches. "
+                    "This will allow creation and deletion of these branches in CI. "
+                    "Currently the workflow will fail due to branch protection."
+                ),
+                author="alice",
+                url="https://github.com/org/repo/pull/10",
+                timestamp=None,
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, MultiQuoteProvider())
+        pipeline.run(workspace_slug="imported-workspace")
+        decision = session.scalars(select(Decision)).one()
+        decision.review_state = "accepted"
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use github app token for release candidate branch operations",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert len(response["citations"]) >= 2
