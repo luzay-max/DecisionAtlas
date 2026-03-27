@@ -204,6 +204,42 @@ def get_import_job_status(job_id: str) -> dict[str, int | str | None]:
         session.close()
 
 
+def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
+    session = get_db_session()
+    try:
+        repo_ref, repo_url = _normalize_repo(repo)
+        workspace = WorkspaceRepository(session).get_by_repo_url(repo_url)
+        if workspace is None:
+            return {
+                "repo": repo_ref,
+                "repo_url": repo_url,
+                "workspace_exists": False,
+                "workspace_slug": None,
+                "has_successful_import": False,
+                "can_incremental_sync": False,
+                "has_running_import": False,
+                "latest_import": None,
+            }
+
+        jobs = ImportJobRepository(session)
+        latest_job = jobs.latest_for_workspace(workspace.id)
+        latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
+        latest_import = serialize_import_job(session=session, job=latest_job) if latest_job is not None else None
+        has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        return {
+            "repo": repo_ref,
+            "repo_url": repo_url,
+            "workspace_exists": True,
+            "workspace_slug": workspace.slug,
+            "has_successful_import": latest_success is not None,
+            "can_incremental_sync": latest_success is not None and not has_running_import,
+            "has_running_import": has_running_import,
+            "latest_import": latest_import,
+        }
+    finally:
+        session.close()
+
+
 def serialize_import_job(*, session, job) -> dict[str, int | str | None]:
     workspace = WorkspaceRepository(session).get_by_id(job.workspace_id)
     return {

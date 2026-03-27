@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Query
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.jobs.import_jobs import get_import_job_status, queue_github_import, run_github_import
+from app.jobs.import_jobs import get_import_job_status, lookup_github_workspace, queue_github_import, run_github_import
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -35,6 +35,16 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
             or "Repository URL" in str(exc)
             or "cannot import" in str(exc)
         ):
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/lookup")
+def lookup_import_target(repo: str = Query(..., min_length=3)) -> dict:
+    try:
+        return lookup_github_workspace(repo=repo)
+    except ValueError as exc:
+        if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

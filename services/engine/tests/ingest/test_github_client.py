@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import httpx
 
 from app.ingest.github_client import GitHubClient
@@ -232,3 +233,43 @@ def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_conte
     content = client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main")
 
     assert content == "# Changelog\n\nLarge markdown body"
+
+
+def test_fetch_pull_requests_accepts_naive_since_datetime() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/pulls"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": 1,
+                        "number": 10,
+                        "title": "Old change",
+                        "body": "already synced",
+                        "user": {"login": "alice"},
+                        "html_url": "https://github.com/org/repo/pull/10",
+                        "state": "closed",
+                        "created_at": "2026-03-18T00:00:00Z",
+                        "updated_at": "2026-03-18T00:00:00Z",
+                    },
+                    {
+                        "id": 2,
+                        "number": 11,
+                        "title": "New change",
+                        "body": "needs sync",
+                        "user": {"login": "bob"},
+                        "html_url": "https://github.com/org/repo/pull/11",
+                        "state": "open",
+                        "created_at": "2026-03-19T00:00:00Z",
+                        "updated_at": "2026-03-19T00:00:00Z",
+                    },
+                ],
+            )
+        return httpx.Response(200, json=[])
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    pulls = client.fetch_pull_requests("org/repo", since=datetime(2026, 3, 18, 12, 0, 0))
+
+    assert len(pulls) == 1
+    assert pulls[0].title == "New change"

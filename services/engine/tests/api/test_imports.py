@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Workspace
+from app.db.models import ImportJob, Workspace
 from app.main import create_app
 
 
@@ -192,3 +192,41 @@ def test_post_imports_github_rejects_repo_workspace_mismatch(tmp_path: Path, mon
 
     assert response.status_code == 400
     assert "cannot import other/repo" in response.json()["detail"]
+
+
+def test_get_imports_lookup_reports_existing_workspace_and_latest_job(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lookup-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(slug="github-org-repo", name="org/repo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-old",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=8,
+                summary_json={"stage": "completed", "outcome": "ok"},
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/imports/lookup", params={"repo": "org/repo"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["workspace_exists"] is True
+    assert payload["workspace_slug"] == "github-org-repo"
+    assert payload["has_successful_import"] is True
+    assert payload["can_incremental_sync"] is True
+    assert payload["latest_import"]["job_id"] == "job-old"

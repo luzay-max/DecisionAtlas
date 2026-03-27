@@ -11,6 +11,24 @@ const githubImportSchema = z.object({
 });
 
 export async function importsRoute(app: FastifyInstance) {
+  app.get("/imports/lookup", async (request, reply) => {
+    const query = z.object({ repo: z.string().min(3) }).safeParse(request.query);
+    if (!query.success) {
+      return reply.status(400).send({
+        error: "Invalid lookup query",
+        issues: query.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/lookup?repo=${encodeURIComponent(query.data.repo)}`),
+      app.log,
+      "GET /imports/lookup"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
   app.post("/imports/github", async (request, reply) => {
     const parsed = githubImportSchema.safeParse(request.body);
     if (!parsed.success) {

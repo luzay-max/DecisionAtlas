@@ -219,6 +219,17 @@ export type ImportResult = {
   finished_at?: string | null;
 };
 
+export type ImportLookup = {
+  repo: string;
+  repo_url: string;
+  workspace_exists: boolean;
+  workspace_slug: string | null;
+  has_successful_import: boolean;
+  can_incremental_sync: boolean;
+  has_running_import: boolean;
+  latest_import: ImportResult | null;
+};
+
 export type DriftEvaluationResult = {
   status: string;
   workspace_slug: string;
@@ -334,7 +345,21 @@ export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluat
   return response.json();
 }
 
-export async function startGithubImport(workspaceSlug: string | null, repo: string): Promise<ImportResult> {
+export async function lookupGithubImport(repo: string): Promise<ImportLookup> {
+  const response = await fetch(`${apiBaseUrl}/imports/lookup?repo=${encodeURIComponent(repo)}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to look up GitHub workspace");
+  }
+  return response.json();
+}
+
+export async function startGithubImport(
+  workspaceSlug: string | null,
+  repo: string,
+  mode: "full" | "since_last_sync" = "full"
+): Promise<ImportResult> {
   const response = await fetch(`${apiBaseUrl}/imports/github`, {
     method: "POST",
     headers: {
@@ -345,11 +370,11 @@ export async function startGithubImport(workspaceSlug: string | null, repo: stri
         ? {
             workspace_slug: workspaceSlug,
             repo,
-            mode: "full"
+            mode
           }
         : {
             repo,
-            mode: "full"
+            mode
           }
     )
   });

@@ -1,6 +1,76 @@
 import { buildServer } from "../src/server";
 
 describe("POST /imports/github", () => {
+  it("proxies GET /imports/lookup", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          repo: "org/repo",
+          repo_url: "https://github.com/org/repo",
+          workspace_exists: true,
+          workspace_slug: "github-org-repo",
+          has_successful_import: true,
+          can_incremental_sync: true,
+          has_running_import: false,
+          latest_import: {
+            job_id: "job-old",
+            workspace_slug: "github-org-repo",
+            repo: "org/repo",
+            mode: "full",
+            status: "succeeded",
+            imported_count: 5
+          }
+        }),
+      json: async () => ({
+        repo: "org/repo",
+        repo_url: "https://github.com/org/repo",
+        workspace_exists: true,
+        workspace_slug: "github-org-repo",
+        has_successful_import: true,
+        can_incremental_sync: true,
+        has_running_import: false,
+        latest_import: {
+          job_id: "job-old",
+          workspace_slug: "github-org-repo",
+          repo: "org/repo",
+          mode: "full",
+          status: "succeeded",
+          imported_count: 5
+        }
+      })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "GET",
+      url: "/imports/lookup?repo=org%2Frepo"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      repo: "org/repo",
+      repo_url: "https://github.com/org/repo",
+      workspace_exists: true,
+      workspace_slug: "github-org-repo",
+      has_successful_import: true,
+      can_incremental_sync: true,
+      has_running_import: false,
+      latest_import: {
+        job_id: "job-old",
+        workspace_slug: "github-org-repo",
+        repo: "org/repo",
+        mode: "full",
+        status: "succeeded",
+        imported_count: 5
+      }
+    });
+
+    global.fetch = originalFetch;
+  });
+
   it("returns a job id from the engine", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({

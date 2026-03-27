@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -31,9 +31,10 @@ class GitHubClient:
         self.client = client or httpx.Client(base_url=self.base_url, headers=headers, timeout=30.0)
 
     def fetch_issues(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        normalized_since = self._normalize_since(since)
         params: dict[str, Any] = {"state": "all"}
-        if since is not None:
-            params["since"] = since.isoformat()
+        if normalized_since is not None:
+            params["since"] = normalized_since.isoformat()
         items = self._paginate(f"/repos/{repo}/issues", params=params)
         issues: list[GitHubArtifactPayload] = []
         for item in items:
@@ -55,6 +56,7 @@ class GitHubClient:
         return issues
 
     def fetch_pull_requests(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        normalized_since = self._normalize_since(since)
         items = self._paginate(
             f"/repos/{repo}/pulls",
             params={"state": "all", "sort": "updated", "direction": "desc"},
@@ -62,7 +64,7 @@ class GitHubClient:
         pulls: list[GitHubArtifactPayload] = []
         for item in items:
             updated_at = self._parse_datetime(item.get("updated_at") or item.get("created_at"))
-            if since is not None and updated_at is not None and updated_at <= since:
+            if normalized_since is not None and updated_at is not None and updated_at <= normalized_since:
                 continue
             content = "\n\n".join(part for part in [item.get("title"), item.get("body") or ""] if part)
             pulls.append(
@@ -81,9 +83,10 @@ class GitHubClient:
         return pulls
 
     def fetch_commits(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
+        normalized_since = self._normalize_since(since)
         params: dict[str, Any] = {}
-        if since is not None:
-            params["since"] = since.isoformat()
+        if normalized_since is not None:
+            params["since"] = normalized_since.isoformat()
         items = self._paginate(f"/repos/{repo}/commits", params=params or None)
         commits: list[GitHubArtifactPayload] = []
         for item in items:
@@ -170,3 +173,11 @@ class GitHubClient:
         if not value:
             return None
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    @staticmethod
+    def _normalize_since(value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)

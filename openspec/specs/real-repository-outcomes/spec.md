@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Imported workspaces expose real-analysis readiness
-The system SHALL summarize imported-workspace readiness so users can tell whether a real repository run is ready for review, still evidence-limited, or blocked by low-yield extraction conversion rather than true lack of repository signal.
+The system SHALL summarize imported-workspace readiness so users can tell whether a real repository run is ready for review, still evidence-limited, blocked by low-yield extraction conversion, or better handled by reusing existing workspace state instead of blindly rerunning analysis.
 
 #### Scenario: Imported workspace is ready for review
 - **WHEN** a live analysis run completes and the imported workspace contains reviewable candidate decisions
@@ -14,6 +14,10 @@ The system SHALL summarize imported-workspace readiness so users can tell whethe
 #### Scenario: Imported workspace is conversion-limited
 - **WHEN** a live analysis run completes after many screened-in or full extraction attempts but still yields no reviewable candidate decisions
 - **THEN** the workspace read model SHALL expose that the workspace is conversion-limited and SHALL explain that extraction quality, not only repository evidence coverage, limited the result
+
+#### Scenario: Existing imported workspace offers reuse actions
+- **WHEN** a repository already has an imported workspace with prior import history
+- **THEN** the product SHALL be able to present open-existing, incremental-sync, and full-rerun choices rather than forcing another blind full analysis
 
 ### Requirement: Imported why-search preserves decision-grounded trust
 The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, and SHALL otherwise fail with an actionable explanation.
