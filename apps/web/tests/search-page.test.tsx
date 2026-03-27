@@ -16,6 +16,11 @@ describe("QueryForm", () => {
           workspace_mode: "demo",
           source_summary: "This workspace is using seeded demo data for a guided product walkthrough."
         },
+        primary_decision: {
+          decision_id: 1,
+          title: "Use Redis Cache"
+        },
+        supporting_context: [],
         citations: [
           {
             quote: "We decided to use Redis as cache",
@@ -78,6 +83,7 @@ describe("QueryForm", () => {
             drift_state: "review_required"
           }
         },
+        supporting_context: [],
         citations: []
       })
     } as Response);
@@ -105,6 +111,7 @@ describe("QueryForm", () => {
         status: "ok",
         question: "why use redis cache",
         answer: "Use Redis Cache: Use Redis as cache only.",
+        supporting_context: [],
         citations: [
           {
             quote: "We decided to use Redis as cache",
@@ -121,6 +128,62 @@ describe("QueryForm", () => {
       expect(screen.getByText("Use Redis Cache: Use Redis as cache only.")).toBeInTheDocument();
     });
     expect(screen.queryByText(/Workspace Type/i)).not.toBeInTheDocument();
+
+    global.fetch = originalFetch;
+  });
+
+  it("renders supporting context separately from the primary answer", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "ok",
+        question: "why did we change the release process",
+        answer: "Use GitHub App token for release candidate branch operations: Use a GitHub App token for release candidate branch operations. Tradeoffs: Requires separate app identity.",
+        answer_context: {
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          workspace_readiness: {
+            state: "why_ready",
+            next_action: "ask_why",
+            why_state: "why_ready",
+            drift_state: "clean"
+          }
+        },
+        primary_decision: {
+          decision_id: 10,
+          title: "Use GitHub App token for release candidate branch operations"
+        },
+        supporting_context: [
+          {
+            decision_id: 11,
+            title: "Remove prerelease tag manually when promoting GitHub releases to latest",
+            answer: "Remove the prerelease tag during release promotion. Tradeoffs: Adds a manual or automated release step."
+          }
+        ],
+        citations: [
+          {
+            quote: "Use a GitHub App identity when ensuring release candidate branches.",
+            url: "https://github.com/org/repo/pull/10"
+          },
+          {
+            quote: "Prerelease tags are not removed automatically when promoting releases to latest.",
+            url: "https://github.com/org/repo/pull/11"
+          }
+        ]
+      })
+    } as Response);
+
+    render(<QueryForm workspaceSlug="imported-workspace" initialQuestion="why did we change the release process" />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Use GitHub App token for release candidate branch operations:/)).toBeInTheDocument();
+    });
+    expect(screen.getByText("Supporting context:")).toBeInTheDocument();
+    expect(
+      screen.getByText("Remove prerelease tag manually when promoting GitHub releases to latest")
+    ).toBeInTheDocument();
 
     global.fetch = originalFetch;
   });

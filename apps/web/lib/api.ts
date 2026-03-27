@@ -103,6 +103,15 @@ export type WhyAnswerResponse = {
   status: string;
   question: string;
   answer: string;
+  primary_decision?: {
+    decision_id: number;
+    title: string;
+  };
+  supporting_context?: Array<{
+    decision_id: number;
+    title: string;
+    answer: string;
+  }>;
   answer_context: WorkspaceProvenance & {
     workspace_readiness?: WorkspaceReadiness | null;
   };

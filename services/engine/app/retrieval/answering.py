@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.db.models import Decision
 from app.indexing.embedder import Embedder
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
@@ -9,8 +10,82 @@ from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
 from app.retrieval.hybrid import hybrid_search
-from app.retrieval.query_rewrite import rewrite_query
+from app.retrieval.query_rewrite import is_broad_why_query, rewrite_query, significant_query_terms
 from sqlalchemy.orm import Session
+
+
+def _decision_text(decision: Decision) -> str:
+    return " ".join(
+        part
+        for part in [
+            decision.title,
+            decision.problem,
+            decision.chosen_option,
+            decision.tradeoffs,
+            decision.context or "",
+            decision.constraints or "",
+        ]
+        if part
+    ).lower()
+
+
+def _decision_query_overlap(decision: Decision, query_terms: list[str]) -> int:
+    haystack = _decision_text(decision)
+    return sum(1 for term in query_terms if term in haystack)
+
+
+def _decision_topic_overlap(primary: Decision, secondary: Decision) -> int:
+    primary_terms = set(significant_query_terms(_decision_text(primary)))
+    secondary_terms = set(significant_query_terms(_decision_text(secondary)))
+    return len(primary_terms.intersection(secondary_terms))
+
+
+def _format_main_answer(decision: Decision) -> str:
+    return f"{decision.title}: {decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
+
+
+def _format_supporting_answer(decision: Decision) -> str:
+    return f"{decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
+
+
+def _pick_primary_and_supporting_decisions(
+    *,
+    decisions: DecisionRepository,
+    hits: list,
+    query: str,
+) -> tuple[Decision | None, list[Decision]]:
+    if not hits:
+        return None, []
+
+    query_terms = significant_query_terms(query)
+    is_broad_query = is_broad_why_query(query)
+    primary = decisions.get_by_id(hits[0].decision_id)
+    if primary is None:
+        return None, []
+
+    primary_score = hits[0].score
+    primary_overlap = max(_decision_query_overlap(primary, query_terms), 1)
+    supporting: list[Decision] = []
+
+    if not is_broad_query:
+        return primary, supporting
+
+    for hit in hits[1:3]:
+        if hit.score < (primary_score * 0.75):
+            continue
+        candidate = decisions.get_by_id(hit.decision_id)
+        if candidate is None:
+            continue
+        candidate_overlap = _decision_query_overlap(candidate, query_terms)
+        topic_overlap = _decision_topic_overlap(primary, candidate)
+        if candidate_overlap < 1:
+            continue
+        if topic_overlap < 1:
+            continue
+        supporting.append(candidate)
+        break
+
+    return primary, supporting
 
 
 def answer_why_question(
@@ -83,17 +158,42 @@ def answer_why_question(
         }
 
     source_refs = SourceRefRepository(session)
-    top_score = hits[0].score
-    top_hits = [hit for hit in hits if hit.score >= (top_score * 0.5)][:2]
+    primary_decision, supporting_decisions = _pick_primary_and_supporting_decisions(
+        decisions=decisions,
+        hits=hits,
+        query=rewritten,
+    )
+    if primary_decision is None:
+        return {
+            "status": "insufficient_evidence",
+            "question": question,
+            "answer": "Insufficient evidence. Review more artifacts or accept more decisions first.",
+            "citations": [],
+            "answer_context": context,
+        }
+
     citations = []
-    answer_parts = []
-    for hit in top_hits:
-        decision = decisions.get_by_id(hit.decision_id)
-        if decision is None:
-            continue
-        answer_parts.append(
-            f"{decision.title}: {decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
+    for source_ref in source_refs.list_by_decision(primary_decision.id)[:2]:
+        citations.append(
+            {
+                "decision_id": primary_decision.id,
+                "source_ref_id": source_ref.id,
+                "quote": source_ref.quote,
+                "url": source_ref.url,
+            }
         )
+
+    supporting_context = []
+    for decision in supporting_decisions:
+        supporting_context.append(
+            {
+                "decision_id": decision.id,
+                "title": decision.title,
+                "answer": _format_supporting_answer(decision),
+            }
+        )
+        if len(citations) >= 2:
+            continue
         for source_ref in source_refs.list_by_decision(decision.id)[:2]:
             citations.append(
                 {
@@ -116,7 +216,12 @@ def answer_why_question(
     return {
         "status": "ok",
         "question": question,
-        "answer": " ".join(answer_parts),
+        "answer": _format_main_answer(primary_decision),
+        "primary_decision": {
+            "decision_id": primary_decision.id,
+            "title": primary_decision.title,
+        },
+        "supporting_context": supporting_context,
         "citations": citations[:4],
         "answer_context": context,
     }

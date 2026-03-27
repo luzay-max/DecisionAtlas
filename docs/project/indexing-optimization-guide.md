@@ -378,6 +378,156 @@ For each imported workspace run, track:
 
 These metrics will make future extraction optimization decisions much easier.
 
+## Workspace Reuse and Repeat-Run Cost
+
+Another optimization issue is not inside chunking or answer quality directly, but in how repeated imports behave for the same repository workspace.
+
+Relevant files:
+
+- [imports.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/api/imports.py)
+- [import_jobs.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/jobs/import_jobs.py)
+- [artifacts.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/repositories/artifacts.py)
+- [pipeline.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/extractor/pipeline.py)
+- [source_refs.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/repositories/source_refs.py)
+- [index_artifact.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/indexing/index_artifact.py)
+- [artifact_chunks.py](C:/Users/Max/Desktop/DecisionAtlas/services/engine/app/repositories/artifact_chunks.py)
+
+### Current Behavior
+
+When the same GitHub repository is analyzed again:
+
+- the system reuses the existing workspace for the same `repo_url`
+- a new import job is still created
+- artifacts are upserted rather than blindly duplicated
+- artifact indexing is re-run for every artifact in the workspace
+- extraction skips artifacts that already have `source_refs`
+- extraction still retries artifacts that never successfully produced a grounded candidate
+
+Practical implications:
+
+- artifacts usually do not duplicate
+- successfully grounded decisions usually do not duplicate
+- import job history does grow
+- indexing is still effectively full re-index per rerun
+- extraction is only partially incremental
+
+### Why This Matters
+
+This has two user-facing costs.
+
+#### Cost 1: Rerunning a known workspace can still feel wasteful
+
+If a workspace already contains usable results, the current product still makes it easy to start another full import/extraction run.
+
+Implication:
+
+- users may unintentionally spend time rerunning analysis when they only wanted to reopen existing results
+
+#### Cost 2: AI usage can be larger than necessary
+
+Even without duplicate artifacts:
+
+- indexing is fully repeated
+- any artifact without a successful `source_ref` can be sent back through extraction again
+
+Implication:
+
+- repeated full runs can keep burning model calls on hard-to-convert artifacts
+- the system is not yet a strict incremental-analysis pipeline
+
+### Current Nuance
+
+The repeat-run story is mixed rather than simply good or bad.
+
+What is already safe:
+
+- artifact-level upsert avoids straightforward duplicate artifact rows
+- `source_refs.exists_for_artifact(...)` prevents re-extracting artifacts that already converted successfully
+
+What is still expensive:
+
+- re-indexing currently runs across all workspace artifacts
+- failed or partially successful extraction cases may be retried on every full rerun
+- the UI currently defaults toward `full` analysis instead of clearly offering `open existing`, `incremental sync`, or `full re-run`
+
+### Recommended Optimization Order
+
+#### Priority 1: Add existing-workspace reuse controls in the UI
+
+Recommendation:
+
+- when a repo already has a workspace, offer:
+  - open existing workspace
+  - run incremental sync
+  - run full re-analysis
+
+Why:
+
+- this is the fastest way to prevent accidental waste
+- it improves user understanding before deeper pipeline work
+
+#### Priority 2: Make incremental mode a first-class user path
+
+Recommendation:
+
+- expose `since_last_sync` clearly in the product, not only in backend plumbing
+
+Why:
+
+- the backend already supports this mode
+- the current UI still behaves as if full analysis is the default repeat action
+
+#### Priority 3: Avoid unconditional full re-indexing
+
+Recommendation:
+
+- add change detection so unchanged artifacts do not always re-embed and replace chunk rows
+
+Why:
+
+- current indexing is idempotent but not incremental
+- avoiding unnecessary re-index work reduces latency even when embeddings are fake locally
+
+#### Priority 4: Track extraction retry reasons across reruns
+
+Recommendation:
+
+- persist enough per-artifact extraction outcome state to distinguish:
+  - previously succeeded
+  - previously timed out
+  - previously invalid JSON
+  - previously ungrounded quote
+
+Why:
+
+- this would let the system choose smarter retry policies instead of retriggering every unresolved artifact on every full rerun
+
+#### Priority 5: Add true cancel/stop semantics only after rerun semantics are clear
+
+Recommendation:
+
+- do not treat a stop button as the primary fix
+- first clarify whether the user wants to open existing results or start a new run at all
+
+Why:
+
+- many accidental reruns are a workspace-reuse UX problem before they are a cancellation problem
+
+### Workspace Reuse Backlog
+
+1. Detect existing imported workspaces before starting a new live analysis run.
+2. Offer `open existing`, `incremental sync`, and `full re-run` choices.
+3. Surface when a workspace already has a running import job and block or warn on duplicates.
+4. Add artifact change detection before re-indexing.
+5. Persist per-artifact extraction retry state for smarter rerun behavior.
+6. Measure repeat-run costs:
+   - artifacts upserted
+   - artifacts re-indexed
+   - artifacts re-screened
+   - artifacts re-extracted
+   - model calls avoided due to prior success
+7. Only after the above, add a real import-cancel workflow.
+
 ## Why-Search Optimization
 
 Why-search is closely related to indexing and extraction quality, because the answer pipeline depends on accepted decisions and their supporting evidence.

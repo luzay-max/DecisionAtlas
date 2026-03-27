@@ -33,6 +33,21 @@ export function SearchResults({ result }: { result: WhyAnswerResponse }) {
         </p>
       ) : null}
       <p>{result.answer}</p>
+      {result.supporting_context && result.supporting_context.length > 0 ? (
+        <div className="stack">
+          <p>
+            <strong>{messages.search.supportingContext}:</strong>
+          </p>
+          {result.supporting_context.map((context) => (
+            <article key={context.decision_id} className="source-ref">
+              <p>
+                <strong>{context.title}</strong>
+              </p>
+              <p>{context.answer}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
       {result.citations.length === 0 ? (
         <p>{messages.search.noCitations}</p>
       ) : null}

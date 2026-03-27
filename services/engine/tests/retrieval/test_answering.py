@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Artifact, Decision, SourceRef, Workspace
 from app.indexing.embedder import FakeEmbedder
 from app.retrieval.answering import answer_why_question
+from app.retrieval.query_rewrite import rewrite_query
 
 
 def test_answering_returns_insufficient_evidence_when_no_hits(tmp_path: Path, monkeypatch) -> None:
@@ -231,3 +232,215 @@ def test_answering_prefers_the_dominant_hit_over_weak_noise(tmp_path: Path, monk
     assert response["status"] == "ok"
     assert "Queue Long-Running Jobs" in response["answer"]
     assert "Human Review Before Acceptance" not in response["answer"]
+    assert response["supporting_context"] == []
+
+
+def test_rewrite_query_keeps_rc_aliases_aligned(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-rc-alias.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="rc-1",
+            repo="org/repo",
+            title="Release candidate branch operations",
+            content="Use a GitHub App token when ensuring release candidate branches.",
+            author="alice",
+            url="https://github.com/org/repo/pull/1",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use GitHub App token for release candidate branch operations",
+            status="active",
+            review_state="accepted",
+            problem="Default token cannot manage release candidate branches",
+            context=None,
+            constraints=None,
+            chosen_option="Use a GitHub App token for release candidate branches",
+            tradeoffs="Requires app setup",
+            confidence=0.92,
+        )
+        session.add(decision)
+        session.flush()
+        session.add_all(
+            [
+                SourceRef(
+                    decision_id=decision.id,
+                    artifact_id=artifact.id,
+                    span_start=0,
+                    span_end=52,
+                    quote="Use a GitHub App token when ensuring release candidate branches.",
+                    url=artifact.url,
+                    relevance_score=0.9,
+                ),
+                SourceRef(
+                    decision_id=decision.id,
+                    artifact_id=artifact.id,
+                    span_start=0,
+                    span_end=30,
+                    quote="release candidate branches",
+                    url=artifact.url,
+                    relevance_score=0.82,
+                ),
+            ]
+        )
+        session.commit()
+
+    assert rewrite_query("why use a github app token for rc branches") == rewrite_query(
+        "why use a github app token for release candidate branches"
+    )
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use a github app token for rc branches",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert response["primary_decision"]["title"] == "Use GitHub App token for release candidate branch operations"
+
+
+def test_answering_exposes_supporting_context_only_for_broad_questions(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-supporting-context.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        app_artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="release-1",
+            repo="org/repo",
+            title="GitHub App token for release candidates",
+            content="Use a GitHub App identity when ensuring release candidate branches.",
+            author="alice",
+            url="https://github.com/org/repo/pull/10",
+            timestamp=None,
+            metadata_json=None,
+        )
+        prerelease_artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="release-2",
+            repo="org/repo",
+            title="Remove prerelease tag manually",
+            content="Prerelease tags are not removed automatically when promoting releases to latest.",
+            author="alice",
+            url="https://github.com/org/repo/pull/11",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add_all([app_artifact, prerelease_artifact])
+        session.flush()
+        app_decision = Decision(
+            workspace_id=workspace.id,
+            title="Use GitHub App token for release candidate branch operations",
+            status="active",
+            review_state="accepted",
+            problem="Release candidate branch operations fail with the default token",
+            context=None,
+            constraints=None,
+            chosen_option="Use a GitHub App token for release candidate branch operations",
+            tradeoffs="Requires separate app identity",
+            confidence=0.92,
+        )
+        prerelease_decision = Decision(
+            workspace_id=workspace.id,
+            title="Remove prerelease tag manually when promoting GitHub releases to latest",
+            status="active",
+            review_state="accepted",
+            problem="Promoted releases remain marked as prerelease",
+            context=None,
+            constraints=None,
+            chosen_option="Remove the prerelease tag during release promotion",
+            tradeoffs="Adds a manual or automated release step",
+            confidence=0.9,
+        )
+        session.add_all([app_decision, prerelease_decision])
+        session.flush()
+        session.add_all(
+            [
+                SourceRef(
+                    decision_id=app_decision.id,
+                    artifact_id=app_artifact.id,
+                    span_start=0,
+                    span_end=68,
+                    quote="Use a GitHub App identity when ensuring release candidate branches.",
+                    url=app_artifact.url,
+                    relevance_score=0.9,
+                ),
+                SourceRef(
+                    decision_id=app_decision.id,
+                    artifact_id=app_artifact.id,
+                    span_start=0,
+                    span_end=30,
+                    quote="release candidate branches",
+                    url=app_artifact.url,
+                    relevance_score=0.83,
+                ),
+                SourceRef(
+                    decision_id=prerelease_decision.id,
+                    artifact_id=prerelease_artifact.id,
+                    span_start=0,
+                    span_end=80,
+                    quote="Prerelease tags are not removed automatically when promoting releases to latest.",
+                    url=prerelease_artifact.url,
+                    relevance_score=0.88,
+                ),
+                SourceRef(
+                    decision_id=prerelease_decision.id,
+                    artifact_id=prerelease_artifact.id,
+                    span_start=0,
+                    span_end=34,
+                    quote="promoting releases to latest",
+                    url=prerelease_artifact.url,
+                    relevance_score=0.78,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        focused_response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use github app token for release candidate branch operations",
+            embedder=FakeEmbedder(),
+        )
+        broad_response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why did we change release candidate branches and release tags",
+            embedder=FakeEmbedder(),
+        )
+
+    assert focused_response["status"] == "ok"
+    assert focused_response["supporting_context"] == []
+    assert broad_response["status"] == "ok"
+    assert broad_response["primary_decision"]["title"] in {
+        "Use GitHub App token for release candidate branch operations",
+        "Remove prerelease tag manually when promoting GitHub releases to latest",
+    }
+    assert len(broad_response["supporting_context"]) == 1
+    assert broad_response["supporting_context"][0]["title"] != broad_response["primary_decision"]["title"]

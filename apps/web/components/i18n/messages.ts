@@ -252,6 +252,7 @@ export const messages = {
       error:
         "Why search is unavailable right now. Confirm the API, engine, and provider configuration.",
       answer: "Answer",
+      supportingContext: "Supporting context",
       status: "Status",
       noCitations:
         "No citations were returned. Import more evidence or accept more decisions before trusting this answer.",
@@ -607,6 +608,7 @@ export const messages = {
       importedIntro: "导入工作区的 why-search 只有在至少采纳一条导入决策后才值得信任。",
       error: "原因检索当前不可用。请确认 API、engine 和 provider 配置。",
       answer: "答案",
+      supportingContext: "补充上下文",
       status: "状态",
       noCitations: "没有返回引用。先补充更多证据或采纳更多决策，再信任这个答案。",
     },
