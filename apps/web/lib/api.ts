@@ -21,6 +21,14 @@ export type WorkspaceProvenance = {
   source_summary: string;
 };
 
+export type WhyAnswerStatus =
+  | "ok"
+  | "limited_support"
+  | "insufficient_evidence"
+  | "review_required"
+  | "evidence_limited"
+  | "analysis_failed";
+
 export type WorkspaceReadiness = {
   state: string;
   next_action: string;
@@ -100,7 +108,7 @@ export type DecisionDetail = ReviewDecision &
 };
 
 export type WhyAnswerResponse = {
-  status: string;
+  status: WhyAnswerStatus;
   question: string;
   answer: string;
   primary_decision?: {

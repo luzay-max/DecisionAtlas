@@ -20,12 +20,12 @@ export function QueryForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
-  const nextActionHref =
-    result?.status === "review_required"
-      ? `/review?workspace=${encodeURIComponent(workspaceSlug)}`
-      : `/timeline?workspace=${encodeURIComponent(workspaceSlug)}`;
+  const reviewNextAction = result?.status === "review_required" || result?.status === "limited_support";
+  const nextActionHref = reviewNextAction
+    ? `/review?workspace=${encodeURIComponent(workspaceSlug)}`
+    : `/timeline?workspace=${encodeURIComponent(workspaceSlug)}`;
   const nextActionLabel =
-    result?.status === "review_required" ? messages.importedReadiness.actions.review_candidates : messages.guidedDemo.searchNext;
+    reviewNextAction ? messages.importedReadiness.actions.review_candidates : messages.guidedDemo.searchNext;
 
   async function runQuestion(nextQuestion: string) {
     setLoading(true);
@@ -65,7 +65,11 @@ export function QueryForm({
       {!result && !error ? <p>{isGuidedDemoWorkspace ? messages.search.intro : messages.search.importedIntro}</p> : null}
       {error ? <p>{error}</p> : null}
       {result ? <SearchResults result={result} /> : null}
-      {result && (isGuidedDemoWorkspace || result.status === "ok" || result.status === "review_required") ? (
+      {result &&
+      (isGuidedDemoWorkspace ||
+        result.status === "ok" ||
+        result.status === "review_required" ||
+        result.status === "limited_support") ? (
         <div className="action-row">
           <Link href={nextActionHref} className="action-link action-link-primary">
             {nextActionLabel}

@@ -48,6 +48,33 @@ def _format_supporting_answer(decision: Decision) -> str:
     return f"{decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
 
 
+def _build_answer_payload(
+    *,
+    status: str,
+    question: str,
+    answer: str,
+    context: dict,
+    citations: list[dict],
+    primary_decision: Decision | None = None,
+    supporting_context: list[dict] | None = None,
+) -> dict:
+    payload = {
+        "status": status,
+        "question": question,
+        "answer": answer,
+        "citations": citations,
+        "answer_context": context,
+    }
+    if primary_decision is not None:
+        payload["primary_decision"] = {
+            "decision_id": primary_decision.id,
+            "title": primary_decision.title,
+        }
+    if supporting_context is not None:
+        payload["supporting_context"] = supporting_context
+    return payload
+
+
 def _pick_primary_and_supporting_decisions(
     *,
     decisions: DecisionRepository,
@@ -149,13 +176,13 @@ def answer_why_question(
         review_state="accepted",
     )
     if not hits:
-        return {
-            "status": "insufficient_evidence",
-            "question": question,
-            "answer": "Insufficient evidence. Review more artifacts or accept more decisions first.",
-            "citations": [],
-            "answer_context": context,
-        }
+        return _build_answer_payload(
+            status="insufficient_evidence",
+            question=question,
+            answer="Insufficient evidence. Review more artifacts or accept more decisions first.",
+            context=context,
+            citations=[],
+        )
 
     source_refs = SourceRefRepository(session)
     primary_decision, supporting_decisions = _pick_primary_and_supporting_decisions(
@@ -164,13 +191,13 @@ def answer_why_question(
         query=rewritten,
     )
     if primary_decision is None:
-        return {
-            "status": "insufficient_evidence",
-            "question": question,
-            "answer": "Insufficient evidence. Review more artifacts or accept more decisions first.",
-            "citations": [],
-            "answer_context": context,
-        }
+        return _build_answer_payload(
+            status="insufficient_evidence",
+            question=question,
+            answer="Insufficient evidence. Review more artifacts or accept more decisions first.",
+            context=context,
+            citations=[],
+        )
 
     citations = []
     for source_ref in source_refs.list_by_decision(primary_decision.id)[:2]:
@@ -204,24 +231,37 @@ def answer_why_question(
                 }
             )
 
-    if len(citations) < 2:
-        return {
-            "status": "insufficient_evidence",
-            "question": question,
-            "answer": "Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
-            "citations": citations,
-            "answer_context": context,
-        }
+    if not citations:
+        return _build_answer_payload(
+            status="insufficient_evidence",
+            question=question,
+            answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
+            context=context,
+            citations=[],
+        )
 
-    return {
-        "status": "ok",
-        "question": question,
-        "answer": _format_main_answer(primary_decision),
-        "primary_decision": {
-            "decision_id": primary_decision.id,
-            "title": primary_decision.title,
-        },
-        "supporting_context": supporting_context,
-        "citations": citations[:4],
-        "answer_context": context,
-    }
+    answer_status = "ok"
+    if provenance.workspace_mode != "demo" and len(citations) < 2:
+        answer_status = "limited_support"
+    elif len(citations) < 2:
+        return _build_answer_payload(
+            status="insufficient_evidence",
+            question=question,
+            answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
+            context=context,
+            citations=citations,
+            primary_decision=primary_decision,
+            supporting_context=supporting_context,
+        )
+
+    answer_text = _format_main_answer(primary_decision)
+
+    return _build_answer_payload(
+        status=answer_status,
+        question=question,
+        answer=answer_text,
+        context=context,
+        citations=citations[:4],
+        primary_decision=primary_decision,
+        supporting_context=supporting_context,
+    )

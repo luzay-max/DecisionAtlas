@@ -16,11 +16,15 @@ The system SHALL summarize imported-workspace readiness so users can tell whethe
 - **THEN** the workspace read model SHALL expose that the workspace is conversion-limited and SHALL explain that extraction quality, not only repository evidence coverage, limited the result
 
 ### Requirement: Imported why-search preserves decision-grounded trust
-The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, and SHALL otherwise fail with an actionable explanation.
+The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, and SHALL otherwise fail with an actionable explanation.
 
 #### Scenario: Imported why-answer is grounded in accepted decisions
 - **WHEN** the user asks a why-question in an imported workspace that has accepted decisions and matching source references
 - **THEN** the system SHALL answer using those accepted decisions, SHALL identify a primary accepted decision for the answer, and SHALL return citations with the answer
+
+#### Scenario: Imported why-answer has limited support
+- **WHEN** the user asks a why-question in an imported workspace, the system selects a primary accepted decision, and only partial but still grounded citation support is available
+- **THEN** the system SHALL return an explicit `limited_support` outcome instead of mislabeling the result as fully supported or as completely insufficient
 
 #### Scenario: Imported why-search lacks accepted grounding
 - **WHEN** the user asks a why-question in an imported workspace that does not yet have accepted decision grounding for the question

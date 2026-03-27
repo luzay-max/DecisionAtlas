@@ -264,3 +264,72 @@ def test_post_query_why_keeps_adjacent_release_decisions_out_of_focused_answer(t
     assert body["primary_decision"]["title"] == "Use GitHub App token for release candidate branch operations"
     assert body["supporting_context"] == []
     assert "Remove prerelease tag manually" not in body["answer"]
+
+
+def test_post_query_why_returns_limited_support_for_one_citation_imported_answer(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "query-limited-support.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="release-1",
+            repo="org/repo",
+            title="GitHub App token for release candidates",
+            content="Use a GitHub App identity when ensuring release candidate branches.",
+            author="alice",
+            url="https://github.com/org/repo/pull/10",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use GitHub App token for release candidate branch operations",
+            status="active",
+            review_state="accepted",
+            problem="Release candidate branch operations fail with the default token",
+            context=None,
+            constraints=None,
+            chosen_option="Use a GitHub App token for release candidate branch operations",
+            tradeoffs="Requires separate app identity",
+            confidence=0.92,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=68,
+                quote="Use a GitHub App identity when ensuring release candidate branches.",
+                url=artifact.url,
+                relevance_score=0.9,
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/query/why",
+        json={
+            "workspace_slug": "imported-workspace",
+            "question": "why use github app token for release candidate branch operations",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "limited_support"
+    assert body["primary_decision"]["title"] == "Use GitHub App token for release candidate branch operations"
+    assert len(body["citations"]) == 1

@@ -187,4 +187,59 @@ describe("QueryForm", () => {
 
     global.fetch = originalFetch;
   });
+
+  it("renders limited-support why answers without presenting them as full success", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "limited_support",
+        question: "why use github app token for release candidate branch operations",
+        answer:
+          "Use GitHub App token for release candidate branch operations: Use a GitHub App token for release candidate branch operations. Tradeoffs: Requires separate app identity.",
+        answer_context: {
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          workspace_readiness: {
+            state: "why_ready",
+            next_action: "ask_why",
+            why_state: "ready",
+            drift_state: "clean"
+          }
+        },
+        primary_decision: {
+          decision_id: 10,
+          title: "Use GitHub App token for release candidate branch operations"
+        },
+        supporting_context: [],
+        citations: [
+          {
+            quote: "Use a GitHub App identity when ensuring release candidate branches.",
+            url: "https://github.com/org/repo/pull/10"
+          }
+        ]
+      })
+    } as Response);
+
+    render(
+      <QueryForm
+        workspaceSlug="imported-workspace"
+        initialQuestion="why use github app token for release candidate branch operations"
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/limited support/i)).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/only backed by partial citation support so far/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review imported candidates" })).toHaveAttribute(
+      "href",
+      "/review?workspace=imported-workspace"
+    );
+
+    global.fetch = originalFetch;
+  });
 });

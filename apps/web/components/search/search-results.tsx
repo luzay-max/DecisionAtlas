@@ -9,6 +9,10 @@ import { ProvenanceBanner } from "../provenance/provenance-banner";
 export function SearchResults({ result }: { result: WhyAnswerResponse }) {
   const { messages } = useI18n();
   const answerContext = result.answer_context;
+  const limitedSupport = result.status === "limited_support";
+  const nextActionKey = limitedSupport
+    ? "review_candidates"
+    : answerContext?.workspace_readiness?.next_action;
 
   return (
     <section className="card">
@@ -28,11 +32,12 @@ export function SearchResults({ result }: { result: WhyAnswerResponse }) {
         <p>
           <strong>{messages.dashboard.nextAction}:</strong>{" "}
           {messages.importedReadiness.actions[
-            answerContext.workspace_readiness.next_action as keyof typeof messages.importedReadiness.actions
-          ] ?? answerContext.workspace_readiness.next_action}
+            nextActionKey as keyof typeof messages.importedReadiness.actions
+          ] ?? nextActionKey}
         </p>
       ) : null}
       <p>{result.answer}</p>
+      {limitedSupport ? <p>{messages.search.limitedSupport}</p> : null}
       {result.supporting_context && result.supporting_context.length > 0 ? (
         <div className="stack">
           <p>
