@@ -5,12 +5,14 @@ from types import SimpleNamespace
 
 from alembic import command
 from alembic.config import Config
+import httpx
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
+from app.ingest.github_client import GitHubNetworkError
 from app.ingest.github_types import GitHubImportResult
-from app.jobs.import_jobs import queue_github_import, run_github_import
+from app.jobs.import_jobs import _classify_failure, _normalize_repo, queue_github_import, run_github_import
 from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderTimeoutError
 
 
@@ -240,3 +242,22 @@ def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path:
     assert result["status"] == "succeeded"
     assert result["summary"]["extraction_summary"]["thin_source_ref_decisions"] == 1
     assert result["summary"]["extraction_summary"]["conversion_loss_reasons"]["thin_source_ref_coverage"] == 1
+
+
+def test_classify_failure_distinguishes_network_provider_and_repository_access() -> None:
+    request = httpx.Request("GET", "https://api.github.com/repos/org/repo")
+    response = httpx.Response(404, request=request, json={"message": "Not Found"})
+    http_error = httpx.HTTPStatusError("not found", request=request, response=response)
+
+    assert _classify_failure(GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))) == "network_failure"
+    assert _classify_failure(http_error) == "repository_access_failure"
+    assert _classify_failure(ProviderTimeoutError("provider timeout")) == "provider_failure"
+
+
+def test_normalize_repo_rejects_invalid_input_without_retryable_client_path() -> None:
+    try:
+        _normalize_repo("not-a-repo")
+    except ValueError as exc:
+        assert "owner/repo" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")

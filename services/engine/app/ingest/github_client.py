@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import base64
 from datetime import datetime, timezone
+from time import sleep
 from typing import Any
 
 import httpx
 
 from app.ingest.github_types import GitHubArtifactPayload, GitHubRepositoryFile
+
+
+class GitHubNetworkError(Exception):
+    def __init__(self, message: str, *, cause: Exception | None = None) -> None:
+        super().__init__(message)
+        self.__cause__ = cause
 
 
 class GitHubClient:
@@ -16,6 +23,8 @@ class GitHubClient:
         *,
         base_url: str = "https://api.github.com",
         max_pages: int = 5,
+        transport_retry_attempts: int = 2,
+        transport_retry_backoff_seconds: float = 0.5,
         client: httpx.Client | None = None,
     ) -> None:
         headers = {
@@ -28,6 +37,8 @@ class GitHubClient:
 
         self.base_url = base_url.rstrip("/")
         self.max_pages = max_pages
+        self.transport_retry_attempts = max(0, transport_retry_attempts)
+        self.transport_retry_backoff_seconds = max(0.0, transport_retry_backoff_seconds)
         self.client = client or httpx.Client(base_url=self.base_url, headers=headers, timeout=30.0)
 
     def fetch_issues(self, repo: str, *, since: datetime | None = None) -> list[GitHubArtifactPayload]:
@@ -108,14 +119,14 @@ class GitHubClient:
         return commits
 
     def get_default_branch(self, repo: str) -> str:
-        response = self.client.get(f"/repos/{repo}")
+        response = self._get(f"/repos/{repo}")
         response.raise_for_status()
         payload = response.json()
         return payload.get("default_branch") or "main"
 
     def list_repository_files(self, repo: str, *, ref: str | None = None) -> list[GitHubRepositoryFile]:
         branch = ref or self.get_default_branch(repo)
-        response = self.client.get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})
+        response = self._get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})
         response.raise_for_status()
         payload = response.json()
         tree = payload.get("tree") or []
@@ -130,7 +141,7 @@ class GitHubClient:
         ]
 
     def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
-        response = self.client.get(f"/repos/{repo}/contents/{path}", params={"ref": ref})
+        response = self._get(f"/repos/{repo}/contents/{path}", params={"ref": ref})
         response.raise_for_status()
         payload = response.json()
         encoded = payload.get("content")
@@ -140,7 +151,7 @@ class GitHubClient:
 
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            download_response = self.client.get(download_url)
+            download_response = self._get(download_url)
             download_response.raise_for_status()
             return download_response.text
 
@@ -155,7 +166,7 @@ class GitHubClient:
             request_params = {"per_page": 100, "page": page}
             if params:
                 request_params.update(params)
-            response = self.client.get(path, params=request_params)
+            response = self._get(path, params=request_params)
             if response.status_code == 422 and page > 1:
                 break
             response.raise_for_status()
@@ -181,3 +192,18 @@ class GitHubClient:
         if value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
+
+    def _get(self, path: str, *, params: dict[str, Any] | None = None) -> httpx.Response:
+        attempts = self.transport_retry_attempts + 1
+        for attempt in range(1, attempts + 1):
+            try:
+                return self.client.get(path, params=params)
+            except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+                if attempt >= attempts:
+                    raise GitHubNetworkError(
+                        f"GitHub request failed after {attempts} transport attempts",
+                        cause=exc,
+                    ) from exc
+                if self.transport_retry_backoff_seconds > 0:
+                    sleep(self.transport_retry_backoff_seconds * attempt)
+        raise AssertionError("unreachable")

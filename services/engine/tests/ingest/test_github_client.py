@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import httpx
 
-from app.ingest.github_client import GitHubClient
+from app.ingest.github_client import GitHubClient, GitHubNetworkError
 
 
 def test_fetch_issues_skips_pull_requests() -> None:
@@ -273,3 +273,73 @@ def test_fetch_pull_requests_accepts_naive_since_datetime() -> None:
 
     assert len(pulls) == 1
     assert pulls[0].title == "New change"
+
+
+def test_transport_failure_retries_and_recovers() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise httpx.ConnectError("temporary network failure", request=request)
+        return httpx.Response(200, json=[])
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    issues = client.fetch_issues("org/repo")
+
+    assert issues == []
+    assert attempts == 2
+
+
+def test_transport_failure_exhaustion_raises_network_error() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        raise httpx.ReadTimeout("request timed out", request=request)
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    try:
+        client.fetch_issues("org/repo")
+    except GitHubNetworkError as exc:
+        assert "transport attempts" in str(exc)
+    else:
+        raise AssertionError("expected GitHubNetworkError")
+
+    assert attempts == 3
+
+
+def test_repository_access_error_is_not_retried() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(404, json={"message": "Not Found"})
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    try:
+        client.fetch_issues("org/repo")
+    except httpx.HTTPStatusError as exc:
+        assert exc.response.status_code == 404
+    else:
+        raise AssertionError("expected HTTPStatusError")
+
+    assert attempts == 1

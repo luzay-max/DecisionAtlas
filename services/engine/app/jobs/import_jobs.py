@@ -4,10 +4,12 @@ from time import monotonic
 from urllib.parse import urlparse
 from uuid import uuid4
 
+import httpx
+
 from app.config import get_settings
 from app.db.session import get_db_session
 from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
-from app.ingest.github_client import GitHubClient
+from app.ingest.github_client import GitHubClient, GitHubNetworkError
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
@@ -308,14 +310,14 @@ def _workspace_slug(repo_ref: str) -> str:
 
 
 def _classify_failure(exc: Exception) -> str:
-    if isinstance(exc, ProviderConfigurationError):
-        return "provider_configuration"
-    if isinstance(exc, ProviderTimeoutError):
-        return "provider_timeout"
-    if isinstance(exc, ProviderRateLimitError):
-        return "provider_rate_limited"
-    if isinstance(exc, (ProviderRequestError, ProviderResponseError)):
-        return "provider_request_failed"
+    if isinstance(exc, GitHubNetworkError):
+        return "network_failure"
+    if isinstance(exc, httpx.HTTPStatusError):
+        status_code = exc.response.status_code
+        if 400 <= status_code < 500:
+            return "repository_access_failure"
+    if isinstance(exc, (ProviderConfigurationError, ProviderTimeoutError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError)):
+        return "provider_failure"
     if "Workspace not found" in str(exc):
         return "workspace_not_found"
     if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
