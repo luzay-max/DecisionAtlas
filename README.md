@@ -7,7 +7,8 @@ Current project stage:
 - core MVP complete
 - `v0.2` demo hardening complete
 - guided demo lane stable
-- next priority: strengthen real repository analysis so the product can complete real-world tasks more credibly
+- real repository analysis lane is functional end-to-end
+- next priority: improve drift precision and overall trust in imported-repository outcomes
 
 Example why-questions:
 
@@ -105,8 +106,10 @@ The public `demo-workspace` is intentionally seeded for a stable walkthrough. Im
 For live analysis, the current supported scope is:
 
 - public GitHub repositories only
-- one-off imported workspace analysis, not long-lived GitHub App connections
+- imported workspace reuse and `since_last_sync` incremental sync are supported for repeated analysis
+- not long-lived GitHub App connections yet
 - results may end in useful candidates, explicit `insufficient_evidence`, or `conversion_limited` diagnostics depending on repository signal and extraction quality
+- imported why answers can now resolve to `ok`, `limited_support`, `review_required`, or `insufficient_evidence` depending on accepted-decision grounding
 - drift evaluation is available for imported workspaces but is currently triggered manually from the product UI
 
 Current operating model:
@@ -142,14 +145,15 @@ Project docs:
 Next recommended direction:
 
 1. keep the guided demo stable
-2. improve the real imported-workspace path so live analysis produces more useful decisions, answers, and drift signals on public repositories
-3. only after that, move on to hosted demo delivery and later v0.3 platform work
+2. improve drift precision so imported alerts feel more like credible review signals than broad related-artifact hints
+3. continue strengthening why-search retrieval quality and evidence richness on imported workspaces
+4. only after that, move on to hosted demo delivery and later v0.3 platform work
 
 Real-functionality priorities:
 
-- improve end-to-end live-provider validation on public repositories
-- widen the set of real repository signals that can turn into accepted decisions
-- make drift evaluation more operational after real imports
+- keep end-to-end live-provider validation healthy on public repositories
+- improve drift precision and alert wording
+- continue raising why-answer quality when accepted coverage is still thin
 - measure repository outcomes instead of relying on demo-only confidence
 
 Known limitations:
@@ -161,4 +165,5 @@ Known limitations:
 - live analysis currently supports public repositories only, not private repo auth flows
 - real imported workspaces can still be sparse or conversion-limited depending on repository signal quality and extraction grounding
 - indexing chunking is still MVP-style and not yet structure-aware
-- why-search can still over-merge adjacent accepted decisions into one answer when multiple nearby hits score well
+- many imported why answers still depend on thin accepted-decision grounding and may remain `limited_support`
+- drift alerts are still conservative and can be noisy on broad repository artifacts such as changelogs or contributing material
