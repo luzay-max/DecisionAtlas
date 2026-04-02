@@ -138,6 +138,42 @@ def test_classifier_requires_more_than_generic_supersession_marker() -> None:
     assert result is None
 
 
+def test_classifier_downgrades_implementation_substitution_to_needs_review() -> None:
+    artifact = Artifact(
+        id=6,
+        workspace_id=1,
+        type="pull_request",
+        source_id="6",
+        repo="browser-use/browser-use",
+        title="Feature Request: Use cloakbrowser replace playwright",
+        content=(
+            "Feature Request: Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers "
+            "and agent status tracking intact."
+        ),
+        author="erin",
+        url=None,
+        timestamp=datetime(2026, 3, 20, 9, 0, 0),
+        metadata_json=None,
+    )
+    candidates = [
+        SemanticCandidate(
+            decision_id=12,
+            title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+            problem="Remote browser downloads need richer progress and status handling.",
+            chosen_option="Use HTTP-based downloads with explicit remote-browser status tracking.",
+            tradeoffs="Adds transport complexity and more operational states to review.",
+            score=3.0,
+            created_at=datetime(2026, 3, 18, 9, 0, 0),
+        )
+    ]
+
+    result = classify_semantic_drift(artifact=artifact, candidates=candidates)
+
+    assert result is not None
+    assert result.alert_type == "needs_review"
+    assert "implementation-level substitution" in result.summary
+
+
 def test_classifier_returns_none_when_signal_is_weak() -> None:
     artifact = Artifact(
         id=3,

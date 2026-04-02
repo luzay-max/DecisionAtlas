@@ -39,7 +39,7 @@ The system SHALL treat imported why-answers as trustworthy only when they are gr
 - **THEN** the system SHALL keep those distinct decisions out of the main answer unless they qualify as supporting context for the same rationale thread
 
 ### Requirement: Imported drift evaluation is operationally usable
-The system SHALL expose drift evaluation state for imported workspaces so users can run it intentionally, interpret the result correctly, distinguish stronger supersession signals from broader review-only follow-up material, and avoid repeated weak alerts that all represent the same accepted-decision thread.
+The system SHALL expose drift evaluation state for imported workspaces so users can run it intentionally, interpret the result correctly, distinguish stronger supersession signals from broader review-only follow-up material, avoid repeated weak alerts that all represent the same accepted-decision thread, avoid stale alert conclusions from earlier reevaluation passes, and avoid over-labeling implementation substitutions as decision replacement.
 
 #### Scenario: User can evaluate drift for an imported workspace
 - **WHEN** the user requests drift evaluation for an imported workspace
@@ -56,3 +56,11 @@ The system SHALL expose drift evaluation state for imported workspaces so users 
 #### Scenario: Repeated weak follow-up alerts are compact
 - **WHEN** several later artifacts all reflect implementation follow-up around the same accepted decision
 - **THEN** the imported drift surface SHALL present that material in a compact grouped or deduplicated form instead of rendering many nearly identical weak alerts
+
+#### Scenario: Reevaluation replaces stale alert conclusions
+- **WHEN** a later drift reevaluation changes the semantic outcome for an imported artifact-decision thread
+- **THEN** the imported drift surface SHALL present only the latest alert conclusion instead of showing both the stale prior alert and the new replacement
+
+#### Scenario: Implementation substitution stays weaker than decision replacement
+- **WHEN** an imported drift alert is driven by lower-level implementation substitution rather than clearer decision-level replacement
+- **THEN** the imported experience SHALL keep that signal out of the stronger possible-supersession path

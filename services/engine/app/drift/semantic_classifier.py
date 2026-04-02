@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from app.db.models import Artifact
 from app.drift.semantic_recall import SemanticCandidate
@@ -16,6 +17,60 @@ BROAD_ARTIFACT_MARKERS = (
     "implementation phases",
     "release notes",
 )
+STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "this",
+    "to",
+    "use",
+    "using",
+    "with",
+    "keep",
+    "keeping",
+    "current",
+    "new",
+}
+GENERIC_REPLACEMENT_TERMS = {"change", "changes", "part", "parts", "thing", "things", "work", "works"}
+IMPLEMENTATION_MARKERS = (
+    "adapter",
+    "browser control",
+    "cdp",
+    "client",
+    "cookie",
+    "cookies",
+    "dependency",
+    "driver",
+    "framework",
+    "library",
+    "mcp",
+    "playwright",
+    "primitive",
+    "primitives",
+    "protocol",
+    "runtime",
+    "sdk",
+    "server",
+    "test",
+    "tests",
+    "transport",
+    "websocket",
+)
 
 
 @dataclass(frozen=True)
@@ -24,6 +79,7 @@ class SemanticClassification:
     confidence_label: str
     decision_id: int
     summary: str
+    is_implementation_substitution: bool = False
 
 
 def classify_semantic_drift(
@@ -42,6 +98,7 @@ def classify_semantic_drift(
     artifact_title = artifact.title or f"Artifact {artifact.id}"
     broad_artifact = _is_broad_artifact(artifact)
     explicit_supersession = _has_explicit_supersession_signal(content)
+    decision_layer_supersession = _is_decision_layer_supersession(candidate, content)
     unusually_explicit_for_broad_doc = _has_unusually_explicit_supersession_signal(content)
     review_signal = any(marker in content for marker in REVIEW_MARKERS)
     overlap_signal = candidate.score >= 1.75 and (
@@ -50,7 +107,12 @@ def classify_semantic_drift(
         or broad_artifact
     )
 
-    if candidate.score >= 2.5 and explicit_supersession and (not broad_artifact or unusually_explicit_for_broad_doc):
+    if (
+        candidate.score >= 2.5
+        and explicit_supersession
+        and decision_layer_supersession
+        and (not broad_artifact or unusually_explicit_for_broad_doc)
+    ):
         return SemanticClassification(
             alert_type="possible_supersession",
             confidence_label="medium",
@@ -63,6 +125,18 @@ def classify_semantic_drift(
         )
 
     if overlap_signal:
+        if explicit_supersession and not decision_layer_supersession:
+            return SemanticClassification(
+                alert_type="needs_review",
+                confidence_label="low",
+                decision_id=candidate.decision_id,
+                summary=(
+                    f"Artifact '{artifact_title}' appears related to accepted decision '{candidate.title}', "
+                    "but the change currently looks closer to an implementation-level substitution than a replacement of the prior choice. "
+                    f"Closest prior choice: {candidate.chosen_option}"
+                ),
+                is_implementation_substitution=True,
+            )
         return SemanticClassification(
             alert_type="needs_review",
             confidence_label="low",
@@ -98,6 +172,8 @@ def _has_explicit_supersession_signal(content: str) -> bool:
         return True
     if "replace" in content and "with" in content:
         return True
+    if _extract_replacement_targets(content):
+        return True
     return False
 
 
@@ -113,3 +189,58 @@ def _has_unusually_explicit_supersession_signal(content: str) -> bool:
             "sunset",
         )
     )
+
+
+def _is_decision_layer_supersession(candidate: SemanticCandidate, content: str) -> bool:
+    if any(marker in content for marker in ("deprecate", "retire", "sunset", "replaced by")):
+        return True
+    if "migrate away from" in content:
+        return True
+
+    candidate_tokens = _meaningful_tokens(" ".join((candidate.title, candidate.problem, candidate.chosen_option)))
+    replacement_targets = _extract_replacement_targets(content)
+    replacement_tokens = set().union(*(_meaningful_tokens(target) for target in replacement_targets)) if replacement_targets else set()
+
+    if replacement_tokens and replacement_tokens.intersection(candidate_tokens):
+        return True
+    if replacement_tokens and not replacement_tokens.intersection(candidate_tokens):
+        return False
+
+    return not any(marker in content for marker in IMPLEMENTATION_MARKERS)
+
+
+def _extract_replacement_targets(content: str) -> list[str]:
+    patterns = (
+        r"replace\s+(?P<old>[^.,;\n]{1,80}?)\s+with\s+(?P<new>[^.,;\n]{1,80})",
+        r"switch\s+from\s+(?P<old>[^.,;\n]{1,80}?)\s+to\s+(?P<new>[^.,;\n]{1,80})",
+        r"migrate\s+from\s+(?P<old>[^.,;\n]{1,80}?)\s+to\s+(?P<new>[^.,;\n]{1,80})",
+        r"(?P<new>[a-z0-9_+-]{2,40})\s+replace\s+(?P<old>[a-z0-9_+-]{2,40})",
+    )
+    results: list[str] = []
+    for pattern in patterns:
+        for match in re.finditer(pattern, content):
+            old = match.groupdict().get("old")
+            new = match.groupdict().get("new")
+            if pattern == patterns[-1] and not _is_meaningful_shorthand_replacement(old, new):
+                continue
+            if old:
+                results.append(old.strip())
+            if new:
+                results.append(new.strip())
+    return results
+
+
+def _meaningful_tokens(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9_+-]+", text.lower())
+        if len(token) >= 3 and token not in STOP_WORDS
+    }
+
+
+def _is_meaningful_shorthand_replacement(old: str | None, new: str | None) -> bool:
+    operands = [operand for operand in (old, new) if operand]
+    if len(operands) != 2:
+        return False
+    tokens = [operand.strip().lower() for operand in operands]
+    return all(token not in STOP_WORDS and token not in GENERIC_REPLACEMENT_TERMS for token in tokens)

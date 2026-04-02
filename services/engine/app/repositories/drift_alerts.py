@@ -62,3 +62,13 @@ class DriftAlertRepository:
         )
         self.session.execute(stmt)
         self.session.flush()
+
+    def delete_by_workspace_and_types(self, workspace_id: int, alert_types: list[str] | tuple[str, ...]) -> None:
+        if not alert_types:
+            return
+        stmt = delete(DriftAlert).where(
+            DriftAlert.workspace_id == workspace_id,
+            DriftAlert.alert_type.in_(tuple(alert_types)),
+        )
+        self.session.execute(stmt)
+        self.session.flush()

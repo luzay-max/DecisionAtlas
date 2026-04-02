@@ -78,4 +78,36 @@ describe("AlertDetail", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/related follow-up artifacts/i)).toBeInTheDocument();
   });
+
+  it("renders implementation substitution as weaker review guidance", () => {
+    render(
+      <AlertDetail
+        workspaceSlug="demo-workspace"
+        alert={{
+          id: 3,
+          alert_type: "needs_review",
+          summary:
+            "Artifact 'Feature Request: Use cloakbrowser replace playwright' appears related to accepted decision 'Enable HTTP-based downloads for remote browsers with agent status tracking', but the change currently looks closer to an implementation-level substitution than a replacement of the prior choice. Closest prior choice: Use HTTP-based downloads with remote browser status tracking.",
+          status: "open",
+          confidence_label: "low",
+          created_at: "2026-03-18T10:00:00",
+          decision: {
+            id: 10,
+            title: "Enable HTTP-based downloads for remote browsers with agent status tracking",
+            review_state: "accepted",
+            chosen_option: "Use HTTP-based downloads with remote browser status tracking.",
+          },
+          artifact: {
+            id: 22,
+            type: "pull_request",
+            title: "Feature Request: Use cloakbrowser replace playwright",
+            url: "https://github.com/browser-use/browser-use/pull/4001",
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText(/implementation-level substitution/i)).toBeInTheDocument();
+    expect(screen.getByText("needs review")).toBeInTheDocument();
+  });
 });

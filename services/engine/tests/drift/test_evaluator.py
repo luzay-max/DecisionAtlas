@@ -383,6 +383,183 @@ def test_evaluator_keeps_possible_supersession_separate_from_grouped_followups(t
     assert {alert.alert_type for alert in alerts} == {"needs_review", "possible_supersession"}
 
 
+def test_evaluator_downgrades_implementation_substitution_from_supersession(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "implementation-substitution.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/browser-use/browser-use")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+                status="active",
+                review_state="accepted",
+                problem="Remote browser downloads need richer progress and status handling.",
+                context=None,
+                constraints="Support remote browser flows without removing existing local behavior.",
+                chosen_option="Use HTTP-based downloads with explicit remote-browser status tracking.",
+                tradeoffs="Adds transport complexity and more operational states to review.",
+                confidence=0.95,
+                created_at=baseline,
+            )
+        )
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pull_request",
+                source_id="4001",
+                repo="browser-use/browser-use",
+                title="Feature Request: Use cloakbrowser replace playwright",
+                content=(
+                    "Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers "
+                    "and agent status tracking intact."
+                ),
+                author="maintainer",
+                url="https://github.com/browser-use/browser-use/pull/4001",
+                timestamp=baseline + timedelta(days=2),
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "needs_review"
+    assert "implementation-level substitution" in alerts[0].summary
+
+
+def test_evaluator_replaces_stale_supersession_when_thread_downgrades(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "stale-supersession-replacement.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pull_request",
+            source_id="14",
+            repo="org/repo",
+            title="Replace Redis cache with Dragonfly",
+            content="This PR will replace the Redis cache with Dragonfly to reduce cost.",
+            author="erin",
+            url="https://github.com/org/repo/pull/14",
+            timestamp=baseline + timedelta(days=2),
+            metadata_json=None,
+        )
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints="Redis stays cache-only.",
+            chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+            tradeoffs="Extra dependency",
+            confidence=0.92,
+            created_at=baseline,
+        )
+        session.add_all([artifact, decision])
+        session.commit()
+
+    with Session(engine) as session:
+        DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+
+    with Session(engine) as session:
+        artifact = session.query(Artifact).filter_by(source_id="14").one()
+        artifact.title = "RFC: evaluate Redis follow-up"
+        artifact.content = "This RFC evaluates follow-up work around the Redis cache to keep the current choice healthy."
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "needs_review"
+    assert "possible_supersession" not in {alert.alert_type for alert in alerts}
+
+
+def test_evaluator_replaces_stale_needs_review_when_thread_upgrades(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "stale-needs-review-replacement.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="issue",
+            source_id="15",
+            repo="org/repo",
+            title="RFC: evaluate Redis follow-up",
+            content="This RFC evaluates follow-up work around the Redis cache to keep the current choice healthy.",
+            author="erin",
+            url="https://github.com/org/repo/issues/15",
+            timestamp=baseline + timedelta(days=2),
+            metadata_json=None,
+        )
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints="Redis stays cache-only.",
+            chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+            tradeoffs="Extra dependency",
+            confidence=0.92,
+            created_at=baseline,
+        )
+        session.add_all([artifact, decision])
+        session.commit()
+
+    with Session(engine) as session:
+        DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+
+    with Session(engine) as session:
+        artifact = session.query(Artifact).filter_by(source_id="15").one()
+        artifact.title = "Replace Redis cache with Dragonfly"
+        artifact.content = "This PR will replace the Redis cache with Dragonfly to reduce cost."
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "possible_supersession"
+    assert "needs_review" not in {alert.alert_type for alert in alerts}
+
+
 def test_evaluator_keeps_semantic_checks_after_rule_checks(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "semantic-order.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

@@ -18,6 +18,8 @@ from app.repositories.drift_alerts import DriftAlertRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
 
+SEMANTIC_ALERT_TYPES = ("possible_supersession", "needs_review")
+
 
 @dataclass(frozen=True)
 class DriftEvaluationResult:
@@ -35,9 +37,16 @@ class GroupedFollowupSignal:
     representative_score: float
     artifact_count: int = 1
     latest_timestamp: datetime | None = None
+    implementation_substitution: bool = False
 
     @classmethod
-    def from_candidate(cls, artifact: Artifact, candidate: SemanticCandidate) -> "GroupedFollowupSignal":
+    def from_candidate(
+        cls,
+        artifact: Artifact,
+        candidate: SemanticCandidate,
+        *,
+        implementation_substitution: bool,
+    ) -> "GroupedFollowupSignal":
         return cls(
             decision_id=candidate.decision_id,
             decision_title=candidate.title,
@@ -46,10 +55,12 @@ class GroupedFollowupSignal:
             representative_score=candidate.score,
             artifact_count=1,
             latest_timestamp=artifact.timestamp,
+            implementation_substitution=implementation_substitution,
         )
 
-    def absorb(self, artifact: Artifact, candidate: SemanticCandidate) -> None:
+    def absorb(self, artifact: Artifact, candidate: SemanticCandidate, *, implementation_substitution: bool) -> None:
         self.artifact_count += 1
+        self.implementation_substitution = self.implementation_substitution or implementation_substitution
         artifact_timestamp = artifact.timestamp
         if _is_better_representative(
             current_artifact=self.representative_artifact,
@@ -122,6 +133,8 @@ class DriftEvaluator:
                         created_alerts += 1
                     rule_flagged_artifact_ids.add(artifact.id)
 
+        self.alerts.delete_by_workspace_and_types(workspace.id, SEMANTIC_ALERT_TYPES)
+
         for artifact in artifacts:
             if artifact.id in source_artifact_ids or artifact.id in rule_flagged_artifact_ids:
                 continue
@@ -140,9 +153,17 @@ class DriftEvaluator:
                 candidate = candidates[0]
                 existing = grouped_followups.get(classification.decision_id)
                 if existing is None:
-                    grouped_followups[classification.decision_id] = GroupedFollowupSignal.from_candidate(artifact, candidate)
+                    grouped_followups[classification.decision_id] = GroupedFollowupSignal.from_candidate(
+                        artifact,
+                        candidate,
+                        implementation_substitution=classification.is_implementation_substitution,
+                    )
                 else:
-                    existing.absorb(artifact, candidate)
+                    existing.absorb(
+                        artifact,
+                        candidate,
+                        implementation_substitution=classification.is_implementation_substitution,
+                    )
                 continue
 
             _, created = self.alerts.create_or_update(
@@ -156,7 +177,6 @@ class DriftEvaluator:
             if created:
                 created_alerts += 1
 
-        self.alerts.delete_by_workspace_and_type(workspace.id, "needs_review")
         for signal in grouped_followups.values():
             _, created = self.alerts.create_or_update(
                 workspace_id=workspace.id,
@@ -200,6 +220,12 @@ def _is_better_representative(
 def _summarize_grouped_followup(signal: GroupedFollowupSignal) -> str:
     title = signal.representative_artifact.title or f"Artifact {signal.representative_artifact.id}"
     if signal.artifact_count <= 1:
+        if signal.implementation_substitution:
+            return (
+                f"Artifact '{title}' appears related to accepted decision '{signal.decision_title}', "
+                "but the change currently looks closer to an implementation-level substitution than a replacement of the prior choice. "
+                f"Closest prior choice: {signal.chosen_option}"
+            )
         return (
             f"Artifact '{title}' appears related to accepted decision '{signal.decision_title}'. "
             "Review whether the newer work changes or reinforces the prior choice. "
@@ -208,6 +234,12 @@ def _summarize_grouped_followup(signal: GroupedFollowupSignal) -> str:
 
     additional_count = signal.artifact_count - 1
     artifact_word = "artifact" if additional_count == 1 else "artifacts"
+    if signal.implementation_substitution:
+        return (
+            f"Artifact '{title}' and {additional_count} related follow-up {artifact_word} appear connected to accepted decision "
+            f"'{signal.decision_title}', but the newer work still looks closer to implementation-level substitution than full decision replacement. "
+            f"Closest prior choice: {signal.chosen_option}"
+        )
     return (
         f"Artifact '{title}' and {additional_count} related follow-up {artifact_word} appear connected to accepted decision "
         f"'{signal.decision_title}'. Review whether this newer work only continues the prior choice or introduces a real decision change. "
