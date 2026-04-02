@@ -45,6 +45,10 @@ describe("DriftPageContent", () => {
     );
 
     expect(screen.getByText("Possible decision drift")).toBeInTheDocument();
+    expect(screen.getByText("possible supersession")).toBeInTheDocument();
+    expect(
+      screen.getByText(/may be replacing a prior accepted decision, but it still needs human confirmation/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
     expect(screen.getByText(/The guided demo is complete/i)).toBeInTheDocument();
@@ -115,5 +119,52 @@ describe("DriftPageContent", () => {
     expect(screen.getByText("Drift has not been evaluated yet")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Evaluate drift now" })).toBeInTheDocument();
     expect(screen.getByText(/use the evaluation card above/i)).toBeInTheDocument();
+  });
+
+  it("renders grouped follow-up alerts as one compact review thread", () => {
+    render(
+      <DriftPageContent
+        workspaceSlug="imported-workspace"
+        drift={{
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          evaluation: {
+            state: "alerts_present",
+            can_evaluate: true,
+            next_action: "evaluate_drift",
+            last_evaluated_at: "2026-04-01T08:00:00",
+          },
+          alerts: [
+            {
+              id: 3,
+              alert_type: "needs_review",
+              summary:
+                "Artifact 'Evaluate remote browser cookie transfer for HTTP downloads' and 2 related follow-up artifacts appear connected to accepted decision 'Enable HTTP-based downloads for remote browsers with agent status tracking'. Review whether this newer work only continues the prior choice or introduces a real decision change. Closest prior choice: Use HTTP-based downloads with remote browser status tracking.",
+              status: "open",
+              confidence_label: "low",
+              created_at: "2026-04-01T08:00:00",
+              decision: {
+                id: 9,
+                title: "Enable HTTP-based downloads for remote browsers with agent status tracking",
+                review_state: "accepted",
+                chosen_option: "Use HTTP-based downloads with remote browser status tracking.",
+              },
+              artifact: {
+                id: 21,
+                type: "pull_request",
+                title: "Evaluate remote browser cookie transfer for HTTP downloads",
+                url: "https://github.com/browser-use/browser-use/pull/3901",
+              },
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText("needs review")).toBeInTheDocument();
+    expect(screen.getByText(/related follow-up artifacts/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/condenses several related implementation follow-ups into one review thread/i)
+    ).toBeInTheDocument();
   });
 });

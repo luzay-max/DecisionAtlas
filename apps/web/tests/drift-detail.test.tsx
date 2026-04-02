@@ -31,6 +31,10 @@ describe("AlertDetail", () => {
       />
     );
 
+    expect(screen.getByText("needs review")).toBeInTheDocument();
+    expect(
+      screen.getByText(/the system is not claiming the accepted decision was replaced/i)
+    ).toBeInTheDocument();
     expect(screen.getByText("low confidence")).toBeInTheDocument();
     expect(screen.getByText(/Matched decision:/)).toBeInTheDocument();
     expect(screen.getByText(/Chosen option: Use Redis as cache only/)).toBeInTheDocument();
@@ -39,5 +43,39 @@ describe("AlertDetail", () => {
       "href",
       "/decisions/7?workspace=demo-workspace"
     );
+  });
+
+  it("renders grouped follow-up hint for condensed weak alerts", () => {
+    render(
+      <AlertDetail
+        workspaceSlug="demo-workspace"
+        alert={{
+          id: 2,
+          alert_type: "needs_review",
+          summary:
+            "Artifact 'Evaluate remote browser cookie transfer for HTTP downloads' and 2 related follow-up artifacts appear connected to accepted decision 'Enable HTTP-based downloads for remote browsers with agent status tracking'. Review whether this newer work only continues the prior choice or introduces a real decision change. Closest prior choice: Use HTTP-based downloads with remote browser status tracking.",
+          status: "open",
+          confidence_label: "low",
+          created_at: "2026-03-18T10:00:00",
+          decision: {
+            id: 9,
+            title: "Enable HTTP-based downloads for remote browsers with agent status tracking",
+            review_state: "accepted",
+            chosen_option: "Use HTTP-based downloads with remote browser status tracking.",
+          },
+          artifact: {
+            id: 21,
+            type: "pull_request",
+            title: "Evaluate remote browser cookie transfer for HTTP downloads",
+            url: "https://github.com/browser-use/browser-use/pull/3901",
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText(/condenses several related implementation follow-ups into one review thread/i)
+    ).toBeInTheDocument();
+    expect(screen.getByText(/related follow-up artifacts/i)).toBeInTheDocument();
   });
 });

@@ -305,6 +305,14 @@ export const messages = {
         alerts_present: "This workspace has active drift alerts backed by accepted decisions and later artifacts.",
         clean: "Drift evaluation ran and produced no current alerts for this imported workspace.",
       },
+      alertTypeDetails: {
+        possible_supersession:
+          "A stronger signal suggests a later artifact may be replacing a prior accepted decision, but it still needs human confirmation.",
+        needs_review:
+          "A later artifact looks related enough to review, but the system is not claiming the accepted decision was replaced.",
+      },
+      groupedFollowupHint:
+        "This grouped reminder condenses several related implementation follow-ups into one review thread.",
       matchedDecision: "Matched decision",
       triggeringArtifact: "Triggering artifact",
       confidence: "confidence",
@@ -386,6 +394,8 @@ export const messages = {
       invalid_repository: "invalid repository",
       analysis_execution_failed: "analysis execution failed",
       possible_drift: "possible drift",
+      possible_supersession: "possible supersession",
+      needs_review: "needs review",
       full: "full",
       since_last_sync: "since last sync",
       low: "low",
@@ -670,6 +680,11 @@ export const messages = {
         alerts_present: "这个工作区已有漂移提醒，并且它们都关联了已采纳决策和后续工件。",
         clean: "漂移评估已经运行过，目前没有新的提醒。",
       },
+      alertTypeDetails: {
+        possible_supersession: "这是更强的替代信号，表示后续工件可能正在替换先前已采纳的决策，但仍需要人工确认。",
+        needs_review: "这是较弱的复审信号，表示后续工件与先前决策相关，但系统并没有断言原决策已经被替换。",
+      },
+      groupedFollowupHint: "这条提醒已经把多个相关的实现跟进压成一个复审线程。",
       matchedDecision: "匹配决策",
       triggeringArtifact: "触发工件",
       confidence: "置信度",
@@ -751,6 +766,8 @@ export const messages = {
       invalid_repository: "仓库无效",
       analysis_execution_failed: "分析执行失败",
       possible_drift: "可能漂移",
+      possible_supersession: "可能替代",
+      needs_review: "需要复审",
       full: "完整",
       since_last_sync: "自上次同步以来",
       low: "低",

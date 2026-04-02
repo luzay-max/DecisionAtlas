@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
 from app.drift.semantic_classifier import classify_semantic_drift
 from app.drift.semantic_recall import recall_related_decisions
+from app.drift.semantic_recall import SemanticCandidate
 from app.drift.rule_extractor import extract_rules
 from app.drift.rules import find_rule_match
 from app.indexing.embedder import Embedder, FakeEmbedder
+from app.db.models import Artifact
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -21,6 +24,43 @@ class DriftEvaluationResult:
     workspace_slug: str
     evaluated_rules: int
     created_alerts: int
+
+
+@dataclass
+class GroupedFollowupSignal:
+    decision_id: int
+    decision_title: str
+    chosen_option: str
+    representative_artifact: Artifact
+    representative_score: float
+    artifact_count: int = 1
+    latest_timestamp: datetime | None = None
+
+    @classmethod
+    def from_candidate(cls, artifact: Artifact, candidate: SemanticCandidate) -> "GroupedFollowupSignal":
+        return cls(
+            decision_id=candidate.decision_id,
+            decision_title=candidate.title,
+            chosen_option=candidate.chosen_option,
+            representative_artifact=artifact,
+            representative_score=candidate.score,
+            artifact_count=1,
+            latest_timestamp=artifact.timestamp,
+        )
+
+    def absorb(self, artifact: Artifact, candidate: SemanticCandidate) -> None:
+        self.artifact_count += 1
+        artifact_timestamp = artifact.timestamp
+        if _is_better_representative(
+            current_artifact=self.representative_artifact,
+            current_score=self.representative_score,
+            candidate_artifact=artifact,
+            candidate_score=candidate.score,
+        ):
+            self.representative_artifact = artifact
+            self.representative_score = candidate.score
+        if artifact_timestamp and (self.latest_timestamp is None or artifact_timestamp > self.latest_timestamp):
+            self.latest_timestamp = artifact_timestamp
 
 
 class DriftEvaluator:
@@ -44,6 +84,7 @@ class DriftEvaluator:
         created_alerts = 0
         source_artifact_ids: set[int] = set()
         rule_flagged_artifact_ids: set[int] = set()
+        grouped_followups: dict[int, GroupedFollowupSignal] = {}
 
         for decision in accepted:
             rules = extract_rules(decision)
@@ -95,6 +136,15 @@ class DriftEvaluator:
             if classification is None:
                 continue
 
+            if classification.alert_type == "needs_review":
+                candidate = candidates[0]
+                existing = grouped_followups.get(classification.decision_id)
+                if existing is None:
+                    grouped_followups[classification.decision_id] = GroupedFollowupSignal.from_candidate(artifact, candidate)
+                else:
+                    existing.absorb(artifact, candidate)
+                continue
+
             _, created = self.alerts.create_or_update(
                 workspace_id=workspace.id,
                 artifact_id=artifact.id,
@@ -106,9 +156,60 @@ class DriftEvaluator:
             if created:
                 created_alerts += 1
 
+        self.alerts.delete_by_workspace_and_type(workspace.id, "needs_review")
+        for signal in grouped_followups.values():
+            _, created = self.alerts.create_or_update(
+                workspace_id=workspace.id,
+                artifact_id=signal.representative_artifact.id,
+                decision_id=signal.decision_id,
+                alert_type="needs_review",
+                summary=_summarize_grouped_followup(signal),
+                status="open",
+            )
+            if created:
+                created_alerts += 1
+
         self.session.commit()
         return DriftEvaluationResult(
             workspace_slug=workspace.slug,
             evaluated_rules=evaluated_rules,
             created_alerts=created_alerts,
         )
+
+
+def _is_better_representative(
+    *,
+    current_artifact: Artifact,
+    current_score: float,
+    candidate_artifact: Artifact,
+    candidate_score: float,
+) -> bool:
+    current_timestamp = current_artifact.timestamp
+    candidate_timestamp = candidate_artifact.timestamp
+    if candidate_score > current_score:
+        return True
+    if candidate_score < current_score:
+        return False
+    if current_timestamp is None:
+        return candidate_timestamp is not None
+    if candidate_timestamp is None:
+        return False
+    return candidate_timestamp > current_timestamp
+
+
+def _summarize_grouped_followup(signal: GroupedFollowupSignal) -> str:
+    title = signal.representative_artifact.title or f"Artifact {signal.representative_artifact.id}"
+    if signal.artifact_count <= 1:
+        return (
+            f"Artifact '{title}' appears related to accepted decision '{signal.decision_title}'. "
+            "Review whether the newer work changes or reinforces the prior choice. "
+            f"Closest prior choice: {signal.chosen_option}"
+        )
+
+    additional_count = signal.artifact_count - 1
+    artifact_word = "artifact" if additional_count == 1 else "artifacts"
+    return (
+        f"Artifact '{title}' and {additional_count} related follow-up {artifact_word} appear connected to accepted decision "
+        f"'{signal.decision_title}'. Review whether this newer work only continues the prior choice or introduces a real decision change. "
+        f"Closest prior choice: {signal.chosen_option}"
+    )
