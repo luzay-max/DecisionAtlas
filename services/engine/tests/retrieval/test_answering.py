@@ -7,7 +7,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, SourceRef, Workspace
+from app.db.models import Artifact, ArtifactChunk, Decision, SourceRef, Workspace
 from app.indexing.embedder import FakeEmbedder
 from app.retrieval.answering import answer_why_question
 from app.retrieval.query_rewrite import rewrite_query
@@ -315,6 +315,104 @@ def test_rewrite_query_keeps_rc_aliases_aligned(tmp_path: Path, monkeypatch) -> 
     assert response["primary_decision"]["title"] == "Use GitHub App token for release candidate branch operations"
 
 
+def test_rewrite_query_normalizes_cache_only_variants() -> None:
+    assert rewrite_query("why keep redis cache-only") == rewrite_query("why keep redis cache only")
+
+
+def test_answering_prefers_structured_chunk_support_over_generic_chunk(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-structured-chunk.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="http-downloads",
+            repo="org/repo",
+            title="HTTP download tracking",
+            content="Implement HTTP downloads for remote browsers with agent status tracking.",
+            author="alice",
+            url="https://github.com/org/repo/pull/1",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+            status="active",
+            review_state="accepted",
+            problem="Remote browser downloads need progress visibility",
+            context=None,
+            constraints=None,
+            chosen_option="Use HTTP downloads for remote browsers and track active_downloads and failed_downloads",
+            tradeoffs="Adds another download path",
+            confidence=0.95,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=58,
+                quote="Implement HTTP downloads for remote browsers with agent status tracking.",
+                url=artifact.url,
+                relevance_score=0.88,
+            )
+        )
+        session.add_all(
+            [
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=0,
+                    content="The system reports active_downloads and failed_downloads to the agent context.",
+                    embedding=None,
+                    metadata_json={
+                        "heading_path": [],
+                        "section_title": None,
+                        "chunk_role": "section",
+                        "boundary_kind": "paragraph_group",
+                    },
+                ),
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=1,
+                    content="## Rationale\nUse HTTP downloads for remote browsers so the agent can track active_downloads and failed_downloads in real time.",
+                    embedding=None,
+                    metadata_json={
+                        "heading_path": ["Rationale"],
+                        "section_title": "Rationale",
+                        "chunk_role": "section",
+                        "boundary_kind": "structured_section",
+                    },
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use HTTP downloads for remote browsers",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert len(response["citations"]) >= 2
+    assert "## Rationale" in response["citations"][1]["quote"]
+
+
 def test_answering_exposes_supporting_context_only_for_broad_questions(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "answer-supporting-context.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -512,3 +610,178 @@ def test_answering_returns_limited_support_for_imported_answer_with_one_grounded
     assert response["status"] == "limited_support"
     assert response["primary_decision"]["title"] == "Use GitHub App token for release candidate branch operations"
     assert len(response["citations"]) == 1
+
+
+def test_answering_can_upgrade_imported_answer_with_chunk_backed_support(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-chunk-support.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="release-1",
+            repo="org/repo",
+            title="GitHub App token for release candidates",
+            content=(
+                "Use a GitHub App identity when ensuring release candidate branches. "
+                "This will allow creation and deletion of these branches in CI. "
+                "Currently the workflow will fail due to branch protection."
+            ),
+            author="alice",
+            url="https://github.com/org/repo/pull/10",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use GitHub App token for release candidate branch operations",
+            status="active",
+            review_state="accepted",
+            problem="Release candidate branch operations fail with the default token",
+            context=None,
+            constraints=None,
+            chosen_option="Use a GitHub App token for release candidate branch operations",
+            tradeoffs="Requires separate app identity",
+            confidence=0.92,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=68,
+                quote="Use a GitHub App identity when ensuring release candidate branches.",
+                url=artifact.url,
+                relevance_score=0.9,
+            )
+        )
+        session.add_all(
+            [
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=0,
+                    content="Use a GitHub App identity when ensuring release candidate branches.",
+                    embedding=None,
+                ),
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=1,
+                    content="Currently the workflow will fail due to branch protection for release candidate branches in CI.",
+                    embedding=None,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use github app token for release candidate branch operations",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert len(response["citations"]) >= 2
+    assert any(citation.get("source_ref_id") is None for citation in response["citations"])
+    assert "Supporting evidence:" in response["answer"]
+
+
+def test_answering_can_use_artifact_title_overlap_for_chunk_backed_support(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-artifact-title-support.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="doc",
+            source_id="download-support",
+            repo="org/repo",
+            title="Agent aware download status for remote browsers",
+            content=(
+                "Implement download_from_remote_browser to support HTTP downloads. "
+                "Agent aware status lets the workflow wait for downloads or retry failures."
+            ),
+            author="alice",
+            url="https://github.com/org/repo/pull/11",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+            status="active",
+            review_state="accepted",
+            problem="Browser-only downloads fail in remote environments",
+            context=None,
+            constraints=None,
+            chosen_option="Implement download_from_remote_browser for remote browser downloads",
+            tradeoffs="More download-path complexity",
+            confidence=0.91,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=58,
+                quote="Implement download_from_remote_browser to support HTTP downloads.",
+                url=artifact.url,
+                relevance_score=0.9,
+            )
+        )
+        session.add_all(
+            [
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=0,
+                    content="Implement download_from_remote_browser to support HTTP downloads.",
+                    embedding=None,
+                ),
+                ArtifactChunk(
+                    artifact_id=artifact.id,
+                    chunk_index=1,
+                    content="Agent aware status lets the workflow wait for downloads or retry failures.",
+                    embedding=None,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="为什么要用 HTTP 下载来跟踪远程浏览器状态？",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert len(response["citations"]) >= 2
+    assert any(
+        citation.get("source_ref_id") is None and "Agent aware status" in citation["quote"]
+        for citation in response["citations"]
+    )

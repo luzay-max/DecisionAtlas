@@ -12,6 +12,20 @@ from app.indexing.embedder import FakeEmbedder
 from app.retrieval.hybrid import hybrid_search
 
 
+class SemanticBiasEmbedder:
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        embeddings: list[list[float]] = []
+        for text in texts:
+            lowered = text.lower()
+            if "primary database" in lowered or "postgresql" in lowered:
+                embeddings.append([1.0, 0.0])
+            elif "source of truth policy" in lowered:
+                embeddings.append([0.0, 1.0])
+            else:
+                embeddings.append([1.0, 0.0] if "database" in lowered else [0.0, 1.0])
+        return embeddings
+
+
 def test_hybrid_search_merges_full_text_and_vector_hits(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "hybrid.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -118,3 +132,57 @@ def test_hybrid_search_filters_stopword_noise_for_specific_queries(tmp_path: Pat
 
     assert hits
     assert hits[0].title == "Queue Long-Running Jobs"
+
+
+def test_hybrid_search_allows_vector_signal_to_break_near_ties(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "hybrid-vector-weight.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add_all(
+            [
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Keep PostgreSQL Primary",
+                    status="active",
+                    review_state="accepted",
+                    problem="Need one primary database for consistency",
+                    context="The primary database remains the source of truth",
+                    constraints=None,
+                    chosen_option="Use PostgreSQL as the primary database",
+                    tradeoffs="Operational cost",
+                    confidence=0.88,
+                ),
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Document source of truth policy",
+                    status="active",
+                    review_state="accepted",
+                    problem="Teams need explicit source of truth wording",
+                    context="Policy note only",
+                    constraints=None,
+                    chosen_option="Write a source of truth policy",
+                    tradeoffs="More documentation",
+                    confidence=0.75,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        hits = hybrid_search(
+            session=session,
+            workspace_slug="demo-workspace",
+            query="why keep the primary database as the source of truth",
+            embedder=SemanticBiasEmbedder(),
+        )
+
+    assert hits
+    assert hits[0].title == "Keep PostgreSQL Primary"

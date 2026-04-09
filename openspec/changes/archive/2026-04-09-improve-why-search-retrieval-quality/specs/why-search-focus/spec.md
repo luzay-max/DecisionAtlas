@@ -1,15 +1,4 @@
-## ADDED Requirements
-
-### Requirement: Why-search selects a primary accepted decision
-The system SHALL select one primary accepted decision for a why-answer before deciding whether any secondary decision may be included as supporting context.
-
-#### Scenario: Single-decision question maps to one primary answer
-- **WHEN** a why-question clearly aligns to one accepted decision
-- **THEN** the system SHALL anchor the answer on that primary accepted decision instead of blending multiple adjacent decisions into the main answer body
-
-#### Scenario: Secondary decision requires support eligibility
-- **WHEN** another accepted decision is also retrieved for the same why-question
-- **THEN** the system SHALL include it only if it materially supports the same rationale thread as the primary accepted decision
+## MODIFIED Requirements
 
 ### Requirement: Why-search uses stronger query normalization
 The system SHALL normalize technically equivalent why-questions so wording differences do not unnecessarily push retrieval toward a neighboring but distinct accepted decision, and that normalization SHALL include technical aliases and equivalent repository-specific phrasing while preserving question intent.

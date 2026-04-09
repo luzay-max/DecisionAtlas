@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import math
+
 from app.db.models import Decision
 from app.indexing.embedder import Embedder
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
+from app.repositories.artifact_chunks import ArtifactChunkRepository
+from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
 from app.repositories.import_jobs import ImportJobRepository
@@ -40,12 +44,168 @@ def _decision_topic_overlap(primary: Decision, secondary: Decision) -> int:
     return len(primary_terms.intersection(secondary_terms))
 
 
-def _format_main_answer(decision: Decision) -> str:
-    return f"{decision.title}: {decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
+def _sentence(value: str | None, *, prefix: str | None = None) -> str:
+    text = " ".join((value or "").split()).strip()
+    if not text:
+        return ""
+    if prefix:
+        text = f"{prefix}: {text}"
+    return text if text.endswith((".", "!", "?")) else f"{text}."
+
+
+def _format_main_answer(decision: Decision, *, supporting_evidence: str | None = None) -> str:
+    parts = [
+        _sentence(f"{decision.title}: {decision.chosen_option}"),
+        _sentence(decision.problem, prefix="Problem"),
+        _sentence(decision.tradeoffs, prefix="Tradeoffs"),
+    ]
+    if supporting_evidence:
+        parts.append(_sentence(supporting_evidence, prefix="Supporting evidence"))
+    return " ".join(part for part in parts if part)
 
 
 def _format_supporting_answer(decision: Decision) -> str:
-    return f"{decision.chosen_option} Tradeoffs: {decision.tradeoffs}"
+    parts = [_sentence(decision.chosen_option), _sentence(decision.tradeoffs, prefix="Tradeoffs")]
+    return " ".join(part for part in parts if part)
+
+
+def _normalize_quote(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def _cosine_similarity(left: list[float], right: list[float]) -> float:
+    if not left or not right:
+        return 0.0
+    dot = sum(a * b for a, b in zip(left, right))
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
+    if left_norm <= 0 or right_norm <= 0:
+        return 0.0
+    return dot / (left_norm * right_norm)
+
+
+def _supporting_decision_terms(decision: Decision) -> set[str]:
+    return set(significant_query_terms(" ".join(filter(None, [decision.title, decision.problem, decision.chosen_option]))))
+
+
+def _artifact_supporting_terms(title: str | None) -> set[str]:
+    return set(significant_query_terms(title or ""))
+
+
+def _chunk_structural_terms(chunk) -> tuple[set[str], set[str]]:
+    metadata = chunk.metadata_json if isinstance(chunk.metadata_json, dict) else {}
+    heading_path = metadata.get("heading_path") or []
+    if not isinstance(heading_path, list):
+        heading_path = []
+    section_title = metadata.get("section_title") or ""
+    return (
+        set(significant_query_terms(" ".join(str(item) for item in heading_path if item))),
+        set(significant_query_terms(str(section_title))),
+    )
+
+
+def _chunk_structural_bonus(chunk, *, query_terms: set[str], decision_terms: set[str]) -> float:
+    metadata = chunk.metadata_json if isinstance(chunk.metadata_json, dict) else {}
+    heading_terms, section_terms = _chunk_structural_terms(chunk)
+    heading_overlap = len(heading_terms.intersection(query_terms | decision_terms))
+    section_overlap = len(section_terms.intersection(query_terms | decision_terms))
+    chunk_role = str(metadata.get("chunk_role") or "")
+    boundary_kind = str(metadata.get("boundary_kind") or "")
+
+    bonus = (heading_overlap * 2.0) + (section_overlap * 1.5)
+    if chunk_role == "section":
+        bonus += 0.4
+    if boundary_kind == "structured_section":
+        bonus += 0.6
+    return bonus
+
+
+def _chunk_supporting_citations(
+    *,
+    session: Session,
+    embedder: Embedder,
+    decision: Decision,
+    query: str,
+    existing_quotes: set[str],
+    artifact_ids: list[int],
+    limit: int,
+) -> list[dict]:
+    if not artifact_ids or limit <= 0:
+        return []
+
+    chunk_repository = ArtifactChunkRepository(session)
+    artifact_repository = ArtifactRepository(session)
+    chunks = chunk_repository.list_for_artifacts(artifact_ids)
+    if not chunks:
+        return []
+
+    query_embedding = embedder.embed([query])[0]
+    query_terms = set(significant_query_terms(query))
+    decision_terms = _supporting_decision_terms(decision)
+    chunk_texts_to_embed: list[str] = []
+    chunk_indices_to_embed: list[int] = []
+    chunk_embeddings: dict[int, list[float]] = {}
+
+    for index, chunk in enumerate(chunks):
+        if chunk.embedding:
+            chunk_embeddings[index] = [float(value) for value in chunk.embedding]
+        else:
+            chunk_texts_to_embed.append(chunk.content)
+            chunk_indices_to_embed.append(index)
+
+    if chunk_texts_to_embed:
+        for index, embedding in zip(chunk_indices_to_embed, embedder.embed(chunk_texts_to_embed)):
+            chunk_embeddings[index] = embedding
+
+    ranked_chunks: list[tuple[float, dict]] = []
+    for index, chunk in enumerate(chunks):
+        content = " ".join(chunk.content.split()).strip()
+        if len(content) < 24:
+            continue
+        normalized_content = _normalize_quote(content)
+        if normalized_content in existing_quotes:
+            continue
+
+        lowered = content.lower()
+        query_overlap = sum(1 for term in query_terms if term in lowered)
+        decision_overlap = sum(1 for term in decision_terms if term in lowered)
+        if query_overlap == 0 and decision_overlap < 2:
+            continue
+
+        artifact = artifact_repository.get_by_id(chunk.artifact_id)
+        if artifact is None:
+            continue
+
+        artifact_overlap = sum(1 for term in _artifact_supporting_terms(artifact.title) if term in lowered)
+        if query_overlap == 0 and (decision_overlap + artifact_overlap) < 2:
+            continue
+
+        score = (query_overlap * 3.0) + float(decision_overlap)
+        score += artifact_overlap * 1.5
+        score += _chunk_structural_bonus(chunk, query_terms=query_terms, decision_terms=decision_terms)
+        score += _cosine_similarity(query_embedding, chunk_embeddings.get(index, []))
+        ranked_chunks.append(
+            (
+                score,
+                {
+                    "decision_id": decision.id,
+                    "quote": content,
+                    "url": artifact.url,
+                },
+            )
+        )
+
+    ranked_chunks.sort(key=lambda item: item[0], reverse=True)
+    citations: list[dict] = []
+    for _, citation in ranked_chunks:
+        normalized_quote = _normalize_quote(citation["quote"])
+        if normalized_quote in existing_quotes:
+            continue
+        citations.append(citation)
+        existing_quotes.add(normalized_quote)
+        if len(citations) >= limit:
+            break
+    return citations
 
 
 def _build_answer_payload(
@@ -91,7 +251,6 @@ def _pick_primary_and_supporting_decisions(
         return None, []
 
     primary_score = hits[0].score
-    primary_overlap = max(_decision_query_overlap(primary, query_terms), 1)
     supporting: list[Decision] = []
 
     if not is_broad_query:
@@ -211,6 +370,7 @@ def answer_why_question(
         )
 
     supporting_context = []
+    primary_source_refs = source_refs.list_by_decision(primary_decision.id)
     for decision in supporting_decisions:
         supporting_context.append(
             {
@@ -230,6 +390,21 @@ def answer_why_question(
                     "url": source_ref.url,
                 }
             )
+
+    if len(citations) < 2:
+        existing_quotes = {_normalize_quote(citation["quote"]) for citation in citations}
+        primary_artifact_ids = list(dict.fromkeys(source_ref.artifact_id for source_ref in primary_source_refs))
+        citations.extend(
+            _chunk_supporting_citations(
+                session=session,
+                embedder=embedder,
+                decision=primary_decision,
+                query=rewritten,
+                existing_quotes=existing_quotes,
+                artifact_ids=primary_artifact_ids,
+                limit=2 - len(citations),
+            )
+        )
 
     if not citations:
         return _build_answer_payload(
@@ -254,7 +429,7 @@ def answer_why_question(
             supporting_context=supporting_context,
         )
 
-    answer_text = _format_main_answer(primary_decision)
+    answer_text = _format_main_answer(primary_decision, supporting_evidence=citations[0]["quote"] if citations else None)
 
     return _build_answer_payload(
         status=answer_status,

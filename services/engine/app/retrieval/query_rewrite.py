@@ -45,12 +45,26 @@ PHRASE_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\brelease[\s-]?candidate\b"), "release candidate"),
     (re.compile(r"\bduplicate[\s-]?key\b"), "duplicate key"),
     (re.compile(r"\blong[\s-]?running\b"), "long running"),
+    (re.compile(r"\bcache[\s-]?only\b"), "cache only"),
+    (re.compile(r"\bbackground[\s-]?jobs?\b"), "background jobs"),
+    (re.compile(r"\bsource[\s-]+of[\s-]+truth\b"), "source of truth"),
+    (re.compile(r"\bweb[\s-]?socket\b"), "websocket"),
+    (re.compile(r"\bkeep[\s_-]?alive\b"), "keep alive"),
     (re.compile(r"\baddwebhooks\(\)"), "addwebhooks"),
 )
 TOKEN_ALIASES: dict[str, tuple[str, ...]] = {
     "rc": ("release", "candidate"),
     "prerelease": ("pre", "release"),
     "pre-release": ("pre", "release"),
+    "queue": ("queue", "background", "jobs"),
+    "queues": ("queue", "background", "jobs"),
+    "rollout": ("rollout", "migration"),
+    "migration": ("migration", "rollout"),
+    "migrate": ("migrate", "migration"),
+    "websocket": ("websocket", "web", "socket"),
+    "db": ("database",),
+    "postgres": ("postgresql",),
+    "postgresql": ("postgres", "postgresql"),
 }
 BROAD_QUERY_TERMS = {
     "architecture",
