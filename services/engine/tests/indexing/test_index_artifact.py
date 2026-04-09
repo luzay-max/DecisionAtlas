@@ -62,7 +62,52 @@ def test_index_artifact_replaces_chunks_idempotently(tmp_path: Path, monkeypatch
     with Session(engine) as session:
         second_pass = session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all()
 
-    assert indexed_count == 2
-    assert second_count == 2
-    assert len(first_pass) == 2
-    assert len(second_pass) == 2
+    assert indexed_count == 1
+    assert second_count == 1
+    assert len(first_pass) == 1
+    assert len(second_pass) == 1
+
+
+def test_index_artifact_persists_chunk_metadata(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "index-metadata.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="doc",
+            source_id="docs/architecture.md",
+            repo="org/repo",
+            title="Architecture",
+            content="# Architecture\nUse queue workers.",
+            author=None,
+            url=None,
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.commit()
+        artifact_id = artifact.id
+
+    with Session(engine) as session:
+        indexed_count = index_artifact(
+            session=session,
+            artifact_id=artifact_id,
+            content="# Architecture\nUse queue workers.",
+            embedder=FakeEmbedder(),
+        )
+
+    with Session(engine) as session:
+        stored = session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all()
+
+    assert indexed_count == 1
+    assert stored[0].metadata_json is not None
+    assert stored[0].metadata_json["section_title"] == "Architecture"
+    assert stored[0].metadata_json["heading_path"] == ["Architecture"]

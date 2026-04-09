@@ -12,11 +12,10 @@ def index_artifact(*, session: Session, artifact_id: int, content: str, embedder
     if not chunks:
         return 0
 
-    embeddings = embedder.embed(chunks)
+    embeddings = embedder.embed([chunk.content for chunk in chunks])
     payload = [
         {
-            "chunk_index": index,
-            "content": chunk,
+            **chunk.to_record(chunk_index=index),
             "embedding": embeddings[index],
         }
         for index, chunk in enumerate(chunks)

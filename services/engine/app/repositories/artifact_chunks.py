@@ -19,6 +19,7 @@ class ArtifactChunkRepository:
                 chunk_index=chunk["chunk_index"],
                 content=chunk["content"],
                 embedding=chunk.get("embedding"),
+                metadata_json=chunk.get("metadata_json"),
             )
             self.session.add(row)
             stored.append(row)
@@ -27,4 +28,14 @@ class ArtifactChunkRepository:
 
     def list_for_artifact(self, artifact_id: int) -> list[ArtifactChunk]:
         stmt = select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id).order_by(ArtifactChunk.chunk_index)
+        return list(self.session.scalars(stmt))
+
+    def list_for_artifacts(self, artifact_ids: list[int]) -> list[ArtifactChunk]:
+        if not artifact_ids:
+            return []
+        stmt = (
+            select(ArtifactChunk)
+            .where(ArtifactChunk.artifact_id.in_(artifact_ids))
+            .order_by(ArtifactChunk.artifact_id, ArtifactChunk.chunk_index)
+        )
         return list(self.session.scalars(stmt))
