@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from alembic import command
 from alembic.config import Config
@@ -7,6 +8,7 @@ from sqlalchemy import create_engine, inspect
 
 def test_initial_tables_exist(tmp_path: Path) -> None:
     db_path = tmp_path / "schema.db"
+    os.environ["DATABASE_URL"] = f"sqlite:///{db_path}"
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
 

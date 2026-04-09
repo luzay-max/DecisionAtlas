@@ -44,7 +44,7 @@ test("demo smoke flow", async ({ page }) => {
   await page.goto("/workspaces/demo-workspace");
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
   await page.getByRole("button", { name: "Run Demo Import" }).click();
-  await expect(page.getByText("Imported 2 artifacts from encode/httpx")).toBeVisible();
+  await expect(page.getByText("Imported 2 artifacts from encode/httpx").first()).toBeVisible();
 
   await page.goto("/review");
   await expect(page.getByText("Add Decision Diff View")).toBeVisible();
@@ -54,5 +54,5 @@ test("demo smoke flow", async ({ page }) => {
   await expect(page.getByText("Use Redis Cache: Use Redis as cache only.")).toBeVisible();
 
   await page.goto("/drift");
-  await expect(page.getByText("possible_drift")).toBeVisible();
+  await expect(page.getByText("possible drift")).toBeVisible();
 });

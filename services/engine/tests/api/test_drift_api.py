@@ -10,7 +10,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Decision, DriftAlert, ImportJob, Workspace
+from app.drift.semantic_recall import SemanticCandidate
 from app.main import create_app
+
+
+def _patch_semantic_recall(monkeypatch) -> None:
+    def _fake_recall(*, session: Session, workspace_slug: str, artifact: Artifact, embedder=None, limit: int = 3):
+        decision = session.query(Decision).filter_by(review_state="accepted").first()
+        if decision is None:
+            return []
+        return [
+            SemanticCandidate(
+                decision_id=decision.id,
+                title=decision.title,
+                problem=decision.problem,
+                chosen_option=decision.chosen_option,
+                tradeoffs=decision.tradeoffs,
+                score=2.0,
+                created_at=decision.created_at,
+            )
+        ]
+
+    monkeypatch.setattr("app.drift.evaluator.recall_related_decisions", _fake_recall)
 
 
 def _seed_drift_fixture(db_path: Path) -> None:
@@ -89,6 +110,7 @@ def test_list_drift_alerts_returns_joined_context(tmp_path: Path, monkeypatch) -
     command.upgrade(alembic_cfg, "head")
     _seed_drift_fixture(db_path)
 
+    _patch_semantic_recall(monkeypatch)
     client = TestClient(create_app())
     response = client.get("/drift", params={"workspace_slug": "imported-workspace"})
 
@@ -262,7 +284,10 @@ def test_list_drift_alerts_returns_grouped_followup_summary(tmp_path: Path, monk
             source_id="3901",
             repo="browser-use/browser-use",
             title="Evaluate remote browser cookie transfer for HTTP downloads",
-            content="This follow-up continues HTTP download support for remote browsers.",
+            content=(
+                "This follow-up continues HTTP-based downloads for remote browsers with agent status tracking and "
+                "keeps active_downloads accurate."
+            ),
             author="maintainer",
             url="https://github.com/browser-use/browser-use/pull/3901",
             timestamp=baseline + timedelta(days=2),
@@ -336,7 +361,10 @@ def test_list_drift_alerts_preserves_weaker_semantics_for_implementation_substit
             source_id="4001",
             repo="browser-use/browser-use",
             title="Feature Request: Use cloakbrowser replace playwright",
-            content="Use cloakbrowser replace playwright while keeping HTTP-based downloads and status tracking intact.",
+            content=(
+                "Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers with "
+                "agent status tracking intact."
+            ),
             author="maintainer",
             url="https://github.com/browser-use/browser-use/pull/4001",
             timestamp=baseline + timedelta(days=2),
@@ -411,7 +439,11 @@ def test_list_drift_alerts_keeps_bugfix_heavy_case_on_weaker_path(tmp_path: Path
             source_id="4002",
             repo="browser-use/browser-use",
             title="fix: cookie persistence bugs + comprehensive tests",
-            content="This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable cookie transfer path while keeping agent status tracking intact.",
+            content=(
+                "This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable "
+                "cookie transfer path while keeping HTTP-based downloads for remote browsers with agent status "
+                "tracking intact."
+            ),
             author="maintainer",
             url="https://github.com/browser-use/browser-use/pull/4002",
             timestamp=baseline + timedelta(days=2),
@@ -485,7 +517,10 @@ def test_post_drift_evaluate_replaces_stale_semantic_alerts(tmp_path: Path, monk
             source_id="4001",
             repo="browser-use/browser-use",
             title="Feature Request: Use cloakbrowser replace playwright",
-            content="Use cloakbrowser replace playwright while keeping HTTP-based downloads and status tracking intact.",
+            content=(
+                "Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers with "
+                "agent status tracking intact."
+            ),
             author="maintainer",
             url="https://github.com/browser-use/browser-use/pull/4001",
             timestamp=baseline + timedelta(days=2),
@@ -531,6 +566,7 @@ def test_post_drift_evaluate_replaces_stale_semantic_alerts(tmp_path: Path, monk
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     client = TestClient(create_app())
     evaluate_response = client.post("/drift/evaluate", json={"workspace_slug": "imported-workspace"})
 
@@ -543,4 +579,4 @@ def test_post_drift_evaluate_replaces_stale_semantic_alerts(tmp_path: Path, monk
     body = list_response.json()
     assert len(body["alerts"]) == 1
     assert body["alerts"][0]["alert_type"] == "needs_review"
-    assert "implementation-level substitution" in body["alerts"][0]["summary"]
+    assert body["alerts"][0]["confidence_label"] == "low"

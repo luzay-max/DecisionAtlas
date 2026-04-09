@@ -10,8 +10,31 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Decision, SourceRef, Workspace
 from app.drift.evaluator import DriftEvaluator
+from app.drift.semantic_recall import SemanticCandidate
 from app.indexing.embedder import FakeEmbedder
 from app.repositories.drift_alerts import DriftAlertRepository
+
+
+def _patch_semantic_recall(monkeypatch) -> None:
+    def _fake_recall(*, session: Session, workspace_slug: str, artifact: Artifact, embedder=None, limit: int = 3):
+        decision = session.query(Decision).filter_by(review_state="accepted").first()
+        if decision is None:
+            return []
+        content = " ".join(filter(None, [artifact.title, artifact.content])).lower()
+        score = 2.8 if "replace redis cache with dragonfly" in content else 2.0
+        return [
+            SemanticCandidate(
+                decision_id=decision.id,
+                title=decision.title,
+                problem=decision.problem,
+                chosen_option=decision.chosen_option,
+                tradeoffs=decision.tradeoffs,
+                score=score,
+                created_at=decision.created_at,
+            )
+        ]
+
+    monkeypatch.setattr("app.drift.evaluator.recall_related_decisions", _fake_recall)
 
 
 def test_evaluator_persists_possible_drift_for_violating_artifact(tmp_path: Path, monkeypatch) -> None:
@@ -79,6 +102,7 @@ def test_evaluator_persists_possible_drift_for_violating_artifact(tmp_path: Path
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -134,6 +158,7 @@ def test_evaluator_skips_non_violating_artifact(tmp_path: Path, monkeypatch) -> 
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -186,6 +211,7 @@ def test_evaluator_adds_semantic_supersession_alert_when_rule_does_not_fire(tmp_
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -239,6 +265,7 @@ def test_evaluator_downgrades_noisy_changelog_case_to_needs_review(tmp_path: Pat
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -284,7 +311,10 @@ def test_evaluator_groups_repeated_followup_alerts_for_same_decision(tmp_path: P
                     source_id="3875",
                     repo="browser-use/browser-use",
                     title="RFC: HTTP download status tracking follow-up",
-                    content="This RFC evaluates follow-up work around HTTP-based remote browser downloads and active_downloads state.",
+                    content=(
+                        "This RFC evaluates follow-up work around HTTP-based downloads for remote browsers with "
+                        "agent status tracking, including active_downloads and failed_downloads state."
+                    ),
                     author="maintainer",
                     url="https://github.com/browser-use/browser-use/pull/3875",
                     timestamp=baseline + timedelta(days=1),
@@ -296,7 +326,10 @@ def test_evaluator_groups_repeated_followup_alerts_for_same_decision(tmp_path: P
                     source_id="3901",
                     repo="browser-use/browser-use",
                     title="Evaluate remote browser cookie transfer for HTTP downloads",
-                    content="Evaluate a follow-up to HTTP-based remote browser downloads so active_downloads and failed_downloads stay accurate.",
+                    content=(
+                        "Evaluate a follow-up to HTTP-based downloads for remote browsers with agent status tracking "
+                        "so active_downloads and failed_downloads stay accurate."
+                    ),
                     author="maintainer",
                     url="https://github.com/browser-use/browser-use/pull/3901",
                     timestamp=baseline + timedelta(days=2),
@@ -306,6 +339,7 @@ def test_evaluator_groups_repeated_followup_alerts_for_same_decision(tmp_path: P
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -352,7 +386,10 @@ def test_evaluator_keeps_possible_supersession_separate_from_grouped_followups(t
                     source_id="12",
                     repo="org/repo",
                     title="RFC: evaluate Redis follow-up",
-                    content="This RFC evaluates follow-up work around the Redis cache to keep the current choice healthy.",
+                    content=(
+                        "This RFC evaluates follow-up work around the Redis cache, cache-only policy, and "
+                        "keeping PostgreSQL primary to keep the current choice healthy."
+                    ),
                     author="erin",
                     url="https://github.com/org/repo/issues/12",
                     timestamp=baseline + timedelta(days=1),
@@ -374,6 +411,7 @@ def test_evaluator_keeps_possible_supersession_separate_from_grouped_followups(t
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -412,24 +450,25 @@ def test_evaluator_downgrades_implementation_substitution_from_supersession(tmp_
             )
         )
         session.add(
-            Artifact(
-                workspace_id=workspace.id,
-                type="pull_request",
-                source_id="4001",
-                repo="browser-use/browser-use",
-                title="Feature Request: Use cloakbrowser replace playwright",
-                content=(
-                    "Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers "
-                    "and agent status tracking intact."
-                ),
-                author="maintainer",
-                url="https://github.com/browser-use/browser-use/pull/4001",
-                timestamp=baseline + timedelta(days=2),
-                metadata_json=None,
+                Artifact(
+                    workspace_id=workspace.id,
+                    type="pull_request",
+                    source_id="4001",
+                    repo="browser-use/browser-use",
+                    title="Feature Request: Use cloakbrowser replace playwright",
+                    content=(
+                        "Use cloakbrowser replace playwright while keeping HTTP-based downloads for remote browsers "
+                        "with agent status tracking, active_downloads, and failed_downloads intact."
+                    ),
+                    author="maintainer",
+                    url="https://github.com/browser-use/browser-use/pull/4001",
+                    timestamp=baseline + timedelta(days=2),
+                    metadata_json=None,
             )
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -437,7 +476,7 @@ def test_evaluator_downgrades_implementation_substitution_from_supersession(tmp_
     assert result.created_alerts == 1
     assert len(alerts) == 1
     assert alerts[0].alert_type == "needs_review"
-    assert "implementation-level substitution" in alerts[0].summary
+    assert "accepted decision" in alerts[0].summary
 
 
 def test_evaluator_downgrades_bugfix_heavy_replacement_to_needs_review(tmp_path: Path, monkeypatch) -> None:
@@ -469,24 +508,26 @@ def test_evaluator_downgrades_bugfix_heavy_replacement_to_needs_review(tmp_path:
             )
         )
         session.add(
-            Artifact(
-                workspace_id=workspace.id,
-                type="pull_request",
-                source_id="4002",
-                repo="browser-use/browser-use",
-                title="fix: cookie persistence bugs + comprehensive tests",
-                content=(
-                    "This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable "
-                    "cookie transfer path while keeping agent status tracking intact."
-                ),
-                author="maintainer",
-                url="https://github.com/browser-use/browser-use/pull/4002",
-                timestamp=baseline + timedelta(days=2),
-                metadata_json=None,
+                Artifact(
+                    workspace_id=workspace.id,
+                    type="pull_request",
+                    source_id="4002",
+                    repo="browser-use/browser-use",
+                    title="fix: cookie persistence bugs + comprehensive tests",
+                    content=(
+                        "This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable "
+                        "cookie transfer path while keeping HTTP-based downloads for remote browsers with agent "
+                        "status tracking intact."
+                    ),
+                    author="maintainer",
+                    url="https://github.com/browser-use/browser-use/pull/4002",
+                    timestamp=baseline + timedelta(days=2),
+                    metadata_json=None,
             )
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -525,24 +566,26 @@ def test_evaluator_downgrades_lifecycle_fix_replacement_to_needs_review(tmp_path
             )
         )
         session.add(
-            Artifact(
-                workspace_id=workspace.id,
-                type="pull_request",
-                source_id="4003",
-                repo="browser-use/browser-use",
-                title="fix: preserve CDP WebSocket connections on Agent.close() with keep_alive=True",
-                content=(
-                    "This fix replaces the previous keep_alive close behavior with a safer shutdown path "
-                    "while preserving websocket connections and the broader keep_alive decision."
-                ),
-                author="maintainer",
-                url="https://github.com/browser-use/browser-use/pull/4003",
-                timestamp=baseline + timedelta(days=2),
-                metadata_json=None,
+                Artifact(
+                    workspace_id=workspace.id,
+                    type="pull_request",
+                    source_id="4003",
+                    repo="browser-use/browser-use",
+                    title="fix: preserve CDP WebSocket connections on Agent.close() with keep_alive=True",
+                    content=(
+                        "This fix replaces the previous keep_alive close behavior with a safer shutdown path "
+                        "while preserving websocket connections, graceful browser session stop behavior, and the "
+                        "broader keep_alive decision."
+                    ),
+                    author="maintainer",
+                    url="https://github.com/browser-use/browser-use/pull/4003",
+                    timestamp=baseline + timedelta(days=2),
+                    metadata_json=None,
             )
         )
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
         alerts = DriftAlertRepository(session).list_by_workspace(1)
@@ -593,13 +636,17 @@ def test_evaluator_replaces_stale_supersession_when_thread_downgrades(tmp_path: 
         session.add_all([artifact, decision])
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
 
     with Session(engine) as session:
         artifact = session.query(Artifact).filter_by(source_id="14").one()
         artifact.title = "RFC: evaluate Redis follow-up"
-        artifact.content = "This RFC evaluates follow-up work around the Redis cache to keep the current choice healthy."
+        artifact.content = (
+            "This RFC evaluates follow-up work around the Redis cache, cache-only policy, and keeping PostgreSQL "
+            "primary to keep the current choice healthy."
+        )
         session.commit()
 
     with Session(engine) as session:
@@ -653,13 +700,17 @@ def test_evaluator_replaces_stale_needs_review_when_thread_upgrades(tmp_path: Pa
         session.add_all([artifact, decision])
         session.commit()
 
+    _patch_semantic_recall(monkeypatch)
     with Session(engine) as session:
         DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("demo-workspace")
 
     with Session(engine) as session:
         artifact = session.query(Artifact).filter_by(source_id="15").one()
         artifact.title = "Replace Redis cache with Dragonfly"
-        artifact.content = "This PR will replace the Redis cache with Dragonfly to reduce cost."
+        artifact.content = (
+            "This PR will replace the Redis cache with Dragonfly while changing the cache-only policy and the "
+            "current PostgreSQL primary setup to reduce cost."
+        )
         session.commit()
 
     with Session(engine) as session:

@@ -20,15 +20,21 @@ def test_parser_maps_valid_json_to_decision() -> None:
     )
 
     assert parsed is not None
-    assert parsed.title == "Use Redis Cache"
-    assert parsed.confidence == 0.81
+    assert parsed.loss_reason is None
+    assert parsed.decision is not None
+    assert parsed.decision.title == "Use Redis Cache"
+    assert parsed.decision.confidence == 0.81
 
 
 def test_parser_rejects_malformed_json() -> None:
-    with pytest.raises(ValueError, match="Invalid JSON"):
-        parse_extraction_response("not-json")
+    parsed = parse_extraction_response("not-json")
+
+    assert parsed.decision is None
+    assert parsed.loss_reason == "invalid_json"
 
 
 def test_parser_rejects_missing_required_fields() -> None:
-    with pytest.raises(ValueError, match="Missing required extraction fields"):
-        parse_extraction_response('{"title":"x"}')
+    parsed = parse_extraction_response('{"title":"x"}')
+
+    assert parsed.decision is None
+    assert parsed.loss_reason == "missing_required_fields"
