@@ -5,7 +5,7 @@ This document defines the public-repository baseline for the real imported-works
 It has two purposes:
 
 1. keep a small, repeatable set of repositories for real-lane validation
-2. record the current sparse-evidence and failure patterns before behavior changes
+2. record the current bounded outcomes and remaining weak spots before behavior changes
 
 ## Curated Repositories
 
@@ -50,62 +50,73 @@ It has two purposes:
   - zero candidates is no longer enough information by itself; the run must explain whether it is evidence-limited or conversion-limited
   - `conversion_limited` is an acceptable readiness outcome until full extraction quality improves further
 
-## Current Sparse-Evidence Patterns
+### `browser-use/browser-use`
 
-These are the patterns we want to improve without pretending every public repo is rich in rationale.
+- Repo: `browser-use/browser-use`
+- Workspace slug: `github-browser-use-browser-use`
+- Why it matters: imported lane regression repo with strong real-world why and drift examples
+- Expected signals:
+  - imported readiness should expose explicit review / why / drift state
+  - focused why-questions around HTTP downloads and keep-alive shutdown behavior should be able to reach `ok` with citations after accepted decisions exist
+  - drift should stay conservative on implementation-heavy follow-up fixes
 
-### 1. Import succeeds but downstream readiness is unclear
+## Current Baseline Patterns
 
-Current imported workspaces can finish successfully and still feel inert because the UI mostly shows raw counts, latest import summary, and a generic low-signal hint.
+These are the patterns we want to preserve or improve without pretending every public repo is rich in rationale.
 
-Observed symptoms:
+### 1. Import now succeeds into clearer downstream readiness
 
-- users do not know whether the right next step is review, why-search, or drift evaluation
-- successful sparse runs can look too similar to failed runs
-- imported workspaces with some evidence still do not clearly explain what the evidence is useful for
+Imported workspaces now expose clearer review / why / drift readiness and recommended actions.
 
-### 2. Repository document coverage is still narrow
+Current expectation:
 
-Current markdown selection is conservative, but it still misses some rationale-bearing files such as migration, rollout, release, operations, or deprecation notes when they are not named like the small top-level allowlist.
+- users should be able to tell whether the next step is review, why-search, drift evaluation, or import-summary inspection
+- successful sparse runs should not look like generic failures
+- dashboard and search should agree on the readiness interpretation
 
-Observed symptoms:
+### 2. Repository document coverage is still selective
 
-- imports may include README and a few docs but still miss the documents where change rationale is actually described
-- candidate extraction is skewed toward issues and PRs even when documentation carries stronger explanations
+Current markdown selection is stronger than the earlier MVP baseline, but it should still remain selective enough to avoid broad noisy ingest.
 
-### 3. Why-search trust is easy to misread in imported workspaces
+Current expectation:
 
-Imported why-search is only trustworthy when accepted decisions exist and the answer is grounded in those decisions. Today the read model does not guide that strongly enough.
+- imports should include rationale-bearing docs such as migration, rollout, release, operations, or deprecation notes when present
+- coverage improvements should not degrade into broad low-signal ingest
 
-Observed symptoms:
+### 3. Imported why-search is stronger but still bounded by accepted-decision grounding
 
-- users can ask why-questions before the workspace has accepted decisions
-- a weak or blocked answer feels like product failure instead of an expected "review-first" state
-- imported workspaces need an explicit distinction between `review_required` and `evidence_limited`
+Imported why-search is now clearer and stronger, but it still depends on accepted-decision grounding.
 
-### 4. Drift exists conceptually but is not operational enough
+Current expectation:
 
-Drift evaluation is available through the API, but imported workspaces do not yet expose whether drift has ever been evaluated or whether "no alerts" means "not evaluated" or "evaluated and clean".
+- users can still ask why before review is complete, but the product should clearly explain `review_required`
+- focused why-questions should prefer one accepted decision as the anchor
+- supporting artifact chunks may strengthen support, but should not replace the accepted decision as the answer anchor
 
-Observed symptoms:
+### 4. Drift is more operational, but should remain conservative
 
-- drift page can look empty without explaining whether evaluation ran
-- imported workspaces need a manual evaluate action with state and freshness
+Imported drift is now manually evaluable and more interpretable.
 
-### 5. Provider and network failures can still obscure outcome quality
+Current expectation:
+
+- drift state should distinguish `unevaluated`, `stale`, `clean`, and alert-present paths
+- grouped weak alerts should stay compact
+- implementation-heavy maintenance fixes should not easily escalate into strong replacement signals
+
+### 5. Provider and network failures are clearer, but still matter
 
 Live provider or network issues can still terminate analysis even when the repository itself might have been useful.
 
-Observed symptoms:
+Current expectation:
 
 - provider connectivity failures are visible as operational failures
-- users may not separate provider/runtime problems from repository-signal problems
+- users should be able to distinguish retryable network problems from repository-signal problems
 
 ### 6. Screened-in artifacts can still fail to convert into candidates
 
 Recent `n8n-io/n8n` runs showed that throughput and visibility can improve while candidate yield remains at zero.
 
-Observed symptoms:
+Current expectation:
 
 - the run can shortlist and screen in many artifacts, complete full extraction attempts, and still create no candidate decisions
 - the product needs to expose that full extraction quality, not only repository evidence coverage, limited the result
@@ -117,6 +128,6 @@ When changing the real imported-workspace lane, compare behavior against this ba
 
 - did document coverage improve on the curated repos without broad noisy ingest?
 - did at least one next action become obvious after import?
-- did why-search become clearer about review-required versus evidence-limited?
-- did drift become explicitly evaluable and interpretable?
+- did why-search remain anchored to accepted decisions while improving support quality?
+- did drift remain explicitly evaluable and interpretable without reintroducing broad noise?
 - did the product reduce "import worked, but I still do not know what to do" outcomes?
