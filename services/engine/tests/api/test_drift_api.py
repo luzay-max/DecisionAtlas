@@ -392,6 +392,80 @@ def test_list_drift_alerts_preserves_weaker_semantics_for_implementation_substit
     assert "implementation-level substitution" in body["alerts"][0]["summary"]
 
 
+def test_list_drift_alerts_keeps_bugfix_heavy_case_on_weaker_path(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-bugfix-heavy-api.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/browser-use/browser-use")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pull_request",
+            source_id="4002",
+            repo="browser-use/browser-use",
+            title="fix: cookie persistence bugs + comprehensive tests",
+            content="This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable cookie transfer path while keeping agent status tracking intact.",
+            author="maintainer",
+            url="https://github.com/browser-use/browser-use/pull/4002",
+            timestamp=baseline + timedelta(days=2),
+            metadata_json=None,
+        )
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+            status="active",
+            review_state="accepted",
+            problem="Remote browser downloads need richer progress and status handling.",
+            context=None,
+            constraints=None,
+            chosen_option="Use HTTP-based downloads with remote browser status tracking.",
+            tradeoffs="Adds transport complexity.",
+            confidence=0.95,
+            created_at=baseline,
+            updated_at=baseline,
+        )
+        session.add_all([artifact, decision])
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-drift-bugfix-heavy",
+                workspace_id=workspace.id,
+                repo="browser-use/browser-use",
+                mode="full",
+                status="succeeded",
+                imported_count=2,
+                finished_at=baseline + timedelta(days=2),
+                summary_json={"stage": "completed", "outcome": "ok"},
+            )
+        )
+        session.add(
+            DriftAlert(
+                workspace_id=workspace.id,
+                artifact_id=artifact.id,
+                decision_id=decision.id,
+                alert_type="needs_review",
+                summary="Artifact 'fix: cookie persistence bugs + comprehensive tests' appears related to accepted decision 'Enable HTTP-based downloads for remote browsers with agent status tracking', but the change currently looks closer to an implementation-level substitution than a replacement of the prior choice. Closest prior choice: Use HTTP-based downloads with remote browser status tracking.",
+                status="open",
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/drift", params={"workspace_slug": "imported-workspace"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["alerts"][0]["alert_type"] == "needs_review"
+    assert body["alerts"][0]["confidence_label"] == "low"
+
+
 def test_post_drift_evaluate_replaces_stale_semantic_alerts(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "drift-stale-alert-replacement-api.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

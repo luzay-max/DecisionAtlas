@@ -440,6 +440,118 @@ def test_evaluator_downgrades_implementation_substitution_from_supersession(tmp_
     assert "implementation-level substitution" in alerts[0].summary
 
 
+def test_evaluator_downgrades_bugfix_heavy_replacement_to_needs_review(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bugfix-heavy-replacement.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/browser-use/browser-use")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+                status="active",
+                review_state="accepted",
+                problem="Remote browser downloads need richer progress and status handling.",
+                context=None,
+                constraints="Support remote browser flows without removing existing local behavior.",
+                chosen_option="Use HTTP-based downloads with explicit remote-browser status tracking.",
+                tradeoffs="Adds transport complexity and more operational states to review.",
+                confidence=0.95,
+                created_at=baseline,
+            )
+        )
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pull_request",
+                source_id="4002",
+                repo="browser-use/browser-use",
+                title="fix: cookie persistence bugs + comprehensive tests",
+                content=(
+                    "This fix replaces the previous HTTP-based remote browser downloads flow with a more reliable "
+                    "cookie transfer path while keeping agent status tracking intact."
+                ),
+                author="maintainer",
+                url="https://github.com/browser-use/browser-use/pull/4002",
+                timestamp=baseline + timedelta(days=2),
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "needs_review"
+
+
+def test_evaluator_downgrades_lifecycle_fix_replacement_to_needs_review(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lifecycle-fix-replacement.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/browser-use/browser-use")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Gracefully stop browser session on agent close with keep_alive=True to prevent asyncio deadlock",
+                status="active",
+                review_state="accepted",
+                problem="Agent shutdown can deadlock when keep_alive=True.",
+                context=None,
+                constraints="Support keep_alive without reintroducing asyncio deadlock.",
+                chosen_option="Update Agent.close() to call await self.browser_session.stop() when keep_alive is True.",
+                tradeoffs="Adds an extra shutdown step but prevents deadlock.",
+                confidence=0.95,
+                created_at=baseline,
+            )
+        )
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="pull_request",
+                source_id="4003",
+                repo="browser-use/browser-use",
+                title="fix: preserve CDP WebSocket connections on Agent.close() with keep_alive=True",
+                content=(
+                    "This fix replaces the previous keep_alive close behavior with a safer shutdown path "
+                    "while preserving websocket connections and the broader keep_alive decision."
+                ),
+                author="maintainer",
+                url="https://github.com/browser-use/browser-use/pull/4003",
+                timestamp=baseline + timedelta(days=2),
+                metadata_json=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("imported-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+
+    assert result.created_alerts == 1
+    assert len(alerts) == 1
+    assert alerts[0].alert_type == "needs_review"
+
+
 def test_evaluator_replaces_stale_supersession_when_thread_downgrades(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "stale-supersession-replacement.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

@@ -71,6 +71,29 @@ IMPLEMENTATION_MARKERS = (
     "transport",
     "websocket",
 )
+MAINTENANCE_MARKERS = (
+    "bug",
+    "bugs",
+    "bugfix",
+    "bugfixes",
+    "cleanup",
+    "fix",
+    "fixes",
+    "fixed",
+    "keep_alive",
+    "keep-alive",
+    "lifecycle",
+    "maintain",
+    "maintenance",
+    "preserve",
+    "preserves",
+    "preserving",
+    "regression",
+    "repair",
+    "repairs",
+    "shutdown",
+    "stability",
+)
 
 
 @dataclass(frozen=True)
@@ -192,18 +215,27 @@ def _has_unusually_explicit_supersession_signal(content: str) -> bool:
 
 
 def _is_decision_layer_supersession(candidate: SemanticCandidate, content: str) -> bool:
+    maintenance_biased = _has_maintenance_bias(content)
+    replacement_targets = _extract_replacement_targets(content)
+    candidate_tokens = _meaningful_tokens(" ".join((candidate.title, candidate.problem, candidate.chosen_option)))
+    replacement_tokens = set().union(*(_meaningful_tokens(target) for target in replacement_targets)) if replacement_targets else set()
+
+    if maintenance_biased and not replacement_tokens and "replaced by" not in content and "migrate away from" not in content:
+        return False
+
     if any(marker in content for marker in ("deprecate", "retire", "sunset", "replaced by")):
         return True
     if "migrate away from" in content:
         return True
 
-    candidate_tokens = _meaningful_tokens(" ".join((candidate.title, candidate.problem, candidate.chosen_option)))
-    replacement_targets = _extract_replacement_targets(content)
-    replacement_tokens = set().union(*(_meaningful_tokens(target) for target in replacement_targets)) if replacement_targets else set()
-
     if replacement_tokens and replacement_tokens.intersection(candidate_tokens):
+        if maintenance_biased and not _has_unusually_explicit_supersession_signal(content):
+            return False
         return True
     if replacement_tokens and not replacement_tokens.intersection(candidate_tokens):
+        return False
+
+    if maintenance_biased:
         return False
 
     return not any(marker in content for marker in IMPLEMENTATION_MARKERS)
@@ -244,3 +276,7 @@ def _is_meaningful_shorthand_replacement(old: str | None, new: str | None) -> bo
         return False
     tokens = [operand.strip().lower() for operand in operands]
     return all(token not in STOP_WORDS and token not in GENERIC_REPLACEMENT_TERMS for token in tokens)
+
+
+def _has_maintenance_bias(content: str) -> bool:
+    return any(marker in content for marker in MAINTENANCE_MARKERS)
