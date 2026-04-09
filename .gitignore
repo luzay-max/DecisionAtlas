@@ -18,3 +18,6 @@ __pycache__/
 *.db
 *.tsbuildinfo
 *.log
+.codex/
+erroImg/
+1.txt

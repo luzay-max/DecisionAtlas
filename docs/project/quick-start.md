@@ -113,6 +113,13 @@ python scripts/ci/run_benchmark.py
 
 This now validates both the guided demo fixtures and the curated live-analysis benchmark repository set under `examples/live-benchmarks/`.
 
+Recommended real-repo smoke checks after the stack is up:
+
+- import a public repository such as `browser-use/browser-use`
+- confirm the imported workspace reaches either `review_ready`, `why_ready`, or an explicit bounded failure / evidence-limited state
+- ask a focused why-question and confirm the answer includes citations
+- run drift evaluation once and confirm the result is understandable for the current workspace state
+
 Run browser smoke coverage:
 
 ```powershell
@@ -125,5 +132,6 @@ pnpm --filter @decisionatlas/web exec playwright test
 - If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. CI uses the `uv` CLI directly.
 - If import succeeds but no meaningful candidates appear, verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set for a live provider-backed demo.
 - Live analysis currently supports public GitHub repositories only. Private repositories and GitHub App flows are out of scope for this phase.
+- Imported workspaces intentionally separate review readiness, why readiness, and drift readiness. `review_required` or `evidence_limited` is a normal bounded outcome, not necessarily a broken run.
 - If Docker is running but services are unavailable, retry `docker compose up -d postgres redis`
 - If `.docx` import is skipped, confirm `pandoc` is installed and available from the terminal

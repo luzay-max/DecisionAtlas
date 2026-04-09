@@ -8,7 +8,8 @@ Current project stage:
 - `v0.2` demo hardening complete
 - guided demo lane stable
 - real repository analysis lane is functional end-to-end
-- next priority: improve drift precision and overall trust in imported-repository outcomes
+- imported-workspace semantics have been hardened across review, why, drift, and indexing
+- next priority: release-quality cleanup before heavier v0.3 platform work
 
 Example why-questions:
 
@@ -23,10 +24,13 @@ What the product already does:
 - imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
 - supports fake-provider local mode and OpenAI-compatible live provider mode
 - supports one-off live analysis runs for public GitHub repositories through imported workspaces
+- reuses existing imported workspaces and supports `since_last_sync` incremental sync
+- classifies GitHub import failures into clearer network / repository / provider buckets
 - extracts candidate decisions with source references and stage-aware extraction progress
 - lets a reviewer accept, reject, or supersede decisions
-- answers why-questions with citation-first responses
-- flags rule-first and semantic drift alerts after manual evaluation
+- answers why-questions with citation-first responses, support grading, and chunk-backed supporting evidence
+- flags rule-first and semantic drift alerts after manual evaluation with more conservative imported drift semantics
+- surfaces imported-workspace readiness across review, why, and drift with recommended next actions
 
 Architecture snapshot:
 
@@ -110,7 +114,9 @@ For live analysis, the current supported scope is:
 - not long-lived GitHub App connections yet
 - results may end in useful candidates, explicit `insufficient_evidence`, or `conversion_limited` diagnostics depending on repository signal and extraction quality
 - imported why answers can now resolve to `ok`, `limited_support`, `review_required`, or `insufficient_evidence` depending on accepted-decision grounding
+- imported why answers can use structured chunk evidence to strengthen support while keeping the accepted decision as the answer anchor
 - drift evaluation is available for imported workspaces but is currently triggered manually from the product UI
+- imported dashboards and search now expose review / why / drift readiness with recommended actions instead of a single opaque status
 
 Current operating model:
 
@@ -145,16 +151,16 @@ Project docs:
 Next recommended direction:
 
 1. keep the guided demo stable
-2. improve drift precision so imported alerts feel more like credible review signals than broad related-artifact hints
-3. continue strengthening why-search retrieval quality and evidence richness on imported workspaces
+2. do a release-quality cleanup pass so the current product state is documented and presentable
+3. keep a lightweight real-repo benchmark set for regression checks without turning validation into a separate platform effort
 4. only after that, move on to hosted demo delivery and later v0.3 platform work
 
 Real-functionality priorities:
 
 - keep end-to-end live-provider validation healthy on public repositories
-- improve drift precision and alert wording
-- continue raising why-answer quality when accepted coverage is still thin
-- measure repository outcomes instead of relying on demo-only confidence
+- keep imported why quality healthy as more repos are reindexed with structured chunk metadata
+- keep imported drift conservative and operationally understandable
+- package the current capability set like a release instead of a long-lived prototype branch
 
 Known limitations:
 
@@ -164,6 +170,6 @@ Known limitations:
 - GitHub import still uses token mode, not GitHub App auth
 - live analysis currently supports public repositories only, not private repo auth flows
 - real imported workspaces can still be sparse or conversion-limited depending on repository signal quality and extraction grounding
-- indexing chunking is still MVP-style and not yet structure-aware
 - many imported why answers still depend on thin accepted-decision grounding and may remain `limited_support`
-- drift alerts are still conservative and can be noisy on broad repository artifacts such as changelogs or contributing material
+- drift alerts are still conservative and may under-report rather than overstate repository change
+- imported readiness explains the next step better than before, but it is still tuned for operator-guided use rather than self-serve hosted onboarding

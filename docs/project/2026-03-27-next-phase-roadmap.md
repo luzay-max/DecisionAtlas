@@ -30,6 +30,49 @@ That changes the forward-looking order to:
 3. Indexing modernization for real evidence
 ```
 
+## Status Update (2026-04-09)
+
+Since the 2026-04-01 update, the next two quality slices have also shipped:
+
+- `drift precision` is complete across multiple follow-up changes:
+  - weaker follow-up alerts are grouped more compactly
+  - `possible_supersession` is more conservative
+  - stale prior drift alerts are replaced during reevaluation
+  - implementation-heavy maintenance work is less likely to surface as a strong replacement signal
+- `why-search retrieval quality` is complete:
+  - query rewrite is stronger for technical aliases
+  - hybrid retrieval gives vector evidence more weight
+  - chunk-backed supporting evidence now helps imported why answers reach `ok`
+- `imported workspace readiness surface` is complete:
+  - dashboard and search now show richer imported-workspace readiness
+  - review / why / drift next actions are surfaced more explicitly
+
+This means the practical next-work order has changed again:
+
+```text
+1. Indexing modernization for real evidence
+2. Release-quality cleanup
+3. Lightweight real-repo benchmark capture
+4. v0.3 platform work
+```
+
+## Status Update (2026-04-09, later)
+
+Since the earlier 2026-04-09 update, `indexing modernization for real evidence` has also shipped:
+
+- structure-aware chunking now preserves section context
+- oversized sections use bounded overlap instead of blind flat slicing
+- artifact chunks now persist structured metadata
+- imported why answers can rank structured chunk evidence above weaker flat chunks while keeping accepted decisions as the answer anchor
+
+That changes the practical next-work order again:
+
+```text
+1. Release-quality cleanup
+2. Lightweight real-repo benchmark capture
+3. v0.3 platform work
+```
+
 ## Priority 1: Workspace Reuse and Incremental Sync
 
 **Status:** Completed
@@ -123,7 +166,7 @@ This priority is now implemented:
 
 ## Priority 3: Drift Precision
 
-**Status:** Current priority
+**Status:** Completed
 
 ### Goal
 
@@ -156,43 +199,108 @@ But current alerts are still broad:
 - less noisy review load
 - better downstream product credibility
 
+### Completed Outcome
+
+This priority is now implemented:
+
+- broad-document and weak follow-up drift noise is lower
+- grouped weak follow-up alerts are more compact
+- reevaluation replaces stale prior alerts instead of rendering conflicting generations together
+- implementation-heavy fixes are less likely to be misread as strong replacement signals
+
+## Priority 4: Why-Search Retrieval Quality
+
+**Status:** Completed
+
+### Goal
+
+Improve imported why-answer recall and evidence thickness without changing the accepted-decision trust anchor.
+
+### Why This Came Next
+
+Once drift precision improved, the next product-quality gap was imported why answers that still felt too sparse even when the right accepted decision existed.
+
+### Scope
+
+- strengthen query rewrite and technical alias normalization
+- rebalance hybrid retrieval so vector evidence matters more
+- let chunk-backed artifact evidence support the accepted-decision answer
+- preserve the rule that accepted decisions remain the answer anchor
+
+### Completed Outcome
+
+This priority is now implemented:
+
+- imported why answers now use stronger query normalization
+- chunk-backed supporting evidence can raise some imported answers from `limited_support` to `ok`
+- accepted decisions remain the primary answer anchor
+
+## Priority 5: Imported Workspace Readiness Surface
+
+**Status:** Completed
+
+### Goal
+
+Make imported workspaces explain what the user should do next instead of showing only sparse status counts.
+
+### Why This Followed
+
+The imported lane had become operationally stronger, but the product still needed to say more clearly whether the workspace was ready for review, why-search, or drift follow-up.
+
+### Scope
+
+- expose richer imported readiness payloads from the backend
+- surface explicit recommended actions
+- keep dashboard and search aligned on the same readiness semantics
+
+### Completed Outcome
+
+This priority is now implemented:
+
+- imported readiness now includes review, why, and drift-oriented state
+- recommended actions are surfaced consistently in dashboard and search
+- imported workspaces better explain what the next useful action is
+
 ## Updated Execution Order
 
 ```text
-1. Drift precision
-2. Why-search retrieval quality
-3. Indexing modernization for real evidence
+1. Release-quality cleanup
+2. Lightweight real-repo benchmark capture
+3. v0.3 platform work
 ```
 
 ## Why This Order Now
 
-The already-finished work removed the two biggest operational friction points:
+The already-finished work removed the earlier operational and product-semantics bottlenecks:
 
 - repeated full reruns for known workspaces
 - transient GitHub transport failures that looked like generic analysis failure
+- broad and repetitive drift noise in the imported-repo loop
+- sparse why answers caused by weak imported retrieval support
+- vague imported-workspace next-step semantics
 
 The remaining highest-signal product gap is now:
 
-1. drift alert quality after the imported-repository loop is stable
-2. retrieval quality for why-answers that are still sparse or partially supported
-3. deeper indexing work that improves long-term evidence quality
+1. release cleanup so the current product baseline is documented and presentable
+2. lightweight benchmark capture so future regressions are easier to catch without turning validation into a large separate project
+3. heavier platform work only after the current loop is cleaner and better packaged
 
 ## What Not To Prioritize First
 
 The following are still valid future areas, but should not come before the three priorities above:
 
-- user account binding for workspace ownership
-- deeper indexing modernization
-- large retrieval architecture rewrites
+- GitHub App auth and webhook sync
+- private repository support
+- login, roles, and workspace scoping
 - broad new source ingestion beyond GitHub
-- major why-search redesign beyond the already completed focus and support grading work
+- large retrieval architecture rewrites before indexing quality is improved
 
 ## Summary
 
-The next phase should optimize the real-repository product loop rather than expand sideways:
+The next phase should improve release polish and lightweight validation rather than immediately expand into heavier platform features:
 
-- improve drift precision
-- strengthen why-search retrieval quality where accepted coverage is still thin
-- modernize indexing only after the more direct product bottlenecks are addressed
+- do a release-quality cleanup pass
+- capture a lightweight real-repo benchmark set as a supporting validation asset
+- postpone heavier v0.3 platform work until after the current loop is better packaged and easier to validate
 
 That path should produce the strongest near-term improvement in both product quality and operational efficiency.

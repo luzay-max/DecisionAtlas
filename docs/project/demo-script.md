@@ -1,6 +1,6 @@
 # Demo Script
 
-This walkthrough is designed for a 60-90 second MVP demo. The primary story is a stable guided demo, not the advanced real-repo lane.
+This walkthrough is designed for a 60-90 second product demo. The primary story is still the stable guided lane, but the imported-workspace lane is now strong enough for a short credibility check at the end.
 
 ## Opening posture
 
@@ -86,3 +86,15 @@ Narration:
 ## Closing line
 
 - "DecisionAtlas is not training a new model. It is turning engineering decisions into durable, reviewable, searchable operating memory."
+
+## Optional 30-second real-repo proof
+
+Route:
+
+- `http://localhost:3000/`
+
+Narration:
+
+- "The seeded lane is our stable walkthrough, but the same product can also analyze a real public GitHub repository into a separate imported workspace."
+- "That imported workspace now exposes whether review, why-search, and drift are ready, instead of leaving the operator to guess the next move."
+- "The imported why answers stay anchored to accepted decisions, with artifact chunks acting as supporting evidence rather than replacing the trust anchor."
