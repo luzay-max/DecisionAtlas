@@ -79,8 +79,10 @@ describe("QueryForm", () => {
           workspace_readiness: {
             state: "review_ready",
             next_action: "review_candidates",
+            review_state: "review_ready",
             why_state: "review_required",
-            drift_state: "review_required"
+            drift_state: "review_required",
+            recommended_actions: ["review_candidates", "inspect_import_summary"],
           }
         },
         supporting_context: [],
@@ -146,8 +148,10 @@ describe("QueryForm", () => {
           workspace_readiness: {
             state: "why_ready",
             next_action: "ask_why",
+            review_state: "review_complete",
             why_state: "why_ready",
-            drift_state: "clean"
+            drift_state: "clean",
+            recommended_actions: ["ask_why", "evaluate_drift", "inspect_import_summary"],
           }
         },
         primary_decision: {
@@ -203,8 +207,10 @@ describe("QueryForm", () => {
           workspace_readiness: {
             state: "why_ready",
             next_action: "ask_why",
+            review_state: "review_complete",
             why_state: "ready",
-            drift_state: "clean"
+            drift_state: "clean",
+            recommended_actions: ["ask_why", "evaluate_drift", "inspect_import_summary"],
           }
         },
         primary_decision: {

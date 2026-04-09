@@ -149,6 +149,12 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["latest_import"]["summary"]["extraction_summary"]["shortlisted_artifacts"] == 4
     assert body["latest_import"]["summary"]["extraction_summary"]["current_phase"] == "completed"
     assert body["workspace_readiness"]["state"] == "review_ready"
+    assert body["workspace_readiness"]["review_state"] == "review_ready"
+    assert body["workspace_readiness"]["recommended_actions"] == [
+        "review_candidates",
+        "inspect_import_summary",
+        "evaluate_drift",
+    ]
     assert body["drift_status"]["state"] == "unevaluated"
 
 
@@ -220,4 +226,46 @@ def test_dashboard_summary_distinguishes_conversion_limited_readiness(tmp_path: 
     assert response.status_code == 200
     body = response.json()
     assert body["workspace_readiness"]["state"] == "conversion_limited"
+    assert body["workspace_readiness"]["review_state"] == "review_unavailable"
+    assert body["workspace_readiness"]["recommended_actions"] == ["inspect_import_summary"]
     assert body["latest_import"]["summary"]["extraction_summary"]["conversion_loss_reasons"]["invalid_json"] == 2
+
+
+def test_dashboard_summary_reports_analysis_failed_readiness(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "dashboard-analysis-failed.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-failed",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="failed",
+                imported_count=0,
+                summary_json={
+                    "stage": "importing_artifacts",
+                    "outcome": "failed",
+                    "failure_category": "network_failure",
+                },
+                error_message="connection reset",
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/dashboard/summary", params={"workspace_slug": "imported-workspace"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace_readiness"]["state"] == "analysis_failed"
+    assert body["workspace_readiness"]["review_state"] == "review_unavailable"
+    assert body["workspace_readiness"]["recommended_actions"] == ["retry_import", "inspect_import_summary"]

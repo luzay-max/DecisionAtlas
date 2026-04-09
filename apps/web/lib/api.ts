@@ -32,8 +32,10 @@ export type WhyAnswerStatus =
 export type WorkspaceReadiness = {
   state: string;
   next_action: string;
+  review_state: string;
   why_state: string;
   drift_state: string;
+  recommended_actions: string[];
 };
 
 export type DriftEvaluation = {

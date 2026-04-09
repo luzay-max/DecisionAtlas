@@ -149,6 +149,11 @@ export const messages = {
     },
     importedReadiness: {
       eyebrow: "Imported workspace status",
+      axes: {
+        review: "Review",
+        why: "Why",
+        drift: "Drift",
+      },
       states: {
         analysis_failed: "Imported analysis failed",
         review_ready: "Imported workspace is ready for review",
@@ -165,6 +170,11 @@ export const messages = {
         conversion_limited:
           "The repository produced enough screened-in extraction attempts, but full extraction still failed to convert them into reviewable candidates.",
         import_complete: "The import completed, but the workspace still needs operator judgment about the next action.",
+      },
+      reviewStates: {
+        review_ready: "review ready",
+        review_complete: "review complete",
+        review_unavailable: "not ready for review",
       },
       actions: {
         review_candidates: "Review imported candidates",
@@ -531,6 +541,11 @@ export const messages = {
     },
     importedReadiness: {
       eyebrow: "导入工作区状态",
+      axes: {
+        review: "审阅",
+        why: "原因检索",
+        drift: "漂移",
+      },
       states: {
         analysis_failed: "导入分析失败",
         review_ready: "导入工作区已可进入审阅",
@@ -546,6 +561,11 @@ export const messages = {
         evidence_limited: "导入虽然成功，但高信号证据仍然偏少。这里的稀疏结果应被理解为仓库信号限制，而不是隐藏故障。",
         conversion_limited: "仓库已经提供了足够多的完整抽取尝试，但抽取质量仍未把它们转成可审阅候选决策。",
         import_complete: "导入已经完成，但当前工作区的下一步仍需要人工判断。",
+      },
+      reviewStates: {
+        review_ready: "可进入审阅",
+        review_complete: "审阅已完成",
+        review_unavailable: "当前不适合审阅",
       },
       actions: {
         review_candidates: "审阅导入候选",

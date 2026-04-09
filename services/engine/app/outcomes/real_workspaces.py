@@ -70,32 +70,47 @@ def build_imported_workspace_readiness(
         state = "analysis_failed"
         next_action = "retry_import"
         why_state = "analysis_failed"
+        review_state = "review_unavailable"
     elif candidate_count > 0:
         state = "review_ready"
         next_action = "review_candidates"
         why_state = "review_required"
+        review_state = "review_ready"
     elif accepted_count > 0:
         state = "why_ready"
         next_action = "ask_why"
         why_state = "ready"
+        review_state = "review_complete"
     elif conversion_limited:
         state = "conversion_limited"
         next_action = "inspect_import_summary"
         why_state = "evidence_limited"
+        review_state = "review_unavailable"
     elif outcome == "insufficient_evidence":
         state = "evidence_limited"
         next_action = "inspect_import_summary"
         why_state = "evidence_limited"
+        review_state = "review_unavailable"
     else:
         state = "import_complete"
         next_action = "inspect_import_summary"
         why_state = "review_required"
+        review_state = "review_unavailable"
+
+    recommended_actions = _recommended_actions(
+        next_action=next_action,
+        why_state=why_state,
+        drift_state=drift_status["state"],
+        review_state=review_state,
+    )
 
     return {
         "state": state,
         "next_action": next_action,
+        "review_state": review_state,
         "why_state": why_state,
         "drift_state": drift_status["state"],
+        "recommended_actions": recommended_actions,
     }
 
 
@@ -109,6 +124,34 @@ def _is_conversion_limited(summary: dict, *, candidate_count: int, accepted_coun
     conversion_losses = sum(int(count) for count in dict(extraction_summary.get("conversion_loss_reasons") or {}).values())
     significant_attempts = max(screened_in, full_requests) >= 5
     return created_candidates == 0 and significant_attempts and conversion_losses >= 3
+
+
+def _recommended_actions(
+    *,
+    next_action: str,
+    why_state: str,
+    drift_state: str,
+    review_state: str,
+) -> list[str]:
+    actions: list[str] = [next_action]
+    if review_state == "review_ready":
+        actions.append("inspect_import_summary")
+    if why_state == "ready" and next_action != "ask_why":
+        actions.append("ask_why")
+    if drift_state in {"unevaluated", "stale", "clean"}:
+        actions.append("evaluate_drift")
+    elif drift_state == "alerts_present":
+        actions.append("inspect_alerts")
+    elif drift_state == "review_required" and review_state != "review_ready":
+        actions.append("review_candidates")
+    if next_action != "inspect_import_summary":
+        actions.append("inspect_import_summary")
+
+    deduped: list[str] = []
+    for action in actions:
+        if action not in deduped:
+            deduped.append(action)
+    return deduped
 
 
 def summarize_imported_evidence(artifacts: list, decisions: list, source_refs_by_decision: dict[int, list]) -> dict:

@@ -164,8 +164,10 @@ describe("WorkspaceDashboardContent", () => {
           workspace_readiness: {
             state: "review_ready",
             next_action: "review_candidates",
+            review_state: "review_ready",
             why_state: "review_required",
             drift_state: "review_required",
+            recommended_actions: ["review_candidates", "inspect_import_summary"],
           },
           drift_status: {
             state: "review_required",
@@ -182,6 +184,14 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByRole("link", { name: "Review imported candidates" })).toHaveAttribute(
       "href",
       "/review?workspace=imported-workspace"
+    );
+    expect(screen.getByText("Review:")).toBeInTheDocument();
+    expect(screen.getByText("review ready")).toBeInTheDocument();
+    expect(screen.getByText("Why:")).toBeInTheDocument();
+    expect(screen.getAllByText("review required")).toHaveLength(2);
+    expect(screen.getByRole("link", { name: "Return to imported dashboard" })).toHaveAttribute(
+      "href",
+      "/workspaces/imported-workspace"
     );
     expect(screen.getByText(/Contributing signal mix/i)).toBeInTheDocument();
     expect(screen.getByText(/Extraction funnel shortlisted 6, screened in 3, and created 2 candidate decisions\./i)).toBeInTheDocument();
@@ -239,8 +249,10 @@ describe("WorkspaceDashboardContent", () => {
           workspace_readiness: {
             state: "conversion_limited",
             next_action: "inspect_import_summary",
+            review_state: "review_unavailable",
             why_state: "evidence_limited",
             drift_state: "evidence_limited",
+            recommended_actions: ["inspect_import_summary"],
           },
           drift_status: {
             state: "evidence_limited",
@@ -254,6 +266,7 @@ describe("WorkspaceDashboardContent", () => {
     );
 
     expect(screen.getByText("Imported workspace is conversion-limited")).toBeInTheDocument();
+    expect(screen.getByText("not ready for review")).toBeInTheDocument();
     expect(screen.getByText(/Conversion losses during full extraction/i)).toBeInTheDocument();
     expect(screen.queryByText(/limited high-signal evidence/i)).not.toBeInTheDocument();
   });
