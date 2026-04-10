@@ -1,0 +1,24 @@
+[
+  {
+    "id": "browser-use-http-download-status",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "question": "为什么要用 HTTP 下载来跟踪远程浏览器状态？",
+    "expected_status": "ok",
+    "expected_terms": ["http", "download", "active_downloads"],
+    "min_citations": 2,
+    "notes": "Protects the imported why case that relies on accepted-decision grounding plus structured chunk evidence."
+  },
+  {
+    "id": "browser-use-keep-alive-shutdown",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "question": "为什么在代理关闭时要优雅停止浏览器会话并保持 keep_alive=True？",
+    "expected_status": "ok",
+    "expected_terms": ["keep_alive", "browser", "close"],
+    "min_citations": 2,
+    "notes": "Protects the imported why case around browser-session shutdown and keep-alive behavior."
+  }
+]

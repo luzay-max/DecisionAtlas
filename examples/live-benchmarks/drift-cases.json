@@ -1,0 +1,35 @@
+[
+  {
+    "id": "browser-use-cookie-maintenance-not-strong-replacement",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "artifact_title_pattern": "fix: cookie persistence bugs + comprehensive tests",
+    "accepted_decision_title": "Enable HTTP-based downloads for remote browsers with agent status tracking",
+    "forbidden_alert_types": ["possible_supersession"],
+    "allowed_outcomes": ["needs_review", "none"],
+    "notes": "Maintenance-heavy cookie/test fixes should not become strong decision-replacement signals."
+  },
+  {
+    "id": "browser-use-websocket-maintenance-not-strong-replacement",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "artifact_title_pattern": "fix: preserve CDP WebSocket connections on Agent.close() with keep_alive=True",
+    "accepted_decision_title": "Gracefully stop browser session on agent close with keep_alive=True to prevent asyncio deadlock",
+    "forbidden_alert_types": ["possible_supersession"],
+    "allowed_outcomes": ["needs_review", "none"],
+    "notes": "Lifecycle/WebSocket fixes can be review-worthy, but should stay out of strong replacement paths."
+  },
+  {
+    "id": "browser-use-cloakbrowser-followup-weak-review",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "artifact_title_pattern": "Feature Request: Use cloakbrowser replace playwright",
+    "accepted_decision_title": "Enable HTTP-based downloads for remote browsers with agent status tracking",
+    "forbidden_alert_types": ["possible_supersession"],
+    "allowed_outcomes": ["needs_review", "none"],
+    "notes": "Implementation substitution language should remain weaker than decision-layer replacement unless clearer evidence appears."
+  }
+]

@@ -9,6 +9,24 @@ It has two purposes:
 
 ## Curated Repositories
 
+The runnable fixture entrypoint is `examples/live-benchmarks/`:
+
+- `repositories.json` captures repo-level import/readiness expectations.
+- `why-cases.json` captures focused imported why-search checks.
+- `drift-cases.json` captures known drift-noise regression checks.
+
+The default benchmark command validates those fixtures offline:
+
+```powershell
+python scripts/ci/run_benchmark.py
+```
+
+Optional live why-case smoke checks can run against an already-started local stack and already-existing imported workspaces:
+
+```powershell
+python scripts/ci/run_benchmark.py --live-real-repos
+```
+
 ### `encode/httpx`
 
 - Repo: `encode/httpx`
@@ -55,6 +73,9 @@ It has two purposes:
 - Repo: `browser-use/browser-use`
 - Workspace slug: `github-browser-use-browser-use`
 - Why it matters: imported lane regression repo with strong real-world why and drift examples
+- Fixture coverage:
+  - `examples/live-benchmarks/why-cases.json`
+  - `examples/live-benchmarks/drift-cases.json`
 - Expected signals:
   - imported readiness should expose explicit review / why / drift state
   - focused why-questions around HTTP downloads and keep-alive shutdown behavior should be able to reach `ok` with citations after accepted decisions exist
@@ -131,3 +152,4 @@ When changing the real imported-workspace lane, compare behavior against this ba
 - did why-search remain anchored to accepted decisions while improving support quality?
 - did drift remain explicitly evaluable and interpretable without reintroducing broad noise?
 - did the product reduce "import worked, but I still do not know what to do" outcomes?
+- if the behavior is important enough to protect, did it get captured in `examples/live-benchmarks/` rather than only in prose?

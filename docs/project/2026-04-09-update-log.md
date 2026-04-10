@@ -68,12 +68,27 @@ The main outcomes are:
   - avoided the duplicated import-success text strict-mode locator
   - aligned the drift assertion with the current UI label (`possible drift`)
 
+### Lightweight real-repo benchmark capture (2026-04-10 follow-up)
+
+- Created and implemented `capture-lightweight-real-repo-benchmarks`.
+- Added fixture-backed real-repo checks:
+  - `examples/live-benchmarks/why-cases.json`
+  - `examples/live-benchmarks/drift-cases.json`
+- Added `browser-use/browser-use` to the live benchmark repository set.
+- Extended `scripts/ci/run_benchmark.py` so default validation checks repository, why-case, and drift-case fixture shape offline.
+- Added optional `--live-real-repos` mode for focused why checks against an already-running local API and existing imported workspaces.
+- Updated `real-repository-validation-baseline.md` to point to the fixture-backed benchmark cases.
+- Archived the OpenSpec change and synced:
+  - `lightweight-real-repo-benchmarks`
+  - `real-repository-outcomes`
+
 ### OpenSpec
 
 - Completed and archived:
   - `improve-why-search-retrieval-quality`
   - `improve-imported-workspace-readiness-surface`
   - `modernize-indexing-for-real-evidence`
+  - `capture-lightweight-real-repo-benchmarks`
 
 ## Validation
 
@@ -83,6 +98,9 @@ The main outcomes are:
 - `.\.venv\Scripts\python -m pytest -q` in `services/engine` -> `132 passed`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1` -> passed
 - `pnpm --filter @decisionatlas/web exec playwright test apps/web/tests-e2e/demo-smoke.spec.ts` -> passed
+- `python scripts\ci\run_benchmark.py` -> passed with repository, why-case, and drift-case fixture validation
+- `.\.venv\Scripts\python -m pytest tests\evals\test_benchmark_fixtures.py -q` -> `4 passed`
+- `python scripts\ci\run_benchmark.py --live-real-repos` -> passed against the local `github-browser-use-browser-use` workspace
 - real imported workspace validation against `github-browser-use-browser-use` for:
   - imported why-search retrieval quality
   - imported readiness surface
@@ -106,6 +124,5 @@ The main outcomes are:
 
 ## Next Suggested Direction
 
-- Capture a lightweight benchmark set for a few real repos without turning it into a heavy evaluation platform.
 - Decide whether the two remaining local-only documents should be committed or intentionally left out of the repo.
-- After that, move on to heavier v0.3 platform capabilities.
+- After that, move on to heavier v0.3 platform capabilities, starting with platform-boundary design before GitHub App implementation.
