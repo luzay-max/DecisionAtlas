@@ -65,6 +65,8 @@ def _seed_dashboard_fixture(db_path: Path) -> None:
                 repo="org/repo",
                 mode="full",
                 status="succeeded",
+                sync_origin="webhook",
+                trigger_event="pull_request",
                 imported_count=5,
                 summary_json={
                     "stage": "completed",
@@ -145,6 +147,8 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["decision_counts"]["candidate"] == 1
     assert body["latest_import"]["summary"]["stage"] == "completed"
     assert body["latest_import"]["summary"]["outcome"] == "ok"
+    assert body["latest_import"]["sync_origin"] == "webhook"
+    assert body["latest_import"]["trigger_event"] == "pull_request"
     assert body["latest_import"]["summary"]["artifact_counts"]["doc"] == 1
     assert body["latest_import"]["summary"]["extraction_summary"]["shortlisted_artifacts"] == 4
     assert body["latest_import"]["summary"]["extraction_summary"]["current_phase"] == "completed"
@@ -155,6 +159,8 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
         "inspect_import_summary",
         "evaluate_drift",
     ]
+    assert body["workspace_readiness"]["access_source_label"] == "Public GitHub access"
+    assert body["workspace_readiness"]["latest_sync_origin"] == "webhook"
     assert body["drift_status"]["state"] == "unevaluated"
 
 

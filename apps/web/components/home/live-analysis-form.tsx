@@ -102,6 +102,7 @@ export function LiveAnalysisForm() {
         <div className="stack" style={{ border: "1px solid currentColor", borderRadius: "1rem", padding: "1rem" }}>
           <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
+          {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
           {lookup.has_running_import ? <p>{messages.liveAnalysis.runningImportHint}</p> : null}
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             <Link href={`/workspaces/${encodeURIComponent(lookup.workspace_slug)}`}>{messages.liveAnalysis.openExisting}</Link>

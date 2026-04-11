@@ -37,6 +37,14 @@ export function ImportedReadinessCard({
     ] ?? readiness.review_state;
   const whyLabel = messages.status[readiness.why_state as keyof typeof messages.status] ?? readiness.why_state;
   const driftLabel = messages.status[readiness.drift_state as keyof typeof messages.status] ?? readiness.drift_state;
+  const latestSyncOrigin = readiness.latest_sync_origin
+    ? messages.status[readiness.latest_sync_origin as keyof typeof messages.status] ?? readiness.latest_sync_origin
+    : null;
+  const activeSyncOrigin = readiness.active_sync_origin
+    ? messages.status[readiness.active_sync_origin as keyof typeof messages.status] ?? readiness.active_sync_origin
+    : null;
+  const syncEventLabel = (event: string | null | undefined) =>
+    event ? messages.syncEvents[event as keyof typeof messages.syncEvents] ?? event : null;
 
   return (
     <section className="card stack">
@@ -53,6 +61,22 @@ export function ImportedReadinessCard({
         <p>
           <strong>{messages.importedReadiness.axes.drift}:</strong> {driftLabel}
         </p>
+        {readiness.access_source_label ? (
+          <p>
+            <strong>{messages.importedReadiness.axes.source}:</strong> {readiness.access_source_label}
+          </p>
+        ) : null}
+        {latestSyncOrigin ? (
+          <p>
+            <strong>{messages.importedReadiness.axes.sync}:</strong> {latestSyncOrigin}
+            {readiness.latest_sync_at ? ` · ${readiness.latest_sync_at}` : ""}
+          </p>
+        ) : null}
+        {activeSyncOrigin ? (
+          <p>
+            <strong>{messages.importedReadiness.axes.activeSync}:</strong> {activeSyncOrigin}
+          </p>
+        ) : null}
       </div>
       {primaryHrefBuilder ? (
         <div className="action-row">
@@ -70,6 +94,28 @@ export function ImportedReadinessCard({
               <Link key={action} href={hrefBuilder(workspaceSlug)} className="action-link">
                 {label}
               </Link>
+            );
+          })}
+        </div>
+      ) : null}
+      {readiness.recent_syncs && readiness.recent_syncs.length > 0 ? (
+        <div className="stack">
+          <p>
+            <strong>{messages.importedReadiness.recentSyncs}</strong>
+          </p>
+          {readiness.recent_syncs.slice(0, 3).map((sync) => {
+            const syncOrigin = sync.sync_origin
+              ? messages.status[sync.sync_origin as keyof typeof messages.status] ?? sync.sync_origin
+              : sync.mode;
+            const syncStatus = messages.status[sync.status as keyof typeof messages.status] ?? sync.status;
+            const triggerEvent = sync.trigger_event
+              ? syncEventLabel(sync.trigger_event)
+              : null;
+            return (
+              <p key={sync.job_id}>
+                {syncOrigin} · {syncStatus}
+                {triggerEvent ? ` · ${triggerEvent}` : ""}
+              </p>
             );
           })}
         </div>

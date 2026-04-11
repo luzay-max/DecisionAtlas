@@ -120,7 +120,10 @@ describe("POST /imports/github", () => {
       payload: {
         workspace_slug: "demo-workspace",
         repo: "org/repo",
-        mode: "full"
+        mode: "full",
+        owner_scope: "local-default",
+        access_source_type: "github_app_installation",
+        access_source_ref: "12345",
       }
     });
 
@@ -141,6 +144,91 @@ describe("POST /imports/github", () => {
           skipped: { outside_high_signal_paths: 4, non_markdown: 6, generated_or_vendor_path: 1 }
         }
       }
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it("proxies POST /imports/github/installations/bind", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          workspace_exists: true,
+          workspace_slug: "github-org-repo",
+          access_source_type: "github_app_installation",
+          access_source_label: "GitHub App installation #12345"
+        }),
+      json: async () => ({
+        workspace_exists: true,
+        workspace_slug: "github-org-repo",
+        access_source_type: "github_app_installation",
+        access_source_label: "GitHub App installation #12345"
+      })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/imports/github/installations/bind",
+      payload: {
+        repo: "org/repo",
+        installation_id: "12345",
+        owner_scope: "local-default"
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      workspace_exists: true,
+      workspace_slug: "github-org-repo",
+      access_source_type: "github_app_installation",
+      access_source_label: "GitHub App installation #12345"
+    });
+
+    global.fetch = originalFetch;
+  });
+
+  it("proxies POST /imports/github/webhook", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          status: "queued",
+          workspace_slug: "github-org-repo",
+          job_id: "job-webhook"
+        }),
+      json: async () => ({
+        status: "queued",
+        workspace_slug: "github-org-repo",
+        job_id: "job-webhook"
+      })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/imports/github/webhook",
+      headers: {
+        "x-github-event": "pull_request",
+        "x-github-delivery": "delivery-1"
+      },
+      payload: {
+        action: "opened",
+        installation: { id: 12345 },
+        repository: { full_name: "org/repo" }
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      status: "queued",
+      workspace_slug: "github-org-repo",
+      job_id: "job-webhook"
     });
 
     global.fetch = originalFetch;

@@ -36,6 +36,20 @@ export type WorkspaceReadiness = {
   why_state: string;
   drift_state: string;
   recommended_actions: string[];
+  access_source_type?: string;
+  access_source_label?: string;
+  latest_sync_origin?: string | null;
+  latest_sync_at?: string | null;
+  active_sync_origin?: string | null;
+  recent_syncs?: Array<{
+    job_id: string;
+    status: string;
+    mode: string;
+    sync_origin?: string | null;
+    trigger_event?: string | null;
+    started_at?: string | null;
+    finished_at?: string | null;
+  }>;
 };
 
 export type DriftEvaluation = {
@@ -159,6 +173,8 @@ export type DashboardSummary = WorkspaceProvenance & {
     repo?: string | null;
     mode: string;
     status: string;
+    sync_origin?: string | null;
+    trigger_event?: string | null;
     imported_count: number;
     summary?: ImportSummary | null;
     error_message: string | null;
@@ -214,6 +230,8 @@ export type ImportResult = {
   repo?: string;
   mode?: string;
   status?: string;
+  sync_origin?: string | null;
+  trigger_event?: string | null;
   imported_count: number;
   summary?: ImportSummary | null;
   error_message?: string | null;
@@ -222,6 +240,7 @@ export type ImportResult = {
 };
 
 export type ImportLookup = {
+  owner_scope?: string;
   repo: string;
   repo_url: string;
   workspace_exists: boolean;
@@ -230,6 +249,8 @@ export type ImportLookup = {
   can_incremental_sync: boolean;
   has_running_import: boolean;
   latest_import: ImportResult | null;
+  access_source_type?: string;
+  access_source_label?: string;
 };
 
 export type DriftEvaluationResult = {

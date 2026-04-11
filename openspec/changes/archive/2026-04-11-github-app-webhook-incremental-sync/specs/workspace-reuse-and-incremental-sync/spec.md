@@ -1,5 +1,18 @@
 ## ADDED Requirements
 
+### Requirement: Imported workspaces expose latest sync provenance
+The system SHALL expose latest sync provenance and bounded recent sync history for imported workspaces so product surfaces can explain whether a workspace is current, syncing, or behind.
+
+#### Scenario: Latest sync provenance is available
+- **WHEN** an imported workspace has completed at least one sync
+- **THEN** the system SHALL expose the latest successful sync origin and timestamp in the workspace summary
+
+#### Scenario: Recent sync history includes webhook-triggered runs
+- **WHEN** an imported workspace has recent sync attempts from manual and webhook-triggered paths
+- **THEN** the system SHALL expose enough bounded history for the product to distinguish those sync origins
+
+## MODIFIED Requirements
+
 ### Requirement: Repository lookup exposes imported workspace reuse state
 The system SHALL let the product look up a repository before starting a live import so the UI can tell whether an imported workspace already exists within the current owner scope and whether incremental sync is available.
 
@@ -18,17 +31,6 @@ The system SHALL let the product look up a repository before starting a live imp
 #### Scenario: Installation-backed workspace is identified during lookup
 - **WHEN** the current owner scope already has an imported workspace bound through a GitHub App installation
 - **THEN** repository lookup SHALL identify that workspace as installation-backed reusable state
-
-### Requirement: Imported workspaces expose latest sync provenance
-The system SHALL expose latest sync provenance and bounded recent sync history for imported workspaces so product surfaces can explain whether a workspace is current, syncing, or behind.
-
-#### Scenario: Latest sync provenance is available
-- **WHEN** an imported workspace has completed at least one sync
-- **THEN** the system SHALL expose the latest successful sync origin and timestamp in the workspace summary
-
-#### Scenario: Recent sync history includes webhook-triggered runs
-- **WHEN** an imported workspace has recent sync attempts from manual and webhook-triggered paths
-- **THEN** the system SHALL expose enough bounded history for the product to distinguish those sync origins
 
 ### Requirement: Existing imported workspaces expose explicit next actions
 The system SHALL let the product offer open-existing, incremental-sync, and full-rerun actions explicitly within the current owner scope instead of treating all repeat analysis requests as identical.

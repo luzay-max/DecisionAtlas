@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./decisionatlas.db"
     github_token: str | None = None
     github_import_max_pages: int = 5
+    default_owner_scope: str = "local-default"
+    github_app_webhook_secret: str | None = None
     llm_provider_mode: str = "auto"
     embedding_provider_mode: str = "auto"
     llm_api_key: str | None = None

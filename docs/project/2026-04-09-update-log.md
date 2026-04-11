@@ -10,6 +10,8 @@ The main outcomes are:
 - imported workspace readiness is now surfaced more clearly across dashboard and search
 - indexing is now structure-aware, with chunk metadata preserved and used in why-support ranking
 - release-facing docs now better match the current shipped capability set
+- the v0.3 platform boundary is now defined in OpenSpec rather than left as a vague backlog item
+- GitHub App installation binding and webhook-driven incremental sync are now working end to end in the local real stack
 
 ## Completed
 
@@ -90,6 +92,39 @@ The main outcomes are:
   - `modernize-indexing-for-real-evidence`
   - `capture-lightweight-real-repo-benchmarks`
 
+### v0.3 platform foundation design (2026-04-11)
+
+- Created, completed, and archived `design-v0-3-platform-foundation`.
+- Captured the platform boundary that future v0.3 slices will use:
+  - explicit owner scope
+  - repository identity separate from access source
+  - GitHub App installation as an access-source variant
+  - owner-scoped sync and review actions
+- Synced the resulting spec updates into:
+  - `platform-foundation`
+  - `live-repository-analysis`
+  - `workspace-reuse-and-incremental-sync`
+
+### GitHub App webhook incremental sync (2026-04-11)
+
+- Created, implemented, and archived `github-app-webhook-incremental-sync`.
+- Added owner-scoped installation and access-source persistence for imported workspaces.
+- Added installation-backed repository binding and webhook ingestion for qualifying GitHub events.
+- Reused the existing `since_last_sync` path for webhook-triggered incremental sync instead of creating a separate sync pipeline.
+- Exposed latest sync provenance and bounded recent sync history in workspace-facing APIs.
+- Updated dashboard and imported readiness surfaces so they can explain:
+  - source = GitHub App installation
+  - latest sync origin = webhook or manual
+  - active sync state and recent sync history
+- Fixed the `apps/api` proxy layer so the real `3001` API now forwards:
+  - `POST /imports/github/installations/bind`
+  - `POST /imports/github/webhook`
+- Verified on the real local `github-browser-use-browser-use` workspace that:
+  - source switched from public/manual to installation-backed
+  - webhook-triggered incremental sync queued, ran, and completed
+  - dashboard summary reported `sync_origin = webhook`
+  - the imported candidate count increased after the incremental sync
+
 ## Validation
 
 - `.\.venv\Scripts\python -m pytest tests\indexing\test_chunker.py tests\indexing\test_index_artifact.py tests\retrieval\test_answering.py tests\api\test_query_api.py -q` in `services/engine`
@@ -105,24 +140,42 @@ The main outcomes are:
   - imported why-search retrieval quality
   - imported readiness surface
   - structure-aware chunk-backed evidence
+- `.\.venv\Scripts\python -m pytest tests\db\test_schema.py tests\api\test_imports.py tests\api\test_import_job_status_api.py tests\api\test_timeline_dashboard_api.py tests\test_import_jobs.py tests\retrieval\test_answering.py -q` in `services/engine` -> `28 passed`
+- `pnpm --filter @decisionatlas/web test -- live-analysis-form workspace-dashboard` -> `9 passed`
+- `pnpm --filter @decisionatlas/web typecheck` -> passed after the GitHub App sync UI changes
+- `pnpm --filter @decisionatlas/api test -- imports-route` -> passed
+- `pnpm --filter @decisionatlas/api typecheck` -> passed
+- live local-stack validation for `github-browser-use-browser-use`:
+  - installation bind returned `access_source_type = github_app_installation`
+  - webhook ingestion returned `queued`
+  - import status progressed to `running` and then `succeeded`
+  - dashboard summary exposed `latest_sync_origin = webhook`
 
 ## Git / Branching
 
 - Recorded the day in a dedicated update log commit: `03bd370` `docs: add 2026-04-09 update log`
+- Updated the log again after release closure as `b7f68cc` `docs: update 2026-04-09 log with release closure`
 - Finished the release cleanup tail as `be1945b` `docs: finish release quality cleanup`
 - Landed the release blocker fixes as `ed92875` `test: fix release smoke and engine regressions`
+- Added lightweight real-repo benchmark capture as `7bf443f` `test: capture lightweight real repo benchmarks`
 - Pushed the branch updates to `origin/feat/expand-real-repo-ingest`
 - Fast-forward merged the branch into `main` and pushed `origin/main`
 - Switched back to `feat/expand-real-repo-ingest` after the merge to keep working there
+- Added new unpushed work on `feat/expand-real-repo-ingest` for:
+  - `design-v0-3-platform-foundation` archive + main spec sync
+  - `github-app-webhook-incremental-sync` implementation, archive, and main spec sync
 
 ## Current Reading of the Product
 
 - The real imported-repo lane is now materially stronger than it was at the start of the drift-quality work.
 - Why-search, drift semantics, readiness surface, and indexing all now fit together more coherently.
 - The release-quality cleanup pass is now largely complete, including smoke coverage and pre-release verification.
-- The highest-value remaining work is no longer “make the imported lane basically work,” but “keep the current system legible and protect it from regressions.”
+- The product now has the first real platform boundary and GitHub App sync skeleton instead of only single-user public-repo assumptions.
+- The highest-value remaining work is no longer “make the imported lane basically work,” but “build out the next v0.3 platform slices on top of the now-explicit owner/access-source model.”
 
 ## Next Suggested Direction
 
-- Decide whether the two remaining local-only documents should be committed or intentionally left out of the repo.
-- After that, move on to heavier v0.3 platform capabilities, starting with platform-boundary design before GitHub App implementation.
+- Commit and push the new v0.3 platform work on `feat/expand-real-repo-ingest`.
+- Then move on to the next platform slice:
+  - private-repo access and credential handling
+  - followed by login / roles / workspace scoping

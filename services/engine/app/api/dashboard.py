@@ -32,6 +32,7 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
         provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=workspace_artifacts)
         recent_alerts = alerts.list_recent_by_workspace(workspace.id)
         latest_job = jobs.latest_for_workspace(workspace.id)
+        recent_sync_jobs = jobs.list_recent_for_workspace(workspace.id, limit=5)
         drift_status = build_imported_drift_status(
             candidate_count=decision_counts.get("candidate", 0),
             accepted_count=decision_counts.get("accepted", 0),
@@ -47,8 +48,12 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
             build_imported_workspace_readiness(
                 latest_import_status=latest_job.status if latest_job is not None else None,
                 latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+                latest_import=latest_job,
+                recent_sync_jobs=recent_sync_jobs,
                 decision_counts=decision_counts,
                 drift_status=drift_status,
+                access_source_type=workspace.access_source_type,
+                access_source_ref=workspace.access_source_ref,
             )
             if provenance.workspace_mode != "demo"
             else None
@@ -65,6 +70,8 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
                     "job_id": latest_job.job_id,
                     "mode": latest_job.mode,
                     "status": latest_job.status,
+                    "sync_origin": latest_job.sync_origin,
+                    "trigger_event": latest_job.trigger_event,
                     "imported_count": latest_job.imported_count,
                     "summary": latest_job.summary_json,
                     "error_message": latest_job.error_message,

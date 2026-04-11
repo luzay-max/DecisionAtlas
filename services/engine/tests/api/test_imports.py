@@ -27,13 +27,14 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
 
     scheduled: list[dict] = []
 
-    def fake_queue_github_import(*, workspace_slug: str | None, repo: str, mode: str):
+    def fake_queue_github_import(*, workspace_slug: str | None, repo: str, mode: str, **kwargs):
         return {
             "job_id": "job-123",
             "workspace_slug": workspace_slug,
             "repo": repo,
             "mode": mode,
             "status": "queued",
+            "sync_origin": "manual_full",
             "imported_count": 0,
             "summary": {"stage": "queued"},
         }
@@ -76,6 +77,7 @@ def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None
         "repo": "org/repo",
         "mode": "full",
         "status": "queued",
+        "sync_origin": "manual_full",
         "imported_count": 0,
         "summary": {"stage": "queued"},
     }
@@ -132,13 +134,14 @@ def test_post_imports_github_creates_live_workspace_when_slug_missing(tmp_path: 
 
     scheduled: list[dict] = []
 
-    def fake_queue_github_import(*, workspace_slug: str | None, repo: str, mode: str):
+    def fake_queue_github_import(*, workspace_slug: str | None, repo: str, mode: str, **kwargs):
         return {
             "job_id": "job-live",
             "workspace_slug": "github-org-repo",
             "repo": repo,
             "mode": mode,
             "status": "queued",
+            "sync_origin": "manual_full",
             "imported_count": 0,
             "summary": {"stage": "queued"},
         }
@@ -230,3 +233,86 @@ def test_get_imports_lookup_reports_existing_workspace_and_latest_job(tmp_path: 
     assert payload["has_successful_import"] is True
     assert payload["can_incremental_sync"] is True
     assert payload["latest_import"]["job_id"] == "job-old"
+    assert payload["access_source_type"] == "public"
+    assert payload["access_source_label"] == "Public GitHub access"
+
+
+def test_bind_installation_marks_workspace_as_installation_backed(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-installation.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/github/installations/bind",
+        json={
+            "repo": "org/repo",
+            "installation_id": "12345",
+            "account_login": "decisionatlas-dev",
+            "account_type": "Organization",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace_exists"] is True
+    assert body["workspace_slug"] == "github-org-repo"
+    assert body["access_source_type"] == "github_app_installation"
+    assert body["access_source_label"] == "GitHub App installation #12345"
+
+
+def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "webhook-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    client = TestClient(create_app())
+    bind_response = client.post(
+        "/imports/github/installations/bind",
+        json={
+            "repo": "org/repo",
+            "installation_id": "12345",
+        },
+    )
+    assert bind_response.status_code == 200
+
+    scheduled: list[dict] = []
+
+    def fake_run_github_import(**kwargs):
+        scheduled.append(kwargs)
+        return {"job_id": kwargs["job_id"]}
+
+    monkeypatch.setattr("app.api.imports.run_github_import", fake_run_github_import)
+
+    response = client.post(
+        "/imports/github/webhook",
+        headers={
+            "X-GitHub-Event": "pull_request",
+            "X-GitHub-Delivery": "delivery-1",
+        },
+        json={
+            "action": "opened",
+            "installation": {"id": 12345},
+            "repository": {"full_name": "org/repo"},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "queued"
+    assert body["workspace_slug"] == "github-org-repo"
+    assert body["job_id"]
+    assert scheduled == [
+        {
+            "job_id": body["job_id"],
+            "workspace_slug": "github-org-repo",
+            "repo": "org/repo",
+            "mode": "since_last_sync",
+        }
+    ]

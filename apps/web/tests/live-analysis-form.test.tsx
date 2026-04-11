@@ -28,6 +28,7 @@ describe("LiveAnalysisForm", () => {
     startGithubImport.mockReset();
     lookupGithubImport.mockReset();
     lookupGithubImport.mockResolvedValue({
+      owner_scope: "local-default",
       repo: "org/repo",
       repo_url: "https://github.com/org/repo",
       workspace_exists: false,
@@ -36,6 +37,8 @@ describe("LiveAnalysisForm", () => {
       can_incremental_sync: false,
       has_running_import: false,
       latest_import: null,
+      access_source_type: "public",
+      access_source_label: "Public GitHub access",
     });
   });
 
@@ -71,6 +74,7 @@ describe("LiveAnalysisForm", () => {
   it("shows existing workspace controls and allows incremental sync", async () => {
     const user = userEvent.setup();
     lookupGithubImport.mockResolvedValue({
+      owner_scope: "local-default",
       repo: "org/repo",
       repo_url: "https://github.com/org/repo",
       workspace_exists: true,
@@ -84,8 +88,11 @@ describe("LiveAnalysisForm", () => {
         repo: "org/repo",
         mode: "full",
         status: "succeeded",
+        sync_origin: "webhook",
         imported_count: 12,
       },
+      access_source_type: "github_app_installation",
+      access_source_label: "GitHub App installation #12345",
     });
     startGithubImport.mockResolvedValue({
       job_id: "job-sync",
@@ -107,6 +114,7 @@ describe("LiveAnalysisForm", () => {
     await waitFor(() => {
       expect(screen.getByText("Existing imported workspace found")).toBeInTheDocument();
     });
+    expect(screen.getByText("Repository access source: GitHub App installation #12345")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Sync since last import" }));
 

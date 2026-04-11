@@ -35,6 +35,14 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
     ? (messages.status[latestImportSummary.failure_category as keyof typeof messages.status] ??
       latestImportSummary.failure_category)
     : null;
+  const latestImportOrigin = summary.latest_import?.sync_origin
+    ? (messages.status[summary.latest_import.sync_origin as keyof typeof messages.status] ??
+      summary.latest_import.sync_origin)
+    : null;
+  const latestImportTriggerEvent = summary.latest_import?.trigger_event
+    ? (messages.syncEvents[summary.latest_import.trigger_event as keyof typeof messages.syncEvents] ??
+      summary.latest_import.trigger_event)
+    : null;
   const skippedDocumentCount = latestImportSummary
     ? Object.values(latestImportSummary.document_summary?.skipped ?? {}).reduce((total, count) => total + count, 0)
     : 0;
@@ -146,6 +154,12 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
               {latestImportStatus} · {latestImportMode} · {summary.latest_import.imported_count}{" "}
               {messages.kpi.artifacts}
             </p>
+            {latestImportOrigin ? (
+              <p>
+                {messages.dashboard.syncOriginLabel}: {latestImportOrigin}
+                {latestImportTriggerEvent ? ` · ${latestImportTriggerEvent}` : ""}
+              </p>
+            ) : null}
             {latestImportStage ? (
               <p>
                 {messages.dashboard.stageLabel}: {latestImportStage}

@@ -19,6 +19,9 @@ class ImportJobRepository:
         workspace_id: int,
         repo: str,
         mode: str,
+        sync_origin: str = "manual",
+        trigger_event: str | None = None,
+        trigger_delivery_id: str | None = None,
     ) -> ImportJob:
         job = ImportJob(
             job_id=job_id,
@@ -26,6 +29,9 @@ class ImportJobRepository:
             repo=repo,
             mode=mode,
             status="queued",
+            sync_origin=sync_origin,
+            trigger_event=trigger_event,
+            trigger_delivery_id=trigger_delivery_id,
             imported_count=0,
             summary_json={"stage": "queued"},
         )
@@ -56,6 +62,22 @@ class ImportJobRepository:
             .order_by(ImportJob.finished_at.desc(), ImportJob.id.desc())
         )
         return self.session.scalar(stmt)
+
+    def list_recent_for_workspace(self, workspace_id: int, *, limit: int = 5) -> list[ImportJob]:
+        stmt = (
+            select(ImportJob)
+            .where(ImportJob.workspace_id == workspace_id)
+            .order_by(ImportJob.created_at.desc(), ImportJob.id.desc())
+            .limit(limit)
+        )
+        return list(self.session.scalars(stmt))
+
+    def has_active_for_workspace(self, workspace_id: int) -> bool:
+        stmt = select(ImportJob).where(
+            ImportJob.workspace_id == workspace_id,
+            ImportJob.status.in_(("queued", "running")),
+        )
+        return self.session.scalar(stmt) is not None
 
     def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
         job = self._require(job_id)

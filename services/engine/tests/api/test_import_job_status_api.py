@@ -32,6 +32,7 @@ def test_import_job_status_returns_summary(tmp_path: Path, monkeypatch) -> None:
                 repo="org/repo",
                 mode="full",
                 status="succeeded",
+                sync_origin="manual_full",
                 imported_count=9,
                 summary_json={
                     "artifact_counts": {"issue": 1, "pr": 2, "commit": 4, "doc": 2},
@@ -52,3 +53,4 @@ def test_import_job_status_returns_summary(tmp_path: Path, monkeypatch) -> None:
     body = response.json()
     assert body["summary"]["artifact_counts"]["doc"] == 2
     assert body["summary"]["document_summary"]["skipped"]["non_markdown"] == 9
+    assert body["sync_origin"] == "manual_full"

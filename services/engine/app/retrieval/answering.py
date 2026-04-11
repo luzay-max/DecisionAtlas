@@ -297,12 +297,17 @@ def answer_why_question(
         latest_import_summary=latest_job.summary_json if latest_job is not None else None,
         alert_count=len(DriftAlertRepository(session).list_recent_by_workspace(workspace.id)),
     )
+    recent_sync_jobs = ImportJobRepository(session).list_recent_for_workspace(workspace.id, limit=5)
     workspace_readiness = (
         build_imported_workspace_readiness(
             latest_import_status=latest_job.status if latest_job is not None else None,
             latest_import_summary=latest_job.summary_json if latest_job is not None else None,
+            latest_import=latest_job,
+            recent_sync_jobs=recent_sync_jobs,
             decision_counts=decision_counts,
             drift_status=drift_status,
+            access_source_type=workspace.access_source_type,
+            access_source_ref=workspace.access_source_ref,
         )
         if provenance.workspace_mode != "demo"
         else None

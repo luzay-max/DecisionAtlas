@@ -116,6 +116,8 @@ describe("WorkspaceDashboardContent", () => {
             job_id: "job-review-ready",
             mode: "full",
             status: "succeeded",
+            sync_origin: "webhook",
+            trigger_event: "pull_request",
             imported_count: 12,
             summary: {
               outcome: "ok",
@@ -168,6 +170,18 @@ describe("WorkspaceDashboardContent", () => {
             why_state: "review_required",
             drift_state: "review_required",
             recommended_actions: ["review_candidates", "inspect_import_summary"],
+            access_source_label: "GitHub App installation #12345",
+            latest_sync_origin: "webhook",
+            latest_sync_at: "2026-04-11T10:00:00",
+            recent_syncs: [
+              {
+                job_id: "job-review-ready",
+                status: "succeeded",
+                mode: "full",
+                sync_origin: "webhook",
+                trigger_event: "pull_request",
+              },
+            ],
           },
           drift_status: {
             state: "review_required",
@@ -189,6 +203,13 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByText("review ready")).toBeInTheDocument();
     expect(screen.getByText("Why:")).toBeInTheDocument();
     expect(screen.getAllByText("review required")).toHaveLength(2);
+    expect(screen.getByText(/GitHub App installation #12345/)).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) =>
+        element?.tagName === "P" &&
+        (element.textContent?.includes("Latest sync: webhook-triggered incremental sync") ?? false)
+      )
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to imported dashboard" })).toHaveAttribute(
       "href",
       "/workspaces/imported-workspace"

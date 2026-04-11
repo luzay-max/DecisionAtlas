@@ -38,7 +38,3 @@ The system SHALL distinguish successful analysis, insufficient evidence, operati
 #### Scenario: Public repository import can still use bounded anonymous access
 - **WHEN** a live analysis request targets a public repository and no owner-scoped credential source is required
 - **THEN** the platform model SHALL still allow that request to resolve through a public-access source without collapsing workspace ownership into a global shared object
-
-#### Scenario: Installation-backed repository reports reusable import context
-- **WHEN** a live analysis request targets a repository that is already bound to a GitHub App-backed imported workspace in the current owner scope
-- **THEN** the product-facing outcome SHALL report that installation-backed reuse state instead of implying only a fresh manual import path exists

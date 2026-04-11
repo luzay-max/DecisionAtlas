@@ -57,8 +57,12 @@ def build_imported_workspace_readiness(
     *,
     latest_import_status: str | None,
     latest_import_summary: dict | None,
+    latest_import,
+    recent_sync_jobs: list,
     decision_counts: dict[str, int],
     drift_status: dict,
+    access_source_type: str = "public",
+    access_source_ref: str | None = None,
 ) -> dict:
     candidate_count = decision_counts.get("candidate", 0)
     accepted_count = decision_counts.get("accepted", 0)
@@ -111,6 +115,12 @@ def build_imported_workspace_readiness(
         "why_state": why_state,
         "drift_state": drift_status["state"],
         "recommended_actions": recommended_actions,
+        "access_source_type": access_source_type,
+        "access_source_label": _access_source_label(access_source_type, access_source_ref),
+        "latest_sync_origin": _sync_origin(latest_import),
+        "latest_sync_at": _sync_timestamp(latest_import),
+        "active_sync_origin": _active_sync_origin(latest_import),
+        "recent_syncs": _recent_syncs(recent_sync_jobs),
     }
 
 
@@ -152,6 +162,52 @@ def _recommended_actions(
         if action not in deduped:
             deduped.append(action)
     return deduped
+
+
+def _access_source_label(access_source_type: str, access_source_ref: str | None) -> str:
+    if access_source_type == "github_app_installation":
+        suffix = f" #{access_source_ref}" if access_source_ref else ""
+        return f"GitHub App installation{suffix}"
+    return "Public GitHub access"
+
+
+def _sync_origin(latest_import) -> str | None:
+    if latest_import is None or not getattr(latest_import, "sync_origin", None):
+        return None
+    return str(latest_import.sync_origin)
+
+
+def _active_sync_origin(latest_import) -> str | None:
+    if latest_import is None or getattr(latest_import, "status", None) not in {"queued", "running"}:
+        return None
+    return _sync_origin(latest_import)
+
+
+def _sync_timestamp(latest_import) -> str | None:
+    if latest_import is None:
+        return None
+    finished_at = getattr(latest_import, "finished_at", None)
+    started_at = getattr(latest_import, "started_at", None)
+    created_at = getattr(latest_import, "created_at", None)
+    timestamp = finished_at or started_at or created_at
+    return timestamp.isoformat() if timestamp is not None else None
+
+
+def _recent_syncs(recent_sync_jobs: list) -> list[dict[str, str | int | None]]:
+    history: list[dict[str, str | int | None]] = []
+    for job in recent_sync_jobs:
+        history.append(
+            {
+                "job_id": job.job_id,
+                "status": job.status,
+                "mode": job.mode,
+                "sync_origin": getattr(job, "sync_origin", None),
+                "trigger_event": getattr(job, "trigger_event", None),
+                "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+                "started_at": job.started_at.isoformat() if job.started_at else None,
+            }
+        )
+    return history
 
 
 def summarize_imported_evidence(artifacts: list, decisions: list, source_refs_by_decision: dict[int, list]) -> dict:

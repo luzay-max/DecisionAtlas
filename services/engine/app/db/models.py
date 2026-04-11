@@ -15,6 +15,22 @@ class Workspace(Base):
     slug: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     repo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False, default="local-default")
+    repo_identity: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    access_source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="public")
+    access_source_ref: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
+class GitHubAppInstallation(Base):
+    __tablename__ = "github_app_installations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
+    installation_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    account_login: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    account_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
@@ -110,6 +126,9 @@ class ImportJob(Base):
     repo: Mapped[str] = mapped_column(String(255), nullable=False)
     mode: Mapped[str] = mapped_column(String(50), nullable=False, default="full")
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="queued")
+    sync_origin: Mapped[str] = mapped_column(String(50), nullable=False, default="manual")
+    trigger_event: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    trigger_delivery_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     imported_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     summary_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

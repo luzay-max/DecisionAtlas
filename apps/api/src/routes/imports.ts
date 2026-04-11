@@ -7,7 +7,25 @@ import { fetchUpstreamPayload } from "../proxy";
 const githubImportSchema = z.object({
   workspace_slug: z.string().min(1).optional(),
   repo: z.string().min(3),
-  mode: z.enum(["full", "since_last_sync"]).default("full")
+  mode: z.enum(["full", "since_last_sync"]).default("full"),
+  owner_scope: z.string().min(1).optional(),
+  access_source_type: z.string().min(1).optional(),
+  access_source_ref: z.string().min(1).optional(),
+});
+
+const installationBindingSchema = z.object({
+  repo: z.string().min(3),
+  installation_id: z.string().min(1),
+  owner_scope: z.string().min(1).optional(),
+  account_login: z.string().min(1).optional(),
+  account_type: z.string().min(1).optional(),
+  workspace_slug: z.string().min(1).optional(),
+});
+
+const webhookHeadersSchema = z.object({
+  "x-github-event": z.string().min(1),
+  "x-github-delivery": z.string().min(1).optional(),
+  "x-hub-signature-256": z.string().min(1).optional(),
 });
 
 export async function importsRoute(app: FastifyInstance) {
@@ -57,6 +75,61 @@ export async function importsRoute(app: FastifyInstance) {
     logInfo(app.log, "github import completed", {
       job_id: typeof json?.job_id === "string" ? json.job_id : "unknown"
     });
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
+  app.post("/imports/github/installations/bind", async (request, reply) => {
+    const parsed = installationBindingSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid installation binding payload",
+        issues: parsed.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/github/installations/bind`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(parsed.data)
+      }),
+      app.log,
+      "POST /imports/github/installations/bind"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
+  app.post("/imports/github/webhook", async (request, reply) => {
+    const headers = webhookHeadersSchema.safeParse(request.headers);
+    if (!headers.success) {
+      return reply.status(400).send({
+        error: "Invalid webhook headers",
+        issues: headers.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/github/webhook`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-github-event": headers.data["x-github-event"],
+          ...(headers.data["x-github-delivery"]
+            ? { "x-github-delivery": headers.data["x-github-delivery"] }
+            : {}),
+          ...(headers.data["x-hub-signature-256"]
+            ? { "x-hub-signature-256": headers.data["x-hub-signature-256"] }
+            : {}),
+        },
+        body: JSON.stringify(request.body ?? {})
+      }),
+      app.log,
+      "POST /imports/github/webhook"
+    );
     return reply.status(upstream.status).send(upstream.payload);
   });
 
