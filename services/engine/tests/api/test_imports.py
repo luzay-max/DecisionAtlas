@@ -5,6 +5,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
+import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -264,6 +265,89 @@ def test_bind_installation_marks_workspace_as_installation_backed(tmp_path: Path
     assert body["access_source_label"] == "GitHub App installation #12345"
 
 
+def test_bind_private_access_marks_workspace_as_token_backed(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-private-access.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.get_repository_metadata",
+        lambda self, repo: {"full_name": repo, "private": True, "default_branch": "main"},
+    )
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/github/private-access/bind",
+        json={
+            "repo": "org/private-repo",
+            "token": "ghp-private-token",
+            "source_ref": "org/private-repo",
+            "source_label": "team private repo",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace_exists"] is True
+    assert body["workspace_slug"] == "github-org-private-repo"
+    assert body["repo_private"] is True
+    assert body["access_source_type"] == "github_token"
+    assert body["access_source_status"] == "authorized"
+    assert "Private GitHub source team private repo" == body["access_source_label"]
+
+
+def test_post_imports_github_returns_credential_required_for_private_repo_without_source(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "private-import-required.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    response = httpx.Response(404, request=request, json={"message": "Not Found"})
+
+    def fake_get_repository_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("not found", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+
+    client = TestClient(create_app())
+    import_response = client.post("/imports/github", json={"repo": "org/private-repo", "mode": "full"})
+
+    assert import_response.status_code == 403
+    assert "not publicly reachable" in import_response.json()["detail"]
+
+
+def test_lookup_reports_private_access_requirement_when_repo_is_not_publicly_reachable(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "private-lookup-required.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    response = httpx.Response(404, request=request, json={"message": "Not Found"})
+
+    def fake_get_repository_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("not found", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+
+    client = TestClient(create_app())
+    lookup_response = client.get("/imports/lookup", params={"repo": "org/private-repo"})
+
+    assert lookup_response.status_code == 200
+    body = lookup_response.json()
+    assert body["workspace_exists"] is False
+    assert body["access_requirement"] == "credential_required"
+    assert "not publicly reachable" in body["access_requirement_detail"]
+
+
 def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "webhook-import.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -281,6 +365,10 @@ def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp
         },
     )
     assert bind_response.status_code == 200
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.get_repository_metadata",
+        lambda self, repo: {"full_name": repo, "private": False, "default_branch": "main"},
+    )
 
     scheduled: list[dict] = []
 

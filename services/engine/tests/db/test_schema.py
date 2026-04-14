@@ -28,4 +28,5 @@ def test_initial_tables_exist(tmp_path: Path) -> None:
         "drift_alerts",
         "import_jobs",
         "github_app_installations",
+        "github_token_access_sources",
     }.issubset(table_names)

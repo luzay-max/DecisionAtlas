@@ -54,6 +54,7 @@ def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Pat
             raise ValueError("Unsupported GitHub content encoding for CHANGELOG.md")
 
     monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", FailingImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
     monkeypatch.setattr(
         "app.jobs.import_jobs.build_runtime_providers",
         lambda settings: SimpleNamespace(embedder=object(), extraction_provider=object()),
@@ -134,6 +135,7 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
             raise ProviderTimeoutError("Timed out while calling extraction provider")
 
     monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", TimeoutImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
     monkeypatch.setattr(
         "app.jobs.import_jobs.build_runtime_providers",
         lambda settings: SimpleNamespace(embedder=FakeEmbedder(), extraction_provider=TimeoutProvider()),
@@ -225,6 +227,7 @@ def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path:
             """
 
     monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", SingleArtifactImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
     monkeypatch.setattr(
         "app.jobs.import_jobs.build_runtime_providers",
         lambda settings: SimpleNamespace(embedder=FakeEmbedder(), extraction_provider=ThinCoverageProvider()),
@@ -259,5 +262,29 @@ def test_normalize_repo_rejects_invalid_input_without_retryable_client_path() ->
         _normalize_repo("not-a-repo")
     except ValueError as exc:
         assert "owner/repo" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_queue_github_import_rejects_private_repo_without_authorized_source(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "import-job-private-required.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    response = httpx.Response(404, request=request, json={"message": "Not Found"})
+
+    def fake_get_repository_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("not found", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+
+    try:
+        queue_github_import(workspace_slug=None, repo="org/private-repo", mode="full")
+    except ValueError as exc:
+        assert "not publicly reachable" in str(exc)
     else:
         raise AssertionError("expected ValueError")

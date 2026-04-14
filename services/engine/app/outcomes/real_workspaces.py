@@ -63,6 +63,9 @@ def build_imported_workspace_readiness(
     drift_status: dict,
     access_source_type: str = "public",
     access_source_ref: str | None = None,
+    access_source_label: str | None = None,
+    access_source_status: str | None = None,
+    access_source_status_detail: str | None = None,
 ) -> dict:
     candidate_count = decision_counts.get("candidate", 0)
     accepted_count = decision_counts.get("accepted", 0)
@@ -116,7 +119,9 @@ def build_imported_workspace_readiness(
         "drift_state": drift_status["state"],
         "recommended_actions": recommended_actions,
         "access_source_type": access_source_type,
-        "access_source_label": _access_source_label(access_source_type, access_source_ref),
+        "access_source_label": access_source_label or _access_source_label(access_source_type, access_source_ref),
+        "access_source_status": access_source_status,
+        "access_source_status_detail": access_source_status_detail,
         "latest_sync_origin": _sync_origin(latest_import),
         "latest_sync_at": _sync_timestamp(latest_import),
         "active_sync_origin": _active_sync_origin(latest_import),
@@ -168,6 +173,9 @@ def _access_source_label(access_source_type: str, access_source_ref: str | None)
     if access_source_type == "github_app_installation":
         suffix = f" #{access_source_ref}" if access_source_ref else ""
         return f"GitHub App installation{suffix}"
+    if access_source_type == "github_token":
+        suffix = f" {access_source_ref}" if access_source_ref else ""
+        return f"Private GitHub source{suffix}"
     return "Public GitHub access"
 
 

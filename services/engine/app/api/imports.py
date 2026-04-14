@@ -6,9 +6,11 @@ from pydantic import BaseModel
 
 from app.jobs.import_jobs import (
     bind_github_app_installation,
+    bind_github_private_access_source,
     get_import_job_status,
     handle_github_webhook,
     lookup_github_workspace,
+    RepositoryAccessError,
     queue_github_import,
     run_github_import,
 )
@@ -34,6 +36,15 @@ class GitHubInstallationBindingRequest(BaseModel):
     workspace_slug: str | None = None
 
 
+class GitHubPrivateAccessBindingRequest(BaseModel):
+    repo: str
+    token: str
+    owner_scope: str | None = None
+    source_ref: str | None = None
+    source_label: str | None = None
+    workspace_slug: str | None = None
+
+
 @router.post("/github")
 def import_github(request: GitHubImportRequest, background_tasks: BackgroundTasks) -> dict:
     try:
@@ -53,6 +64,8 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
             mode=request.mode,
         )
         return job
+    except RepositoryAccessError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         if (
             "Unsupported import mode" in str(exc)
@@ -86,6 +99,27 @@ def bind_installation(request: GitHubInstallationBindingRequest) -> dict:
             account_type=request.account_type,
             workspace_slug=request.workspace_slug,
         )
+    except RepositoryAccessError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc) or "cannot import" in str(exc):
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/github/private-access/bind")
+def bind_private_access(request: GitHubPrivateAccessBindingRequest) -> dict:
+    try:
+        return bind_github_private_access_source(
+            repo=request.repo,
+            token=request.token,
+            owner_scope=request.owner_scope,
+            source_ref=request.source_ref,
+            source_label=request.source_label,
+            workspace_slug=request.workspace_slug,
+        )
+    except RepositoryAccessError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc) or "cannot import" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc

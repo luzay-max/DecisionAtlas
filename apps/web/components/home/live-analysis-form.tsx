@@ -123,6 +123,7 @@ export function LiveAnalysisForm() {
           </div>
         </div>
       ) : null}
+      {!lookup?.workspace_exists && lookup?.access_requirement_detail ? <p>{lookup.access_requirement_detail}</p> : null}
       {message ? <p>{message}</p> : null}
     </form>
   );

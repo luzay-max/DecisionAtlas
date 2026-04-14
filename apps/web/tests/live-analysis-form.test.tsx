@@ -123,4 +123,40 @@ describe("LiveAnalysisForm", () => {
     });
     expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo");
   });
+
+  it("shows private access guidance when the repository is not publicly reachable", async () => {
+    const user = userEvent.setup();
+    lookupGithubImport.mockResolvedValue({
+      owner_scope: "local-default",
+      repo: "org/private-repo",
+      repo_url: "https://github.com/org/private-repo",
+      workspace_exists: false,
+      workspace_slug: null,
+      has_successful_import: false,
+      can_incremental_sync: false,
+      has_running_import: false,
+      latest_import: null,
+      access_source_type: "public",
+      access_source_label: "Public GitHub access",
+      access_requirement: "credential_required",
+      access_requirement_detail:
+        "Repository org/private-repo is not publicly reachable. Configure private repository access if this repository is private.",
+    });
+
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "org/private-repo");
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Repository org/private-repo is not publicly reachable. Configure private repository access if this repository is private."
+        )
+      ).toBeInTheDocument();
+    });
+  });
 });

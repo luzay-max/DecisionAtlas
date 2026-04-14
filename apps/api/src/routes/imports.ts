@@ -22,6 +22,15 @@ const installationBindingSchema = z.object({
   workspace_slug: z.string().min(1).optional(),
 });
 
+const privateAccessBindingSchema = z.object({
+  repo: z.string().min(3),
+  token: z.string().min(1),
+  owner_scope: z.string().min(1).optional(),
+  source_ref: z.string().min(1).optional(),
+  source_label: z.string().min(1).optional(),
+  workspace_slug: z.string().min(1).optional(),
+});
+
 const webhookHeadersSchema = z.object({
   "x-github-event": z.string().min(1),
   "x-github-delivery": z.string().min(1).optional(),
@@ -98,6 +107,30 @@ export async function importsRoute(app: FastifyInstance) {
       }),
       app.log,
       "POST /imports/github/installations/bind"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
+  app.post("/imports/github/private-access/bind", async (request, reply) => {
+    const parsed = privateAccessBindingSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid private access binding payload",
+        issues: parsed.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/github/private-access/bind`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(parsed.data)
+      }),
+      app.log,
+      "POST /imports/github/private-access/bind"
     );
     return reply.status(upstream.status).send(upstream.payload);
   });

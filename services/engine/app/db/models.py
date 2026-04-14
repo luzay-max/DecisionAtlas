@@ -35,6 +35,22 @@ class GitHubAppInstallation(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
 
+class GitHubTokenAccessSource(Base):
+    __tablename__ = "github_token_access_sources"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
+    source_ref: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_label: Mapped[str] = mapped_column(String(255), nullable=False)
+    repo_identity: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_secret: Mapped[str] = mapped_column(Text, nullable=False)
+    authorization_status: Mapped[str] = mapped_column(String(50), nullable=False, default="authorized")
+    last_validated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
 class Artifact(Base):
     __tablename__ = "artifacts"
 

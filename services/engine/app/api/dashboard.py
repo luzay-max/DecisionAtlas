@@ -6,6 +6,7 @@ from app.config import get_settings
 from app.db.session import get_db_session
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
+from app.repository_access import access_source_summary
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
@@ -33,6 +34,12 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
         recent_alerts = alerts.list_recent_by_workspace(workspace.id)
         latest_job = jobs.latest_for_workspace(workspace.id)
         recent_sync_jobs = jobs.list_recent_for_workspace(workspace.id, limit=5)
+        source_summary = access_source_summary(
+            session=session,
+            owner_scope=workspace.owner_scope,
+            access_source_type=workspace.access_source_type,
+            access_source_ref=workspace.access_source_ref,
+        )
         drift_status = build_imported_drift_status(
             candidate_count=decision_counts.get("candidate", 0),
             accepted_count=decision_counts.get("accepted", 0),
@@ -54,6 +61,13 @@ def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
                 drift_status=drift_status,
                 access_source_type=workspace.access_source_type,
                 access_source_ref=workspace.access_source_ref,
+                access_source_label=str(source_summary["access_source_label"]) if source_summary["access_source_label"] else None,
+                access_source_status=str(source_summary["access_source_status"]) if source_summary["access_source_status"] else None,
+                access_source_status_detail=(
+                    str(source_summary["access_source_status_detail"])
+                    if source_summary["access_source_status_detail"]
+                    else None
+                ),
             )
             if provenance.workspace_mode != "demo"
             else None

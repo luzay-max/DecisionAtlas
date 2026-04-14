@@ -343,3 +343,25 @@ def test_repository_access_error_is_not_retried() -> None:
         raise AssertionError("expected HTTPStatusError")
 
     assert attempts == 1
+
+
+def test_get_repository_metadata_maps_private_flag() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "full_name": "org/private-repo",
+                "private": True,
+                "default_branch": "main",
+            },
+        )
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+
+    metadata = client.get_repository_metadata("org/private-repo")
+
+    assert metadata == {
+        "full_name": "org/private-repo",
+        "private": True,
+        "default_branch": "main",
+    }

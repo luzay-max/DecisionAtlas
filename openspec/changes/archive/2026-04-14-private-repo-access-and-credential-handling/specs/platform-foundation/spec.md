@@ -1,19 +1,4 @@
-## ADDED Requirements
-
-### Requirement: Workspace ownership is explicit
-The system SHALL define imported workspaces as belonging to an explicit owner scope rather than treating repository workspaces as globally shared objects.
-
-#### Scenario: Same repository may exist in different owner scopes
-- **WHEN** two different owner scopes import the same repository
-- **THEN** the platform model SHALL allow those imports to resolve to separate workspace identities instead of assuming one global workspace mapping
-
-#### Scenario: Workspace visibility is derived from owner scope
-- **WHEN** a user accesses an imported workspace
-- **THEN** the platform model SHALL define that workspace visibility in terms of the owner scope that owns it
-
-#### Scenario: Existing globally scoped workspaces can be backfilled
-- **WHEN** the platform migrates from the current global imported-workspace model
-- **THEN** it SHALL define a migration path that can assign existing workspaces into a default owner scope without breaking the current single-user baseline
+## MODIFIED Requirements
 
 ### Requirement: Repository access source is modeled separately from repository identity
 The system SHALL distinguish repository identity from the access source used to reach it, so future private-repository and GitHub App behavior can be defined without conflating content identity with credential storage.

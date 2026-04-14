@@ -191,6 +191,52 @@ describe("POST /imports/github", () => {
     global.fetch = originalFetch;
   });
 
+  it("proxies POST /imports/github/private-access/bind", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          workspace_exists: true,
+          workspace_slug: "github-org-private-repo",
+          access_source_type: "github_token",
+          access_source_label: "Private GitHub source team private repo",
+          access_source_status: "authorized"
+        }),
+      json: async () => ({
+        workspace_exists: true,
+        workspace_slug: "github-org-private-repo",
+        access_source_type: "github_token",
+        access_source_label: "Private GitHub source team private repo",
+        access_source_status: "authorized"
+      })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/imports/github/private-access/bind",
+      payload: {
+        repo: "org/private-repo",
+        token: "ghp-private-token",
+        source_ref: "org/private-repo",
+        source_label: "team private repo",
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      workspace_exists: true,
+      workspace_slug: "github-org-private-repo",
+      access_source_type: "github_token",
+      access_source_label: "Private GitHub source team private repo",
+      access_source_status: "authorized"
+    });
+
+    global.fetch = originalFetch;
+  });
+
   it("proxies POST /imports/github/webhook", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({

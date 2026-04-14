@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from datetime import datetime, timezone
 from time import monotonic
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -19,9 +20,11 @@ from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, Pro
 from app.llm.provider_factory import build_runtime_providers
 from app.observability.logging import build_log_context, get_logger
 from app.outcomes.real_workspaces import summarize_imported_evidence
+from app.repository_access import access_source_label as build_access_source_label, access_source_summary
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.github_installations import GitHubAppInstallationRepository
+from app.repositories.github_token_access_sources import GitHubTokenAccessSourceRepository
 from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
@@ -29,6 +32,12 @@ from app.repositories.workspaces import WorkspaceRepository
 
 DEFAULT_OWNER_SCOPE = "local-default"
 QUALIFYING_WEBHOOK_EVENTS = {"push", "pull_request", "issues"}
+
+
+class RepositoryAccessError(ValueError):
+    def __init__(self, message: str, *, failure_category: str) -> None:
+        super().__init__(message)
+        self.failure_category = failure_category
 
 
 def queue_github_import(
@@ -48,6 +57,13 @@ def queue_github_import(
     try:
         repo_ref, repo_url = _normalize_repo(repo)
         effective_owner_scope = _owner_scope(owner_scope)
+        resolved_access_source_type, resolved_access_source_ref = _default_access_source_for_repo(
+            session=session,
+            owner_scope=effective_owner_scope,
+            repo_ref=repo_ref,
+            access_source_type=access_source_type,
+            access_source_ref=access_source_ref,
+        )
         workspaces = WorkspaceRepository(session)
         workspace = _resolve_workspace(
             workspaces=workspaces,
@@ -55,8 +71,15 @@ def queue_github_import(
             owner_scope=effective_owner_scope,
             repo_ref=repo_ref,
             repo_url=repo_url,
-            access_source_type=access_source_type,
-            access_source_ref=access_source_ref,
+            access_source_type=resolved_access_source_type,
+            access_source_ref=resolved_access_source_ref,
+        )
+        _preflight_repository_access(
+            session=session,
+            repo_ref=repo_ref,
+            owner_scope=workspace.owner_scope,
+            access_source_type=workspace.access_source_type,
+            access_source_ref=workspace.access_source_ref,
         )
         if mode not in {"full", "since_last_sync"}:
             raise ValueError(f"Unsupported import mode: {mode}")
@@ -101,7 +124,7 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         importer = GitHubImporter(
             session,
             GitHubClient(
-                token=getattr(settings, "github_token", None),
+                token=_token_for_workspace(session=session, workspace=workspace, settings=settings),
                 max_pages=settings.github_import_max_pages,
             ),
         )
@@ -249,6 +272,56 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
         owner_scope = _owner_scope(None)
         workspace = WorkspaceRepository(session).get_by_repo_identity(owner_scope=owner_scope, repo_identity=repo_ref)
         if workspace is None:
+            token_source = GitHubTokenAccessSourceRepository(session).get_by_owner_scope_and_repo_identity(
+                owner_scope=owner_scope,
+                repo_identity=repo_ref,
+            )
+            if token_source is not None:
+                return {
+                    "owner_scope": owner_scope,
+                    "repo": repo_ref,
+                    "repo_url": repo_url,
+                    "workspace_exists": False,
+                    "workspace_slug": None,
+                    "has_successful_import": False,
+                    "can_incremental_sync": False,
+                    "has_running_import": False,
+                    "latest_import": None,
+                    "access_source_type": "github_token",
+                    "access_source_label": build_access_source_label(
+                        access_source_type="github_token",
+                        access_source_ref=token_source.source_ref,
+                        display_label=token_source.display_label,
+                    ),
+                    "access_source_status": token_source.authorization_status,
+                    "access_source_status_detail": token_source.last_error,
+                    "access_requirement": None,
+                    "access_requirement_detail": None,
+                }
+            try:
+                _preflight_repository_access(
+                    session=session,
+                    repo_ref=repo_ref,
+                    owner_scope=owner_scope,
+                    access_source_type="public",
+                    access_source_ref=None,
+                )
+            except RepositoryAccessError as exc:
+                return {
+                    "owner_scope": owner_scope,
+                    "repo": repo_ref,
+                    "repo_url": repo_url,
+                    "workspace_exists": False,
+                    "workspace_slug": None,
+                    "has_successful_import": False,
+                    "can_incremental_sync": False,
+                    "has_running_import": False,
+                    "latest_import": None,
+                    "access_source_type": "public",
+                    "access_source_label": "Public GitHub access",
+                    "access_requirement": exc.failure_category,
+                    "access_requirement_detail": str(exc),
+                }
             return {
                 "owner_scope": owner_scope,
                 "repo": repo_ref,
@@ -261,6 +334,8 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
                 "latest_import": None,
                 "access_source_type": "public",
                 "access_source_label": "Public GitHub access",
+                "access_requirement": None,
+                "access_requirement_detail": None,
             }
 
         jobs = ImportJobRepository(session)
@@ -268,6 +343,12 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
         latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
         latest_import = serialize_import_job(session=session, job=latest_job) if latest_job is not None else None
         has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        source_summary = access_source_summary(
+            session=session,
+            owner_scope=workspace.owner_scope,
+            access_source_type=workspace.access_source_type,
+            access_source_ref=workspace.access_source_ref,
+        )
         return {
             "owner_scope": workspace.owner_scope,
             "repo": repo_ref,
@@ -279,7 +360,11 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
             "has_running_import": has_running_import,
             "latest_import": latest_import,
             "access_source_type": workspace.access_source_type,
-            "access_source_label": _access_source_label(workspace.access_source_type, workspace.access_source_ref),
+            "access_source_label": source_summary["access_source_label"],
+            "access_source_status": source_summary["access_source_status"],
+            "access_source_status_detail": source_summary["access_source_status_detail"],
+            "access_requirement": None,
+            "access_requirement_detail": None,
         }
     finally:
         session.close()
@@ -329,7 +414,82 @@ def bind_github_app_installation(
             "has_running_import": has_running_import,
             "latest_import": serialize_import_job(session=session, job=latest_job) if latest_job is not None else None,
             "access_source_type": workspace.access_source_type,
-            "access_source_label": _access_source_label(workspace.access_source_type, workspace.access_source_ref),
+            "access_source_label": build_access_source_label(
+                access_source_type=workspace.access_source_type,
+                access_source_ref=workspace.access_source_ref,
+            ),
+        }
+    finally:
+        session.close()
+
+
+def bind_github_private_access_source(
+    *,
+    repo: str,
+    token: str,
+    owner_scope: str | None = None,
+    source_ref: str | None = None,
+    source_label: str | None = None,
+    workspace_slug: str | None = None,
+) -> dict[str, object | None]:
+    session = get_db_session()
+    try:
+        effective_owner_scope = _owner_scope(owner_scope)
+        repo_ref, repo_url = _normalize_repo(repo)
+        validated_at = datetime.now(timezone.utc)
+        try:
+            metadata = GitHubClient(token=token, max_pages=get_settings().github_import_max_pages).get_repository_metadata(repo_ref)
+        except (httpx.HTTPStatusError, GitHubNetworkError) as exc:
+            raise RepositoryAccessError(
+                f"Private repository authorization failed for {repo_ref}.",
+                failure_category="authorization_failed",
+            ) from exc
+
+        source_key = (source_ref or repo_ref).strip()
+        display_label = (source_label or repo_ref).strip()
+        source_record = GitHubTokenAccessSourceRepository(session).upsert(
+            owner_scope=effective_owner_scope,
+            source_ref=source_key,
+            display_label=display_label,
+            repo_identity=repo_ref,
+            token_secret=token,
+            authorization_status="authorized",
+            last_error=None,
+            validated_at=validated_at,
+        )
+        workspace = _resolve_workspace(
+            workspaces=WorkspaceRepository(session),
+            workspace_slug=workspace_slug,
+            owner_scope=effective_owner_scope,
+            repo_ref=repo_ref,
+            repo_url=repo_url,
+            access_source_type="github_token",
+            access_source_ref=source_record.source_ref,
+        )
+        session.commit()
+        jobs = ImportJobRepository(session)
+        latest_job = jobs.latest_for_workspace(workspace.id)
+        latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
+        has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        return {
+            "owner_scope": workspace.owner_scope,
+            "repo": repo_ref,
+            "repo_url": repo_url,
+            "repo_private": bool(metadata.get("private")),
+            "workspace_exists": True,
+            "workspace_slug": workspace.slug,
+            "has_successful_import": latest_success is not None,
+            "can_incremental_sync": latest_success is not None and not has_running_import,
+            "has_running_import": has_running_import,
+            "latest_import": serialize_import_job(session=session, job=latest_job) if latest_job is not None else None,
+            "access_source_type": workspace.access_source_type,
+            "access_source_label": build_access_source_label(
+                access_source_type=workspace.access_source_type,
+                access_source_ref=workspace.access_source_ref,
+                display_label=source_record.display_label,
+            ),
+            "access_source_status": source_record.authorization_status,
+            "access_source_status_detail": source_record.last_error,
         }
     finally:
         session.close()
@@ -507,6 +667,25 @@ def _resolve_workspace(
     )
 
 
+def _default_access_source_for_repo(
+    *,
+    session,
+    owner_scope: str,
+    repo_ref: str,
+    access_source_type: str | None,
+    access_source_ref: str | None,
+) -> tuple[str | None, str | None]:
+    if access_source_type or access_source_ref:
+        return access_source_type, access_source_ref
+    token_source = GitHubTokenAccessSourceRepository(session).get_by_owner_scope_and_repo_identity(
+        owner_scope=owner_scope,
+        repo_identity=repo_ref,
+    )
+    if token_source is not None:
+        return "github_token", token_source.source_ref
+    return access_source_type, access_source_ref
+
+
 def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
     normalized = "".join(char.lower() if char.isalnum() else "-" for char in repo_ref)
     while "--" in normalized:
@@ -520,6 +699,8 @@ def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
 
 
 def _classify_failure(exc: Exception) -> str:
+    if isinstance(exc, RepositoryAccessError):
+        return exc.failure_category
     if isinstance(exc, GitHubNetworkError):
         return "network_failure"
     if isinstance(exc, httpx.HTTPStatusError):
@@ -543,14 +724,13 @@ def _owner_scope(owner_scope: str | None) -> str:
 def _default_sync_origin(*, mode: str, access_source_type: str | None) -> str:
     if access_source_type == "github_app_installation":
         return "installation_manual_incremental" if mode == "since_last_sync" else "installation_manual_full"
+    if access_source_type == "github_token":
+        return "private_manual_incremental" if mode == "since_last_sync" else "private_manual_full"
     return "manual_incremental" if mode == "since_last_sync" else "manual_full"
 
 
 def _access_source_label(access_source_type: str, access_source_ref: str | None) -> str:
-    if access_source_type == "github_app_installation":
-        suffix = f" #{access_source_ref}" if access_source_ref else ""
-        return f"GitHub App installation{suffix}"
-    return "Public GitHub access"
+    return build_access_source_label(access_source_type=access_source_type, access_source_ref=access_source_ref)
 
 
 def _extract_installation_id(payload: dict) -> str | None:
@@ -568,6 +748,105 @@ def _extract_repo_full_name(payload: dict) -> str | None:
 def _resolve_owner_scope_for_installation(*, session, installation_id: str) -> str | None:
     record = GitHubAppInstallationRepository(session).get_by_installation_id(installation_id)
     return record.owner_scope if record is not None else None
+
+
+def _token_for_workspace(*, session, workspace, settings) -> str | None:
+    if workspace.access_source_type == "github_token":
+        if not workspace.access_source_ref:
+            raise RepositoryAccessError(
+                f"Private repository access source is not configured for {workspace.repo_identity or workspace.repo_url or workspace.slug}.",
+                failure_category="credential_required",
+            )
+        record = GitHubTokenAccessSourceRepository(session).get_by_owner_scope_and_source_ref(
+            owner_scope=workspace.owner_scope,
+            source_ref=workspace.access_source_ref,
+        )
+        if record is None:
+            raise RepositoryAccessError(
+                f"Private repository access source is not configured for {workspace.repo_identity or workspace.repo_url or workspace.slug}.",
+                failure_category="credential_required",
+            )
+        return record.token_secret
+    return getattr(settings, "github_token", None)
+
+
+def _preflight_repository_access(
+    *,
+    session,
+    repo_ref: str,
+    owner_scope: str,
+    access_source_type: str,
+    access_source_ref: str | None,
+) -> None:
+    settings = get_settings()
+    if access_source_type == "github_token":
+        _validate_private_access_source(
+            session=session,
+            repo_ref=repo_ref,
+            owner_scope=owner_scope,
+            access_source_ref=access_source_ref,
+            max_pages=settings.github_import_max_pages,
+        )
+        return
+
+    token = getattr(settings, "github_token", None) if access_source_type == "github_app_installation" else None
+    try:
+        metadata = GitHubClient(token=token, max_pages=settings.github_import_max_pages).get_repository_metadata(repo_ref)
+    except httpx.HTTPStatusError as exc:
+        if access_source_type == "github_app_installation":
+            raise RepositoryAccessError(
+                f"Installation-backed repository authorization failed for {repo_ref}.",
+                failure_category="authorization_failed",
+            ) from exc
+        raise RepositoryAccessError(
+            f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
+            failure_category="credential_required",
+        ) from exc
+    except GitHubNetworkError:
+        return
+
+    if access_source_type == "public" and metadata.get("private"):
+        raise RepositoryAccessError(
+            f"Repository {repo_ref} is private. Configure an owner-authorized access source before importing it.",
+            failure_category="credential_required",
+        )
+
+
+def _validate_private_access_source(
+    *,
+    session,
+    repo_ref: str,
+    owner_scope: str,
+    access_source_ref: str | None,
+    max_pages: int,
+) -> None:
+    if not access_source_ref:
+        raise RepositoryAccessError(
+            f"Private repository access source is not configured for {repo_ref}.",
+            failure_category="credential_required",
+        )
+    repository = GitHubTokenAccessSourceRepository(session)
+    record = repository.get_by_owner_scope_and_source_ref(owner_scope=owner_scope, source_ref=access_source_ref)
+    if record is None:
+        raise RepositoryAccessError(
+            f"Private repository access source is not configured for {repo_ref}.",
+            failure_category="credential_required",
+        )
+    if record.repo_identity != repo_ref:
+        raise RepositoryAccessError(
+            f"Private repository source {record.source_ref} is not authorized for {repo_ref}.",
+            failure_category="authorization_failed",
+        )
+    validated_at = datetime.now(timezone.utc)
+    try:
+        GitHubClient(token=record.token_secret, max_pages=max_pages).get_repository_metadata(repo_ref)
+        repository.mark_authorized(record, validated_at=validated_at)
+    except (httpx.HTTPStatusError, GitHubNetworkError) as exc:
+        repository.mark_invalid(record, validated_at=validated_at, error_message="GitHub authorization check failed.")
+        raise RepositoryAccessError(
+            f"Private repository authorization failed for {repo_ref}.",
+            failure_category="authorization_failed",
+        ) from exc
 
 
 def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: str | None) -> None:

@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Repository lookup exposes imported workspace reuse state
 The system SHALL let the product look up a repository before starting a live import so the UI can tell whether an imported workspace already exists within the current owner scope and whether incremental sync is available.
@@ -26,17 +26,6 @@ The system SHALL let the product look up a repository before starting a live imp
 #### Scenario: Private repository from another scope is not reusable here
 - **WHEN** a private repository has an imported workspace only in some other owner scope
 - **THEN** repository lookup SHALL NOT expose that workspace as reusable state for the current actor
-
-### Requirement: Imported workspaces expose latest sync provenance
-The system SHALL expose latest sync provenance and bounded recent sync history for imported workspaces so product surfaces can explain whether a workspace is current, syncing, or behind.
-
-#### Scenario: Latest sync provenance is available
-- **WHEN** an imported workspace has completed at least one sync
-- **THEN** the system SHALL expose the latest successful sync origin and timestamp in the workspace summary
-
-#### Scenario: Recent sync history includes webhook-triggered runs
-- **WHEN** an imported workspace has recent sync attempts from manual and webhook-triggered paths
-- **THEN** the system SHALL expose enough bounded history for the product to distinguish those sync origins
 
 ### Requirement: Existing imported workspaces expose explicit next actions
 The system SHALL let the product offer open-existing, incremental-sync, and full-rerun actions explicitly within the current owner scope instead of treating all repeat analysis requests as identical.

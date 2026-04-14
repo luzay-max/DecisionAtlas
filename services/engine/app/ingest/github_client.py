@@ -124,6 +124,16 @@ class GitHubClient:
         payload = response.json()
         return payload.get("default_branch") or "main"
 
+    def get_repository_metadata(self, repo: str) -> dict[str, Any]:
+        response = self._get(f"/repos/{repo}")
+        response.raise_for_status()
+        payload = response.json()
+        return {
+            "full_name": payload.get("full_name") or repo,
+            "private": bool(payload.get("private")),
+            "default_branch": payload.get("default_branch") or "main",
+        }
+
     def list_repository_files(self, repo: str, *, ref: str | None = None) -> list[GitHubRepositoryFile]:
         branch = ref or self.get_default_branch(repo)
         response = self._get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})

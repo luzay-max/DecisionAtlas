@@ -66,6 +66,13 @@ export function ImportedReadinessCard({
             <strong>{messages.importedReadiness.axes.source}:</strong> {readiness.access_source_label}
           </p>
         ) : null}
+        {readiness.access_source_status ? (
+          <p>
+            <strong>{messages.importedReadiness.axes.sourceStatus}:</strong>{" "}
+            {messages.status[readiness.access_source_status as keyof typeof messages.status] ?? readiness.access_source_status}
+          </p>
+        ) : null}
+        {readiness.access_source_status_detail ? <p>{readiness.access_source_status_detail}</p> : null}
         {latestSyncOrigin ? (
           <p>
             <strong>{messages.importedReadiness.axes.sync}:</strong> {latestSyncOrigin}

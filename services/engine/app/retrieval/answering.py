@@ -6,6 +6,7 @@ from app.db.models import Decision
 from app.indexing.embedder import Embedder
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
+from app.repository_access import access_source_summary
 from app.repositories.artifact_chunks import ArtifactChunkRepository
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
@@ -298,6 +299,12 @@ def answer_why_question(
         alert_count=len(DriftAlertRepository(session).list_recent_by_workspace(workspace.id)),
     )
     recent_sync_jobs = ImportJobRepository(session).list_recent_for_workspace(workspace.id, limit=5)
+    source_summary = access_source_summary(
+        session=session,
+        owner_scope=workspace.owner_scope,
+        access_source_type=workspace.access_source_type,
+        access_source_ref=workspace.access_source_ref,
+    )
     workspace_readiness = (
         build_imported_workspace_readiness(
             latest_import_status=latest_job.status if latest_job is not None else None,
@@ -308,6 +315,13 @@ def answer_why_question(
             drift_status=drift_status,
             access_source_type=workspace.access_source_type,
             access_source_ref=workspace.access_source_ref,
+            access_source_label=str(source_summary["access_source_label"]) if source_summary["access_source_label"] else None,
+            access_source_status=str(source_summary["access_source_status"]) if source_summary["access_source_status"] else None,
+            access_source_status_detail=(
+                str(source_summary["access_source_status_detail"])
+                if source_summary["access_source_status_detail"]
+                else None
+            ),
         )
         if provenance.workspace_mode != "demo"
         else None

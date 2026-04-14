@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, ImportJob, Workspace
+from app.db.models import Artifact, Decision, GitHubTokenAccessSource, ImportJob, Workspace
 from app.main import create_app
 
 
@@ -275,3 +275,57 @@ def test_dashboard_summary_reports_analysis_failed_readiness(tmp_path: Path, mon
     assert body["workspace_readiness"]["state"] == "analysis_failed"
     assert body["workspace_readiness"]["review_state"] == "review_unavailable"
     assert body["workspace_readiness"]["recommended_actions"] == ["retry_import", "inspect_import_summary"]
+
+
+def test_dashboard_summary_reports_private_source_status_without_secret_material(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "dashboard-private-source.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="github-org-private-repo",
+            name="org/private-repo",
+            repo_url="https://github.com/org/private-repo",
+            owner_scope="local-default",
+            repo_identity="org/private-repo",
+            access_source_type="github_token",
+            access_source_ref="org/private-repo",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(
+            GitHubTokenAccessSource(
+                owner_scope="local-default",
+                source_ref="org/private-repo",
+                display_label="team private repo",
+                repo_identity="org/private-repo",
+                token_secret="ghp-should-not-be-exposed",
+                authorization_status="authorized",
+            )
+        )
+        session.add(
+            ImportJob(
+                job_id="job-private",
+                workspace_id=workspace.id,
+                repo="org/private-repo",
+                mode="full",
+                status="succeeded",
+                sync_origin="private_manual_full",
+                imported_count=1,
+                summary_json={"stage": "completed", "outcome": "insufficient_evidence"},
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/dashboard/summary", params={"workspace_slug": "github-org-private-repo"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace_readiness"]["access_source_label"] == "Private GitHub source team private repo"
+    assert body["workspace_readiness"]["access_source_status"] == "authorized"
+    assert "ghp-should-not-be-exposed" not in str(body)

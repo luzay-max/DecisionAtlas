@@ -38,6 +38,8 @@ export type WorkspaceReadiness = {
   recommended_actions: string[];
   access_source_type?: string;
   access_source_label?: string;
+  access_source_status?: string | null;
+  access_source_status_detail?: string | null;
   latest_sync_origin?: string | null;
   latest_sync_at?: string | null;
   active_sync_origin?: string | null;
@@ -251,6 +253,10 @@ export type ImportLookup = {
   latest_import: ImportResult | null;
   access_source_type?: string;
   access_source_label?: string;
+  access_source_status?: string | null;
+  access_source_status_detail?: string | null;
+  access_requirement?: string | null;
+  access_requirement_detail?: string | null;
 };
 
 export type DriftEvaluationResult = {
