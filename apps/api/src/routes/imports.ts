@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { authHeadersForRequest } from "../auth";
 import { getEnv } from "../plugins/env";
 import { logInfo } from "../plugins/logging";
 import { fetchUpstreamPayload } from "../proxy";
@@ -48,8 +49,11 @@ export async function importsRoute(app: FastifyInstance) {
     }
 
     const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
     const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/imports/lookup?repo=${encodeURIComponent(query.data.repo)}`),
+      fetch(`${env.ENGINE_BASE_URL}/imports/lookup?repo=${encodeURIComponent(query.data.repo)}`, {
+        headers: authHeaders,
+      }),
       app.log,
       "GET /imports/lookup"
     );
@@ -67,13 +71,15 @@ export async function importsRoute(app: FastifyInstance) {
 
     const payload = parsed.data;
     const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
     logInfo(app.log, "github import requested", { job_id: "pending" });
 
     const upstream = await fetchUpstreamPayload(
       fetch(`${env.ENGINE_BASE_URL}/imports/github`, {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          ...authHeaders,
         },
         body: JSON.stringify(payload)
       }),
@@ -97,11 +103,13 @@ export async function importsRoute(app: FastifyInstance) {
     }
 
     const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
     const upstream = await fetchUpstreamPayload(
       fetch(`${env.ENGINE_BASE_URL}/imports/github/installations/bind`, {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          ...authHeaders,
         },
         body: JSON.stringify(parsed.data)
       }),
@@ -121,11 +129,13 @@ export async function importsRoute(app: FastifyInstance) {
     }
 
     const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
     const upstream = await fetchUpstreamPayload(
       fetch(`${env.ENGINE_BASE_URL}/imports/github/private-access/bind`, {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          ...authHeaders,
         },
         body: JSON.stringify(parsed.data)
       }),
@@ -176,8 +186,9 @@ export async function importsRoute(app: FastifyInstance) {
     }
 
     const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
     const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/imports/${params.data.jobId}`),
+      fetch(`${env.ENGINE_BASE_URL}/imports/${params.data.jobId}`, { headers: authHeaders }),
       app.log,
       "GET /imports/:jobId"
     );

@@ -265,20 +265,20 @@ def get_import_job_status(job_id: str) -> dict[str, int | str | None]:
         session.close()
 
 
-def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
+def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dict[str, object | None]:
     session = get_db_session()
     try:
         repo_ref, repo_url = _normalize_repo(repo)
-        owner_scope = _owner_scope(None)
-        workspace = WorkspaceRepository(session).get_by_repo_identity(owner_scope=owner_scope, repo_identity=repo_ref)
+        effective_owner_scope = _owner_scope(owner_scope)
+        workspace = WorkspaceRepository(session).get_by_repo_identity(owner_scope=effective_owner_scope, repo_identity=repo_ref)
         if workspace is None:
             token_source = GitHubTokenAccessSourceRepository(session).get_by_owner_scope_and_repo_identity(
-                owner_scope=owner_scope,
+                owner_scope=effective_owner_scope,
                 repo_identity=repo_ref,
             )
             if token_source is not None:
                 return {
-                    "owner_scope": owner_scope,
+                    "owner_scope": effective_owner_scope,
                     "repo": repo_ref,
                     "repo_url": repo_url,
                     "workspace_exists": False,
@@ -302,13 +302,13 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
                 _preflight_repository_access(
                     session=session,
                     repo_ref=repo_ref,
-                    owner_scope=owner_scope,
+                    owner_scope=effective_owner_scope,
                     access_source_type="public",
                     access_source_ref=None,
                 )
             except RepositoryAccessError as exc:
                 return {
-                    "owner_scope": owner_scope,
+                    "owner_scope": effective_owner_scope,
                     "repo": repo_ref,
                     "repo_url": repo_url,
                     "workspace_exists": False,
@@ -323,7 +323,7 @@ def lookup_github_workspace(*, repo: str) -> dict[str, object | None]:
                     "access_requirement_detail": str(exc),
                 }
             return {
-                "owner_scope": owner_scope,
+                "owner_scope": effective_owner_scope,
                 "repo": repo_ref,
                 "repo_url": repo_url,
                 "workspace_exists": False,

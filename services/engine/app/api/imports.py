@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import BackgroundTasks, Header, Query, Request
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
+from app.db.session import get_db_session
 from app.jobs.import_jobs import (
     bind_github_app_installation,
     bind_github_private_access_source,
@@ -14,6 +15,8 @@ from app.jobs.import_jobs import (
     queue_github_import,
     run_github_import,
 )
+from app.repositories.import_jobs import ImportJobRepository
+from app.repositories.workspaces import WorkspaceRepository
 
 router = APIRouter(prefix="/imports", tags=["imports"])
 
@@ -46,13 +49,24 @@ class GitHubPrivateAccessBindingRequest(BaseModel):
 
 
 @router.post("/github")
-def import_github(request: GitHubImportRequest, background_tasks: BackgroundTasks) -> dict:
+def import_github(
+    request: GitHubImportRequest,
+    background_tasks: BackgroundTasks,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     try:
+        require_scope_role(auth, owner_scope=auth.owner_scope, required_role="admin")
+        if request.workspace_slug:
+            session = get_db_session()
+            try:
+                require_workspace_role(session, auth, workspace_slug=request.workspace_slug, required_role="admin")
+            finally:
+                session.close()
         job = queue_github_import(
             workspace_slug=request.workspace_slug,
             repo=request.repo,
             mode=request.mode,
-            owner_scope=request.owner_scope,
+            owner_scope=auth.owner_scope,
             access_source_type=request.access_source_type,
             access_source_ref=request.access_source_ref,
         )
@@ -79,9 +93,12 @@ def import_github(request: GitHubImportRequest, background_tasks: BackgroundTask
 
 
 @router.get("/lookup")
-def lookup_import_target(repo: str = Query(..., min_length=3)) -> dict:
+def lookup_import_target(
+    repo: str = Query(..., min_length=3),
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     try:
-        return lookup_github_workspace(repo=repo)
+        return lookup_github_workspace(repo=repo, owner_scope=auth.owner_scope)
     except ValueError as exc:
         if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -89,12 +106,16 @@ def lookup_import_target(repo: str = Query(..., min_length=3)) -> dict:
 
 
 @router.post("/github/installations/bind")
-def bind_installation(request: GitHubInstallationBindingRequest) -> dict:
+def bind_installation(
+    request: GitHubInstallationBindingRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     try:
+        require_scope_role(auth, owner_scope=auth.owner_scope, required_role="admin")
         return bind_github_app_installation(
             repo=request.repo,
             installation_id=request.installation_id,
-            owner_scope=request.owner_scope,
+            owner_scope=auth.owner_scope,
             account_login=request.account_login,
             account_type=request.account_type,
             workspace_slug=request.workspace_slug,
@@ -108,12 +129,16 @@ def bind_installation(request: GitHubInstallationBindingRequest) -> dict:
 
 
 @router.post("/github/private-access/bind")
-def bind_private_access(request: GitHubPrivateAccessBindingRequest) -> dict:
+def bind_private_access(
+    request: GitHubPrivateAccessBindingRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     try:
+        require_scope_role(auth, owner_scope=auth.owner_scope, required_role="admin")
         return bind_github_private_access_source(
             repo=request.repo,
             token=request.token,
-            owner_scope=request.owner_scope,
+            owner_scope=auth.owner_scope,
             source_ref=request.source_ref,
             source_label=request.source_label,
             workspace_slug=request.workspace_slug,
@@ -157,8 +182,21 @@ async def github_webhook(
 
 
 @router.get("/{job_id}")
-def get_import_job(job_id: str) -> dict:
+def get_import_job(
+    job_id: str,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    session = get_db_session()
     try:
+        job = ImportJobRepository(session).get_by_job_id(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"Import job not found: {job_id}")
+        workspace = WorkspaceRepository(session).get_by_id(job.workspace_id)
+        if workspace is None:
+            raise HTTPException(status_code=404, detail=f"Workspace not found for import job: {job_id}")
+        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=True)
         return get_import_job_status(job_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        session.close()

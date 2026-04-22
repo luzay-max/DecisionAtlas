@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
 from app.db.session import get_db_session
 from app.db.models import Workspace
 from app.provenance import get_workspace_provenance
@@ -39,12 +40,12 @@ def _serialize_decision(decision) -> dict:
 def list_decisions(
     workspace_slug: str = Query(...),
     review_state: str | None = Query(default=None),
+    auth: AuthContext = Depends(require_actor),
 ) -> list[dict]:
     session = get_db_session()
     try:
-        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
-        if workspace is None:
-            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
+        required_role = "reviewer" if review_state in {None, "candidate"} else "viewer"
+        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role=required_role)
         decisions = DecisionRepository(session).list_by_review_state(workspace.id, review_state)
         return [_serialize_decision(decision) for decision in decisions]
     finally:
@@ -52,7 +53,10 @@ def list_decisions(
 
 
 @router.get("/{decision_id}")
-def get_decision(decision_id: int) -> dict:
+def get_decision(
+    decision_id: int,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     session = get_db_session()
     try:
         decisions = DecisionRepository(session)
@@ -63,6 +67,7 @@ def get_decision(decision_id: int) -> dict:
         workspace = session.scalar(select(Workspace).where(Workspace.id == decision.workspace_id))
         if workspace is None:
             raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
+        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=True)
         provenance = get_workspace_provenance(session=session, workspace=workspace)
         return {
             **_serialize_decision(decision),
@@ -86,7 +91,11 @@ def get_decision(decision_id: int) -> dict:
 
 
 @router.post("/{decision_id}/review")
-def review_decision(decision_id: int, request: ReviewDecisionRequest) -> dict:
+def review_decision(
+    decision_id: int,
+    request: ReviewDecisionRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     valid_states = {"accepted", "rejected", "superseded", "candidate"}
     if request.review_state not in valid_states:
         raise HTTPException(status_code=400, detail="Invalid review_state")
@@ -94,9 +103,14 @@ def review_decision(decision_id: int, request: ReviewDecisionRequest) -> dict:
     session = get_db_session()
     try:
         decisions = DecisionRepository(session)
-        decision = decisions.update_review_state(decision_id, request.review_state)
-        if decision is None:
+        existing = decisions.get_by_id(decision_id)
+        if existing is None:
             raise HTTPException(status_code=404, detail=f"Decision not found: {decision_id}")
+        workspace = session.scalar(select(Workspace).where(Workspace.id == existing.workspace_id))
+        if workspace is None:
+            raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
+        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="reviewer", hide_not_found=True)
+        decision = decisions.update_review_state(decision_id, request.review_state)
         session.commit()
         return _serialize_decision(decision)
     finally:

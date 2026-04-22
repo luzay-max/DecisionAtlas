@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
 from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
@@ -12,12 +13,13 @@ router = APIRouter(prefix="/timeline", tags=["timeline"])
 
 
 @router.get("")
-def get_timeline(workspace_slug: str = Query(...)) -> dict:
+def get_timeline(
+    workspace_slug: str = Query(...),
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     session = get_db_session()
     try:
-        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
-        if workspace is None:
-            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
+        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role="viewer")
         artifacts = ArtifactRepository(session).list_by_workspace(workspace.id)
         provenance = get_workspace_provenance(session=session, workspace=workspace, artifacts=artifacts)
         decisions = DecisionRepository(session).list_by_review_state(workspace.id, "accepted")

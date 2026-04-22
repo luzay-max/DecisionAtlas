@@ -145,6 +145,13 @@ describe("POST /imports/github", () => {
         }
       }
     });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/imports/github",
+      expect.objectContaining({
+        method: "POST",
+      })
+    );
 
     global.fetch = originalFetch;
   });

@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     github_token: str | None = None
     github_import_max_pages: int = 5
     default_owner_scope: str = "local-default"
+    auth_auto_bootstrap_local: bool = True
+    local_bootstrap_username: str = "local-admin"
+    local_bootstrap_password: str = "decisionatlas-local-admin"
     github_app_webhook_secret: str | None = None
     llm_provider_mode: str = "auto"
     embedding_provider_mode: str = "auto"

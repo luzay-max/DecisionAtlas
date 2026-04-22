@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
 from app.drift.evaluator import DriftEvaluator
 from app.llm.base import ProviderConfigurationError, ProviderError
@@ -20,12 +21,13 @@ router = APIRouter(prefix="/drift", tags=["drift"])
 
 
 @router.get("")
-def list_drift_alerts(workspace_slug: str = Query(...)) -> dict:
+def list_drift_alerts(
+    workspace_slug: str = Query(...),
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     session = get_db_session()
     try:
-        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
-        if workspace is None:
-            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
+        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role="viewer")
 
         alerts = DriftAlertRepository(session).list_by_workspace(workspace.id)
         artifacts = ArtifactRepository(session)
@@ -66,13 +68,17 @@ def list_drift_alerts(workspace_slug: str = Query(...)) -> dict:
 
 
 @router.post("/evaluate")
-def evaluate_drift(payload: dict) -> dict:
+def evaluate_drift(
+    payload: dict,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     workspace_slug = payload.get("workspace_slug")
     if not workspace_slug:
         raise HTTPException(status_code=400, detail="workspace_slug is required")
 
     session = get_db_session()
     try:
+        require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role="reviewer")
         try:
             runtime = build_runtime_providers()
             evaluator = DriftEvaluator(session, embedder=runtime.embedder)

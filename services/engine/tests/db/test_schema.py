@@ -20,6 +20,10 @@ def test_initial_tables_exist(tmp_path: Path) -> None:
 
     assert {
         "workspaces",
+        "actors",
+        "owner_scopes",
+        "owner_scope_memberships",
+        "auth_sessions",
         "artifacts",
         "artifact_chunks",
         "decisions",

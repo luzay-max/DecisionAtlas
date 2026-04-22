@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
 from app.llm.base import ProviderConfigurationError, ProviderError
 from app.llm.provider_factory import build_runtime_providers
@@ -17,9 +18,13 @@ class WhyQueryRequest(BaseModel):
 
 
 @router.post("/why")
-def query_why(request: WhyQueryRequest) -> dict:
+def query_why(
+    request: WhyQueryRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     session = get_db_session()
     try:
+        require_workspace_role(session, auth, workspace_slug=request.workspace_slug, required_role="viewer")
         try:
             runtime = build_runtime_providers()
             return answer_why_question(

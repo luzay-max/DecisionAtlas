@@ -277,8 +277,39 @@ export type ProviderModeState = {
 
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
 
+async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit | undefined> {
+  const headers = new Headers(initHeaders ?? {});
+  if (typeof window !== "undefined" || headers.has("cookie")) {
+    return headers;
+  }
+
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map(({ name, value }) => `${name}=${encodeURIComponent(value)}`)
+      .join("; ");
+    if (cookieHeader) {
+      headers.set("cookie", cookieHeader);
+    }
+  } catch {
+    // Ignore request-context lookup failures and fall back to a header-less fetch.
+  }
+  return headers;
+}
+
+async function apiFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const headers = await requestHeaders(init.headers);
+  return fetch(input, {
+    ...init,
+    headers,
+    ...(typeof window !== "undefined" ? { credentials: "include" as const } : {}),
+  });
+}
+
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl}/decisions?workspace_slug=${encodeURIComponent(workspaceSlug)}&review_state=candidate`,
     { cache: "no-store" }
   );
@@ -289,7 +320,7 @@ export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecis
 }
 
 export async function getDecisionDetail(id: string): Promise<DecisionDetail> {
-  const response = await fetch(`${apiBaseUrl}/decisions/${id}`, { cache: "no-store" });
+  const response = await apiFetch(`${apiBaseUrl}/decisions/${id}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load decision detail");
   }
@@ -297,7 +328,7 @@ export async function getDecisionDetail(id: string): Promise<DecisionDetail> {
 }
 
 export async function reviewDecision(decisionId: number, reviewState: ReviewState): Promise<ReviewDecision> {
-  const response = await fetch(`${apiBaseUrl}/decisions/${decisionId}/review`, {
+  const response = await apiFetch(`${apiBaseUrl}/decisions/${decisionId}/review`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -313,7 +344,7 @@ export async function reviewDecision(decisionId: number, reviewState: ReviewStat
 }
 
 export async function askWhy(workspaceSlug: string, question: string): Promise<WhyAnswerResponse> {
-  const response = await fetch(`${apiBaseUrl}/query/why`, {
+  const response = await apiFetch(`${apiBaseUrl}/query/why`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -330,7 +361,7 @@ export async function askWhy(workspaceSlug: string, question: string): Promise<W
 }
 
 export async function getTimeline(workspaceSlug: string): Promise<TimelineResponse> {
-  const response = await fetch(`${apiBaseUrl}/timeline?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
+  const response = await apiFetch(`${apiBaseUrl}/timeline?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
     cache: "no-store"
   });
   if (!response.ok) {
@@ -340,7 +371,7 @@ export async function getTimeline(workspaceSlug: string): Promise<TimelineRespon
 }
 
 export async function getDashboardSummary(workspaceSlug: string): Promise<DashboardSummary> {
-  const response = await fetch(
+  const response = await apiFetch(
     `${apiBaseUrl}/dashboard/summary?workspace_slug=${encodeURIComponent(workspaceSlug)}`,
     { cache: "no-store" }
   );
@@ -351,7 +382,7 @@ export async function getDashboardSummary(workspaceSlug: string): Promise<Dashbo
 }
 
 export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlertsResponse> {
-  const response = await fetch(`${apiBaseUrl}/drift?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
+  const response = await apiFetch(`${apiBaseUrl}/drift?workspace_slug=${encodeURIComponent(workspaceSlug)}`, {
     cache: "no-store"
   });
   if (!response.ok) {
@@ -361,7 +392,7 @@ export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlerts
 }
 
 export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluationResult> {
-  const response = await fetch(`${apiBaseUrl}/drift/evaluate`, {
+  const response = await apiFetch(`${apiBaseUrl}/drift/evaluate`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -375,7 +406,7 @@ export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluat
 }
 
 export async function lookupGithubImport(repo: string): Promise<ImportLookup> {
-  const response = await fetch(`${apiBaseUrl}/imports/lookup?repo=${encodeURIComponent(repo)}`, {
+  const response = await apiFetch(`${apiBaseUrl}/imports/lookup?repo=${encodeURIComponent(repo)}`, {
     cache: "no-store",
   });
   if (!response.ok) {
@@ -389,7 +420,7 @@ export async function startGithubImport(
   repo: string,
   mode: "full" | "since_last_sync" = "full"
 ): Promise<ImportResult> {
-  const response = await fetch(`${apiBaseUrl}/imports/github`, {
+  const response = await apiFetch(`${apiBaseUrl}/imports/github`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -414,7 +445,7 @@ export async function startGithubImport(
 }
 
 export async function getImportJob(jobId: string): Promise<ImportResult> {
-  const response = await fetch(`${apiBaseUrl}/imports/${jobId}`, { cache: "no-store" });
+  const response = await apiFetch(`${apiBaseUrl}/imports/${jobId}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load import job");
   }
@@ -422,7 +453,7 @@ export async function getImportJob(jobId: string): Promise<ImportResult> {
 }
 
 export async function getProviderMode(): Promise<ProviderModeState> {
-  const response = await fetch(`${apiBaseUrl}/runtime/provider-mode`, { cache: "no-store" });
+  const response = await apiFetch(`${apiBaseUrl}/runtime/provider-mode`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error("Failed to load provider mode");
   }
@@ -430,7 +461,7 @@ export async function getProviderMode(): Promise<ProviderModeState> {
 }
 
 export async function setProviderMode(mode: "fake" | "live"): Promise<ProviderModeState> {
-  const response = await fetch(`${apiBaseUrl}/runtime/provider-mode`, {
+  const response = await apiFetch(`${apiBaseUrl}/runtime/provider-mode`, {
     method: "POST",
     headers: {
       "content-type": "application/json"

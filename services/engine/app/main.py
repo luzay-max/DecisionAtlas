@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.auth import router as auth_router
 from app.api.dashboard import router as dashboard_router
 from app.api.decisions import router as decisions_router
 from app.api.drift import router as drift_router
@@ -14,6 +15,7 @@ from app.config import get_settings
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name)
+    app.include_router(auth_router)
     app.include_router(health_router)
     app.include_router(imports_router)
     app.include_router(decisions_router)

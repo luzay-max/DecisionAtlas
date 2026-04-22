@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import AuthContext, require_actor, require_workspace_role
 from app.config import get_settings
 from app.db.session import get_db_session
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
@@ -17,13 +18,14 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/summary")
-def get_dashboard_summary(workspace_slug: str = Query(...)) -> dict:
+def get_dashboard_summary(
+    workspace_slug: str = Query(...),
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
     session = get_db_session()
     try:
         settings = get_settings()
-        workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
-        if workspace is None:
-            raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
+        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role="viewer")
         artifacts = ArtifactRepository(session)
         decisions = DecisionRepository(session)
         alerts = DriftAlertRepository(session)

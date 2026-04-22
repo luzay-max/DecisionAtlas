@@ -23,6 +23,52 @@ class Workspace(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
 
+class Actor(Base):
+    __tablename__ = "actors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    is_bootstrap: Mapped[bool] = mapped_column(default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
+class OwnerScope(Base):
+    __tablename__ = "owner_scopes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    scope_key: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    scope_type: Mapped[str] = mapped_column(String(50), nullable=False, default="local")
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
+class OwnerScopeMembership(Base):
+    __tablename__ = "owner_scope_memberships"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("actors.id"), nullable=False)
+    owner_scope_id: Mapped[int] = mapped_column(ForeignKey("owner_scopes.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="viewer")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("actors.id"), nullable=False)
+    current_owner_scope_id: Mapped[int] = mapped_column(ForeignKey("owner_scopes.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
 class GitHubAppInstallation(Base):
     __tablename__ = "github_app_installations"
 

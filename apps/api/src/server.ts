@@ -1,3 +1,4 @@
+import { authRoute } from "./routes/auth";
 import { dashboardRoute } from "./routes/dashboard";
 import { decisionsRoute } from "./routes/decisions";
 import { driftRoute } from "./routes/drift";
@@ -15,7 +16,9 @@ export function buildServer() {
   app.register(cors, {
     origin: true,
     methods: ["GET", "POST", "OPTIONS"],
+    credentials: true,
   });
+  app.register(authRoute);
   app.register(healthRoute);
   app.register(importsRoute);
   app.register(decisionsRoute);
