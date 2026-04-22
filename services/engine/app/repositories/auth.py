@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from secrets import token_urlsafe
 
 from sqlalchemy import select
@@ -88,13 +88,13 @@ class AuthRepository:
         return auth_session
 
     def touch_session(self, auth_session: AuthSession) -> AuthSession:
-        auth_session.last_seen_at = datetime.utcnow()
+        auth_session.last_seen_at = datetime.now(UTC)
         self.session.flush()
         return auth_session
 
     def switch_scope(self, auth_session: AuthSession, *, owner_scope_id: int) -> AuthSession:
         auth_session.current_owner_scope_id = owner_scope_id
-        auth_session.last_seen_at = datetime.utcnow()
+        auth_session.last_seen_at = datetime.now(UTC)
         self.session.flush()
         return auth_session
 

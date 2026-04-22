@@ -21,6 +21,12 @@ The default benchmark command validates those fixtures offline:
 python scripts/ci/run_benchmark.py
 ```
 
+This offline fixture validation is part of the canonical local release baseline gate via:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
+
 Optional live why-case smoke checks can run against an already-started local stack and already-existing imported workspaces:
 
 ```powershell
@@ -65,8 +71,9 @@ python scripts/ci/run_benchmark.py --live-real-repos
 - Why it matters: large public repository that already exposed a `screened-in -> candidate` conversion bottleneck in live testing
 - Expected signals:
   - at least `10` screened-in artifacts on a healthy real-analysis run
-  - zero candidates is no longer enough information by itself; the run must explain whether it is evidence-limited or conversion-limited
-  - `conversion_limited` is an acceptable readiness outcome until full extraction quality improves further
+  - at least `1` reviewable candidate on the current protected baseline
+  - if the run still underperforms, it must explain whether it is evidence-limited, conversion-limited, or otherwise operationally bounded
+  - `conversion_limited` remains a bounded diagnostic state, but it is no longer the intended baseline expectation for this repo
 
 ### `browser-use/browser-use`
 
@@ -144,6 +151,13 @@ Current expectation:
 - future validation should compare `screened_in_artifacts` against `created_candidates`, not just import completion and candidate totals
 
 ## Validation Use
+
+Treat validation in two layers:
+
+- default release baseline: canonical local pre-release script plus offline fixture benchmark validation
+- optional operator-guided validation: live imported-workspace smoke checks against curated public repos
+
+The optional live layer improves confidence before a milestone or external demo, but it should not be confused with the stable offline release gate.
 
 When changing the real imported-workspace lane, compare behavior against this baseline:
 

@@ -13,7 +13,13 @@ import { useI18n } from "../i18n/language-provider";
 import { ImportedReadinessCard } from "../imported/imported-readiness-card";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
 
-export function WorkspaceDashboardContent({ summary }: { summary: DashboardSummary }) {
+export function WorkspaceDashboardContent({
+  summary,
+  initialJobId = null,
+}: {
+  summary: DashboardSummary;
+  initialJobId?: string | null;
+}) {
   const { messages } = useI18n();
   const guidedDemoSteps = messages.guidedDemo.steps;
   const isGuidedDemoWorkspace = summary.workspace_slug === "demo-workspace";
@@ -127,12 +133,15 @@ export function WorkspaceDashboardContent({ summary }: { summary: DashboardSumma
         {!isGuidedDemoWorkspace && summary.workspace_readiness ? (
           <ImportedReadinessCard readiness={summary.workspace_readiness} workspaceSlug={summary.workspace_slug} />
         ) : null}
-        <DemoImportButton
-          workspaceSlug={summary.workspace_slug}
-          repo={summary.github_repo}
-          latestImport={summary.latest_import}
-          importStatus={summary.import_status}
-        />
+        {!isGuidedDemoWorkspace ? (
+          <DemoImportButton
+            workspaceSlug={summary.workspace_slug}
+            repo={summary.github_repo}
+            latestImport={summary.latest_import}
+            importStatus={summary.import_status}
+            initialJobId={initialJobId}
+          />
+        ) : null}
         <div className="action-row">
           <Link href={`/review?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">
             {messages.dashboard.reviewCandidates}

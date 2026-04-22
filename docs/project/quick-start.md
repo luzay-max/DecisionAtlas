@@ -105,7 +105,7 @@ For a real public repository analysis run, use the live-analysis form on the hom
 
 ## Demo-specific validation
 
-Run the benchmark fixture check:
+Run the offline benchmark fixture check:
 
 ```powershell
 python scripts/ci/run_benchmark.py
@@ -113,23 +113,37 @@ python scripts/ci/run_benchmark.py
 
 This now validates both the guided demo fixtures and the curated live-analysis benchmark repository set under `examples/live-benchmarks/`.
 
-Recommended real-repo smoke checks after the stack is up:
+## Canonical release baseline validation
+
+Before tagging or doing release-style verification, use the canonical local release gate:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
+
+This script covers:
+
+- workspace tests and typechecks
+- engine pytest
+- offline benchmark fixture validation
+- Playwright smoke coverage
+
+If `uv` is not on `PATH`, the script automatically falls back to `python -m uv`.
+
+## Optional operator-guided real-repo smoke checks
+
+Recommended imported-lane credibility checks after the stack is up:
 
 - import a public repository such as `browser-use/browser-use`
 - confirm the imported workspace reaches either `review_ready`, `why_ready`, or an explicit bounded failure / evidence-limited state
 - ask a focused why-question and confirm the answer includes citations
 - run drift evaluation once and confirm the result is understandable for the current workspace state
 
-Run browser smoke coverage:
-
-```powershell
-pnpm --filter @decisionatlas/web exec playwright install chromium
-pnpm --filter @decisionatlas/web exec playwright test
-```
+These checks are useful before a milestone demo or release note update, but they are not part of the default offline release gate because they depend on live provider state, network conditions, and existing imported workspaces.
 
 ## Common issues
 
-- If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. CI uses the `uv` CLI directly.
+- If `uv` is not on `PATH` but `python -m uv --version` works, use `python -m uv ...` for local commands. The canonical `pre-release.ps1` script already applies that fallback automatically.
 - If import succeeds but no meaningful candidates appear, verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set for a live provider-backed demo.
 - Live analysis currently supports public GitHub repositories only. Private repositories and GitHub App flows are out of scope for this phase.
 - Imported workspaces intentionally separate review readiness, why readiness, and drift readiness. `review_required` or `evidence_limited` is a normal bounded outcome, not necessarily a broken run.

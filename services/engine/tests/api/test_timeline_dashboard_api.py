@@ -357,6 +357,58 @@ def test_dashboard_summary_reports_analysis_failed_readiness(tmp_path: Path, mon
     assert body["workspace_readiness"]["recommended_actions"] == ["retry_import", "inspect_import_summary"]
 
 
+def test_dashboard_summary_reports_analysis_running_readiness(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "dashboard-analysis-running.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-running",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="running",
+                imported_count=0,
+                summary_json={
+                    "stage": "extracting_decisions",
+                    "extraction_summary": {
+                        "shortlisted_artifacts": 12,
+                        "screened_artifacts": 4,
+                        "screened_in_artifacts": 2,
+                        "screened_out_artifacts": 2,
+                        "full_extraction_requests": 0,
+                        "completed_full_extractions": 0,
+                        "total_artifacts": 16,
+                        "processed_artifacts": 4,
+                        "created_candidates": 0,
+                        "skipped_provider_400": 0,
+                        "skipped_provider_timeout": 0,
+                        "skipped_invalid_json": 0,
+                    },
+                },
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/dashboard/summary", params={"workspace_slug": "imported-workspace"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["import_status"] == "running"
+    assert body["workspace_readiness"]["state"] == "analysis_running"
+    assert body["workspace_readiness"]["review_state"] == "review_unavailable"
+    assert body["workspace_readiness"]["recommended_actions"] == ["inspect_import_summary"]
+
+
 def test_dashboard_summary_reports_private_source_status_without_secret_material(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "dashboard-private-source.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

@@ -57,6 +57,14 @@ pnpm --filter @decisionatlas/web dev
 
 If `uv` is not on `PATH` but `python -m uv --version` works, replace `uv ...` with `python -m uv ...` for local shell commands.
 
+Canonical release baseline validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
+
+This is the canonical local release gate for the current branch baseline. It runs workspace tests, typechecks, engine pytest, offline benchmark fixture validation, and Playwright smoke coverage. The script automatically falls back to `python -m uv` when `uv` is not directly available on `PATH`.
+
 For a live provider-backed demo, set these before starting services:
 
 - `LLM_PROVIDER_MODE=openai_compatible`
@@ -173,3 +181,9 @@ Known limitations:
 - many imported why answers still depend on thin accepted-decision grounding and may remain `limited_support`
 - drift alerts are still conservative and may under-report rather than overstate repository change
 - imported readiness explains the next step better than before, but it is still tuned for operator-guided use rather than self-serve hosted onboarding
+
+Optional operator-guided real-repo validation:
+
+- use the canonical release script for the default local gate
+- use curated public repositories only as an additional credibility check before a publish-style milestone
+- keep guided demo validation and imported real-repo validation distinct in docs and walkthroughs

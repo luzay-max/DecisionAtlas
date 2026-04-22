@@ -68,7 +68,7 @@ describe("LiveAnalysisForm", () => {
     await waitFor(() => {
       expect(startGithubImport).toHaveBeenCalledWith(null, "org/repo", "full");
     });
-    expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo");
+    expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo?job=job-live");
   });
 
   it("shows existing workspace controls and allows incremental sync", async () => {
@@ -121,7 +121,7 @@ describe("LiveAnalysisForm", () => {
     await waitFor(() => {
       expect(startGithubImport).toHaveBeenCalledWith("github-org-repo", "org/repo", "since_last_sync");
     });
-    expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo");
+    expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo?job=job-sync");
   });
 
   it("shows private access guidance when the repository is not publicly reachable", async () => {

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -82,7 +82,7 @@ class ImportJobRepository:
     def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
         job = self._require(job_id)
         job.status = "running"
-        job.started_at = datetime.utcnow()
+        job.started_at = datetime.now(UTC)
         job.error_message = None
         summary = dict(job.summary_json or {})
         summary["stage"] = stage
@@ -117,7 +117,7 @@ class ImportJobRepository:
             summary.update(summary_json)
         summary["stage"] = "completed"
         job.summary_json = summary
-        job.finished_at = datetime.utcnow()
+        job.finished_at = datetime.now(UTC)
         self.session.flush()
         return job
 
@@ -136,7 +136,7 @@ class ImportJobRepository:
         summary["stage"] = stage
         summary["failure_category"] = failure_category
         job.summary_json = summary
-        job.finished_at = datetime.utcnow()
+        job.finished_at = datetime.now(UTC)
         self.session.flush()
         return job
 

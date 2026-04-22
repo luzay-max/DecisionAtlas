@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -99,7 +99,7 @@ def evaluate_drift(
                 latest_job.job_id,
                 summary_json={
                     "drift_evaluation": {
-                        "evaluated_at": datetime.utcnow().isoformat(),
+                        "evaluated_at": datetime.now(UTC).isoformat(),
                         "evaluated_rules": result.evaluated_rules,
                         "created_alerts": result.created_alerts,
                     }

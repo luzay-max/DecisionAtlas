@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 def build_imported_drift_status(
@@ -78,6 +78,11 @@ def build_imported_workspace_readiness(
         next_action = "retry_import"
         why_state = "analysis_failed"
         review_state = "review_unavailable"
+    elif latest_import_status in {"queued", "running"}:
+        state = "analysis_running"
+        next_action = "inspect_import_summary"
+        why_state = "review_required"
+        review_state = "review_unavailable"
     elif candidate_count > 0:
         state = "review_ready"
         next_action = "review_candidates"
@@ -109,6 +114,7 @@ def build_imported_workspace_readiness(
         why_state=why_state,
         drift_state=drift_status["state"],
         review_state=review_state,
+        import_in_progress=latest_import_status in {"queued", "running"},
     )
 
     return {
@@ -149,8 +155,11 @@ def _recommended_actions(
     why_state: str,
     drift_state: str,
     review_state: str,
+    import_in_progress: bool = False,
 ) -> list[str]:
     actions: list[str] = [next_action]
+    if import_in_progress:
+        return actions
     if review_state == "review_ready":
         actions.append("inspect_import_summary")
     if why_state == "ready" and next_action != "ask_why":
@@ -250,7 +259,7 @@ def summarize_imported_evidence(artifacts: list, decisions: list, source_refs_by
 
 
 def _latest_datetime(*values: datetime | None) -> datetime | None:
-    filtered = [value for value in values if value is not None]
+    filtered = [_coerce_utc(value) for value in values if value is not None]
     return max(filtered) if filtered else None
 
 
@@ -258,6 +267,13 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(value)
     except ValueError:
         return None
+    return _coerce_utc(parsed)
+
+
+def _coerce_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)

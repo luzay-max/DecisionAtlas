@@ -1,6 +1,6 @@
 # DecisionAtlas Release Notes: v0.2 Foundation Plus Current Quality Baseline
 
-This document started as the `v0.2` release summary. It now also records the major quality slices that shipped after `v0.2` on the same product line, so it reflects the current branch baseline more accurately than the original v0.2-only notes.
+This document started as the `v0.2` release summary. It now also records the major quality slices that shipped after `v0.2` on the same product line, so it reflects the current `v0.2.1` branch baseline more accurately than the original v0.2-only notes.
 
 ## What v0.2 adds
 
@@ -33,6 +33,14 @@ This document started as the `v0.2` release summary. It now also records the maj
   - structured chunking
   - bounded overlap
   - chunk metadata persisted for better supporting evidence ranking
+- imported candidate conversion is stronger:
+  - rationale-heavy imported docs use finer artifact-family routing
+  - strong screened-in artifacts get one bounded recovery extraction attempt
+  - imported summaries preserve final conversion diagnostics after the refined path runs
+- release-quality packaging is clearer:
+  - a canonical local pre-release script now acts as the branch baseline validation gate
+  - offline benchmark fixture validation is part of that default release path
+  - release-facing docs now distinguish the stable guided demo lane from optional imported real-repo validation more explicitly
 
 ## Supported in the current branch baseline
 
@@ -44,6 +52,7 @@ This document started as the `v0.2` release summary. It now also records the maj
 - rule-first drift plus conservative semantic drift
 - CI-safe fake provider fallback when live credentials are missing
 - imported readiness surfaced in dashboard and search
+- canonical local release baseline validation through `scripts/ci/pre-release.ps1`
 
 ## Known limits
 
@@ -55,6 +64,7 @@ This document started as the `v0.2` release summary. It now also records the maj
 - imported real-repo outcomes can still be sparse or conversion-limited depending on repository signal quality
 - drift remains manual, not continuous
 - the seeded demo lane is still stronger as a presentation flow than the imported lane
+- live real-repo smoke checks remain operator-guided validation, not part of the default offline release gate
 
 ## Deferred to v0.3
 

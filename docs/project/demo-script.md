@@ -89,6 +89,8 @@ Narration:
 
 ## Optional 30-second real-repo proof
 
+This is an operator-guided credibility check, not part of the core guided walkthrough and not part of the default offline release gate.
+
 Route:
 
 - `http://localhost:3000/`
@@ -98,3 +100,4 @@ Narration:
 - "The seeded lane is our stable walkthrough, but the same product can also analyze a real public GitHub repository into a separate imported workspace."
 - "That imported workspace now exposes whether review, why-search, and drift are ready, instead of leaving the operator to guess the next move."
 - "The imported why answers stay anchored to accepted decisions, with artifact chunks acting as supporting evidence rather than replacing the trust anchor."
+- "We use this as a bounded proof of real capability, not as the primary demo story."

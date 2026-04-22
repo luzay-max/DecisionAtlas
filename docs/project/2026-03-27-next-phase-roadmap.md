@@ -73,6 +73,28 @@ That changes the practical next-work order again:
 3. v0.3 platform work
 ```
 
+## Status Update (2026-04-22)
+
+Since the later 2026-04-09 update, the next quality slice after indexing has also shipped:
+
+- lightweight real-repo benchmark capture is now part of the protected branch baseline:
+  - curated fixture-backed real-repo expectations are in `examples/live-benchmarks/`
+  - the offline benchmark validation path is part of the default release gate
+- imported candidate conversion is stronger:
+  - screened-in imported docs now use finer artifact-family routing
+  - recoverable first-pass failures get one bounded recovery extraction attempt
+  - imported readiness keeps `review_ready` ahead of `conversion_limited` once reviewable candidates exist
+- the current branch has been tagged as `v0.2.1`
+
+That changes the practical next-work order again:
+
+```text
+1. Release-quality cleanup
+2. Strengthen real repository outcomes
+3. Hosted public demo preparation
+4. v0.3 platform work
+```
+
 ## Priority 1: Workspace Reuse and Incremental Sync
 
 **Status:** Completed
@@ -265,8 +287,9 @@ This priority is now implemented:
 
 ```text
 1. Release-quality cleanup
-2. Lightweight real-repo benchmark capture
-3. v0.3 platform work
+2. Strengthen real repository outcomes
+3. Hosted public demo preparation
+4. v0.3 platform work
 ```
 
 ## Why This Order Now
@@ -282,8 +305,9 @@ The already-finished work removed the earlier operational and product-semantics 
 The remaining highest-signal product gap is now:
 
 1. release cleanup so the current product baseline is documented and presentable
-2. lightweight benchmark capture so future regressions are easier to catch without turning validation into a large separate project
-3. heavier platform work only after the current loop is cleaner and better packaged
+2. continue improving the real imported-repository loop now that conversion and benchmark protection are stronger
+3. prepare hosted public demo delivery only after the current loop is cleaner and better packaged
+4. heavier platform work only after the above
 
 ## What Not To Prioritize First
 
@@ -300,7 +324,8 @@ The following are still valid future areas, but should not come before the three
 The next phase should improve release polish and lightweight validation rather than immediately expand into heavier platform features:
 
 - do a release-quality cleanup pass
-- capture a lightweight real-repo benchmark set as a supporting validation asset
+- then strengthen the real imported-repo outcomes further
+- then prepare hosted demo delivery from a cleaner, better-validated baseline
 - postpone heavier v0.3 platform work until after the current loop is better packaged and easier to validate
 
 That path should produce the strongest near-term improvement in both product quality and operational efficiency.

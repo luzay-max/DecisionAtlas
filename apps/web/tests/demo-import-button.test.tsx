@@ -23,6 +23,7 @@ vi.mock("../lib/api", () => ({
 
 describe("DemoImportButton", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     refresh.mockReset();
     startGithubImport.mockReset();
     getImportJob.mockReset();
@@ -45,7 +46,7 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: "Run Demo Import" }));
+    await user.click(screen.getByRole("button", { name: "Run import" }));
 
     await waitFor(() => {
       expect(screen.getAllByText("Imported 11 artifacts from encode/httpx").length).toBeGreaterThan(0);
@@ -85,7 +86,7 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    const button = screen.getByRole("button", { name: "Run Demo Import" });
+    const button = screen.getByRole("button", { name: "Run import" });
     await user.click(button);
 
     expect(startGithubImport).toHaveBeenCalledTimes(1);
@@ -197,5 +198,74 @@ describe("DemoImportButton", () => {
     expect(screen.getByText("Estimated time remaining: 1m 15s.")).toBeInTheDocument();
     expect(screen.getByText("Current artifact: Architecture RFC")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "81");
+  });
+
+  it("starts polling from an initial job id before latest import appears on the page", async () => {
+    getImportJob
+      .mockResolvedValueOnce({
+        job_id: "job-from-query",
+        status: "running",
+        imported_count: 0,
+        repo: "psf/requests",
+        summary: { stage: "indexing_artifacts" },
+      })
+      .mockResolvedValueOnce({
+        job_id: "job-from-query",
+        status: "succeeded",
+        imported_count: 1154,
+        repo: "psf/requests",
+        summary: { stage: "completed" },
+      });
+
+    render(
+      <LanguageProvider>
+        <DemoImportButton workspaceSlug="github-psf-requests" repo="psf/requests" importStatus="ready" initialJobId="job-from-query" />
+      </LanguageProvider>
+    );
+
+    await waitFor(() => {
+      expect(getImportJob).toHaveBeenCalledWith("job-from-query");
+    });
+    await waitFor(() => {
+      expect(screen.getAllByText("Imported 1154 artifacts from psf/requests").length).toBeGreaterThan(0);
+    });
+    expect(screen.getByText(/Import job: job-from-query/i)).toBeInTheDocument();
+  });
+
+  it("keeps polling long-running imports until the job completes", async () => {
+    vi.useFakeTimers();
+    let pollCount = 0;
+    getImportJob.mockImplementation(async () => {
+      pollCount += 1;
+      if (pollCount <= 24) {
+        return {
+          job_id: "job-long-running",
+          status: "running",
+          imported_count: 0,
+          repo: "psf/requests",
+          summary: { stage: "importing_artifacts" },
+        };
+      }
+      return {
+        job_id: "job-long-running",
+        status: "succeeded",
+        imported_count: 1202,
+        repo: "psf/requests",
+        summary: { stage: "completed" },
+      };
+    });
+
+    render(
+      <LanguageProvider>
+        <DemoImportButton workspaceSlug="github-psf-requests" repo="psf/requests" importStatus="ready" initialJobId="job-long-running" />
+      </LanguageProvider>
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12000);
+    });
+
+    expect(screen.getAllByText("Imported 1202 artifacts from psf/requests").length).toBeGreaterThan(0);
+    expect(getImportJob).toHaveBeenCalledTimes(25);
   });
 });

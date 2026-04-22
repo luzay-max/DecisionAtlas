@@ -35,7 +35,7 @@ describe("WorkspaceDashboardContent", () => {
     );
 
     expect(screen.getByText("demo-workspace")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Run Demo Import" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Run import" })).not.toBeInTheDocument();
     expect(screen.getByText("Demo repo: encode/httpx")).toBeInTheDocument();
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
@@ -214,8 +214,76 @@ describe("WorkspaceDashboardContent", () => {
       "href",
       "/workspaces/imported-workspace"
     );
+    expect(screen.getByRole("button", { name: "Run import" })).toBeInTheDocument();
     expect(screen.getByText(/Contributing signal mix/i)).toBeInTheDocument();
     expect(screen.getByText(/Extraction funnel shortlisted 6, screened in 3, and created 2 candidate decisions\./i)).toBeInTheDocument();
+  });
+
+  it("renders in-progress imported readiness without claiming the import is complete", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "imported-workspace",
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          repo_url: "https://github.com/org/repo",
+          github_repo: "org/repo",
+          import_status: "running",
+          latest_import: {
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: {
+              stage: "extracting_decisions",
+              extraction_summary: {
+                shortlisted_artifacts: 12,
+                screened_artifacts: 4,
+                screened_in_artifacts: 2,
+                screened_out_artifacts: 2,
+                full_extraction_requests: 0,
+                completed_full_extractions: 0,
+                total_artifacts: 16,
+                processed_artifacts: 4,
+                created_candidates: 0,
+                skipped_provider_400: 0,
+                skipped_provider_timeout: 0,
+                skipped_invalid_json: 0,
+              },
+            },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          },
+          artifact_count: 0,
+          decision_counts: {
+            candidate: 0,
+            accepted: 0,
+            rejected: 0,
+            superseded: 0,
+          },
+          workspace_readiness: {
+            state: "analysis_running",
+            next_action: "inspect_import_summary",
+            review_state: "review_unavailable",
+            why_state: "review_required",
+            drift_state: "evidence_limited",
+            recommended_actions: ["inspect_import_summary"],
+          },
+          drift_status: {
+            state: "evidence_limited",
+            can_evaluate: false,
+            next_action: "inspect_import_summary",
+            last_evaluated_at: null,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Imported analysis is still running")).toBeInTheDocument();
+    expect(screen.getByText(/in-progress, not final/i)).toBeInTheDocument();
+    expect(screen.queryByText("Imported workspace needs a next step")).not.toBeInTheDocument();
   });
 
   it("renders conversion-limited imported readiness without low-signal wording", () => {

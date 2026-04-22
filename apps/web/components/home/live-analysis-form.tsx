@@ -49,6 +49,14 @@ export function LiveAnalysisForm() {
     };
   }, [repo]);
 
+  function workspaceHref(workspaceSlug: string, jobId?: string | null) {
+    const base = `/workspaces/${encodeURIComponent(workspaceSlug)}`;
+    if (!jobId) {
+      return base;
+    }
+    return `${base}?job=${encodeURIComponent(jobId)}`;
+  }
+
   async function startImport(mode: "full" | "since_last_sync", workspaceSlug: string | null) {
     setLoading(true);
     setMessage(
@@ -63,7 +71,7 @@ export function LiveAnalysisForm() {
         throw new Error("Missing workspace slug");
       }
       setMessage(messages.liveAnalysis.redirecting.replace("{repo}", result.repo ?? repo));
-      router.push(`/workspaces/${encodeURIComponent(nextWorkspaceSlug)}`);
+      router.push(workspaceHref(nextWorkspaceSlug, result.job_id));
     } catch (error) {
       const detail = error instanceof Error ? error.message : "unknown error";
       setMessage(messages.liveAnalysis.failed.replace("{detail}", detail));
@@ -102,10 +110,12 @@ export function LiveAnalysisForm() {
         <div className="stack" style={{ border: "1px solid currentColor", borderRadius: "1rem", padding: "1rem" }}>
           <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
-          {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
-          {lookup.has_running_import ? <p>{messages.liveAnalysis.runningImportHint}</p> : null}
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Link href={`/workspaces/${encodeURIComponent(lookup.workspace_slug)}`}>{messages.liveAnalysis.openExisting}</Link>
+            {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
+            {lookup.has_running_import ? <p>{messages.liveAnalysis.runningImportHint}</p> : null}
+            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <Link href={workspaceHref(lookup.workspace_slug, lookup.has_running_import ? lookup.latest_import?.job_id : null)}>
+              {messages.liveAnalysis.openExisting}
+            </Link>
             <button
               type="button"
               disabled={loading || !lookup.can_incremental_sync}

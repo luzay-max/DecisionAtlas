@@ -8,30 +8,38 @@ import { DashboardSummary, ImportSummary, getImportJob, startGithubImport } from
 import { useI18n } from "../i18n/language-provider";
 
 const progressStages = ["queued", "importing_artifacts", "indexing_artifacts", "extracting_decisions", "completed"] as const;
+const importPollIntervalMs = 500;
 
 export function DemoImportButton({
   workspaceSlug,
   repo,
   latestImport,
   importStatus,
+  initialJobId,
 }: {
   workspaceSlug: string;
   repo: string;
   latestImport?: DashboardSummary["latest_import"];
   importStatus?: string;
+  initialJobId?: string | null;
 }) {
   const { messages } = useI18n();
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [nextMessage, setNextMessage] = useState<string | null>(null);
-  const [currentStage, setCurrentStage] = useState<string | null>(latestImport?.summary?.stage ?? importStatus ?? null);
+  const [currentStage, setCurrentStage] = useState<string | null>(
+    latestImport?.summary?.stage ?? (initialJobId ? "queued" : importStatus ?? null)
+  );
   const [loading, setLoading] = useState(false);
-  const [activeJobId, setActiveJobId] = useState<string | null>(latestImport?.job_id ?? null);
-  const [jobStatus, setJobStatus] = useState<string | null>(latestImport?.status ?? importStatus ?? null);
+  const [activeJobId, setActiveJobId] = useState<string | null>(latestImport?.job_id ?? initialJobId ?? null);
+  const [jobStatus, setJobStatus] = useState<string | null>(
+    latestImport?.status ?? (initialJobId ? "queued" : importStatus ?? null)
+  );
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
   const [progressDetails, setProgressDetails] = useState<string[]>([]);
   const [activeExtractionSummary, setActiveExtractionSummary] = useState(latestImport?.summary?.extraction_summary ?? null);
   const pollingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   const activeStage = currentStage ?? jobStatus ?? "queued";
   const activeIndex = Math.max(progressStages.indexOf((activeStage as (typeof progressStages)[number]) ?? "queued"), 0);
@@ -194,7 +202,7 @@ export function DemoImportButton({
 
   async function waitForJob(jobId: string) {
     pollingRef.current = true;
-    for (let attempt = 0; attempt < 20; attempt += 1) {
+    while (mountedRef.current) {
       const job = await getImportJob(jobId);
       if (!job) {
         pollingRef.current = false;
@@ -205,7 +213,7 @@ export function DemoImportButton({
         pollingRef.current = false;
         return job;
       }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, importPollIntervalMs));
     }
     pollingRef.current = false;
     return null;
@@ -249,11 +257,26 @@ export function DemoImportButton({
   }
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      pollingRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!latestImport) {
-      setMessage(null);
-      setProgressMessage(null);
       setActiveExtractionSummary(null);
       setProgressDetails([]);
+      if (initialJobId) {
+        setActiveJobId(initialJobId);
+        setJobStatus("queued");
+        setCurrentStage("queued");
+        setMessage(messages.importButton.queued);
+        setProgressMessage(messages.importButton.progressHint.replace("{step}", "1").replace("{total}", String(progressStages.length - 1)));
+      } else {
+        setMessage(null);
+        setProgressMessage(null);
+      }
       return;
     }
     if (latestImport.status === "succeeded") {
@@ -280,13 +303,13 @@ export function DemoImportButton({
     }
     setActiveExtractionSummary(latestImport.summary?.extraction_summary ?? null);
     setProgressDetails(buildExtractionDetails(latestImport.summary ?? null));
-  }, [latestImport, messages, repo]);
+  }, [initialJobId, latestImport, messages, repo]);
 
   useEffect(() => {
     if (!activeJobId || pollingRef.current) {
       return;
     }
-    if (jobStatus !== "queued" && jobStatus !== "running") {
+    if (jobStatus !== null && jobStatus !== "queued" && jobStatus !== "running") {
       return;
     }
     void waitForJob(activeJobId).then(() => {
