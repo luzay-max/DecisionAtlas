@@ -61,6 +61,14 @@ The system SHALL let the product offer open-existing, incremental-sync, and full
 - **WHEN** an imported private-repository workspace was originally created through a bound owner-scoped access source
 - **THEN** later incremental sync or rerun SHALL continue using that bound source unless the workspace is explicitly re-bound
 
+#### Scenario: Viewer role cannot trigger rerun or sync
+- **WHEN** an actor with only viewer role accesses an imported workspace
+- **THEN** the product SHALL expose workspace state but SHALL deny rerun and incremental-sync actions
+
+#### Scenario: System-triggered sync remains allowed without viewer/admin session
+- **WHEN** a webhook or background execution path triggers incremental sync for a bound workspace
+- **THEN** the platform SHALL continue that sync without requiring a user-facing viewer, reviewer, or admin browser session
+
 ### Requirement: Incremental sync uses normalized timestamps
 The system SHALL normalize `since_last_sync` timestamps before comparing them against GitHub timestamps so incremental import filtering does not fail on naive-versus-aware datetime mismatches.
 

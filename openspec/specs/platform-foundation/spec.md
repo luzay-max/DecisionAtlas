@@ -60,3 +60,11 @@ The system SHALL define platform permissions in terms of product actions such as
 #### Scenario: Private credential setup remains more privileged than import review
 - **WHEN** the platform defines who may register, rotate, or revoke private repository access sources
 - **THEN** it SHALL treat those actions as more privileged than candidate review, acceptance, or drift evaluation
+
+#### Scenario: Product actions are enforced through authenticated scope membership
+- **WHEN** an actor attempts to perform a platform product action
+- **THEN** the system SHALL evaluate that action against the actor's role within the current owner scope rather than against a global unauthenticated baseline
+
+#### Scenario: Trusted system actions are enforced through bound authority
+- **WHEN** the platform executes a webhook-triggered sync or background job action
+- **THEN** it SHALL authorize that action through bound workspace/access-source state rather than through an interactive actor session

@@ -50,3 +50,7 @@ The system SHALL distinguish successful analysis, insufficient evidence, operati
 #### Scenario: Private repository with invalid source reports authorization failure
 - **WHEN** a live analysis request targets a private repository through an expired, revoked, or otherwise invalid owner-scoped source
 - **THEN** the product-facing outcome SHALL report an authorization-specific failure class rather than collapsing the result into a generic network error
+
+#### Scenario: Live analysis is resolved inside the authenticated owner's scope
+- **WHEN** an authenticated actor starts live analysis
+- **THEN** the repository lookup and resulting reuse/import actions SHALL be resolved inside that actor's current owner scope rather than through a global anonymous context
