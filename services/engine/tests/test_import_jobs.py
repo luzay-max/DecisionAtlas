@@ -247,6 +247,107 @@ def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path:
     assert result["summary"]["extraction_summary"]["conversion_loss_reasons"]["thin_source_ref_coverage"] == 1
 
 
+def test_run_github_import_records_recovery_conversion_counters_in_summary(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "import-job-recovery.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(Workspace(slug="github-org-repo", name="org/repo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    class RecoveryImporter:
+        def __init__(self, session, client) -> None:
+            self.session = session
+
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+            workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
+            assert workspace is not None
+            self.session.add(
+                Artifact(
+                    workspace_id=workspace.id,
+                    type="doc",
+                    source_id="docs/rollout.md",
+                    repo=repo,
+                    title="Rollout plan",
+                    content=(
+                        "We decided to move long-running work to a queue because request latency mattered. "
+                        "The rollout will happen gradually so we can watch queue health. "
+                        "This keeps the API responsive while adoption grows."
+                    ),
+                    author=None,
+                    url="https://github.com/org/repo/blob/main/docs/rollout.md",
+                    timestamp=None,
+                    metadata_json={"path": "docs/rollout.md", "signal_category": "rollout"},
+                )
+            )
+            self.session.commit()
+            return GitHubImportResult(
+                imported_count=1,
+                artifact_counts={"issue": 0, "pr": 0, "commit": 0, "doc": 1},
+                selected_document_count=1,
+                imported_document_count=1,
+                skipped_document_counts={},
+                selected_document_categories={"rollout": 1},
+            )
+
+    class FakeEmbedder:
+        def embed(self, chunks):
+            return [[0.1, 0.2, 0.3] for _ in chunks]
+
+    class RecoveryProvider:
+        def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+            return True
+
+        def extract_candidate(self, request: ExtractionRequest) -> str | None:
+            if "Potential decision evidence:" not in request.artifact_content:
+                return "not valid json"
+            return """
+            {
+              "title": "Recover queue rollout",
+              "problem": "Long-running tasks block request handling",
+              "context": "Background processing volume increased",
+              "constraints": "Keep the API responsive during rollout",
+              "chosen_option": "Move long-running work to a queue",
+              "tradeoffs": "More infrastructure, lower request latency",
+              "confidence": 0.84,
+              "source_quote": "We decided to move long-running work to a queue because request latency mattered.",
+              "source_quotes": [
+                "We decided to move long-running work to a queue because request latency mattered.",
+                "The rollout will happen gradually so we can watch queue health."
+              ]
+            }
+            """
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", RecoveryImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(embedder=FakeEmbedder(), extraction_provider=RecoveryProvider()),
+    )
+    monkeypatch.setattr("app.jobs.import_jobs._build_extraction_progress_reporter", lambda **kwargs: (lambda stats: None))
+
+    queued_job = queue_github_import(workspace_slug="github-org-repo", repo="org/repo", mode="full")
+    result = run_github_import(
+        job_id=str(queued_job["job_id"]),
+        workspace_slug="github-org-repo",
+        repo="org/repo",
+        mode="full",
+    )
+
+    assert result["status"] == "succeeded"
+    assert result["summary"]["outcome"] == "ok"
+    assert result["summary"]["extraction_summary"]["created_candidates"] == 1
+    assert result["summary"]["extraction_summary"]["recovery_extraction_attempts"] == 1
+    assert result["summary"]["extraction_summary"]["recovered_candidates"] == 1
+    assert result["summary"]["extraction_summary"]["skipped_invalid_json"] == 0
+    assert result["summary"]["extraction_summary"]["conversion_loss_reasons"] == {}
+
+
 def test_classify_failure_distinguishes_network_provider_and_repository_access() -> None:
     request = httpx.Request("GET", "https://api.github.com/repos/org/repo")
     response = httpx.Response(404, request=request, json={"message": "Not Found"})

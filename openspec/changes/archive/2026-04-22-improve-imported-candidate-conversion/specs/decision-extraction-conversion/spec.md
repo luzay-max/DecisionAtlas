@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Screened-in artifacts use artifact-aware full extraction
 The system SHALL use artifact-aware full extraction behavior for screened-in imported artifacts so long-form docs, high-signal PRs, and lighter-weight issue or commit evidence are not forced through one identical extraction path, and SHALL allow one bounded recovery extraction attempt when the first conversion pass fails for recoverable reasons on otherwise strong screened-in evidence.
@@ -14,21 +14,6 @@ The system SHALL use artifact-aware full extraction behavior for screened-in imp
 #### Scenario: Recoverable first-pass conversion gets one bounded retry
 - **WHEN** a screened-in imported artifact still shows strong decision signal after the first extraction attempt fails for a recoverable reason such as weak artifact-family fit, partial structure, or insufficiently grounded local context
 - **THEN** the system SHALL run one bounded recovery extraction attempt using a more conversion-oriented payload before classifying that artifact as conversion loss
-
-### Requirement: Full extraction can salvage decision-like structured output
-The system SHALL distinguish between true non-decision outputs and recoverable partial extraction outputs so screened-in artifacts are not discarded solely because the first structured response is imperfect, and SHALL preserve enough grounded evidence from valid outputs to avoid leaving those decisions under-supported downstream.
-
-#### Scenario: Core decision fields are present
-- **WHEN** the full extraction response contains enough core decision fields and grounded evidence to describe a reviewable engineering decision
-- **THEN** the system SHALL normalize and persist a candidate decision even if optional fields or formatting details are incomplete
-
-#### Scenario: Response lacks sufficient decision structure
-- **WHEN** the full extraction response does not contain enough grounded decision structure to create a trustworthy candidate
-- **THEN** the system SHALL skip candidate creation and record a conversion-loss reason instead of persisting a weak candidate
-
-#### Scenario: Valid decision still has thin grounded support
-- **WHEN** the extraction response is good enough to create a decision but grounding only yields a single retained source ref from evidence that should support more
-- **THEN** the system SHALL classify that outcome separately from general extraction failure so conversion diagnostics can identify source-ref coverage limits
 
 ### Requirement: Conversion-loss reasons are recorded for screened-in artifacts
 The system SHALL record why screened-in artifacts fail to become candidate decisions so imported runs can distinguish low-signal evidence from low-yield extraction conversion, and SHALL preserve the final categorized reason after any bounded recovery attempt is exhausted.

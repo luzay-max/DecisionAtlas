@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Imported workspaces expose real-analysis readiness
-The system SHALL summarize imported-workspace readiness so users can tell whether a real repository run is ready for review, still evidence-limited, blocked by low-yield extraction conversion, or better handled by reusing existing workspace state instead of blindly rerunning analysis, and SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift.
+The system SHALL summarize imported-workspace readiness so users can tell whether a real repository run is ready for review, still evidence-limited, blocked by low-yield extraction conversion, or better handled by reusing existing workspace state instead of blindly rerunning analysis, SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift, and SHALL reserve `conversion_limited` for runs that still produce no reviewable candidate decisions after the refined candidate-conversion path has been attempted.
 
 #### Scenario: Imported workspace is ready for review
 - **WHEN** a live analysis run completes and the imported workspace contains reviewable candidate decisions
@@ -12,7 +12,7 @@ The system SHALL summarize imported-workspace readiness so users can tell whethe
 - **THEN** the workspace read model SHALL report that the workspace is evidence-limited and SHALL provide a next-step explanation rather than implying the run is fully ready
 
 #### Scenario: Imported workspace is conversion-limited
-- **WHEN** a live analysis run completes after many screened-in or full extraction attempts but still yields no reviewable candidate decisions
+- **WHEN** a live analysis run completes after many screened-in or full extraction attempts, the refined conversion path has been exhausted, and the workspace still yields no reviewable candidate decisions
 - **THEN** the workspace read model SHALL expose that the workspace is conversion-limited and SHALL explain that extraction quality, not only repository evidence coverage, limited the result
 
 #### Scenario: Existing imported workspace offers reuse actions
@@ -26,6 +26,10 @@ The system SHALL summarize imported-workspace readiness so users can tell whethe
 #### Scenario: Imported workspace provides bounded recommended actions
 - **WHEN** the product renders an imported workspace in dashboard or search
 - **THEN** it SHALL be able to use a backend-provided primary next action and secondary recommended actions rather than inventing different local readiness flows
+
+#### Scenario: Improved candidate conversion moves workspace out of conversion-limited
+- **WHEN** a repository previously prone to conversion-limited outcomes now produces at least one reviewable candidate through the refined conversion path
+- **THEN** the workspace readiness SHALL move to `review_ready` instead of continuing to report `conversion_limited`
 
 ### Requirement: Imported why-search preserves decision-grounded trust
 The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, SHALL improve retrieval quality for technically equivalent questions, and SHALL use artifact evidence only as a support layer behind the accepted decision anchor, with indexing improvements strengthening that support through better-structured chunk evidence rather than by replacing the accepted-decision trust anchor.

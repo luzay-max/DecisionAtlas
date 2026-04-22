@@ -85,9 +85,12 @@ def _seed_dashboard_fixture(db_path: Path) -> None:
                         "screened_out_artifacts": 2,
                         "full_extraction_requests": 2,
                         "completed_full_extractions": 2,
+                        "recovery_extraction_attempts": 0,
                         "total_artifacts": 6,
                         "processed_artifacts": 6,
                         "created_candidates": 2,
+                        "recovered_candidates": 0,
+                        "thin_source_ref_decisions": 0,
                         "skipped_provider_400": 0,
                         "skipped_provider_timeout": 0,
                         "skipped_invalid_json": 0,
@@ -205,12 +208,15 @@ def test_dashboard_summary_distinguishes_conversion_limited_readiness(tmp_path: 
                             "screened_artifacts": 12,
                             "screened_in_artifacts": 6,
                             "screened_out_artifacts": 6,
-                            "full_extraction_requests": 6,
-                            "completed_full_extractions": 6,
-                            "total_artifacts": 18,
-                            "processed_artifacts": 18,
+                            "full_extraction_requests": 7,
+                            "completed_full_extractions": 7,
+                            "recovery_extraction_attempts": 1,
+                            "total_artifacts": 19,
+                            "processed_artifacts": 19,
                             "created_candidates": 0,
                             "salvaged_candidates": 0,
+                            "recovered_candidates": 0,
+                            "thin_source_ref_decisions": 0,
                             "skipped_provider_400": 0,
                             "skipped_provider_timeout": 0,
                             "skipped_invalid_json": 2,
@@ -235,6 +241,80 @@ def test_dashboard_summary_distinguishes_conversion_limited_readiness(tmp_path: 
     assert body["workspace_readiness"]["review_state"] == "review_unavailable"
     assert body["workspace_readiness"]["recommended_actions"] == ["inspect_import_summary"]
     assert body["latest_import"]["summary"]["extraction_summary"]["conversion_loss_reasons"]["invalid_json"] == 2
+
+
+def test_dashboard_summary_prefers_review_ready_once_candidates_exist(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "dashboard-review-ready-wins.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Decision(
+                workspace_id=workspace.id,
+                title="Use queue",
+                status="active",
+                review_state="candidate",
+                problem="Sync calls too slow",
+                context=None,
+                constraints=None,
+                chosen_option="Use queue",
+                tradeoffs="More infra",
+                confidence=0.7,
+            )
+        )
+        session.add(
+            ImportJob(
+                job_id="job-review-ready",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="succeeded",
+                imported_count=1,
+                summary_json={
+                    "stage": "completed",
+                    "outcome": "insufficient_evidence",
+                    "extraction_summary": {
+                        "shortlisted_artifacts": 12,
+                        "screened_artifacts": 12,
+                        "screened_in_artifacts": 6,
+                        "screened_out_artifacts": 6,
+                        "full_extraction_requests": 7,
+                        "completed_full_extractions": 7,
+                        "recovery_extraction_attempts": 1,
+                        "total_artifacts": 19,
+                        "processed_artifacts": 19,
+                        "created_candidates": 1,
+                        "salvaged_candidates": 0,
+                        "recovered_candidates": 1,
+                        "thin_source_ref_decisions": 0,
+                        "skipped_provider_400": 0,
+                        "skipped_provider_timeout": 0,
+                        "skipped_invalid_json": 1,
+                        "conversion_loss_reasons": {
+                            "missing_required_fields": 2,
+                            "ungrounded_quote": 1,
+                        },
+                    },
+                },
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/dashboard/summary", params={"workspace_slug": "imported-workspace"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["workspace_readiness"]["state"] == "review_ready"
+    assert body["workspace_readiness"]["review_state"] == "review_ready"
+    assert body["workspace_readiness"]["next_action"] == "review_candidates"
 
 
 def test_dashboard_summary_reports_analysis_failed_readiness(tmp_path: Path, monkeypatch) -> None:

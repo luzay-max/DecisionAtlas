@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Curated real-repo benchmark fixtures
 The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations and focused why/drift cases without requiring live imports during default validation, and SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements.
@@ -14,25 +14,3 @@ The system SHALL provide a small fixture-backed benchmark set for real imported 
 #### Scenario: Fixture set includes candidate-conversion expectations
 - **WHEN** a curated repository is used to protect improvement of the screened-in-to-candidate funnel
 - **THEN** the fixture set SHALL be able to express broad expectations such as minimum reviewable candidates or other bounded candidate-conversion outcomes without relying on exact answer prose or local database snapshots
-
-### Requirement: Optional live benchmark execution
-The system SHALL support optional live benchmark execution against an already-running local stack and pre-existing imported workspaces.
-
-#### Scenario: Live why benchmark checks broad answer contract
-- **WHEN** live benchmark mode evaluates a focused why case
-- **THEN** it SHALL check broad outcome requirements such as answer status, minimum citations, and expected terms rather than exact answer prose
-
-#### Scenario: Live benchmark reports failures clearly
-- **WHEN** a live benchmark case fails because the API is unavailable or the observed result does not match the expected broad outcome
-- **THEN** the benchmark command SHALL report which case failed and why
-
-### Requirement: Benchmark remains lightweight
-The system SHALL keep real-repo benchmark capture bounded to release-smoke validation and SHALL NOT require a large evaluation platform.
-
-#### Scenario: Default pre-release remains fast
-- **WHEN** the pre-release validation invokes benchmark checks
-- **THEN** the default benchmark path SHALL remain CI-safe and SHALL NOT import repositories or require live provider credentials
-
-#### Scenario: New benchmark case is reviewable
-- **WHEN** a developer adds a new real-repo benchmark case
-- **THEN** the case SHALL be represented in versioned fixtures so reviewers can understand the expected product behavior without reading local database state

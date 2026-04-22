@@ -194,6 +194,48 @@ class ConversionLossProvider:
         """
 
 
+class RecoverySuccessProvider:
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return True
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        if "Potential decision evidence:" not in request.artifact_content:
+            return "not valid json"
+        return """
+        {
+          "title": "Recover queue rollout",
+          "problem": "Long-running tasks block request handling",
+          "context": "Background processing volume increased",
+          "constraints": "Keep the API responsive during rollout",
+          "chosen_option": "Move long-running work to a queue",
+          "tradeoffs": "More infrastructure, lower request latency",
+          "confidence": 0.84,
+          "source_quote": "We decided to move long-running work to a queue because request latency mattered.",
+          "source_quotes": [
+            "We decided to move long-running work to a queue because request latency mattered.",
+            "The rollout will happen gradually so we can watch queue health."
+          ]
+        }
+        """
+
+
+class RecoveryFailureProvider:
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return True
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        if "Potential decision evidence:" not in request.artifact_content:
+            return "not valid json"
+        return """
+        {
+          "title": "Queue rollout",
+          "problem": "Latency is too high",
+          "confidence": 0.7,
+          "source_quote": "We decided to move long-running work to a queue because latency mattered."
+        }
+        """
+
+
 class MultiQuoteProvider:
     def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
         return True
@@ -565,8 +607,9 @@ def test_pipeline_reports_live_progress_stats(tmp_path: Path, monkeypatch) -> No
     assert progress_updates[0]["total_artifacts"] == 2
     assert progress_updates[0]["processed_artifacts"] == 0
     assert progress_updates[-1]["screened_artifacts"] == 2
-    assert progress_updates[-1]["processed_artifacts"] == 4
-    assert progress_updates[-1]["completed_full_extractions"] == 2
+    assert progress_updates[-1]["processed_artifacts"] == 5
+    assert progress_updates[-1]["completed_full_extractions"] == 3
+    assert progress_updates[-1]["recovery_extraction_attempts"] == 1
     assert progress_updates[-1]["current_artifact_title"] is None
     assert progress_updates[-1]["created_candidates"] >= 1
 
@@ -729,14 +772,100 @@ def test_pipeline_records_artifact_family_routing(tmp_path: Path, monkeypatch) -
         created = pipeline.run(workspace_slug="demo-workspace")
 
     assert created == 3
-    assert provider.families.count("rationale_doc") == 1
+    assert provider.families.count("architecture_doc") == 1
     assert provider.families.count("pull_request") == 1
     assert provider.families.count("lightweight_evidence") == 1
     assert pipeline.last_run_stats.selected_extraction_families == {
-        "rationale_doc": 1,
+        "architecture_doc": 1,
         "pull_request": 1,
         "lightweight_evidence": 1,
     }
+
+
+def test_pipeline_recovers_candidate_after_recoverable_first_pass_failure(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "extractor-recovery-success.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="doc",
+                source_id="docs/rollout.md",
+                repo="org/repo",
+                title="Rollout plan",
+                content=(
+                    "We decided to move long-running work to a queue because request latency mattered. "
+                    "The rollout will happen gradually so we can watch queue health. "
+                    "This keeps the API responsive while adoption grows."
+                ),
+                author=None,
+                url="https://github.com/org/repo/blob/main/docs/rollout.md",
+                timestamp=None,
+                metadata_json={"path": "docs/rollout.md", "signal_category": "rollout"},
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, RecoverySuccessProvider())
+        created = pipeline.run(workspace_slug="demo-workspace")
+        decisions = session.scalars(select(Decision)).all()
+        source_refs = session.scalars(select(SourceRef)).all()
+
+    assert created == 1
+    assert len(decisions) == 1
+    assert len(source_refs) >= 2
+    assert pipeline.last_run_stats.recovery_extraction_attempts == 1
+    assert pipeline.last_run_stats.recovered_candidates == 1
+    assert pipeline.last_run_stats.skipped_invalid_json == 0
+    assert pipeline.last_run_stats.conversion_loss_reasons == {}
+
+
+def test_pipeline_preserves_final_conversion_failure_after_recovery_attempt(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "extractor-recovery-failure.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(
+            Artifact(
+                workspace_id=workspace.id,
+                type="doc",
+                source_id="docs/architecture.md",
+                repo="org/repo",
+                title="Architecture",
+                content="We decided to move long-running work to a queue because latency mattered.",
+                author=None,
+                url="https://github.com/org/repo/blob/main/docs/architecture.md",
+                timestamp=None,
+                metadata_json={"path": "docs/architecture.md", "signal_category": "architecture"},
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, RecoveryFailureProvider())
+        created = pipeline.run(workspace_slug="demo-workspace")
+
+    assert created == 0
+    assert pipeline.last_run_stats.recovery_extraction_attempts == 1
+    assert pipeline.last_run_stats.recovered_candidates == 0
+    assert pipeline.last_run_stats.skipped_invalid_json == 0
+    assert pipeline.last_run_stats.conversion_loss_reasons == {"missing_required_fields": 1}
 
 
 def test_pipeline_salvages_recoverable_structured_output(tmp_path: Path, monkeypatch) -> None:

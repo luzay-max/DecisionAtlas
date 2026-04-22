@@ -135,10 +135,12 @@ def _is_conversion_limited(summary: dict, *, candidate_count: int, accepted_coun
     extraction_summary = dict(summary.get("extraction_summary") or {})
     screened_in = int(extraction_summary.get("screened_in_artifacts") or 0)
     full_requests = int(extraction_summary.get("full_extraction_requests") or 0)
+    completed_extractions = int(extraction_summary.get("completed_full_extractions") or 0)
     created_candidates = int(extraction_summary.get("created_candidates") or 0)
     conversion_losses = sum(int(count) for count in dict(extraction_summary.get("conversion_loss_reasons") or {}).values())
     significant_attempts = max(screened_in, full_requests) >= 5
-    return created_candidates == 0 and significant_attempts and conversion_losses >= 3
+    attempts_exhausted = full_requests > 0 and completed_extractions >= full_requests
+    return created_candidates == 0 and significant_attempts and attempts_exhausted and conversion_losses >= 3
 
 
 def _recommended_actions(

@@ -6,7 +6,7 @@ from time import monotonic
 from typing import Callable
 import re
 
-from app.extractor.parser import parse_extraction_response
+from app.extractor.parser import ParsedDecision, parse_extraction_response
 from app.extractor.prompt_loader import load_prompt
 from app.llm.base import (
     DecisionScreeningRequest,
@@ -78,14 +78,41 @@ STRONG_DOCUMENT_CATEGORIES = {
 GENERIC_TITLE_WORDS = ("readme", "chore", "docs", "typo", "cleanup", "format")
 MAX_SCREENING_ARTIFACT_CHARS = 2400
 MAX_EXTRACTION_ARTIFACT_CHARS = 5000
+MAX_RECOVERY_ARTIFACT_CHARS = 3200
 MAX_SHORTLIST_ARTIFACTS = 80
 MIN_EXTRACTION_SIGNAL_SCORE = 4
 MAX_FULL_EXTRACTION_CONCURRENCY = 3
 MAX_RELEVANT_BLOCKS = 6
+MAX_RECOVERY_FRAGMENTS = 6
+DOC_SIGNAL_CATEGORY_FAMILIES = {
+    "adr": "adr_doc",
+    "rfc": "rfc_doc",
+    "architecture": "architecture_doc",
+    "migration": "migration_doc",
+    "rollout": "rollout_doc",
+    "release": "release_doc",
+    "operations": "operations_doc",
+    "deprecation": "deprecation_doc",
+}
 EXTRACTION_FAMILY_PROMPTS = {
     "rationale_doc": "decision-extraction-rationale-doc",
+    "adr_doc": "decision-extraction-rationale-doc",
+    "rfc_doc": "decision-extraction-rationale-doc",
+    "architecture_doc": "decision-extraction-rationale-doc",
+    "migration_doc": "decision-extraction-rationale-doc",
+    "rollout_doc": "decision-extraction-rationale-doc",
+    "release_doc": "decision-extraction-rationale-doc",
+    "operations_doc": "decision-extraction-rationale-doc",
+    "deprecation_doc": "decision-extraction-rationale-doc",
     "pull_request": "decision-extraction-pull-request",
     "lightweight_evidence": "decision-extraction-lightweight-evidence",
+}
+RECOVERABLE_LOSS_REASONS = {
+    "null_decision",
+    "invalid_json",
+    "missing_required_fields",
+    "ungrounded_quote",
+    "provider_request_failed",
 }
 
 
@@ -105,6 +132,16 @@ class _CompletedExtraction:
     request_400: bool = False
     request_error: bool = False
     latency_ms: int = 0
+    recovery: bool = False
+
+
+@dataclass(slots=True)
+class _ExtractionEvaluation:
+    decision: ParsedDecision | None = None
+    grounded_quotes: list[tuple[int, int, str]] = field(default_factory=list)
+    loss_reason: str | None = None
+    salvaged: bool = False
+    recoverable: bool = False
 
 
 @dataclass(slots=True)
@@ -115,10 +152,12 @@ class ExtractionRunStats:
     screened_out_artifacts: int = 0
     full_extraction_requests: int = 0
     completed_full_extractions: int = 0
+    recovery_extraction_attempts: int = 0
     total_artifacts: int = 0
     processed_artifacts: int = 0
     created_candidates: int = 0
     salvaged_candidates: int = 0
+    recovered_candidates: int = 0
     thin_source_ref_decisions: int = 0
     skipped_provider_400: int = 0
     skipped_provider_timeout: int = 0
@@ -265,15 +304,53 @@ def _prepare_extraction_content(artifact) -> str:
     return _prepare_relevant_content(artifact, max_chars=MAX_EXTRACTION_ARTIFACT_CHARS, include_signal_only=True)
 
 
+def _prepare_recovery_content(artifact) -> str:
+    return _prepare_relevant_content(
+        artifact,
+        max_chars=MAX_RECOVERY_ARTIFACT_CHARS,
+        include_signal_only=True,
+        prefer_quote_fragments=True,
+    )
+
+
 def _classify_extraction_family(artifact) -> str:
+    metadata = artifact.metadata_json or {}
+    path = str(metadata.get("path", "")).lower()
+    lowered_title = (artifact.title or "").lower()
+
     if artifact.type == "doc":
+        signal_category = str(metadata.get("signal_category", "")).lower()
+        if signal_category in DOC_SIGNAL_CATEGORY_FAMILIES:
+            return DOC_SIGNAL_CATEGORY_FAMILIES[signal_category]
+        if "adr" in lowered_title or "/adr" in path or path.startswith("adr/"):
+            return "adr_doc"
+        if "rfc" in lowered_title or "/rfc" in path or path.startswith("rfc/"):
+            return "rfc_doc"
+        if "architecture" in lowered_title or "architecture" in path:
+            return "architecture_doc"
+        if "migration" in lowered_title or "migration" in path:
+            return "migration_doc"
+        if "rollout" in lowered_title or "rollout" in path:
+            return "rollout_doc"
+        if "release" in lowered_title or "release" in path or "changelog" in lowered_title or "changelog" in path:
+            return "release_doc"
+        if "operation" in lowered_title or "runbook" in path or "operat" in path:
+            return "operations_doc"
+        if "deprecat" in lowered_title or "deprecat" in path:
+            return "deprecation_doc"
         return "rationale_doc"
     if artifact.type == "pr":
         return "pull_request"
     return "lightweight_evidence"
 
 
-def _prepare_relevant_content(artifact, *, max_chars: int, include_signal_only: bool) -> str:
+def _prepare_relevant_content(
+    artifact,
+    *,
+    max_chars: int,
+    include_signal_only: bool,
+    prefer_quote_fragments: bool = False,
+) -> str:
     content = (artifact.content or "").strip()
     path = str((artifact.metadata_json or {}).get("path", "")).strip()
     header_parts = [
@@ -308,16 +385,35 @@ def _prepare_relevant_content(artifact, *, max_chars: int, include_signal_only: 
         selected_indices = sorted(selected)
 
     remaining = max_chars - len(header) - 2
+    selected_blocks = [blocks[index] for index in selected_indices]
     sections: list[str] = []
-    for index in selected_indices:
-        block = blocks[index]
-        candidate = block if len(block) <= remaining else block[:remaining].rstrip()
-        if not candidate:
-            continue
-        sections.append(candidate)
-        remaining -= len(candidate) + 2
-        if remaining <= 0:
-            break
+    if prefer_quote_fragments:
+        fragment_header = "Potential decision evidence:"
+        remaining -= len(fragment_header) + 2
+        fragments = _select_recovery_fragments(selected_blocks)
+        if fragments:
+            sections.append(fragment_header)
+            for fragment in fragments:
+                candidate = f"- {fragment}"
+                if len(candidate) > remaining:
+                    candidate = candidate[:remaining].rstrip()
+                if not candidate:
+                    continue
+                sections.append(candidate)
+                remaining -= len(candidate) + 1
+                if remaining <= 0:
+                    break
+
+    if not sections:
+        remaining = max_chars - len(header) - 2
+        for block in selected_blocks:
+            candidate = block if len(block) <= remaining else block[:remaining].rstrip()
+            if not candidate:
+                continue
+            sections.append(candidate)
+            remaining -= len(candidate) + 2
+            if remaining <= 0:
+                break
 
     if not sections:
         sections = [content[: max(remaining, 0) or max_chars].rstrip()]
@@ -338,6 +434,40 @@ def _section_signal_score(block: str) -> int:
     if "we decided" in lowered or "because" in lowered:
         score += 1
     return score
+
+
+def _fragment_signal_score(fragment: str) -> int:
+    lowered = fragment.lower()
+    score = min(_count_signal_hits(fragment), 4)
+    if "we decided" in lowered or "decision:" in lowered:
+        score += 2
+    if "because" in lowered:
+        score += 2
+    if "tradeoff" in lowered or "trade-off" in lowered:
+        score += 1
+    if "must " in lowered or "should " in lowered:
+        score += 1
+    return score
+
+
+def _select_recovery_fragments(blocks: list[str]) -> list[str]:
+    ranked: list[tuple[int, str]] = []
+    seen: set[str] = set()
+    for block in blocks:
+        fragments = [fragment.strip() for fragment in re.split(r"(?<=[.!?])\s+", block) if fragment.strip()]
+        for fragment in fragments or [block]:
+            if len(fragment) < 30 or len(fragment) > 280:
+                continue
+            score = _fragment_signal_score(fragment)
+            if score <= 0:
+                continue
+            key = fragment.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            ranked.append((score, fragment))
+
+    return [fragment for _, fragment in sorted(ranked, key=lambda item: (-item[0], len(item[1])))[:MAX_RECOVERY_FRAGMENTS]]
 
 
 class CandidateExtractionPipeline:
@@ -463,65 +593,55 @@ class CandidateExtractionPipeline:
 
             for future in as_completed(futures):
                 completed = future.result()
-                stats.completed_full_extractions += 1
-                stats.current_artifact_title = completed.artifact.title
-                stats.current_extraction_family = completed.family
-                latency_total_ms += completed.latency_ms
-                stats.average_full_extraction_latency_ms = max(
-                    1,
-                    round(latency_total_ms / max(stats.completed_full_extractions, 1)),
-                )
-                if completed.timeout:
-                    stats.skipped_provider_timeout += 1
-                    _record_conversion_loss(stats, "provider_timeout")
-                elif completed.request_400:
-                    stats.skipped_provider_400 += 1
-                    _record_conversion_loss(stats, "provider_request_failed")
-                elif completed.request_error:
-                    _record_conversion_loss(stats, "provider_request_failed")
-                else:
-                    parsed = parse_extraction_response(
-                        completed.raw_response,
-                        artifact_title=completed.artifact.title,
+                latency_total_ms = _accumulate_completed_attempt(stats, latency_total_ms, completed)
+                evaluation = _evaluate_extraction_attempt(completed)
+
+                if _should_retry_conversion(completed, evaluation):
+                    stats.recovery_extraction_attempts += 1
+                    stats.full_extraction_requests += 1
+                    stats.current_artifact_title = completed.artifact.title
+                    recovery = _run_recovery_extraction(
+                        completed.artifact,
+                        completed.family,
+                        self.provider,
+                        extraction_prompts,
                     )
-                    if parsed.decision is None:
-                        if parsed.loss_reason == "invalid_json":
-                            stats.skipped_invalid_json += 1
-                        _record_conversion_loss(stats, parsed.loss_reason or "null_decision")
-                    else:
-                        grounded_quotes = _ground_quotes(
-                            completed.artifact.content,
-                            _candidate_support_quotes(completed.artifact.content, parsed.decision),
+                    latency_total_ms = _accumulate_completed_attempt(stats, latency_total_ms, recovery)
+                    evaluation = _evaluate_extraction_attempt(recovery)
+                    completed = recovery
+
+                if evaluation.decision is None:
+                    _record_attempt_failure_counters(stats, completed, evaluation)
+                    _record_conversion_loss(stats, evaluation.loss_reason or "null_decision")
+                else:
+                    decision = self.decisions.create_candidate(
+                        workspace_id=workspace.id,
+                        title=evaluation.decision.title,
+                        problem=evaluation.decision.problem,
+                        context=evaluation.decision.context,
+                        constraints=evaluation.decision.constraints,
+                        chosen_option=evaluation.decision.chosen_option,
+                        tradeoffs=evaluation.decision.tradeoffs,
+                        confidence=evaluation.decision.confidence,
+                    )
+                    for span_start, span_end, quote in evaluation.grounded_quotes:
+                        self.source_refs.create(
+                            decision_id=decision.id,
+                            artifact_id=completed.artifact.id,
+                            span_start=span_start,
+                            span_end=span_end,
+                            quote=quote,
+                            url=completed.artifact.url,
+                            relevance_score=evaluation.decision.confidence,
                         )
-                        if not grounded_quotes:
-                            _record_conversion_loss(stats, "ungrounded_quote")
-                        else:
-                            decision = self.decisions.create_candidate(
-                                workspace_id=workspace.id,
-                                title=parsed.decision.title,
-                                problem=parsed.decision.problem,
-                                context=parsed.decision.context,
-                                constraints=parsed.decision.constraints,
-                                chosen_option=parsed.decision.chosen_option,
-                                tradeoffs=parsed.decision.tradeoffs,
-                                confidence=parsed.decision.confidence,
-                            )
-                            for span_start, span_end, quote in grounded_quotes:
-                                self.source_refs.create(
-                                    decision_id=decision.id,
-                                    artifact_id=completed.artifact.id,
-                                    span_start=span_start,
-                                    span_end=span_end,
-                                    quote=quote,
-                                    url=completed.artifact.url,
-                                    relevance_score=parsed.decision.confidence,
-                                )
-                            stats.created_candidates += 1
-                            if parsed.salvaged:
-                                stats.salvaged_candidates += 1
-                            if len(grounded_quotes) == 1:
-                                stats.thin_source_ref_decisions += 1
-                                _record_conversion_loss(stats, "thin_source_ref_coverage")
+                    stats.created_candidates += 1
+                    if evaluation.salvaged:
+                        stats.salvaged_candidates += 1
+                    if completed.recovery:
+                        stats.recovered_candidates += 1
+                    if len(evaluation.grounded_quotes) == 1:
+                        stats.thin_source_ref_decisions += 1
+                        _record_conversion_loss(stats, "thin_source_ref_coverage")
                 _refresh_work_totals(stats)
                 _update_progress(stats, started_at)
                 if progress_callback is not None:
@@ -573,8 +693,109 @@ def _run_full_extraction(artifact, family: str, provider: ExtractionProvider, re
     )
 
 
+def _run_recovery_extraction(
+    artifact,
+    primary_family: str,
+    provider: ExtractionProvider,
+    extraction_prompts: dict[str, str],
+) -> _CompletedExtraction:
+    recovery_family = _classify_recovery_family(artifact, primary_family)
+    request = ExtractionRequest(
+        artifact_id=artifact.id,
+        artifact_title=artifact.title,
+        artifact_content=_prepare_recovery_content(artifact),
+        prompt=extraction_prompts[recovery_family],
+        artifact_family=recovery_family,
+    )
+    completed = _run_full_extraction(artifact, recovery_family, provider, request)
+    completed.recovery = True
+    return completed
+
+
+def _classify_recovery_family(artifact, primary_family: str) -> str:
+    if primary_family == "lightweight_evidence":
+        content = artifact.content or ""
+        if artifact.type in {"issue", "commit"} and len(content) >= 500 and _count_signal_hits(content) >= 4:
+            return "rationale_doc"
+        return primary_family
+    if primary_family == "pull_request":
+        return primary_family
+    return "lightweight_evidence"
+
+
+def _accumulate_completed_attempt(stats: ExtractionRunStats, latency_total_ms: int, completed: _CompletedExtraction) -> int:
+    stats.completed_full_extractions += 1
+    stats.current_artifact_title = completed.artifact.title
+    stats.current_extraction_family = completed.family
+    latency_total_ms += completed.latency_ms
+    stats.average_full_extraction_latency_ms = max(
+        1,
+        round(latency_total_ms / max(stats.completed_full_extractions, 1)),
+    )
+    return latency_total_ms
+
+
+def _evaluate_extraction_attempt(completed: _CompletedExtraction) -> _ExtractionEvaluation:
+    if completed.timeout:
+        return _ExtractionEvaluation(loss_reason="provider_timeout")
+    if completed.request_400:
+        return _ExtractionEvaluation(loss_reason="provider_request_failed", recoverable=not completed.recovery)
+    if completed.request_error:
+        return _ExtractionEvaluation(loss_reason="provider_request_failed")
+
+    parsed = parse_extraction_response(
+        completed.raw_response,
+        artifact_title=completed.artifact.title,
+    )
+    if parsed.decision is None:
+        loss_reason = parsed.loss_reason or "null_decision"
+        return _ExtractionEvaluation(
+            loss_reason=loss_reason,
+            salvaged=parsed.salvaged,
+            recoverable=(loss_reason in RECOVERABLE_LOSS_REASONS and not completed.recovery),
+        )
+
+    grounded_quotes = _ground_quotes(
+        completed.artifact.content,
+        _candidate_support_quotes(completed.artifact.content, parsed.decision),
+    )
+    if not grounded_quotes:
+        return _ExtractionEvaluation(
+            loss_reason="ungrounded_quote",
+            salvaged=parsed.salvaged,
+            recoverable=not completed.recovery,
+        )
+    return _ExtractionEvaluation(
+        decision=parsed.decision,
+        grounded_quotes=grounded_quotes,
+        salvaged=parsed.salvaged,
+    )
+
+
+def _record_attempt_failure_counters(stats: ExtractionRunStats, completed: _CompletedExtraction, evaluation: _ExtractionEvaluation) -> None:
+    if evaluation.decision is not None:
+        return
+    if completed.timeout:
+        stats.skipped_provider_timeout += 1
+        return
+    if completed.request_400:
+        stats.skipped_provider_400 += 1
+        return
+    if evaluation.loss_reason == "invalid_json":
+        stats.skipped_invalid_json += 1
+
+
+def _should_retry_conversion(completed: _CompletedExtraction, evaluation: _ExtractionEvaluation) -> bool:
+    return (
+        not completed.recovery
+        and evaluation.decision is None
+        and evaluation.recoverable
+        and evaluation.loss_reason in RECOVERABLE_LOSS_REASONS
+    )
+
+
 def _refresh_work_totals(stats: ExtractionRunStats) -> None:
-    stats.total_artifacts = stats.shortlisted_artifacts + stats.screened_in_artifacts
+    stats.total_artifacts = stats.shortlisted_artifacts + stats.screened_in_artifacts + stats.recovery_extraction_attempts
     stats.processed_artifacts = stats.screened_artifacts + stats.completed_full_extractions
 
 
