@@ -93,6 +93,7 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [Quick Start](./docs/project/quick-start.md)
 - [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
+- [Demo Script](./docs/project/demo-script.md)
 - [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 

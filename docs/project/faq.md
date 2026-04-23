@@ -1,10 +1,8 @@
-# FAQ | 常见问题
+# FAQ
 
-[English](faq.md) | [中文](faq_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Demo Script](demo-script.md) | [中文](faq_zh-CN.md)
 
 ---
-
-## English Version
 
 ### What problem does DecisionAtlas solve?
 
@@ -89,91 +87,3 @@ Imported why answers are only meant to be trusted when:
 3. **Citations support** that accepted decision.
 
 Artifact chunks can strengthen support, but they do **not** replace the accepted decision as the trust anchor.
-
----
-
-## 中文版本
-
-### DecisionAtlas 解决了什么问题？
-
-工程决策通常分散在 issues、Pull Requests、ADR 和聊天记录中。DecisionAtlas 将这些分散的上下文转化为可搜索的决策记忆。
-
-### 我需要训练模型吗？
-
-不需要。MVP 版本使用提供商 API，专注于数据建模、检索、审核工作流和引用机制。
-
-### 每个提取的决策都会自动被信任吗？
-
-不会。提取的决策以 `candidate`（候选）状态进入系统，需要人工审核后才能成为可信决策。
-
-### 系统可以在没有证据的情况下回答吗？
-
-设计上是不可行的。Why 查询路径采用“引用优先”机制，在没有证据时会返回 `insufficient-evidence`（证据不足）作为备选，而不是盲目猜测。
-
-### 漂移检测目前做什么？
-
-当前 MVP 支持：
-
-- **基于规则的告警**：高信号矛盾的检测，例如违反“仅用 Redis 作缓存”规则。
-- **语义漂移丰富**：保守的标签，如 `possible_supersession`（可能取代）和 `needs_review`（需要审核）。
-
-它目前还不是一个持续的 Git 监控工具。它是在运行漂移评估时，将已接受的决策与工作区中后来导入的工件进行对比。
-
-导入漂移现在已经更加可用：
-
-- 重复的弱后续告警被更紧凑地分组。
-- 重新评估会取代之前过时的告警生成。
-- 重实现维护工作不太可能被过度呈现为强决策替换。
-
-> 设计上仍然保持保守，倾向于漏报而不是夸大仓库变更。
-
-### MVP 还缺少什么？
-
-| 功能 | 状态 |
-|------|------|
-| 生产级身份验证和权限 | 计划中 |
-| GitHub 和本地文档以外的机构级连接器 | 计划中 |
-| 成熟的异步任务编排 | 计划中 |
-|托管式 GitHub App 和 Webhook 同步 | 计划中 |
-| 发布截图和最终公开上线优化 | 计划中 |
-
-### 支持 `.docx` 吗？
-
-支持，但是可选的。`.docx` 导入依赖本地安装的 `pandoc`。
-
-### 如何运行验证？
-
-```powershell
-# 离线基准测试
-python scripts/ci/run_benchmark.py
-
-# Playwright 测试
-pnpm --filter @decisionatlas/web exec playwright install chromium
-pnpm --filter @decisionatlas/web exec playwright test
-```
-
-### 实时分析支持所有仓库吗？
-
-目前还不行。此阶段仅支持**公共 GitHub 仓库**。
-
-- 不支持私有仓库认证
-- 不支持 GitHub App 安装流程
-- 不支持持久化多仓库连接管理
-
-如果仓库缺乏 ADR、文档或理由，正确的结果可能是 `insufficient_evidence`（证据不足），而不是丰富的答案集。
-
-导入的工作区也可能会明确停留在 `review_required`、`evidence_limited` 或 `conversion_limited`。这些都是预期的有界产品结果，不是运行时故障。
-
-### 伪/实时提供商切换改变什么？
-
-它会改变**下一次**真实分析或提取运行所使用的提供商。**不会**重写屏幕上已有的演示数据或导入结果。
-
-### 什么让导入的 Why 搜索可信？
-
-导入的 Why 答案只有在以下情况下才值得信任：
-
-1. 工作区已有**已接受的决策**。
-2. 答案**锚定在一个已接受的决策**上。
-3. **引用支持**该已接受的决策。
-
-工件块可以加强支持，但**不会**取代已接受决策作为信任锚的地位。

@@ -1,90 +1,8 @@
-# Demo Script | 演示脚本
+# 演示脚本
 
-[English](demo-script.md) | [中文](demo-script_zh-CN.md)
-
----
-
-## English Version
-
-This walkthrough is designed for a **60-90 second product demo**. The primary story is the stable guided lane, with an optional real-repo credibility check at the end.
-
-### Opening Posture
-
-**Route**: `http://localhost:3000/`
-
-**Narration**:
-> "Tonight's main path is the guided demo. It uses seeded walkthrough data so the product story stays stable."
-> "Live analysis and provider controls still exist, but they are intentionally moved into an advanced section."
-
-### Step 1: Open the Guided Demo Workspace
-
-**Route**: `http://localhost:3000/workspaces/demo-workspace`
-
-**Narration**:
-> "The dashboard is now the walkthrough control panel. It tells us which step we are on and what to do next."
-> "The provenance banner makes it explicit that this workspace is seeded demo data, not imported repository output."
-
-### Step 2: Run or Confirm the Demo Import
-
-**Route**: `http://localhost:3000/workspaces/demo-workspace`
-
-**Narration**:
-> "If the demo needs to be reset, the import action now shows stage-aware progress."
-> "Once the workspace is ready, the UI points directly to the review step."
-
-### Step 3: Show the Review Queue
-
-**Route**: `http://localhost:3000/review?workspace=demo-workspace`
-
-**Narration**:
-> "Candidate decisions are not auto-promoted. The review step makes the human checkpoint explicit."
-> "The page explains the goal of this step and hands us off directly to why-search when we're done."
-
-### Step 4: Show Why-Search
-
-**Route**: `http://localhost:3000/search?workspace=demo-workspace`
-
-**Suggested Question**: `why use redis cache`
-
-**Narration**:
-> "Why-search starts from a recommended demo question, so we do not need to improvise."
-> "When evidence exists, the answer includes citations. When it doesn't, the system fails closed instead of bluffing."
-
-### Step 5: Show the Timeline
-
-**Route**: `http://localhost:3000/timeline?workspace=demo-workspace`
-
-**Narration**:
-> "Accepted decisions become a time-ordered memory instead of disappearing into issues and pull requests."
-> "The guided demo framing keeps the story moving and points clearly to the drift step."
-
-### Step 6: Show Drift Alerts and Close
-
-**Route**: `http://localhost:3000/drift?workspace=demo-workspace`
-
-**Narration**:
-> "Drift makes the memory operational by checking newer artifacts against accepted decisions."
-> "The last step closes the loop and makes it obvious that we completed the demo lane."
-
-### Closing Line
-
-> "DecisionAtlas is not training a new model. It is turning engineering decisions into durable, reviewable, searchable operating memory."
-
-### Optional: 30-Second Real-Repo Proof
-
-This is an **operator-guided credibility check**, not part of the core guided walkthrough.
-
-**Route**: `http://localhost:3000/`
-
-**Narration**:
-> "The seeded lane is our stable walkthrough, but the same product can also analyze a real public GitHub repository into a separate imported workspace."
-> "That imported workspace now exposes whether review, why-search, and drift are ready, instead of leaving the operator to guess."
-> "Imported why answers stay anchored to accepted decisions, with artifact chunks acting as supporting evidence."
-> "We use this as a bounded proof of real capability, not as the primary demo story."
+[返回首页](../README_zh-CN.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [English](demo-script.md)
 
 ---
-
-## 中文版本
 
 本演示脚本设计用于 **60-90 秒的产品演示**。主要故事线是稳定的引导式演示车道，最后有一个可选的真实仓库可信度检查。
 
@@ -164,16 +82,7 @@ This is an **operator-guided credibility check**, not part of the core guided wa
 
 ---
 
-## Quick Reference Card | 快速参考卡
-
-| Step | Route | Key Point |
-|------|-------|-----------|
-| 1 | `/workspaces/demo-workspace` | Walkthrough control panel |
-| 2 | `/workspaces/demo-workspace` | Stage-aware import progress |
-| 3 | `/review?workspace=demo-workspace` | Human checkpoint |
-| 4 | `/search?workspace=demo-workspace` | Citation-first answers |
-| 5 | `/timeline?workspace=demo-workspace` | Time-ordered decision memory |
-| 6 | `/drift?workspace=demo-workspace` | Operational drift detection |
+### 快速参考
 
 | 步骤 | 路径 | 关键点 |
 |------|------|--------|
