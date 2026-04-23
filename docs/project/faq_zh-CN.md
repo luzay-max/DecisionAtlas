@@ -108,13 +108,13 @@ Artifact chunks can strengthen support, but they do **not** replace the accepted
 
 ### 系统可以在没有证据的情况下回答吗？
 
-设计上是不可行的。Why 查询路径采用“引用优先”机制，在没有证据时会返回 `insufficient-evidence`（证据不足）作为备选，而不是盲目猜测。
+设计上是不可行的。Why 查询路径采用"引用优先"机制，在没有证据时会返回 `insufficient-evidence`（证据不足）作为备选，而不是盲目猜测。
 
 ### 漂移检测目前做什么？
 
 当前 MVP 支持：
 
-- **基于规则的告警**：高信号矛盾的检测，例如违反“仅用 Redis 作缓存”规则。
+- **基于规则的告警**：高信号矛盾的检测，例如违反"仅用 Redis 作缓存"规则。
 - **语义漂移丰富**：保守的标签，如 `possible_supersession`（可能取代）和 `needs_review`（需要审核）。
 
 它目前还不是一个持续的 Git 监控工具。它是在运行漂移评估时，将已接受的决策与工作区中后来导入的工件进行对比。
