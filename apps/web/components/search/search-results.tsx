@@ -10,9 +10,7 @@ export function SearchResults({ result }: { result: WhyAnswerResponse }) {
   const { messages } = useI18n();
   const answerContext = result.answer_context;
   const limitedSupport = result.status === "limited_support";
-  const nextActionKey = limitedSupport
-    ? "review_candidates"
-    : answerContext?.workspace_readiness?.next_action;
+  const nextActionKey = answerContext?.workspace_readiness?.next_action;
 
   return (
     <section className="card">

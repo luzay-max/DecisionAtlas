@@ -36,6 +36,9 @@ export type WorkspaceReadiness = {
   why_state: string;
   drift_state: string;
   recommended_actions: string[];
+  accepted_baseline_established?: boolean;
+  accepted_decision_count?: number;
+  candidate_decision_count?: number;
   access_source_type?: string;
   access_source_label?: string;
   access_source_status?: string | null;

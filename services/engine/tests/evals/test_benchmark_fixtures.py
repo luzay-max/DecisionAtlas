@@ -37,17 +37,27 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert all(item["workspace_slug"].startswith("github-") for item in repositories)
     assert all(item["expectations"]["minimum_candidate_decisions"] >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_reviewable_candidates", 0) >= 0 for item in repositories)
+    assert all(item["expectations"].get("minimum_accepted_decisions", 0) >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_screened_in_artifacts", 0) >= 0 for item in repositories)
     assert all(item["expectations"]["expected_outcomes"] for item in repositories)
     assert all(item["expectations"]["expected_readiness_states"] for item in repositories)
     assert all(item["expectations"]["expected_why_states"] for item in repositories)
     assert all(item["expectations"]["expected_drift_states"] for item in repositories)
     assert next(item for item in repositories if item["id"] == "n8n")["expectations"]["minimum_reviewable_candidates"] == 1
+    assert next(item for item in repositories if item["id"] == "browser-use")["expectations"]["minimum_accepted_decisions"] == 1
+    assert next(item for item in repositories if item["id"] == "rich")["expectations"][
+        "expected_why_states_after_first_acceptance"
+    ] == ["ready", "evidence_limited"]
 
     benchmark = _load_benchmark_module()
     assert benchmark.validate_live_repo_set(repositories) == 0
     malformed_repository = dict(repositories[0])
     malformed_repository["repo"] = "invalid"
+    assert benchmark.validate_live_repo_set([malformed_repository]) == 1
+    malformed_repository = dict(repositories[-1])
+    malformed_repository["expectations"] = dict(repositories[-1]["expectations"])
+    malformed_repository["expectations"]["minimum_accepted_decisions"] = 1
+    malformed_repository["expectations"]["expected_why_states_after_first_acceptance"] = []
     assert benchmark.validate_live_repo_set([malformed_repository]) == 1
 
 

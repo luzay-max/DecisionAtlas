@@ -37,6 +37,24 @@ export function ImportedReadinessCard({
     ] ?? readiness.review_state;
   const whyLabel = messages.status[readiness.why_state as keyof typeof messages.status] ?? readiness.why_state;
   const driftLabel = messages.status[readiness.drift_state as keyof typeof messages.status] ?? readiness.drift_state;
+  const baselineSummary =
+    typeof readiness.accepted_decision_count === "number"
+      ? messages.importedReadiness.baselineSummary
+          .replace("{accepted}", String(readiness.accepted_decision_count))
+          .replace(
+            "{status}",
+            readiness.accepted_baseline_established
+              ? messages.importedReadiness.reviewStates.review_complete
+              : messages.importedReadiness.reviewStates.review_unavailable
+          )
+      : null;
+  const candidateSummary =
+    typeof readiness.candidate_decision_count === "number" && readiness.candidate_decision_count > 0
+      ? messages.importedReadiness.candidateSummary.replace(
+          "{candidate}",
+          String(readiness.candidate_decision_count)
+        )
+      : null;
   const latestSyncOrigin = readiness.latest_sync_origin
     ? messages.status[readiness.latest_sync_origin as keyof typeof messages.status] ?? readiness.latest_sync_origin
     : null;
@@ -61,6 +79,8 @@ export function ImportedReadinessCard({
         <p>
           <strong>{messages.importedReadiness.axes.drift}:</strong> {driftLabel}
         </p>
+        {baselineSummary ? <p>{baselineSummary}</p> : null}
+        {candidateSummary ? <p>{candidateSummary}</p> : null}
         {readiness.access_source_label ? (
           <p>
             <strong>{messages.importedReadiness.axes.source}:</strong> {readiness.access_source_label}

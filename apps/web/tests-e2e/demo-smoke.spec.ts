@@ -1,28 +1,6 @@
 import { expect, test } from "@playwright/test";
 
 test("demo smoke flow", async ({ page }) => {
-  await page.route("**/imports/github", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ job_id: "demo-job", repo: "encode/httpx", mode: "full", status: "succeeded", imported_count: 2 })
-    });
-  });
-
-  await page.route("**/imports/demo-job", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        job_id: "demo-job",
-        repo: "encode/httpx",
-        mode: "full",
-        status: "succeeded",
-        imported_count: 2
-      })
-    });
-  });
-
   await page.route("**/query/why", async (route) => {
     await route.fulfill({
       status: 200,
@@ -31,6 +9,10 @@ test("demo smoke flow", async ({ page }) => {
         status: "ok",
         question: "why use redis cache",
         answer: "Use Redis Cache: Use Redis as cache only.",
+        answer_context: {
+          workspace_mode: "demo",
+          source_summary: "This workspace is using seeded demo data for a guided product walkthrough."
+        },
         citations: [
           {
             quote: "We decided to use Redis as cache only because latency mattered.",
@@ -43,16 +25,15 @@ test("demo smoke flow", async ({ page }) => {
 
   await page.goto("/workspaces/demo-workspace");
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
-  await page.getByRole("button", { name: "Run Demo Import" }).click();
-  await expect(page.getByText("Imported 2 artifacts from encode/httpx").first()).toBeVisible();
+  await expect(page.getByText("Review the seeded candidate decisions")).toBeVisible();
 
-  await page.goto("/review");
+  await page.goto("/review?workspace=demo-workspace");
   await expect(page.getByText("Add Decision Diff View")).toBeVisible();
 
-  await page.goto("/search");
+  await page.goto("/search?workspace=demo-workspace");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("Use Redis Cache: Use Redis as cache only.")).toBeVisible();
 
-  await page.goto("/drift");
+  await page.goto("/drift?workspace=demo-workspace");
   await expect(page.getByText("possible drift")).toBeVisible();
 });

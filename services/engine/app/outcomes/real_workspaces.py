@@ -69,6 +69,7 @@ def build_imported_workspace_readiness(
 ) -> dict:
     candidate_count = decision_counts.get("candidate", 0)
     accepted_count = decision_counts.get("accepted", 0)
+    accepted_baseline_established = accepted_count > 0
     summary = dict(latest_import_summary or {})
     outcome = summary.get("outcome")
     conversion_limited = _is_conversion_limited(summary, candidate_count=candidate_count, accepted_count=accepted_count)
@@ -83,16 +84,16 @@ def build_imported_workspace_readiness(
         next_action = "inspect_import_summary"
         why_state = "review_required"
         review_state = "review_unavailable"
+    elif accepted_baseline_established:
+        state = "why_ready"
+        next_action = "ask_why"
+        why_state = "ready"
+        review_state = "review_complete"
     elif candidate_count > 0:
         state = "review_ready"
         next_action = "review_candidates"
         why_state = "review_required"
         review_state = "review_ready"
-    elif accepted_count > 0:
-        state = "why_ready"
-        next_action = "ask_why"
-        why_state = "ready"
-        review_state = "review_complete"
     elif conversion_limited:
         state = "conversion_limited"
         next_action = "inspect_import_summary"
@@ -114,6 +115,7 @@ def build_imported_workspace_readiness(
         why_state=why_state,
         drift_state=drift_status["state"],
         review_state=review_state,
+        candidate_count=candidate_count,
         import_in_progress=latest_import_status in {"queued", "running"},
     )
 
@@ -124,6 +126,9 @@ def build_imported_workspace_readiness(
         "why_state": why_state,
         "drift_state": drift_status["state"],
         "recommended_actions": recommended_actions,
+        "accepted_baseline_established": accepted_baseline_established,
+        "accepted_decision_count": accepted_count,
+        "candidate_decision_count": candidate_count,
         "access_source_type": access_source_type,
         "access_source_label": access_source_label or _access_source_label(access_source_type, access_source_ref),
         "access_source_status": access_source_status,
@@ -155,6 +160,7 @@ def _recommended_actions(
     why_state: str,
     drift_state: str,
     review_state: str,
+    candidate_count: int = 0,
     import_in_progress: bool = False,
 ) -> list[str]:
     actions: list[str] = [next_action]
@@ -162,6 +168,8 @@ def _recommended_actions(
         return actions
     if review_state == "review_ready":
         actions.append("inspect_import_summary")
+    elif review_state == "review_complete" and candidate_count > 0:
+        actions.append("review_candidates")
     if why_state == "ready" and next_action != "ask_why":
         actions.append("ask_why")
     if drift_state in {"unevaluated", "stale", "clean"}:

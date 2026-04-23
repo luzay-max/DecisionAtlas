@@ -83,6 +83,9 @@ describe("QueryForm", () => {
             why_state: "review_required",
             drift_state: "review_required",
             recommended_actions: ["review_candidates", "inspect_import_summary"],
+            accepted_baseline_established: false,
+            accepted_decision_count: 0,
+            candidate_decision_count: 0,
           }
         },
         supporting_context: [],
@@ -152,6 +155,9 @@ describe("QueryForm", () => {
             why_state: "why_ready",
             drift_state: "clean",
             recommended_actions: ["ask_why", "evaluate_drift", "inspect_import_summary"],
+            accepted_baseline_established: true,
+            accepted_decision_count: 1,
+            candidate_decision_count: 0,
           }
         },
         primary_decision: {
@@ -211,6 +217,9 @@ describe("QueryForm", () => {
             why_state: "ready",
             drift_state: "clean",
             recommended_actions: ["ask_why", "evaluate_drift", "inspect_import_summary"],
+            accepted_baseline_established: true,
+            accepted_decision_count: 1,
+            candidate_decision_count: 0,
           }
         },
         primary_decision: {
@@ -241,6 +250,48 @@ describe("QueryForm", () => {
     expect(
       screen.getByText(/only backed by partial citation support so far/i)
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ask why in this workspace" })).toHaveAttribute(
+      "href",
+      "/search?workspace=imported-workspace"
+    );
+
+    global.fetch = originalFetch;
+  });
+
+  it("keeps imported evidence-limited why answers tied to backend next actions after an accepted baseline exists", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "evidence_limited",
+        question: "why use redis cache",
+        answer: "The workspace has an accepted imported baseline, but this question is not grounded strongly enough yet.",
+        answer_context: {
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          workspace_readiness: {
+            state: "why_ready",
+            next_action: "review_candidates",
+            review_state: "review_complete",
+            why_state: "evidence_limited",
+            drift_state: "clean",
+            recommended_actions: ["review_candidates", "ask_why", "inspect_import_summary"],
+            accepted_baseline_established: true,
+            accepted_decision_count: 1,
+            candidate_decision_count: 2,
+          }
+        },
+        supporting_context: [],
+        citations: []
+      })
+    } as Response);
+
+    render(<QueryForm workspaceSlug="imported-workspace" initialQuestion="why use redis cache" />);
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/evidence limited/i)).toBeInTheDocument();
+    });
     expect(screen.getByRole("link", { name: "Review imported candidates" })).toHaveAttribute(
       "href",
       "/review?workspace=imported-workspace"

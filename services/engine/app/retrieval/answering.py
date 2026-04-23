@@ -236,6 +236,30 @@ def _build_answer_payload(
     return payload
 
 
+def _query_specific_imported_readiness(
+    *,
+    readiness: dict | None,
+    answer_status: str,
+    candidate_count: int,
+) -> dict | None:
+    if readiness is None:
+        return None
+
+    query_specific = dict(readiness)
+    if answer_status in {"ok", "limited_support"}:
+        return query_specific
+
+    if query_specific.get("accepted_baseline_established"):
+        query_specific["why_state"] = "evidence_limited"
+        if candidate_count > 0:
+            query_specific["next_action"] = "review_candidates"
+            query_specific["recommended_actions"] = ["review_candidates", "ask_why", "inspect_import_summary"]
+        else:
+            query_specific["next_action"] = "inspect_import_summary"
+            query_specific["recommended_actions"] = ["inspect_import_summary"]
+    return query_specific
+
+
 def _pick_primary_and_supporting_decisions(
     *,
     decisions: DecisionRepository,
@@ -288,6 +312,7 @@ def answer_why_question(
     provenance = get_workspace_provenance(session=session, workspace=workspace)
     decisions = DecisionRepository(session)
     decision_counts = decisions.counts_by_review_state(workspace.id)
+    candidate_count = decision_counts.get("candidate", 0)
     latest_job = ImportJobRepository(session).latest_for_workspace(workspace.id)
     accepted_decisions = decisions.list_by_review_state(workspace.id, "accepted")
     drift_status = build_imported_drift_status(
@@ -338,6 +363,11 @@ def answer_why_question(
             if status == "review_required"
             else "This imported workspace does not yet have enough accepted decision evidence for a trustworthy why-answer."
         )
+        context["workspace_readiness"] = _query_specific_imported_readiness(
+            readiness=workspace_readiness,
+            answer_status=status,
+            candidate_count=candidate_count,
+        )
         return {
             "status": status,
             "question": question,
@@ -355,10 +385,17 @@ def answer_why_question(
     )
     if not hits:
         return _build_answer_payload(
-            status="insufficient_evidence",
+            status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
             question=question,
             answer="Insufficient evidence. Review more artifacts or accept more decisions first.",
-            context=context,
+            context={
+                **context,
+                "workspace_readiness": _query_specific_imported_readiness(
+                    readiness=workspace_readiness,
+                    answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+                    candidate_count=candidate_count,
+                ),
+            },
             citations=[],
         )
 
@@ -370,10 +407,17 @@ def answer_why_question(
     )
     if primary_decision is None:
         return _build_answer_payload(
-            status="insufficient_evidence",
+            status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
             question=question,
             answer="Insufficient evidence. Review more artifacts or accept more decisions first.",
-            context=context,
+            context={
+                **context,
+                "workspace_readiness": _query_specific_imported_readiness(
+                    readiness=workspace_readiness,
+                    answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+                    candidate_count=candidate_count,
+                ),
+            },
             citations=[],
         )
 
@@ -427,10 +471,17 @@ def answer_why_question(
 
     if not citations:
         return _build_answer_payload(
-            status="insufficient_evidence",
+            status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
             question=question,
             answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
-            context=context,
+            context={
+                **context,
+                "workspace_readiness": _query_specific_imported_readiness(
+                    readiness=workspace_readiness,
+                    answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+                    candidate_count=candidate_count,
+                ),
+            },
             citations=[],
         )
 
@@ -439,10 +490,17 @@ def answer_why_question(
         answer_status = "limited_support"
     elif len(citations) < 2:
         return _build_answer_payload(
-            status="insufficient_evidence",
+            status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
             question=question,
             answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
-            context=context,
+            context={
+                **context,
+                "workspace_readiness": _query_specific_imported_readiness(
+                    readiness=workspace_readiness,
+                    answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+                    candidate_count=candidate_count,
+                ),
+            },
             citations=citations,
             primary_decision=primary_decision,
             supporting_context=supporting_context,
@@ -454,7 +512,14 @@ def answer_why_question(
         status=answer_status,
         question=question,
         answer=answer_text,
-        context=context,
+        context={
+            **context,
+            "workspace_readiness": _query_specific_imported_readiness(
+                readiness=workspace_readiness,
+                answer_status=answer_status,
+                candidate_count=candidate_count,
+            ),
+        },
         citations=citations[:4],
         primary_decision=primary_decision,
         supporting_context=supporting_context,

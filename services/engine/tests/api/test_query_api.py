@@ -88,6 +88,7 @@ def test_post_query_why_returns_answer_with_citations(tmp_path: Path, monkeypatc
     assert body["answer_context"]["workspace_mode"] == "imported"
     assert body["answer_context"]["workspace_readiness"]["state"] == "why_ready"
     assert body["answer_context"]["workspace_readiness"]["review_state"] == "review_complete"
+    assert body["answer_context"]["workspace_readiness"]["accepted_baseline_established"] is True
     assert body["answer_context"]["workspace_readiness"]["recommended_actions"] == [
         "ask_why",
         "evaluate_drift",
@@ -148,8 +149,95 @@ def test_post_query_why_requires_review_for_imported_workspace_without_accepted_
     assert body["status"] == "review_required"
     assert body["answer_context"]["workspace_readiness"]["state"] == "review_ready"
     assert body["answer_context"]["workspace_readiness"]["review_state"] == "review_ready"
+    assert body["answer_context"]["workspace_readiness"]["accepted_baseline_established"] is False
     assert body["answer_context"]["workspace_readiness"]["recommended_actions"] == [
         "review_candidates",
+        "inspect_import_summary",
+    ]
+
+
+def test_post_query_why_keeps_imported_why_evidence_limited_when_accepted_baseline_does_not_match_question(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "query-accepted-but-ungrounded.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="issue",
+            source_id="1",
+            repo="org/repo",
+            title="Redis decision",
+            content="We decided to use Redis as cache because latency mattered.",
+            author="alice",
+            url="https://github.com/org/repo/issues/1",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        session.add_all(
+            [
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Use Redis Cache",
+                    status="active",
+                    review_state="accepted",
+                    problem="Latency too high",
+                    context=None,
+                    constraints=None,
+                    chosen_option="Use Redis as cache only",
+                    tradeoffs="Extra dependency",
+                    confidence=0.9,
+                ),
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Use Queue",
+                    status="active",
+                    review_state="candidate",
+                    problem="Sync calls too slow",
+                    context=None,
+                    constraints=None,
+                    chosen_option="Use queue",
+                    tradeoffs="More infra",
+                    confidence=0.6,
+                ),
+                ImportJob(
+                    job_id="job-accepted-baseline",
+                    workspace_id=workspace.id,
+                    repo="org/repo",
+                    mode="full",
+                    status="succeeded",
+                    imported_count=3,
+                    summary_json={"stage": "completed", "outcome": "ok"},
+                ),
+            ]
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/query/why",
+        json={"workspace_slug": "imported-workspace", "question": "why use postgres"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "evidence_limited"
+    assert body["answer_context"]["workspace_readiness"]["state"] == "why_ready"
+    assert body["answer_context"]["workspace_readiness"]["why_state"] == "evidence_limited"
+    assert body["answer_context"]["workspace_readiness"]["next_action"] == "review_candidates"
+    assert body["answer_context"]["workspace_readiness"]["recommended_actions"] == [
+        "review_candidates",
+        "ask_why",
         "inspect_import_summary",
     ]
 

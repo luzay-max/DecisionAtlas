@@ -187,6 +187,9 @@ describe("WorkspaceDashboardContent", () => {
             why_state: "review_required",
             drift_state: "review_required",
             recommended_actions: ["review_candidates", "inspect_import_summary"],
+            accepted_baseline_established: false,
+            accepted_decision_count: 0,
+            candidate_decision_count: 2,
             access_source_label: "GitHub App installation #12345",
             latest_sync_origin: "webhook",
             latest_sync_at: "2026-04-11T10:00:00",
@@ -234,6 +237,69 @@ describe("WorkspaceDashboardContent", () => {
     expect(screen.getByRole("button", { name: "Run import" })).toBeInTheDocument();
     expect(screen.getByText(/Contributing signal mix/i)).toBeInTheDocument();
     expect(screen.getByText(/Extraction funnel shortlisted 6, screened in 3, and created 2 candidate decisions\./i)).toBeInTheDocument();
+    expect(screen.getByText("Accepted baseline: 0 accepted decisions, not ready for review.")).toBeInTheDocument();
+    expect(screen.getByText("Candidate queue: 2 imported decisions still need review.")).toBeInTheDocument();
+  });
+
+  it("renders first accepted-baseline guidance without implying every why answer is fully supported", () => {
+    render(
+      <WorkspaceDashboardContent
+        summary={{
+          workspace_slug: "imported-workspace",
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          repo_url: "https://github.com/org/repo",
+          github_repo: "org/repo",
+          import_status: "succeeded",
+          latest_import: {
+            job_id: "job-why-ready",
+            mode: "full",
+            status: "succeeded",
+            imported_count: 14,
+            summary: {
+              outcome: "ok",
+            },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          },
+          artifact_count: 14,
+          decision_counts: {
+            candidate: 2,
+            accepted: 1,
+            rejected: 0,
+            superseded: 0,
+          },
+          workspace_readiness: {
+            state: "why_ready",
+            next_action: "ask_why",
+            review_state: "review_complete",
+            why_state: "evidence_limited",
+            drift_state: "clean",
+            recommended_actions: ["ask_why", "review_candidates", "inspect_import_summary"],
+            accepted_baseline_established: true,
+            accepted_decision_count: 1,
+            candidate_decision_count: 2,
+          },
+          recent_alerts: [],
+        }}
+      />
+    );
+
+    expect(screen.getByText("Imported workspace is ready for trustworthy why-search")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "An accepted imported baseline exists. Why-search can now become trustworthy when the asked rationale thread is grounded to that accepted decision."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("accepted baseline established")).toBeInTheDocument();
+    expect(screen.getByText("evidence limited")).toBeInTheDocument();
+    expect(screen.getByText("Accepted baseline: 1 accepted decisions, accepted baseline established.")).toBeInTheDocument();
+    expect(screen.getByText("Candidate queue: 2 imported decisions still need review.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ask why in this workspace" })).toHaveAttribute(
+      "href",
+      "/search?workspace=imported-workspace"
+    );
   });
 
   it("renders in-progress imported readiness without claiming the import is complete", () => {

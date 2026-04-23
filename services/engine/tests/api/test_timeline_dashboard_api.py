@@ -155,12 +155,16 @@ def test_dashboard_summary_returns_counts(tmp_path: Path, monkeypatch) -> None:
     assert body["latest_import"]["summary"]["artifact_counts"]["doc"] == 1
     assert body["latest_import"]["summary"]["extraction_summary"]["shortlisted_artifacts"] == 4
     assert body["latest_import"]["summary"]["extraction_summary"]["current_phase"] == "completed"
-    assert body["workspace_readiness"]["state"] == "review_ready"
-    assert body["workspace_readiness"]["review_state"] == "review_ready"
+    assert body["workspace_readiness"]["state"] == "why_ready"
+    assert body["workspace_readiness"]["review_state"] == "review_complete"
+    assert body["workspace_readiness"]["accepted_baseline_established"] is True
+    assert body["workspace_readiness"]["accepted_decision_count"] == 1
+    assert body["workspace_readiness"]["candidate_decision_count"] == 1
     assert body["workspace_readiness"]["recommended_actions"] == [
+        "ask_why",
         "review_candidates",
-        "inspect_import_summary",
         "evaluate_drift",
+        "inspect_import_summary",
     ]
     assert body["workspace_readiness"]["access_source_label"] == "Public GitHub access"
     assert body["workspace_readiness"]["latest_sync_origin"] == "webhook"
@@ -315,6 +319,7 @@ def test_dashboard_summary_prefers_review_ready_once_candidates_exist(tmp_path: 
     assert body["workspace_readiness"]["state"] == "review_ready"
     assert body["workspace_readiness"]["review_state"] == "review_ready"
     assert body["workspace_readiness"]["next_action"] == "review_candidates"
+    assert body["workspace_readiness"]["accepted_baseline_established"] is False
 
 
 def test_dashboard_summary_reports_analysis_failed_readiness(tmp_path: Path, monkeypatch) -> None:

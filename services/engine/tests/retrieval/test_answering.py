@@ -36,6 +36,63 @@ def test_answering_returns_insufficient_evidence_when_no_hits(tmp_path: Path, mo
     assert response["citations"] == []
 
 
+def test_answering_returns_evidence_limited_for_imported_workspace_when_accepted_baseline_does_not_ground_query(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "answer-imported-ungrounded.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="issue",
+            source_id="1",
+            repo="org/repo",
+            title="Redis decision",
+            content="We decided to use Redis as cache because latency mattered.",
+            author="alice",
+            url="https://github.com/org/repo/issues/1",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints=None,
+            chosen_option="Use Redis as cache only",
+            tradeoffs="Extra dependency",
+            confidence=0.88,
+        )
+        session.add(decision)
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use redis cache",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "evidence_limited"
+    assert response["answer_context"]["workspace_readiness"]["why_state"] == "evidence_limited"
+    assert response["answer_context"]["workspace_readiness"]["next_action"] == "inspect_import_summary"
+    assert response["citations"] == []
+
+
 def test_answering_includes_two_or_more_citations(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "answer.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

@@ -7,6 +7,15 @@ import { askWhy, WhyAnswerResponse } from "../../lib/api";
 import { SearchResults } from "./search-results";
 import { useI18n } from "../i18n/language-provider";
 
+const nextActionHref: Record<string, (workspaceSlug: string) => string> = {
+  review_candidates: (workspaceSlug) => `/review?workspace=${encodeURIComponent(workspaceSlug)}`,
+  ask_why: (workspaceSlug) => `/search?workspace=${encodeURIComponent(workspaceSlug)}`,
+  evaluate_drift: (workspaceSlug) => `/drift?workspace=${encodeURIComponent(workspaceSlug)}`,
+  inspect_import_summary: (workspaceSlug) => `/workspaces/${encodeURIComponent(workspaceSlug)}`,
+  retry_import: (workspaceSlug) => `/workspaces/${encodeURIComponent(workspaceSlug)}`,
+  inspect_alerts: (workspaceSlug) => `/drift?workspace=${encodeURIComponent(workspaceSlug)}`,
+};
+
 export function QueryForm({
   workspaceSlug,
   initialQuestion = "why use redis cache",
@@ -20,12 +29,17 @@ export function QueryForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
-  const reviewNextAction = result?.status === "review_required" || result?.status === "limited_support";
-  const nextActionHref = reviewNextAction
-    ? `/review?workspace=${encodeURIComponent(workspaceSlug)}`
-    : `/timeline?workspace=${encodeURIComponent(workspaceSlug)}`;
-  const nextActionLabel =
-    reviewNextAction ? messages.importedReadiness.actions.review_candidates : messages.guidedDemo.searchNext;
+  const importedNextAction = !isGuidedDemoWorkspace ? result?.answer_context?.workspace_readiness?.next_action : null;
+  const importedNextActionHref = importedNextAction ? nextActionHref[importedNextAction] : null;
+  const renderedNextActionHref = isGuidedDemoWorkspace
+    ? `/timeline?workspace=${encodeURIComponent(workspaceSlug)}`
+    : importedNextActionHref?.(workspaceSlug);
+  const nextActionLabel = isGuidedDemoWorkspace
+    ? messages.guidedDemo.searchNext
+    : importedNextAction
+      ? messages.importedReadiness.actions[importedNextAction as keyof typeof messages.importedReadiness.actions] ??
+        importedNextAction
+      : null;
 
   async function runQuestion(nextQuestion: string) {
     setLoading(true);
@@ -65,13 +79,9 @@ export function QueryForm({
       {!result && !error ? <p>{isGuidedDemoWorkspace ? messages.search.intro : messages.search.importedIntro}</p> : null}
       {error ? <p>{error}</p> : null}
       {result ? <SearchResults result={result} /> : null}
-      {result &&
-      (isGuidedDemoWorkspace ||
-        result.status === "ok" ||
-        result.status === "review_required" ||
-        result.status === "limited_support") ? (
+      {result && renderedNextActionHref && nextActionLabel ? (
         <div className="action-row">
-          <Link href={nextActionHref} className="action-link action-link-primary">
+          <Link href={renderedNextActionHref} className="action-link action-link-primary">
             {nextActionLabel}
           </Link>
         </div>

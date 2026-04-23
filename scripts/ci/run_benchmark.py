@@ -28,6 +28,9 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
         if expectations.get("minimum_reviewable_candidates", 0) < 0:
             print(f"Invalid minimum reviewable candidate count for {repository['repo']}.", file=sys.stderr)
             return 1
+        if expectations.get("minimum_accepted_decisions", 0) < 0:
+            print(f"Invalid minimum accepted decision count for {repository['repo']}.", file=sys.stderr)
+            return 1
         if expectations.get("minimum_screened_in_artifacts", 0) < 0:
             print(f"Invalid minimum screened-in count for {repository['repo']}.", file=sys.stderr)
             return 1
@@ -40,10 +43,19 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
         if not expectations.get("expected_drift_states"):
             print(f"Missing drift expectations for {repository['repo']}.", file=sys.stderr)
             return 1
+        if expectations.get("minimum_accepted_decisions", 0) > 0 and not expectations.get(
+            "expected_why_states_after_first_acceptance"
+        ):
+            print(
+                f"Missing first-acceptance why expectations for {repository['repo']}.",
+                file=sys.stderr,
+            )
+            return 1
         print(
             f"{repository['id']}: repo={repository['repo']} "
             f"min_candidates={expectations.get('minimum_candidate_decisions', 0)} "
             f"min_reviewable={expectations.get('minimum_reviewable_candidates', 0)} "
+            f"min_accepted={expectations.get('minimum_accepted_decisions', 0)} "
             f"min_screened_in={expectations.get('minimum_screened_in_artifacts', 0)}"
         )
     return 0

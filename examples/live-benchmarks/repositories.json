@@ -32,9 +32,11 @@
     "expectations": {
       "analysis_scope": "public library where decision evidence may be thinner than the guided demo",
       "minimum_candidate_decisions": 1,
+      "minimum_accepted_decisions": 1,
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_why_states_after_first_acceptance": ["ready", "evidence_limited"],
       "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
   },
@@ -60,10 +62,12 @@
     "expectations": {
       "analysis_scope": "imported lane regression repo with strong why and drift examples",
       "minimum_candidate_decisions": 2,
+      "minimum_accepted_decisions": 1,
       "minimum_screened_in_artifacts": 0,
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited", "alerts_present"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
+      "expected_why_states_after_first_acceptance": ["ready", "evidence_limited"],
       "expected_drift_states": ["review_required", "unevaluated", "clean", "alerts_present"]
     }
   }

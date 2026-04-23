@@ -179,8 +179,8 @@ export const messages = {
       details: {
         analysis_failed: "The latest real-repo analysis failed. Retry the import before trusting this workspace.",
         analysis_running: "The latest real-repo import is still running. Treat the current counts and summaries as in-progress, not final.",
-        review_ready: "Candidate decisions are ready. Review and accept at least one before trusting downstream answers.",
-        why_ready: "Accepted imported decisions exist. Why-search is now decision-grounded and ready to inspect.",
+        review_ready: "Candidate decisions are ready. Review and accept the first strong imported decision to establish a durable baseline before trusting downstream answers.",
+        why_ready: "An accepted imported baseline exists. Why-search can now become trustworthy when the asked rationale thread is grounded to that accepted decision.",
         evidence_limited: "The import succeeded, but high-signal evidence is still thin. Treat sparse results as a repo-signal limit, not a hidden crash.",
         conversion_limited:
           "The repository produced enough screened-in extraction attempts, but full extraction still failed to convert them into reviewable candidates.",
@@ -188,9 +188,11 @@ export const messages = {
       },
       reviewStates: {
         review_ready: "review ready",
-        review_complete: "review complete",
+        review_complete: "accepted baseline established",
         review_unavailable: "not ready for review",
       },
+      baselineSummary: "Accepted baseline: {accepted} accepted decisions, {status}.",
+      candidateSummary: "Candidate queue: {candidate} imported decisions still need review.",
       actions: {
         review_candidates: "Review imported candidates",
         ask_why: "Ask why in this workspace",
@@ -283,7 +285,8 @@ export const messages = {
       searching: "Searching...",
       placeholder: "why use redis cache",
       intro: "Start with the guided demo question after the review step is complete.",
-      importedIntro: "Imported why-search becomes trustworthy after at least one imported decision is accepted.",
+      importedIntro:
+        "Imported why-search becomes trustworthy only after at least one imported decision is accepted and the asked rationale thread is grounded to that accepted baseline.",
       error:
         "Why search is unavailable right now. Confirm the API, engine, and provider configuration.",
       answer: "Answer",
@@ -390,6 +393,7 @@ export const messages = {
       extracting_decisions: "extracting decisions",
       completed: "completed",
       ok: "ok",
+      ready: "ready",
       limited_support: "limited support",
       insufficient_evidence: "insufficient evidence",
       review_required: "review required",
@@ -600,17 +604,19 @@ export const messages = {
       details: {
         analysis_failed: "最近一次真实仓库分析失败了。先重试导入，再信任这个工作区。",
         analysis_running: "最近一次真实仓库导入仍在运行。当前看到的计数和摘要都还是中间态，不能当作最终结果。",
-        review_ready: "候选决策已经准备好。先审阅并采纳至少一条，再信任后续 why-answer。",
-        why_ready: "已经存在已采纳的导入决策。why-search 现在有了基于决策的可信 grounding。",
+        review_ready: "候选决策已经准备好。先采纳第一条足够强的导入决策，建立稳定基线后，再去信任后续 why-answer。",
+        why_ready: "已经建立至少一条已采纳的导入基线。只有当提问命中这条已采纳决策的理由链路时，why-search 才值得信任。",
         evidence_limited: "导入虽然成功，但高信号证据仍然偏少。这里的稀疏结果应被理解为仓库信号限制，而不是隐藏故障。",
         conversion_limited: "仓库已经提供了足够多的完整抽取尝试，但抽取质量仍未把它们转成可审阅候选决策。",
         import_complete: "导入已经完成，但当前工作区的下一步仍需要人工判断。",
       },
       reviewStates: {
         review_ready: "可进入审阅",
-        review_complete: "审阅已完成",
+        review_complete: "已建立采纳基线",
         review_unavailable: "当前不适合审阅",
       },
+      baselineSummary: "采纳基线：已采纳 {accepted} 条决策，当前状态为“{status}”。",
+      candidateSummary: "候选队列：还有 {candidate} 条导入决策等待审阅。",
       actions: {
         review_candidates: "审阅导入候选",
         ask_why: "在当前工作区提问为什么",
@@ -701,7 +707,7 @@ export const messages = {
       searching: "搜索中...",
       placeholder: "为什么使用 Redis 缓存",
       intro: "审阅完成后，先运行推荐的演示问题。",
-      importedIntro: "导入工作区的 why-search 只有在至少采纳一条导入决策后才值得信任。",
+      importedIntro: "导入工作区的 why-search 只有在至少采纳一条导入决策，并且当前问题确实命中这条已采纳决策的理由链路后，才值得信任。",
       error: "原因检索当前不可用。请确认 API、engine 和 provider 配置。",
       answer: "答案",
       supportingContext: "补充上下文",
@@ -801,6 +807,7 @@ export const messages = {
       extracting_decisions: "抽取决策",
       completed: "已完成",
       ok: "正常",
+      ready: "已就绪",
       limited_support: "部分支撑",
       insufficient_evidence: "证据不足",
       review_required: "需要先审阅",
