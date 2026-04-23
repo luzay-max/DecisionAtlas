@@ -4,13 +4,30 @@ import { vi } from "vitest";
 
 import { WorkspaceDashboardContent } from "../components/dashboard/workspace-dashboard-content";
 
+const startGithubImport = vi.fn();
+const getImportJob = vi.fn();
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: vi.fn(),
   }),
 }));
 
+vi.mock("../lib/api", async () => {
+  const actual = await vi.importActual<typeof import("../lib/api")>("../lib/api");
+  return {
+    ...actual,
+    startGithubImport: (...args: unknown[]) => startGithubImport(...args),
+    getImportJob: (...args: unknown[]) => getImportJob(...args),
+  };
+});
+
 describe("WorkspaceDashboardContent", () => {
+  beforeEach(() => {
+    startGithubImport.mockReset();
+    getImportJob.mockReset();
+  });
+
   it("renders summary KPIs and alerts", () => {
     render(
       <WorkspaceDashboardContent
