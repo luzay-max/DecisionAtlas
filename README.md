@@ -1,189 +1,107 @@
 # DecisionAtlas
 
-DecisionAtlas turns engineering repo context into a searchable decision memory with citations and drift alerts.
+[English](README.md) | [中文](README_zh-CN.md)
 
-Current project stage:
+**DecisionAtlas** turns engineering repo context into a searchable decision memory with citations and drift alerts. It automatically analyzes GitHub issues, pull requests, and commits to extract key architectural and design decisions, making them searchable and verifiable.
 
-- core MVP complete
-- `v0.2` demo hardening complete
-- guided demo lane stable
-- real repository analysis lane is functional end-to-end
-- imported-workspace semantics have been hardened across review, why, drift, and indexing
-- next priority: release-quality cleanup before heavier v0.3 platform work
+## 🌟 Key Features
 
-Example why-questions:
+- **Automated Knowledge Extraction**: Imports GitHub issues, PRs, commits, markdown, ADRs, and text notes to extract candidate decisions.
+- **Citation-First Search**: Answers "why" questions with citation-first responses, support grading, and chunk-backed supporting evidence.
+- **Drift Detection**: Flags rule-first and semantic drift alerts after manual evaluation with conservative imported drift semantics.
+- **Human-in-the-Loop Review**: Lets a reviewer accept, reject, or supersede extracted decisions.
+- **Live Repository Analysis**: Supports one-off live analysis runs for public GitHub repositories through imported workspaces with incremental sync.
+- **Flexible Provider Support**: Works in local mode with fake providers or live mode with OpenAI-compatible LLMs.
 
-- Why did we choose Redis as cache only?
-- Why is PostgreSQL still the primary database?
-- Why does this candidate decision need review?
-- Why did this pull request trigger a drift alert?
-- Why did we move this workflow into a queue?
+## 🏗 Architecture
 
-What the product already does:
+The platform consists of three main components:
 
-- imports GitHub issues, PRs, commits, markdown, ADRs, text notes, and optional docx content
-- supports fake-provider local mode and OpenAI-compatible live provider mode
-- supports one-off live analysis runs for public GitHub repositories through imported workspaces
-- reuses existing imported workspaces and supports `since_last_sync` incremental sync
-- classifies GitHub import failures into clearer network / repository / provider buckets
-- extracts candidate decisions with source references and stage-aware extraction progress
-- lets a reviewer accept, reject, or supersede decisions
-- answers why-questions with citation-first responses, support grading, and chunk-backed supporting evidence
-- flags rule-first and semantic drift alerts after manual evaluation with more conservative imported drift semantics
-- surfaces imported-workspace readiness across review, why, and drift with recommended next actions
+- `apps/web`: Next.js UI for review, search, timeline, dashboard, and drift.
+- `apps/api`: Fastify edge API and future auth boundary.
+- `services/engine`: FastAPI engine for ingest, extraction, retrieval, and drift.
+- **Data Layer**: `PostgreSQL + pgvector` for durable storage and vector search, `Redis` for background coordination.
 
-Architecture snapshot:
+## 🚀 Quick Start
 
-- `apps/web`: Next.js UI for review, search, timeline, dashboard, and drift
-- `apps/api`: Fastify edge API and future auth boundary
-- `services/engine`: FastAPI engine for ingest, extraction, retrieval, and drift
-- `PostgreSQL + pgvector`: durable storage and search index
-- `Redis`: background coordination for future async jobs
+### Prerequisites
+- Node.js (v18+) & pnpm
+- Python (v3.10+) & uv
+- Docker Desktop (for PostgreSQL & Redis)
 
-Quick start:
+### One-Command Local Bring-up
 
-```powershell
-pnpm install
-uv sync --project services/engine
-Copy-Item .env.example .env
-docker compose up -d postgres redis
-cd services/engine
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-pnpm --filter @decisionatlas/api dev
-pnpm --filter @decisionatlas/web dev
-```
-
-If `uv` is not on `PATH` but `python -m uv --version` works, replace `uv ...` with `python -m uv ...` for local shell commands.
-
-Canonical release baseline validation:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
-```
-
-This is the canonical local release gate for the current branch baseline. It runs workspace tests, typechecks, engine pytest, offline benchmark fixture validation, and Playwright smoke coverage. The script automatically falls back to `python -m uv` when `uv` is not directly available on `PATH`.
-
-For a live provider-backed demo, set these before starting services:
-
-- `LLM_PROVIDER_MODE=openai_compatible`
-- `LLM_API_KEY=...`
-- `LLM_MODEL=...`
-- `EMBEDDING_MODEL=...`
-- optionally `EMBEDDING_API_KEY` and `LLM_BASE_URL`
-
-For a one-command local bring-up:
+The fastest way to experience the product locally using an isolated, SQLite-backed demo workspace:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
 ```
 
-This script starts an isolated, SQLite-backed demo workspace and does not depend on the Docker PostgreSQL volume state. It is the fastest way to experience the product locally.
+### Full Stack Setup
 
-For a one-command real stack bring-up:
+To run the real stack with PostgreSQL and Redis:
 
 ```powershell
+# Install dependencies
+pnpm install
+uv sync --project services/engine
+
+# Setup environment variables
+Copy-Item .env.example .env
+
+# Start infrastructure
+docker compose up -d postgres redis
+
+# Run database migrations and seed demo data
+cd services/engine
+uv run alembic upgrade head
+uv run python -m app.db.seed_demo
+cd ..\..
+
+# Start the application services
 pnpm run dev:real
 ```
 
-or double-click:
+Then open your browser:
+- Web UI: `http://localhost:3000`
+- API Health: `http://localhost:3001/health`
+- Engine Health: `http://localhost:8000/health`
 
-```text
-scripts\dev\start-real-stack.bat
+## 💡 Example Queries
+
+Once running, you can ask questions like:
+- *Why did we choose Redis as cache only?*
+- *Why is PostgreSQL still the primary database?*
+- *Why did we move this workflow into a queue?*
+
+## ⚙️ Configuration (Live Provider)
+
+For a live provider-backed demo, configure these variables in your `.env`:
+
+```env
+LLM_PROVIDER_MODE=openai_compatible
+LLM_API_KEY=your_api_key
+LLM_MODEL=gpt-4o
+EMBEDDING_MODEL=text-embedding-3-small
+# Optional
+EMBEDDING_API_KEY=your_api_key
+LLM_BASE_URL=https://api.openai.com/v1
 ```
 
-This real-stack script:
-
-- starts Docker `postgres` and `redis`
-- runs engine migrations against PostgreSQL
-- seeds `demo-workspace` into PostgreSQL
-- starts `engine`, `api`, and `web`
-- records managed process state under `.tmp/real-stack.json`
-
-To stop the managed real stack:
-
-```powershell
-pnpm run dev:real:stop
-```
-
-or double-click:
-
-```text
-scripts\dev\stop-real-stack.bat
-```
-
-The public `demo-workspace` is intentionally seeded for a stable walkthrough. Imported workspaces use real repository artifacts and may produce different decision, why-answer, and drift coverage depending on the source repo.
-
-For live analysis, the current supported scope is:
-
-- public GitHub repositories only
-- imported workspace reuse and `since_last_sync` incremental sync are supported for repeated analysis
-- not long-lived GitHub App connections yet
-- results may end in useful candidates, explicit `insufficient_evidence`, or `conversion_limited` diagnostics depending on repository signal and extraction quality
-- imported why answers can now resolve to `ok`, `limited_support`, `review_required`, or `insufficient_evidence` depending on accepted-decision grounding
-- imported why answers can use structured chunk evidence to strengthen support while keeping the accepted decision as the answer anchor
-- drift evaluation is available for imported workspaces but is currently triggered manually from the product UI
-- imported dashboards and search now expose review / why / drift readiness with recommended actions instead of a single opaque status
-
-Current operating model:
-
-- `demo-workspace` is the stable product walkthrough
-- imported workspaces are the real-capability lane
-- fake/live provider switching affects the next real run or extraction path, not the already-rendered demo results on screen
-- imported-workspace dashboards now expose extraction funnel progress and post-run conversion diagnostics
-
-Then open:
-
-- Web: `http://localhost:3000`
-- API: `http://localhost:3001/health`
-- Engine: `http://localhost:8000/health`
-
-The `.env.example` file still points `DATABASE_URL` at the local PostgreSQL container for manual deployment-style runs.
-
-Project docs:
+## 📚 Documentation
 
 - [Quick Start](./docs/project/quick-start.md)
-- [Demo Script](./docs/project/demo-script.md)
 - [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
-- [Release Checklist](./docs/project/release-checklist.md)
-- [Real Repository Validation Baseline](./docs/project/real-repository-validation-baseline.md)
-- [v0.2 Release Notes](./docs/project/release-notes-v0.2.md)
-- [Project Blueprint](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
-- [Implementation Plan](./docs/plans/2026-03-18-decisionatlas-implementation-plan.md)
-- [v0.2 Implementation Plan](./docs/plans/2026-03-18-decisionatlas-v0.2-implementation-plan.md)
-- [Post-v0.2 Next Steps](./docs/plans/2026-03-23-post-v0.2-next-steps.md)
-- [v0.3 Backlog](./docs/plans/2026-03-18-decisionatlas-v0.3-backlog.md)
+- [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
+- [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 
-Next recommended direction:
+## ⚠️ Known Limitations
 
-1. keep the guided demo stable
-2. do a release-quality cleanup pass so the current product state is documented and presentable
-3. keep a lightweight real-repo benchmark set for regression checks without turning validation into a separate platform effort
-4. only after that, move on to hosted demo delivery and later v0.3 platform work
+- MVP auth and multi-user permissions are not implemented yet.
+- Semantic drift labels are conservative and intentionally narrow.
+- Live analysis currently supports public GitHub repositories only (via token mode, not GitHub App auth).
+- Imported workspaces can still be sparse depending on repository signal quality.
 
-Real-functionality priorities:
-
-- keep end-to-end live-provider validation healthy on public repositories
-- keep imported why quality healthy as more repos are reindexed with structured chunk metadata
-- keep imported drift conservative and operationally understandable
-- package the current capability set like a release instead of a long-lived prototype branch
-
-Known limitations:
-
-- MVP auth and multi-user permissions are not implemented yet
-- semantic drift labels are conservative and intentionally narrow
-- the public demo workspace is seeded and should not be confused with a fully imported repository workspace
-- GitHub import still uses token mode, not GitHub App auth
-- live analysis currently supports public repositories only, not private repo auth flows
-- real imported workspaces can still be sparse or conversion-limited depending on repository signal quality and extraction grounding
-- many imported why answers still depend on thin accepted-decision grounding and may remain `limited_support`
-- drift alerts are still conservative and may under-report rather than overstate repository change
-- imported readiness explains the next step better than before, but it is still tuned for operator-guided use rather than self-serve hosted onboarding
-
-Optional operator-guided real-repo validation:
-
-- use the canonical release script for the default local gate
-- use curated public repositories only as an additional credibility check before a publish-style milestone
-- keep guided demo validation and imported real-repo validation distinct in docs and walkthroughs
+---
+*Current Project Stage: Core MVP & `v0.2` Demo Hardening Complete.*
