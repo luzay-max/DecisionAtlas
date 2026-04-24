@@ -94,6 +94,7 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
 - [Demo Script](./docs/project/demo-script.md)
+- [Release Notes v0.2.2](./docs/project/release-notes-v0.2.2.md)
 - [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 
@@ -105,4 +106,4 @@ LLM_BASE_URL=https://api.openai.com/v1
 - Imported workspaces can still be sparse depending on repository signal quality.
 
 ---
-*Current Project Stage: Core MVP & `v0.2` Demo Hardening Complete.*
+*Current Project Stage: `v0.2.2` Release Baseline Preparation - guided demo stable, imported workspace readiness strengthened, platformization still deferred.*

@@ -54,10 +54,14 @@ Yes, optionally. `.docx` import depends on `pandoc` being installed locally.
 ### How do I run validation?
 
 ```powershell
-# Offline benchmark
-python scripts/ci/run_benchmark.py
+# Canonical local release baseline
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
 
-# Playwright tests
+Use individual commands only when debugging a failing phase:
+
+```powershell
+python scripts/ci/run_benchmark.py
 pnpm --filter @decisionatlas/web exec playwright install chromium
 pnpm --filter @decisionatlas/web exec playwright test
 ```

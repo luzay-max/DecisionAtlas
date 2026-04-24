@@ -31,6 +31,8 @@ Run individual commands only when debugging a failure from the canonical script.
 - [ ] `docs/project/quick-start.md` is accurate
 - [ ] `docs/project/demo-script.md` matches current routes
 - [ ] `docs/project/2026-03-27-next-phase-roadmap.md` reflects the latest shipped quality slices
+- [ ] `docs/project/release-notes-v0.2.2.md` records shipped capabilities, validation evidence, supported scope, limitations, and tag readiness
+- [ ] `docs/project/release-notes-v0.2.2_zh-CN.md` mirrors the v0.2.2 release summary for Chinese readers
 - [ ] FAQ reflects actual limitations
 - [ ] `docs/project/real-repository-validation-baseline.md` matches the current curated repo set and imported-workspace expectations
 

@@ -82,6 +82,12 @@ Invoke-WebRequest http://localhost:3001/health
 Invoke-WebRequest http://localhost:8000/health
 ```
 
+如需进行 release-style 验证，请在仓库根目录运行标准本地门禁：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
+
 打开 Web 应用：
 
 - Web UI: `http://localhost:3000`

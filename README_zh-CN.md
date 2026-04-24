@@ -94,6 +94,7 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [部署指南](./docs/project/deployment_zh-CN.md)
 - [常见问题 (FAQ)](./docs/project/faq_zh-CN.md)
 - [演示脚本](./docs/project/demo-script_zh-CN.md)
+- [v0.2.2 发布说明](./docs/project/release-notes-v0.2.2_zh-CN.md)
 - [架构与规划](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [真实仓库验证](./docs/project/real-repository-validation-baseline.md)
 
@@ -105,4 +106,4 @@ LLM_BASE_URL=https://api.openai.com/v1
 - 取决于仓库的信号质量，导入的工作区可能仍然会比较稀疏。
 
 ---
-*当前项目阶段：核心 MVP & `v0.2` 演示版本强化已完成。*
+*当前项目阶段：`v0.2.2` 发布基线准备中 - guided demo 已稳定，导入工作区 readiness 已增强，平台化仍然后置。*

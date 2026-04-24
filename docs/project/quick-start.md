@@ -82,6 +82,12 @@ Invoke-WebRequest http://localhost:3001/health
 Invoke-WebRequest http://localhost:8000/health
 ```
 
+For release-style validation, run the canonical local gate from the repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
+
 Open the web app:
 
 - Web UI: `http://localhost:3000`

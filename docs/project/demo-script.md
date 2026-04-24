@@ -22,12 +22,12 @@ This walkthrough is designed for a **60-90 second product demo**. The primary st
 > "The dashboard is now the walkthrough control panel. It tells us which step we are on and what to do next."
 > "The provenance banner makes it explicit that this workspace is seeded demo data, not imported repository output."
 
-### Step 2: Run or Confirm the Demo Import
+### Step 2: Confirm the Demo Workspace Is Ready
 
 **Route**: `http://localhost:3000/workspaces/demo-workspace`
 
 **Narration**:
-> "If the demo needs to be reset, the import action now shows stage-aware progress."
+> "The stable demo workspace is seeded. We do not run a real import inside this lane."
 > "Once the workspace is ready, the UI points directly to the review step."
 
 ### Step 3: Show the Review Queue
@@ -87,7 +87,7 @@ This is an **operator-guided credibility check**, not part of the core guided wa
 | Step | Route | Key Point |
 |------|-------|-----------|
 | 1 | `/workspaces/demo-workspace` | Walkthrough control panel |
-| 2 | `/workspaces/demo-workspace` | Stage-aware import progress |
+| 2 | `/workspaces/demo-workspace` | Seeded workspace readiness |
 | 3 | `/review?workspace=demo-workspace` | Human checkpoint |
 | 4 | `/search?workspace=demo-workspace` | Citation-first answers |
 | 5 | `/timeline?workspace=demo-workspace` | Time-ordered decision memory |

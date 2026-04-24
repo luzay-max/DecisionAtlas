@@ -22,12 +22,12 @@
 > "仪表盘现在是演练控制面板。它告诉我们当前处于哪个步骤以及下一步该做什么。"
 > "来源横幅明确表示这是预设的演示数据，而非导入的仓库输出。"
 
-### 步骤 2：运行或确认演示导入
+### 步骤 2：确认演示工作区已经就绪
 
 **访问路径**: `http://localhost:3000/workspaces/demo-workspace`
 
 **话术**:
-> "如果需要重置演示，导入操作现在会显示阶段感知的进度。"
+> "稳定演示工作区使用 seed 数据。我们不会在这条主线里运行真实导入。"
 > "一旦工作区准备就绪，UI 会直接指向审核步骤。"
 
 ### 步骤 3：展示审核队列
@@ -87,7 +87,7 @@
 | 步骤 | 路径 | 关键点 |
 |------|------|--------|
 | 1 | `/workspaces/demo-workspace` | 演练控制面板 |
-| 2 | `/workspaces/demo-workspace` | 阶段感知导入进度 |
+| 2 | `/workspaces/demo-workspace` | seed 工作区就绪状态 |
 | 3 | `/review?workspace=demo-workspace` | 人工检查点 |
 | 4 | `/search?workspace=demo-workspace` | 引用优先的回答 |
 | 5 | `/timeline?workspace=demo-workspace` | 时间有序的决策记忆 |

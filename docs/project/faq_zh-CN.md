@@ -54,10 +54,14 @@
 ### 如何运行验证？
 
 ```powershell
-# 离线基准测试
-python scripts/ci/run_benchmark.py
+# 标准本地发布基线
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
+```
 
-# Playwright 测试
+只有在调试失败阶段时，才建议单独运行子命令：
+
+```powershell
+python scripts/ci/run_benchmark.py
 pnpm --filter @decisionatlas/web exec playwright install chromium
 pnpm --filter @decisionatlas/web exec playwright test
 ```
