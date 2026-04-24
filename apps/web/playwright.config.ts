@@ -2,14 +2,16 @@ import { defineConfig } from "@playwright/test";
 import path from "node:path";
 
 const repoRoot = path.resolve(__dirname, "../..");
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000";
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 
 export default defineConfig({
   testDir: "./tests-e2e",
   timeout: 60_000,
   use: {
-    baseURL: "http://127.0.0.1:3000"
+    baseURL
   },
-  webServer: [
+  webServer: skipWebServer ? undefined : [
     {
       command: "powershell -ExecutionPolicy Bypass -File ../../scripts/ci/start-engine-smoke.ps1",
       cwd: __dirname,

@@ -1,6 +1,6 @@
 # 常见问题
 
-[返回首页](../README_zh-CN.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [English](faq.md)
+[返回首页](../README_zh-CN.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [English](faq.md)
 
 ---
 
@@ -65,6 +65,15 @@ python scripts/ci/run_benchmark.py
 pnpm --filter @decisionatlas/web exec playwright install chromium
 pnpm --filter @decisionatlas/web exec playwright test
 ```
+
+针对运行中的托管演示环境，使用操作员检查：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
+这些是托管环境检查，不替代默认发布门禁。
 
 ### 实时分析支持所有仓库吗？
 

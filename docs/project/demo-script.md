@@ -1,10 +1,12 @@
 # Demo Script
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [中文](demo-script_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](demo-script_zh-CN.md)
 
 ---
 
 This walkthrough is designed for a **60-90 second product demo**. The primary story is the stable guided lane, with an optional real-repo credibility check at the end.
+
+Before a hosted walkthrough, run the operator health and smoke checks from [Hosted Demo Operator Guide](hosted-demo-operator-guide.md). If the seeded workspace has drifted, reset `demo-workspace` before starting the public flow.
 
 ### Opening Posture
 

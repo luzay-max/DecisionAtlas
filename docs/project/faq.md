@@ -1,6 +1,6 @@
 # FAQ
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Demo Script](demo-script.md) | [中文](faq_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](faq_zh-CN.md)
 
 ---
 
@@ -65,6 +65,15 @@ python scripts/ci/run_benchmark.py
 pnpm --filter @decisionatlas/web exec playwright install chromium
 pnpm --filter @decisionatlas/web exec playwright test
 ```
+
+For a running hosted demo environment, use the operator checks instead:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
+These are hosted environment checks, not a replacement for the default release gate.
 
 ### Does live analysis support any repository?
 

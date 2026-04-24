@@ -1,6 +1,6 @@
 # Deployment | 部署指南
 
-[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [返回首页](../README_zh-CN.md)
+[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [返回首页](../README_zh-CN.md)
 
 ---
 
@@ -45,6 +45,8 @@ DecisionAtlas v0.2 设计为单机器演示部署：
 | `ENGINE_BASE_URL` | Engine 服务地址 |
 | `API_BASE_URL` | API 服务地址 |
 
+托管环境中，`DATABASE_URL`、`REDIS_URL` 和提供商凭据应只存在于宿主机或后端服务面。浏览器可见配置只应包含访问 API 所需的 Web/API 地址。
+
 **实时大模型提供商模式：**
 
 | 变量 | 说明 |
@@ -63,6 +65,23 @@ DecisionAtlas v0.2 设计为单机器演示部署：
 | `LLM_TIMEOUT_SECONDS` | 请求超时时间 |
 | `GITHUB_TOKEN` | GitHub 访问令牌 |
 | `DEMO_REPO` | 演示仓库标识符 |
+
+### 托管操作员流程
+
+运行持久化演示环境时，使用托管操作指南中的检查流程：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
+需要恢复时，先重置 seeded demo：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps1
+```
+
+当迁移或数据库漂移需要更深重建时，再使用 `reseed-demo.ps1`。默认恢复脚本不会删除导入工作区。
 
 ### 启动顺序
 
@@ -98,3 +117,5 @@ pnpm --filter @decisionatlas/web dev
 3. 检查 `/review`
 4. 在 `/search` 页面提问
 5. 验证 `/drift` 漂移检测
+
+托管环境在公开演示前，请运行[托管演示操作指南](hosted-demo-operator-guide_zh-CN.md)中的检查。

@@ -1,6 +1,6 @@
 # 快速开始
 
-[返回首页](../README_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [English](quick-start.md)
+[返回首页](../README_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [English](quick-start.md)
 
 ---
 
@@ -82,6 +82,13 @@ Invoke-WebRequest http://localhost:3001/health
 Invoke-WebRequest http://localhost:8000/health
 ```
 
+如需针对运行中的托管或本地演示环境做操作员检查：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
 如需进行 release-style 验证，请在仓库根目录运行标准本地门禁：
 
 ```powershell
@@ -105,3 +112,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 | 实时分析失败 | 目前仅支持**公共 GitHub 仓库**。私有仓库和 GitHub App 流程不在范围内。 |
 | Docker 服务不可用 | 重试 `docker compose up -d postgres redis` |
 | `.docx` 导入被跳过 | 确认 `pandoc` 已安装并在终端中可用。 |
+| 托管演示状态漂移 | 对 `demo-workspace` 运行 `scripts\demo\reset-demo.ps1`；当迁移或数据库漂移需要更深重建时使用 `reseed-demo.ps1`。 |

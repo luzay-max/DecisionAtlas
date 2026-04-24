@@ -1,6 +1,6 @@
 # Quick Start
 
-[Home](../README.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [中文](quick-start_zh-CN.md)
+[Home](../README.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](quick-start_zh-CN.md)
 
 ---
 
@@ -82,6 +82,13 @@ Invoke-WebRequest http://localhost:3001/health
 Invoke-WebRequest http://localhost:8000/health
 ```
 
+For an operator check against a running hosted or local demo environment:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
 For release-style validation, run the canonical local gate from the repository root:
 
 ```powershell
@@ -105,3 +112,4 @@ Open the web app:
 | Live analysis fails | Currently only supports **public GitHub repositories**. Private repos and GitHub App flows are out of scope. |
 | Docker services unavailable | Retry `docker compose up -d postgres redis` |
 | `.docx` import skipped | Confirm `pandoc` is installed and available in terminal. |
+| Hosted demo state drifted | Run `scripts\demo\reset-demo.ps1` for `demo-workspace`; use `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |

@@ -1,6 +1,6 @@
 # Deployment
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [中文](deployment_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](deployment_zh-CN.md)
 
 ---
 
@@ -45,6 +45,8 @@ DecisionAtlas v0.2 is designed as a single-machine demo deployment:
 | `ENGINE_BASE_URL` | Engine service URL |
 | `API_BASE_URL` | API service URL |
 
+For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belong on host-managed or backend service surfaces. Browser-facing config should only receive the web/API URLs it needs to call the API.
+
 **For Live Provider Mode:**
 
 | Variable | Description |
@@ -63,6 +65,23 @@ DecisionAtlas v0.2 is designed as a single-machine demo deployment:
 | `LLM_TIMEOUT_SECONDS` | Request timeout |
 | `GITHUB_TOKEN` | GitHub access token |
 | `DEMO_REPO` | Demo repository identifier |
+
+### Hosted Operator Flow
+
+Use the hosted operator guide when running a persistent demo environment:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+```
+
+For recovery, start with the seeded demo reset:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps1
+```
+
+Use `reseed-demo.ps1` when migrations or database drift require a deeper rebuild of `demo-workspace`. The default recovery scripts do not delete imported workspaces.
 
 ### Bring-up Order
 
@@ -98,3 +117,5 @@ After startup, verify:
 3. Check `/review`
 4. Ask a why-question on `/search`
 5. Verify `/drift`
+
+For a hosted environment, run [Hosted Demo Operator Guide](hosted-demo-operator-guide.md) checks before a public walkthrough.

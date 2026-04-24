@@ -1,10 +1,12 @@
 # 演示脚本
 
-[返回首页](../README_zh-CN.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [English](demo-script.md)
+[返回首页](../README_zh-CN.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [English](demo-script.md)
 
 ---
 
 本演示脚本设计用于 **60-90 秒的产品演示**。主要故事线是稳定的引导式演示车道，最后有一个可选的真实仓库可信度检查。
+
+托管演示前，请先运行[托管演示操作指南](hosted-demo-operator-guide_zh-CN.md)中的 health 和 smoke 检查。如果 seeded workspace 状态已经漂移，请先重置 `demo-workspace` 再开始公开演示。
 
 ### 开场白
 
