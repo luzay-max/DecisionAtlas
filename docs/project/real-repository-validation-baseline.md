@@ -33,6 +33,30 @@ Optional live why-case smoke checks can run against an already-started local sta
 python scripts/ci/run_benchmark.py --live-real-repos
 ```
 
+This live mode is an operator-guided confidence layer. It is not part of the default release gate because it depends on local stack availability, provider configuration, existing imported workspaces, network behavior, and repository state.
+
+By default, live mode writes a structured report to:
+
+```text
+.tmp/live-real-repo-validation-report.json
+```
+
+Use a custom path when you want to preserve a dated report:
+
+```powershell
+python scripts/ci/run_benchmark.py --live-real-repos --live-real-repos-report .tmp/live-real-repo-validation-2026-04-24.json
+```
+
+The report records one row per curated repository with:
+
+- repo id, repo name, and workspace slug
+- observed bounded outcome such as `review_ready`, `why_ready`, `evidence_limited`, `conversion_limited`, `analysis_failed`, `missing_workspace`, or `operational_failure`
+- dashboard readiness, review state, why state, drift state, next action, and recommended actions
+- candidate, accepted, total decision, and screened-in artifact counts when available
+- focused why-case status, citation count, and failure reason when applicable
+- drift state and forbidden drift-case checks when applicable
+- explicit operational errors when the API, provider, network, or local workspace state blocks validation
+
 ### `encode/httpx`
 
 - Repo: `encode/httpx`
@@ -158,6 +182,24 @@ Treat validation in two layers:
 - optional operator-guided validation: live imported-workspace smoke checks against curated public repos
 
 The optional live layer improves confidence before a milestone or external demo, but it should not be confused with the stable offline release gate.
+
+Interpret live validation results as follows:
+
+- `review_ready`: the imported workspace has reviewable candidates and needs human acceptance before downstream why/drift can be trusted
+- `why_ready`: at least one accepted imported baseline exists, but individual why answers still need question-level grounding
+- `evidence_limited`: the repo imported successfully but did not expose enough rationale-bearing signal for the requested path
+- `conversion_limited`: the run screened in enough artifacts but still failed to produce reviewable candidates after extraction attempts
+- `analysis_failed`: the product recorded a failed analysis state
+- `missing_workspace`: the local stack does not currently have the expected imported workspace
+- `operational_failure`: the validation request failed because of API availability, auth/session state, provider configuration, network, or another runtime condition
+
+Latest local live validation attempt:
+
+- Date: 2026-04-24
+- Command: `python scripts/ci/run_benchmark.py --live-real-repos`
+- Report path: `.tmp/live-real-repo-validation-report.json`
+- Result: blocked by operational precondition; local API at `http://127.0.0.1:3001` was not running, so all curated repositories were classified as `operational_failure`
+- Interpretation: this confirms the live report can distinguish unavailable local stack state from repository evidence quality; it is not a real-repo product outcome measurement
 
 When changing the real imported-workspace lane, compare behavior against this baseline:
 

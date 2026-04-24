@@ -1,14 +1,74 @@
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 import sys
 from urllib import error, request
+from urllib.parse import urlencode
 
 
 def load_json(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _json_request(
+    *,
+    base_url: str,
+    path: str,
+    method: str = "GET",
+    body: dict | None = None,
+    timeout: int = 30,
+) -> tuple[dict | None, dict | None]:
+    encoded_body = json.dumps(body).encode("utf-8") if body is not None else None
+    http_request = request.Request(
+        f"{base_url.rstrip('/')}{path}",
+        data=encoded_body,
+        headers={"Content-Type": "application/json"},
+        method=method,
+    )
+    try:
+        with request.urlopen(http_request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8")), None
+    except error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        return None, {"type": "http_error", "status": exc.code, "detail": detail}
+    except error.URLError as exc:
+        return None, {"type": "url_error", "detail": str(exc)}
+
+
+def _operational_outcome(error_payload: dict | None, *, missing_workspace_on_404: bool = False) -> str:
+    if missing_workspace_on_404 and error_payload and error_payload.get("status") == 404:
+        return "missing_workspace"
+    return "operational_failure"
+
+
+def _nested_int(payload: dict | None, *keys: str) -> int:
+    current: object = payload or {}
+    for key in keys:
+        if not isinstance(current, dict):
+            return 0
+        current = current.get(key)
+    try:
+        return int(current or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _latest_import_summary(dashboard_payload: dict) -> dict:
+    latest_import = dashboard_payload.get("latest_import") or {}
+    summary = latest_import.get("summary")
+    return summary if isinstance(summary, dict) else {}
+
+
+def _decision_total(decision_counts: dict) -> int:
+    return sum(int(decision_counts.get(state, 0) or 0) for state in ("candidate", "accepted", "rejected", "superseded"))
+
+
+def _write_report(path: Path, report: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def validate_live_repo_set(repositories: list[dict]) -> int:
@@ -263,16 +323,225 @@ def run_live_real_repo_why_cases(*, base_url: str, why_cases: list[dict]) -> int
     return 0
 
 
+def _evaluate_dashboard_payload(repository: dict, payload: dict) -> tuple[bool, dict]:
+    expectations = repository.get("expectations", {})
+    readiness = payload.get("workspace_readiness") or {}
+    drift_status = payload.get("drift_status") or {}
+    decision_counts = payload.get("decision_counts") or {}
+    import_summary = _latest_import_summary(payload)
+    extraction_summary = import_summary.get("extraction_summary") if isinstance(import_summary, dict) else {}
+    extraction_summary = extraction_summary if isinstance(extraction_summary, dict) else {}
+
+    readiness_state = readiness.get("state")
+    why_state = readiness.get("why_state")
+    drift_state = drift_status.get("state") or readiness.get("drift_state")
+    candidate_count = int(decision_counts.get("candidate", 0) or 0)
+    accepted_count = int(decision_counts.get("accepted", 0) or 0)
+    total_decisions = _decision_total(decision_counts)
+    screened_in_count = _nested_int({"extraction_summary": extraction_summary}, "extraction_summary", "screened_in_artifacts")
+
+    checks = {
+        "readiness_allowed": readiness_state in expectations.get("expected_readiness_states", []),
+        "why_allowed": why_state in expectations.get("expected_why_states", []) if why_state else True,
+        "drift_allowed": drift_state in expectations.get("expected_drift_states", []) if drift_state else True,
+        "minimum_candidate_decisions": total_decisions >= int(expectations.get("minimum_candidate_decisions", 0) or 0),
+        "minimum_reviewable_candidates": candidate_count >= int(expectations.get("minimum_reviewable_candidates", 0) or 0),
+        "minimum_accepted_decisions": accepted_count >= int(expectations.get("minimum_accepted_decisions", 0) or 0),
+        "minimum_screened_in_artifacts": screened_in_count >= int(expectations.get("minimum_screened_in_artifacts", 0) or 0),
+    }
+    row = {
+        "workspace_slug": repository["workspace_slug"],
+        "workspace_mode": payload.get("workspace_mode"),
+        "bounded_outcome": readiness_state or "unknown",
+        "readiness_state": readiness_state,
+        "review_state": readiness.get("review_state"),
+        "why_state": why_state,
+        "drift_state": drift_state,
+        "next_action": readiness.get("next_action"),
+        "recommended_actions": readiness.get("recommended_actions") or [],
+        "candidate_decision_count": candidate_count,
+        "accepted_decision_count": accepted_count,
+        "total_decision_count": total_decisions,
+        "screened_in_artifact_count": screened_in_count,
+        "latest_import_status": payload.get("import_status"),
+        "checks": checks,
+    }
+    return all(checks.values()), row
+
+
+def _evaluate_drift_cases_for_workspace(*, payload: dict, cases: list[dict]) -> tuple[bool, list[dict], str | None]:
+    evaluation = payload.get("evaluation") or {}
+    observed_state = evaluation.get("state")
+    alerts = payload.get("alerts") or []
+    case_results: list[dict] = []
+    failures = 0
+    for case in cases:
+        title_pattern = case["artifact_title_pattern"].lower()
+        forbidden_types = set(case.get("forbidden_alert_types", []))
+        matching_forbidden_alerts = []
+        for alert in alerts:
+            artifact = alert.get("artifact") or {}
+            artifact_title = str(artifact.get("title") or "").lower()
+            if title_pattern in artifact_title and alert.get("alert_type") in forbidden_types:
+                matching_forbidden_alerts.append(
+                    {
+                        "alert_type": alert.get("alert_type"),
+                        "artifact_title": artifact.get("title"),
+                        "decision_title": (alert.get("decision") or {}).get("title"),
+                    }
+                )
+        passed = not matching_forbidden_alerts
+        failures += 0 if passed else 1
+        case_results.append(
+            {
+                "id": case["id"],
+                "passed": passed,
+                "forbidden_alert_types": case.get("forbidden_alert_types", []),
+                "matching_forbidden_alerts": matching_forbidden_alerts,
+            }
+        )
+    return failures == 0, case_results, observed_state
+
+
+def run_live_real_repo_validation(
+    *,
+    base_url: str,
+    repositories: list[dict],
+    why_cases: list[dict],
+    drift_cases: list[dict],
+    report_path: Path,
+) -> int:
+    report = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "base_url": base_url,
+        "repositories": [],
+        "summary": {"repositories": len(repositories), "passed": 0, "failed": 0},
+    }
+    failures = 0
+    why_cases_by_repo: dict[str, list[dict]] = {}
+    drift_cases_by_repo: dict[str, list[dict]] = {}
+    for case in why_cases:
+        why_cases_by_repo.setdefault(case["repo_id"], []).append(case)
+    for case in drift_cases:
+        drift_cases_by_repo.setdefault(case["repo_id"], []).append(case)
+
+    for repository in repositories:
+        query = urlencode({"workspace_slug": repository["workspace_slug"]})
+        dashboard_payload, dashboard_error = _json_request(base_url=base_url, path=f"/dashboard/summary?{query}")
+        row = {
+            "id": repository["id"],
+            "repo": repository["repo"],
+            "workspace_slug": repository["workspace_slug"],
+            "passed": False,
+            "bounded_outcome": "unknown",
+            "operational_error": None,
+            "dashboard": None,
+            "why_cases": [],
+            "drift": None,
+        }
+        if dashboard_error is not None or dashboard_payload is None:
+            row["bounded_outcome"] = _operational_outcome(dashboard_error, missing_workspace_on_404=True)
+            row["operational_error"] = dashboard_error
+            failures += 1
+            report["repositories"].append(row)
+            print(f"{repository['id']}: outcome={row['bounded_outcome']} passed=False")
+            continue
+
+        dashboard_passed, dashboard_row = _evaluate_dashboard_payload(repository, dashboard_payload)
+        row["bounded_outcome"] = dashboard_row["bounded_outcome"]
+        row["dashboard"] = dashboard_row
+        repo_passed = dashboard_passed
+
+        for case in why_cases_by_repo.get(repository["id"], []):
+            why_payload, why_error = _json_request(
+                base_url=base_url,
+                path="/query/why",
+                method="POST",
+                body={"workspace_slug": case["workspace_slug"], "question": case["question"]},
+            )
+            if why_error is not None or why_payload is None:
+                case_result = {
+                    "id": case["id"],
+                    "passed": False,
+                    "status": "operational_failure",
+                    "operational_error": why_error,
+                }
+            else:
+                passed, reason = _evaluate_why_payload(why_payload, case)
+                case_result = {
+                    "id": case["id"],
+                    "passed": passed,
+                    "status": why_payload.get("status"),
+                    "citations": len(why_payload.get("citations", [])),
+                    "reason": reason,
+                    "readiness_state": ((why_payload.get("answer_context") or {}).get("workspace_readiness") or {}).get(
+                        "state"
+                    ),
+                }
+            row["why_cases"].append(case_result)
+            repo_passed = repo_passed and bool(case_result["passed"])
+
+        drift_payload, drift_error = _json_request(base_url=base_url, path=f"/drift?{query}")
+        repo_drift_cases = drift_cases_by_repo.get(repository["id"], [])
+        if drift_error is not None or drift_payload is None:
+            drift_result = {
+                "passed": False,
+                "state": "operational_failure",
+                "operational_error": drift_error,
+                "cases": [],
+            }
+        else:
+            drift_passed, case_results, drift_state = _evaluate_drift_cases_for_workspace(
+                payload=drift_payload,
+                cases=repo_drift_cases,
+            )
+            drift_allowed = (
+                drift_state in repository.get("expectations", {}).get("expected_drift_states", [])
+                if drift_state
+                else True
+            )
+            drift_result = {
+                "passed": drift_passed and drift_allowed,
+                "state": drift_state,
+                "state_allowed": drift_allowed,
+                "cases": case_results,
+            }
+        row["drift"] = drift_result
+        repo_passed = repo_passed and bool(drift_result["passed"])
+
+        row["passed"] = repo_passed
+        failures += 0 if repo_passed else 1
+        report["repositories"].append(row)
+        print(
+            f"{repository['id']}: outcome={row['bounded_outcome']} "
+            f"readiness={dashboard_row['readiness_state']} drift={row['drift']['state']} passed={repo_passed}"
+        )
+
+    report["summary"]["passed"] = len(repositories) - failures
+    report["summary"]["failed"] = failures
+    _write_report(report_path, report)
+    print(f"Live real-repo validation report written to {report_path}")
+    if failures:
+        print(f"Live real-repo validation failed for {failures} repositories.", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true", help="Run benchmark against a live API endpoint.")
     parser.add_argument(
         "--live-real-repos",
         action="store_true",
-        help="Run real-repo why benchmark cases against a live API endpoint and existing imported workspaces.",
+        help="Run real-repo readiness, why, and drift benchmark checks against a live API endpoint and existing imported workspaces.",
     )
     parser.add_argument("--base-url", default="http://127.0.0.1:3001", help="API base URL for live benchmark mode.")
     parser.add_argument("--workspace-slug", default="demo-workspace", help="Workspace slug for live benchmark mode.")
+    parser.add_argument(
+        "--live-real-repos-report",
+        default=".tmp/live-real-repo-validation-report.json",
+        help="Output path for the live real-repo validation report.",
+    )
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -301,7 +570,13 @@ def main() -> int:
         return drift_case_status
 
     if args.live_real_repos:
-        return run_live_real_repo_why_cases(base_url=args.base_url, why_cases=why_cases)
+        return run_live_real_repo_validation(
+            base_url=args.base_url,
+            repositories=live_repositories,
+            why_cases=why_cases,
+            drift_cases=drift_cases,
+            report_path=(root / args.live_real_repos_report).resolve(),
+        )
 
     if not args.live:
         return 0
