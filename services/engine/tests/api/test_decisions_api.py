@@ -90,6 +90,21 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert len(body) == 2
     assert body[0]["review_state"] == "candidate"
     assert body[0]["title"] == "Use Redis Cache"
+    assert body[0]["workspace_mode"] == "imported"
+    assert body[0]["review_evidence"]["state"] == "thin"
+    assert body[0]["review_evidence"]["source_ref_count"] == 1
+    assert body[0]["review_evidence"]["source_ref_preview"][0]["quote"].startswith("We decided to use Redis")
+    assert body[0]["review_evidence"]["primary_artifact"] == {
+        "id": 1,
+        "type": "issue",
+        "title": "Cache decision",
+        "repo": "org/repo",
+        "url": "https://github.com/org/repo/issues/1",
+    }
+    assert body[1]["review_evidence"]["state"] == "missing"
+    assert body[1]["review_evidence"]["source_ref_count"] == 0
+    assert body[1]["review_evidence"]["source_ref_preview"] == []
+    assert body[1]["review_evidence"]["primary_artifact"] is None
 
 
 def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -> None:

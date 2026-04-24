@@ -8,11 +8,22 @@ import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { useI18n } from "../i18n/language-provider";
 import { ReviewActions } from "./review-actions";
 
+function confidenceLabel(confidence: number, messages: ReturnType<typeof useI18n>["messages"]) {
+  if (confidence >= 0.8) {
+    return messages.review.confidenceHigh;
+  }
+  if (confidence >= 0.6) {
+    return messages.review.confidenceMedium;
+  }
+  return messages.review.confidenceLow;
+}
+
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
   const startedWithItems = decisions.length > 0;
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
+  const isImportedWorkspace = !isGuidedDemoWorkspace;
 
   async function handleReview(decisionId: number, reviewState: ReviewState) {
     await reviewDecision(decisionId, reviewState);
@@ -34,41 +45,99 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
             nextLabel={messages.guidedDemo.reviewNext}
             tone="success"
           />
+        ) : isImportedWorkspace && startedWithItems ? (
+          <div className="card">
+            <p className="eyebrow">{messages.review.importedBaselineTitle}</p>
+            <p>{messages.review.importedBaselineStatus}</p>
+            <div className="action-row">
+              <Link href={`/search?workspace=${encodeURIComponent(workspaceSlug)}`} className="action-link action-link-primary">
+                {messages.review.importedBaselineNext}
+              </Link>
+              <Link href={`/drift?workspace=${encodeURIComponent(workspaceSlug)}`} className="action-link">
+                {messages.review.importedDriftNext}
+              </Link>
+            </div>
+          </div>
         ) : (
           <p>{workspaceSlug === "demo-workspace" ? messages.review.emptyDemo : messages.review.emptyImported}</p>
         )
       ) : null}
-      {items.map((decision) => (
-        <article key={decision.id} className="card">
-          <div className="card-head">
-            <div>
-              <p className="eyebrow">{messages.review.candidateDecision}</p>
-              <h2>
-                <Link
-                  href={`/decisions/${decision.id}?workspace=${encodeURIComponent(workspaceSlug)}`}
-                  className="title-link"
-                >
-                  {decision.title}
-                </Link>
-              </h2>
+      {items.map((decision) => {
+        const evidence = decision.review_evidence;
+        const evidenceState = evidence?.state ?? "missing";
+        const evidenceLabel =
+          evidenceState === "grounded"
+            ? messages.review.evidenceGrounded
+            : evidenceState === "thin"
+              ? messages.review.evidenceThin
+              : messages.review.evidenceMissing;
+        const detailHref = `/decisions/${decision.id}?workspace=${encodeURIComponent(workspaceSlug)}`;
+
+        return (
+          <article key={decision.id} className="card">
+            <div className="card-head">
+              <div>
+                <p className="eyebrow">{messages.review.candidateDecision}</p>
+                <h2>
+                  <Link href={detailHref} className="title-link">
+                    {decision.title}
+                  </Link>
+                </h2>
+              </div>
+              <span className="badge">
+                {messages.status[decision.review_state as keyof typeof messages.status] ?? decision.review_state}
+              </span>
             </div>
-            <span className="badge">{messages.status[decision.review_state as keyof typeof messages.status] ?? decision.review_state}</span>
-          </div>
-          <p>
-            <strong>{messages.review.confidence}:</strong> {decision.confidence.toFixed(2)}
-          </p>
-          <p>
-            <strong>{messages.review.problem}:</strong> {decision.problem}
-          </p>
-          <p>
-            <strong>{messages.review.chosenOption}:</strong> {decision.chosen_option}
-          </p>
-          <p>
-            <strong>{messages.review.tradeoffs}:</strong> {decision.tradeoffs}
-          </p>
-          <ReviewActions decisionId={decision.id} onReview={(reviewState) => handleReview(decision.id, reviewState)} />
-        </article>
-      ))}
+            <p>
+              <strong>{messages.review.confidence}:</strong> {decision.confidence.toFixed(2)} ·{" "}
+              {confidenceLabel(decision.confidence, messages)}
+            </p>
+            {isImportedWorkspace ? (
+              <div className="callout">
+                <p className="eyebrow">{messages.review.evidence}</p>
+                <p>
+                  <strong>{evidenceLabel}</strong>
+                  {evidence ? ` · ${messages.review.sourceRefs.replace("{count}", String(evidence.source_ref_count))}` : null}
+                </p>
+                {evidence?.primary_artifact ? (
+                  <p>
+                    <strong>{messages.review.sourceArtifact}:</strong>{" "}
+                    {evidence.primary_artifact.url ? (
+                      <a href={evidence.primary_artifact.url}>
+                        {evidence.primary_artifact.title ?? `Artifact ${evidence.primary_artifact.id}`}
+                      </a>
+                    ) : (
+                      evidence.primary_artifact.title ?? `Artifact ${evidence.primary_artifact.id}`
+                    )}{" "}
+                    <span className="muted">
+                      ({messages.review.sourceType}: {evidence.primary_artifact.type}
+                      {evidence.primary_artifact.repo ? ` · ${evidence.primary_artifact.repo}` : ""})
+                    </span>
+                  </p>
+                ) : null}
+                {evidence?.source_ref_preview?.map((sourceRef) => (
+                  <blockquote key={sourceRef.id}>
+                    <strong>{messages.review.sourceQuote}:</strong> {sourceRef.quote}
+                  </blockquote>
+                ))}
+                <Link href={detailHref} className="action-link">
+                  {messages.review.openDetail}
+                </Link>
+              </div>
+            ) : null}
+            <p>
+              <strong>{messages.review.problem}:</strong> {decision.problem}
+            </p>
+            <p>
+              <strong>{messages.review.chosenOption}:</strong> {decision.chosen_option}
+            </p>
+            <p>
+              <strong>{messages.review.tradeoffs}:</strong> {decision.tradeoffs}
+            </p>
+            <ReviewActions decisionId={decision.id} onReview={(reviewState) => handleReview(decision.id, reviewState)} />
+          </article>
+        );
+      })}
     </div>
   );
 }

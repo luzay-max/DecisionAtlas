@@ -10,6 +10,20 @@ export type ReviewDecision = {
   chosen_option: string;
   tradeoffs: string;
   confidence: number;
+  workspace_mode?: WorkspaceMode;
+  source_summary?: string;
+  review_evidence?: {
+    state: "grounded" | "thin" | "missing" | string;
+    source_ref_count: number;
+    source_ref_preview: SourceRef[];
+    primary_artifact: {
+      id: number;
+      type: string;
+      title: string | null;
+      repo: string | null;
+      url: string | null;
+    } | null;
+  };
 };
 
 export type ReviewState = "candidate" | "accepted" | "rejected" | "superseded";

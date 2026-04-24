@@ -125,6 +125,7 @@ Current expectation:
 - users should be able to tell whether the next step is review, why-search, drift evaluation, or import-summary inspection
 - successful sparse runs should not look like generic failures
 - dashboard and search should agree on the readiness interpretation
+- imported review cards should expose enough source-ref coverage, preview quote, primary artifact provenance, and first-baseline guidance for a reviewer to decide whether the first accepted decision is safe to establish
 
 ### 2. Repository document coverage is still selective
 

@@ -37,6 +37,11 @@ export function ReviewPageContent({
             steps={messages.guidedDemo.steps}
             status={messages.review.contextDemo}
           />
+        ) : decisions.length > 0 ? (
+          <div className="callout">
+            <p className="eyebrow">{messages.review.candidateDecision}</p>
+            <p>{messages.review.importedGuidance}</p>
+          </div>
         ) : null}
         <ReviewList decisions={decisions} workspaceSlug={workspaceSlug} />
       </section>
