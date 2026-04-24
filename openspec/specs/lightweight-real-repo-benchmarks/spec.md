@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Curated real-repo benchmark fixtures
-The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations, review-readiness milestones, and focused why/drift cases without requiring live imports during default validation, and SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements.
+The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations, review-readiness milestones, focused why/drift cases, and operator-guided live observed outcomes without requiring live imports during default validation, and SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements.
 
 #### Scenario: Fixture set validates without live services
 - **WHEN** the benchmark validation is run without live mode
@@ -18,3 +18,15 @@ The system SHALL provide a small fixture-backed benchmark set for real imported 
 #### Scenario: Fixture set includes first accepted baseline expectations
 - **WHEN** a curated repository is used to protect imported review-readiness improvements after review
 - **THEN** the fixture set SHALL be able to express bounded milestone expectations such as minimum accepted decisions or expected imported why readiness after the first acceptance without relying on exact local database state
+
+#### Scenario: Live mode records observed repository outcomes
+- **WHEN** an operator runs live real-repo benchmark validation against an already running local stack
+- **THEN** the system SHALL collect observed repository readiness, candidate counts, accepted baseline state, why status, and drift status for curated repositories and write an operator-readable report
+
+#### Scenario: Live mode remains outside default release gate
+- **WHEN** maintainers run the default offline benchmark or canonical pre-release gate
+- **THEN** the system SHALL validate fixture shape and offline expectations without requiring live providers, GitHub network access, or existing imported workspaces
+
+#### Scenario: Live mode reports missing or unavailable workspaces explicitly
+- **WHEN** a curated repository workspace is missing, unreachable, or blocked by provider/network failure during live validation
+- **THEN** the report SHALL classify that as an operational or missing-workspace outcome rather than silently treating it as a product evidence result

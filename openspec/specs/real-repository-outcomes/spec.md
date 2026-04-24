@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Imported workspaces expose real-analysis readiness
-The system SHALL summarize imported-workspace readiness so users can tell whether a real repository run is ready for review, has established an initial accepted-decision baseline, is ready for grounded why usage, is still evidence-limited, is blocked by low-yield extraction conversion, or is better handled by reusing existing workspace state instead of blindly rerunning analysis, SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift, and SHALL reserve `conversion_limited` for runs that still produce no reviewable candidate decisions after the refined candidate-conversion path has been attempted.
+The system SHALL summarize imported-workspace readiness so users and validation operators can tell whether a real repository run is ready for review, has established an initial accepted-decision baseline, is ready for grounded why usage, is still evidence-limited, is blocked by low-yield extraction conversion, has failed operationally, or is better handled by reusing existing workspace state instead of blindly rerunning analysis, SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift, and SHALL reserve `conversion_limited` for runs that still produce no reviewable candidate decisions after the refined candidate-conversion path has been attempted.
 
 #### Scenario: Imported workspace is ready for review
 - **WHEN** a live analysis run completes and the imported workspace contains reviewable candidate decisions but no accepted imported decisions yet
@@ -34,6 +34,14 @@ The system SHALL summarize imported-workspace readiness so users can tell whethe
 #### Scenario: Improved candidate conversion moves workspace out of conversion-limited
 - **WHEN** a repository previously prone to conversion-limited outcomes now produces at least one reviewable candidate through the refined conversion path
 - **THEN** the workspace readiness SHALL move to `review_ready` instead of continuing to report `conversion_limited`
+
+#### Scenario: Live validation classifies curated repositories into bounded outcomes
+- **WHEN** an operator validates a curated public repository through the live real-repo validation flow
+- **THEN** the observed outcome SHALL be classified into an explicit state family such as `review_ready`, `why_ready`, `evidence_limited`, `conversion_limited`, `analysis_failed`, `missing_workspace`, or `operational_failure`
+
+#### Scenario: Live validation distinguishes product limitations from operational failures
+- **WHEN** live validation cannot complete a why, drift, dashboard, or workspace request because of API availability, provider configuration, network, or missing workspace state
+- **THEN** the result SHALL identify the failure as operational rather than presenting it as evidence-limited repository signal
 
 ### Requirement: Imported why-search preserves decision-grounded trust
 The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, SHALL improve retrieval quality for technically equivalent questions, and SHALL use artifact evidence only as a support layer behind the accepted decision anchor, with indexing improvements strengthening that support through better-structured chunk evidence rather than by replacing the accepted-decision trust anchor.

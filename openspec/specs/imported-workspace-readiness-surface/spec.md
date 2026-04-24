@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Imported workspace readiness is surfaced as a structured product summary
-The system SHALL expose imported-workspace readiness as a compact structured summary that explains what the workspace is ready for now, why it is in that state, which actions are recommended next, and whether the workspace has already established its first accepted-decision baseline.
+The system SHALL expose imported-workspace readiness as a compact structured summary that explains what the workspace is ready for now, why it is in that state, which actions are recommended next, whether the workspace has already established its first accepted-decision baseline, and enough stable status fields for operator-guided live validation to compare dashboard and search behavior without duplicating UI heuristics.
 
 #### Scenario: Review-ready workspace surfaces review-first guidance
 - **WHEN** an imported workspace has candidate decisions ready for screening but has not yet accepted any imported decision
@@ -19,8 +19,12 @@ The system SHALL expose imported-workspace readiness as a compact structured sum
 - **WHEN** an imported workspace is evidence-limited, conversion-limited, or analysis-failed
 - **THEN** the product SHALL explain that limitation directly and SHALL recommend inspection or retry actions instead of implying the workspace is fully ready
 
+#### Scenario: Live validation can read readiness without UI scraping
+- **WHEN** an operator-guided live validation command evaluates an imported workspace
+- **THEN** it SHALL be able to use structured readiness fields from product APIs instead of scraping rendered UI text or reimplementing separate readiness heuristics
+
 ### Requirement: Imported readiness exposes recommended actions explicitly
-The system SHALL expose a primary next action and a bounded set of recommended actions for imported workspaces so product surfaces do not invent their own readiness routing logic, and those actions SHALL distinguish between "review candidates now" and "use the accepted baseline now".
+The system SHALL expose a primary next action and a bounded set of recommended actions for imported workspaces so product surfaces and validation tooling do not invent their own readiness routing logic, and those actions SHALL distinguish between "review candidates now" and "use the accepted baseline now".
 
 #### Scenario: Dashboard and search share the same imported actions
 - **WHEN** dashboard and search render imported readiness for the same workspace
@@ -29,3 +33,7 @@ The system SHALL expose a primary next action and a bounded set of recommended a
 #### Scenario: First accepted baseline changes the primary next action
 - **WHEN** an imported workspace moves from candidate-only review readiness to at least one accepted imported decision
 - **THEN** the imported readiness contract SHALL be able to shift the primary next action away from generic review-only guidance toward why-use or continued baseline-strengthening guidance without requiring local UI heuristics
+
+#### Scenario: Live validation detects readiness divergence
+- **WHEN** live validation observes dashboard readiness and why/search readiness for the same imported workspace
+- **THEN** it SHALL report a mismatch if the surfaces disagree on accepted-baseline state, primary next action, or allowed readiness state family
