@@ -258,6 +258,68 @@ describe("QueryForm", () => {
     global.fetch = originalFetch;
   });
 
+  it("keeps focused imported ok answers free of supporting-context clutter", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "ok",
+        question: "why use http downloads for remote browsers",
+        answer:
+          "Enable HTTP-based downloads for remote browsers with agent status tracking: Use HTTP downloads for remote browsers and expose active_downloads to the agent. Tradeoffs: Adds an HTTP download path. Supporting evidence: Use HTTP downloads for remote browsers so the agent can track active_downloads and failed_downloads.",
+        answer_context: {
+          workspace_mode: "imported",
+          source_summary: "Imported repository data from GitHub-backed analysis.",
+          workspace_readiness: {
+            state: "why_ready",
+            next_action: "ask_why",
+            review_state: "review_complete",
+            why_state: "ready",
+            drift_state: "clean",
+            recommended_actions: ["ask_why", "evaluate_drift", "inspect_import_summary"],
+            accepted_baseline_established: true,
+            accepted_decision_count: 1,
+            candidate_decision_count: 0,
+          }
+        },
+        primary_decision: {
+          decision_id: 20,
+          title: "Enable HTTP-based downloads for remote browsers with agent status tracking"
+        },
+        supporting_context: [],
+        citations: [
+          {
+            quote: "Use HTTP downloads for remote browsers.",
+            url: "https://github.com/org/repo/pull/20"
+          },
+          {
+            quote: "Use HTTP downloads for remote browsers so the agent can track active_downloads and failed_downloads.",
+            url: "https://github.com/org/repo/pull/20"
+          }
+        ]
+      })
+    } as Response);
+
+    render(
+      <QueryForm
+        workspaceSlug="imported-workspace"
+        initialQuestion="why use http downloads for remote browsers"
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Enable HTTP-based downloads for remote browsers with agent status tracking:/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Supporting context:")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ask why in this workspace" })).toHaveAttribute(
+      "href",
+      "/search?workspace=imported-workspace"
+    );
+
+    global.fetch = originalFetch;
+  });
+
   it("keeps imported evidence-limited why answers tied to backend next actions after an accepted baseline exists", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({

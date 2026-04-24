@@ -66,7 +66,9 @@ def test_live_benchmark_why_cases_have_repeatable_expectations() -> None:
     repositories = json.loads((root / "examples" / "live-benchmarks" / "repositories.json").read_text(encoding="utf-8"))
     why_cases = json.loads((root / "examples" / "live-benchmarks" / "why-cases.json").read_text(encoding="utf-8"))
 
+    assert len(why_cases) >= 3
     assert any(item["repo_id"] == "browser-use" for item in why_cases)
+    assert any(item["id"] == "browser-use-http-download-status-equivalent-phrasing" for item in why_cases)
     assert all(item["workspace_slug"].startswith("github-") for item in why_cases)
     assert all(item["question"].strip() for item in why_cases)
     assert all(item["expected_status"] for item in why_cases)

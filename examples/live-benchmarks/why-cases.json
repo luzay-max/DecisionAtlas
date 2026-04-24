@@ -11,6 +11,17 @@
     "notes": "Protects the imported why case that relies on accepted-decision grounding plus structured chunk evidence."
   },
   {
+    "id": "browser-use-http-download-status-equivalent-phrasing",
+    "repo_id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "question": "为什么要让代理感知远程浏览器的 HTTP 下载状态？",
+    "expected_status": "ok",
+    "expected_terms": ["http", "download", "active_downloads"],
+    "min_citations": 2,
+    "notes": "Protects an equivalent imported why phrasing so focused wording changes still land on the same accepted rationale thread."
+  },
+  {
     "id": "browser-use-keep-alive-shutdown",
     "repo_id": "browser-use",
     "repo": "browser-use/browser-use",

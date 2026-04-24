@@ -110,6 +110,7 @@ The report records one row per curated repository with:
 - Expected signals:
   - imported readiness should expose explicit review / why / drift state
   - focused why-questions around HTTP downloads and keep-alive shutdown behavior should be able to reach `ok` with citations after accepted decisions exist
+  - equivalent focused why phrasing around HTTP download status should still land on the same accepted rationale thread
   - drift should stay conservative on implementation-heavy follow-up fixes
 
 ## Current Baseline Patterns
@@ -144,6 +145,7 @@ Current expectation:
 
 - users can still ask why before review is complete, but the product should clearly explain `review_required`
 - focused why-questions should prefer one accepted decision as the anchor
+- technically equivalent focused why phrasings should still resolve to the same accepted rationale thread on the curated regression cases
 - supporting artifact chunks may strengthen support, but should not replace the accepted decision as the answer anchor
 
 ### 4. Drift is more operational, but should remain conservative

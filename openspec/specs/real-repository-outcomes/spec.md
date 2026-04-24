@@ -44,7 +44,7 @@ The system SHALL summarize imported-workspace readiness so users and validation 
 - **THEN** the result SHALL identify the failure as operational rather than presenting it as evidence-limited repository signal
 
 ### Requirement: Imported why-search preserves decision-grounded trust
-The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, SHALL improve retrieval quality for technically equivalent questions, and SHALL use artifact evidence only as a support layer behind the accepted decision anchor, with indexing improvements strengthening that support through better-structured chunk evidence rather than by replacing the accepted-decision trust anchor.
+The system SHALL treat imported why-answers as trustworthy only when they are grounded in accepted imported decisions with citations, SHALL prefer a single primary accepted decision when the question is specific, SHALL distinguish partially supported answers from truly insufficient evidence, SHALL improve retrieval quality for technically equivalent questions, SHALL use artifact evidence only as a support layer behind the accepted decision anchor, and SHALL expose bounded follow-up guidance when an imported workspace has an accepted baseline but the asked why-question is still weakly grounded.
 
 #### Scenario: Imported why-answer is grounded in accepted decisions
 - **WHEN** the user asks a why-question in an imported workspace that has accepted decisions and matching source references
@@ -69,6 +69,10 @@ The system SHALL treat imported why-answers as trustworthy only when they are gr
 #### Scenario: Structured chunk evidence improves imported why support
 - **WHEN** improved indexing produces chunk evidence with stronger section context for the same accepted decision rationale thread
 - **THEN** the imported why experience SHALL be able to use that structured chunk evidence to improve support quality without changing the accepted decision that anchors the answer
+
+#### Scenario: Accepted baseline with weak why grounding exposes bounded follow-up
+- **WHEN** an imported workspace already has an accepted baseline but the asked why-question remains evidence-limited
+- **THEN** the response SHALL keep that outcome bounded and SHALL expose follow-up guidance such as reviewing additional candidates or inspecting import evidence instead of implying the baseline alone solved the question
 
 ## ADDED Requirements
 

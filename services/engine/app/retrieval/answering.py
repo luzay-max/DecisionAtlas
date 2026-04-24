@@ -34,6 +34,11 @@ def _decision_text(decision: Decision) -> str:
     ).lower()
 
 
+def _text_query_overlap(text: str, query_terms: list[str]) -> int:
+    haystack = " ".join(text.lower().split())
+    return sum(1 for term in query_terms if term in haystack)
+
+
 def _decision_query_overlap(decision: Decision, query_terms: list[str]) -> int:
     haystack = _decision_text(decision)
     return sum(1 for term in query_terms if term in haystack)
@@ -87,6 +92,12 @@ def _cosine_similarity(left: list[float], right: list[float]) -> float:
 
 def _supporting_decision_terms(decision: Decision) -> set[str]:
     return set(significant_query_terms(" ".join(filter(None, [decision.title, decision.problem, decision.chosen_option]))))
+
+
+def _source_ref_query_overlap(source_refs: list, query_terms: list[str]) -> int:
+    if not source_refs:
+        return 0
+    return max((_text_query_overlap(source_ref.quote, query_terms) for source_ref in source_refs), default=0)
 
 
 def _artifact_supporting_terms(title: str | None) -> set[str]:
@@ -260,9 +271,36 @@ def _query_specific_imported_readiness(
     return query_specific
 
 
+def _ranked_primary_candidates(
+    *,
+    decisions: DecisionRepository,
+    source_refs: SourceRefRepository,
+    hits: list,
+    query: str,
+) -> list[tuple[Decision, float, float]]:
+    query_terms = significant_query_terms(query)
+    ranked: list[tuple[Decision, float, float]] = []
+
+    for index, hit in enumerate(hits[:5]):
+        decision = decisions.get_by_id(hit.decision_id)
+        if decision is None:
+            continue
+        decision_source_refs = source_refs.list_by_decision(decision.id)
+        decision_overlap = _decision_query_overlap(decision, query_terms)
+        source_ref_overlap = _source_ref_query_overlap(decision_source_refs, query_terms)
+        structural_fit = (decision_overlap * 4.0) + (source_ref_overlap * 6.0)
+        if len(decision_source_refs) >= 2:
+            structural_fit += 1.0
+        reranked_score = structural_fit + (hit.score * 3.0) - (index * 0.1)
+        ranked.append((decision, reranked_score, hit.score))
+
+    return sorted(ranked, key=lambda item: item[1], reverse=True)
+
+
 def _pick_primary_and_supporting_decisions(
     *,
     decisions: DecisionRepository,
+    source_refs: SourceRefRepository,
     hits: list,
     query: str,
 ) -> tuple[Decision | None, list[Decision]]:
@@ -271,21 +309,23 @@ def _pick_primary_and_supporting_decisions(
 
     query_terms = significant_query_terms(query)
     is_broad_query = is_broad_why_query(query)
-    primary = decisions.get_by_id(hits[0].decision_id)
-    if primary is None:
+    ranked_candidates = _ranked_primary_candidates(
+        decisions=decisions,
+        source_refs=source_refs,
+        hits=hits,
+        query=query,
+    )
+    if not ranked_candidates:
         return None, []
+    primary, _, primary_raw_score = ranked_candidates[0]
 
-    primary_score = hits[0].score
     supporting: list[Decision] = []
 
     if not is_broad_query:
         return primary, supporting
 
-    for hit in hits[1:3]:
-        if hit.score < (primary_score * 0.75):
-            continue
-        candidate = decisions.get_by_id(hit.decision_id)
-        if candidate is None:
+    for candidate, _, raw_score in ranked_candidates[1:4]:
+        if raw_score < (primary_raw_score * 0.75):
             continue
         candidate_overlap = _decision_query_overlap(candidate, query_terms)
         topic_overlap = _decision_topic_overlap(primary, candidate)
@@ -402,6 +442,7 @@ def answer_why_question(
     source_refs = SourceRefRepository(session)
     primary_decision, supporting_decisions = _pick_primary_and_supporting_decisions(
         decisions=decisions,
+        source_refs=source_refs,
         hits=hits,
         query=rewritten,
     )

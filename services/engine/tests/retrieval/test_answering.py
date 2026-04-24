@@ -470,6 +470,116 @@ def test_answering_prefers_structured_chunk_support_over_generic_chunk(tmp_path:
     assert "## Rationale" in response["citations"][1]["quote"]
 
 
+def test_answering_prefers_focused_imported_primary_with_stronger_source_ref_fit(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-focused-primary-fit.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        noisy_artifact = Artifact(
+            workspace_id=workspace.id,
+            type="doc",
+            source_id="status-overview",
+            repo="org/repo",
+            title="Remote browser downloads status tracking overview",
+            content="Remote browser download status tracking is useful for operators.",
+            author="alice",
+            url="https://github.com/org/repo/docs/status-overview",
+            timestamp=None,
+            metadata_json=None,
+        )
+        focused_artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="http-downloads",
+            repo="org/repo",
+            title="Agent-aware remote browser downloads",
+            content="Use HTTP downloads for remote browsers so the agent can track active_downloads and failed_downloads.",
+            author="alice",
+            url="https://github.com/org/repo/pull/20",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add_all([noisy_artifact, focused_artifact])
+        session.flush()
+        noisy_decision = Decision(
+            workspace_id=workspace.id,
+            title="Track remote browser download status in operator workflow",
+            status="active",
+            review_state="accepted",
+            problem="Remote browser downloads need status tracking",
+            context=None,
+            constraints=None,
+            chosen_option="Track remote browser download status in the workflow",
+            tradeoffs="Adds more workflow state",
+            confidence=0.89,
+        )
+        focused_decision = Decision(
+            workspace_id=workspace.id,
+            title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+            status="active",
+            review_state="accepted",
+            problem="Browser-only downloads are opaque in remote execution",
+            context=None,
+            constraints=None,
+            chosen_option="Use HTTP downloads for remote browsers and expose active_downloads to the agent",
+            tradeoffs="Adds an HTTP download path",
+            confidence=0.94,
+        )
+        session.add_all([noisy_decision, focused_decision])
+        session.flush()
+        session.add_all(
+            [
+                SourceRef(
+                    decision_id=noisy_decision.id,
+                    artifact_id=noisy_artifact.id,
+                    span_start=0,
+                    span_end=58,
+                    quote="Remote browser download status tracking is useful for operators.",
+                    url=noisy_artifact.url,
+                    relevance_score=0.82,
+                ),
+                SourceRef(
+                    decision_id=focused_decision.id,
+                    artifact_id=focused_artifact.id,
+                    span_start=0,
+                    span_end=96,
+                    quote="Use HTTP downloads for remote browsers so the agent can track active_downloads and failed_downloads.",
+                    url=focused_artifact.url,
+                    relevance_score=0.93,
+                ),
+                SourceRef(
+                    decision_id=focused_decision.id,
+                    artifact_id=focused_artifact.id,
+                    span_start=0,
+                    span_end=44,
+                    quote="Use HTTP downloads for remote browsers.",
+                    url=focused_artifact.url,
+                    relevance_score=0.87,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use http downloads for remote browsers",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "ok"
+    assert response["primary_decision"]["title"] == "Enable HTTP-based downloads for remote browsers with agent status tracking"
+    assert response["supporting_context"] == []
+
+
 def test_answering_exposes_supporting_context_only_for_broad_questions(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "answer-supporting-context.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
