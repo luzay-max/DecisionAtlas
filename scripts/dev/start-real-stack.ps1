@@ -165,6 +165,7 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
 $apiCommand = @"
 `$env:ENGINE_BASE_URL = '$engineBaseUrl'
 `$env:PORT = '3001'
+`$env:AUTO_BOOTSTRAP_AUTH = 'true'
 Set-Location '$($repoRoot.Path)'
 pnpm --filter @decisionatlas/api dev
 "@
