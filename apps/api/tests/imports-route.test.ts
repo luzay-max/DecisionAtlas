@@ -180,10 +180,12 @@ describe("POST /imports/github", () => {
     const response = await app.inject({
       method: "POST",
       url: "/imports/github/installations/bind",
+      headers: { cookie: "decisionatlas_session=admin-token" },
       payload: {
         repo: "org/repo",
         installation_id: "12345",
-        owner_scope: "local-default"
+        account_login: "org",
+        account_type: "Organization"
       }
     });
 
@@ -194,6 +196,22 @@ describe("POST /imports/github", () => {
       access_source_type: "github_app_installation",
       access_source_label: "GitHub App installation #12345"
     });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/imports/github/installations/bind",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-decisionatlas-session-token": "admin-token",
+        },
+        body: JSON.stringify({
+          repo: "org/repo",
+          installation_id: "12345",
+          account_login: "org",
+          account_type: "Organization",
+        }),
+      }
+    );
 
     global.fetch = originalFetch;
   });

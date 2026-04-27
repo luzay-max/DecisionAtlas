@@ -7,6 +7,7 @@ import { AdvancedControls } from "../components/guided-demo/advanced-controls";
 import { AccountScopeSurface } from "../components/auth/account-scope-surface";
 import { AdminOnly } from "../components/auth/role-gate";
 import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
+import { GitHubAppInstallationPanel } from "../components/github-app/github-app-installation-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
 import { LanguageToggle } from "../components/i18n/language-toggle";
 import { useI18n } from "../components/i18n/language-provider";
@@ -68,6 +69,7 @@ export default function HomePage() {
             <AdminOnly>
               <LiveAnalysisForm />
             </AdminOnly>
+            <GitHubAppInstallationPanel />
           </section>
         </AdvancedControls>
       </div>

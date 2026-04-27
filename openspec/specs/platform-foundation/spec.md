@@ -43,7 +43,7 @@ The system SHALL distinguish repository identity from the access source used to 
 - **THEN** it SHALL model that credential path as another owner-scoped access-source variant rather than as a special workspace type
 
 ### Requirement: Platform permissions are defined as product actions
-The system SHALL define platform permissions in terms of product actions such as import, reuse, sync, review, accept, and drift evaluation, and SHALL expose enough current-session role context for the product to present those actions safely.
+The system SHALL define platform permissions in terms of product actions such as import, reuse, sync, review, accept, drift evaluation, and GitHub App installation binding, and SHALL expose enough current-session role context for the product to present those actions safely.
 
 #### Scenario: Reviewer permission can be described without route details
 - **WHEN** the platform model defines who can review candidate decisions
@@ -56,6 +56,10 @@ The system SHALL define platform permissions in terms of product actions such as
 #### Scenario: Credential management is more privileged than review
 - **WHEN** the platform model defines who may manage repository access sources
 - **THEN** it SHALL distinguish that action from ordinary reviewer actions such as screening or drift evaluation
+
+#### Scenario: GitHub App installation binding is admin-only
+- **WHEN** the platform model defines who may bind a repository to a GitHub App installation access source
+- **THEN** it SHALL treat that binding as an admin-level owner-scoped product action
 
 #### Scenario: Webhook-triggered sync follows an owner-scoped action boundary
 - **WHEN** the platform defines webhook-triggered incremental sync

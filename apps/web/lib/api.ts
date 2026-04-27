@@ -276,6 +276,14 @@ export type ImportLookup = {
   access_requirement_detail?: string | null;
 };
 
+export type GitHubInstallationBindingInput = {
+  repo: string;
+  installation_id: string;
+  account_login?: string;
+  account_type?: string;
+  workspace_slug?: string;
+};
+
 export type DriftEvaluationResult = {
   status: string;
   workspace_slug: string;
@@ -537,6 +545,20 @@ export async function startGithubImport(
   });
   if (!response.ok) {
     await readError(response, "Failed to start GitHub import");
+  }
+  return response.json();
+}
+
+export async function bindGithubAppInstallation(input: GitHubInstallationBindingInput): Promise<ImportLookup> {
+  const response = await apiFetch(`${apiBaseUrl}/imports/github/installations/bind`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to bind GitHub App installation");
   }
   return response.json();
 }

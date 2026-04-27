@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: GitHub App installations can bind repositories to an owner scope
 The system SHALL allow an owner scope to register a GitHub App installation as a repository access source, bind imported repositories to that installation-backed source without changing repository identity, and expose that binding through an admin-facing product flow.

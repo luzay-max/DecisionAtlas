@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Repository lookup exposes imported workspace reuse state
 The system SHALL let the product look up a repository before starting a live import so the UI can tell whether an imported workspace already exists within the current owner scope, whether incremental sync is available, and whether the reusable workspace is backed by a GitHub App installation.
@@ -31,17 +31,6 @@ The system SHALL let the product look up a repository before starting a live imp
 - **WHEN** a private repository has an imported workspace only in some other owner scope
 - **THEN** repository lookup SHALL NOT expose that workspace as reusable state for the current actor
 
-### Requirement: Imported workspaces expose latest sync provenance
-The system SHALL expose latest sync provenance and bounded recent sync history for imported workspaces so product surfaces can explain whether a workspace is current, syncing, or behind.
-
-#### Scenario: Latest sync provenance is available
-- **WHEN** an imported workspace has completed at least one sync
-- **THEN** the system SHALL expose the latest successful sync origin and timestamp in the workspace summary
-
-#### Scenario: Recent sync history includes webhook-triggered runs
-- **WHEN** an imported workspace has recent sync attempts from manual and webhook-triggered paths
-- **THEN** the system SHALL expose enough bounded history for the product to distinguish those sync origins
-
 ### Requirement: Existing imported workspaces expose explicit next actions
 The system SHALL let the product offer open-existing, incremental-sync, and full-rerun actions explicitly within the current owner scope instead of treating all repeat analysis requests as identical, and SHALL keep GitHub App-backed manual sync actions visibly tied to their installation-backed access source.
 
@@ -72,14 +61,3 @@ The system SHALL let the product offer open-existing, incremental-sync, and full
 #### Scenario: System-triggered sync remains allowed without viewer/admin session
 - **WHEN** a webhook or background execution path triggers incremental sync for a bound workspace
 - **THEN** the platform SHALL continue that sync without requiring a user-facing viewer, reviewer, or admin browser session
-
-### Requirement: Incremental sync uses normalized timestamps
-The system SHALL normalize `since_last_sync` timestamps before comparing them against GitHub timestamps so incremental import filtering does not fail on naive-versus-aware datetime mismatches.
-
-#### Scenario: Last successful import timestamp is naive
-- **WHEN** the latest successful import timestamp has no timezone information
-- **THEN** the system SHALL normalize it before comparing it with GitHub API timestamps
-
-#### Scenario: Incremental sync filters updated pull requests safely
-- **WHEN** the importer runs with `since_last_sync`
-- **THEN** GitHub pull request filtering SHALL compare timestamps without raising naive-versus-aware datetime exceptions
