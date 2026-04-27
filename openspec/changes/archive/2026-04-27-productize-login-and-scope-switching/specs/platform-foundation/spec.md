@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Workspace ownership is explicit
 The system SHALL define imported workspaces as belonging to an explicit owner scope rather than treating repository workspaces as globally shared objects, and SHALL make the current owner scope visible in product navigation before users perform workspace actions.
@@ -18,29 +18,6 @@ The system SHALL define imported workspaces as belonging to an explicit owner sc
 #### Scenario: Product navigation exposes current owner scope
 - **WHEN** a user navigates imported workspace surfaces
 - **THEN** the product SHALL expose the current owner scope so workspace identity is not interpreted as globally shared
-
-### Requirement: Repository access source is modeled separately from repository identity
-The system SHALL distinguish repository identity from the access source used to reach it, so future private-repository and GitHub App behavior can be defined without conflating content identity with credential storage.
-
-#### Scenario: Public and installed access paths can target the same repository
-- **WHEN** the same repository can be reached through anonymous public access or an installation-bound access source
-- **THEN** the platform model SHALL treat the repository as the same content identity while keeping the access source distinct
-
-#### Scenario: Private repository access depends on owner-authorized source
-- **WHEN** a repository is private
-- **THEN** the platform model SHALL require that access be mediated through an owner-authorized credential or installation source
-
-#### Scenario: GitHub App installation is one access-source type
-- **WHEN** the platform defines GitHub App installation support
-- **THEN** it SHALL model installation-based repository access as an access-source variant rather than as a separate workspace-ownership model
-
-#### Scenario: Installation binding remains owner-scoped
-- **WHEN** a GitHub App installation is linked to imported workspace behavior
-- **THEN** the platform model SHALL define that installation binding in terms of the owner scope that controls the access source rather than as a global repository property
-
-#### Scenario: Token-backed private access is also an access-source variant
-- **WHEN** the platform defines private repository access through token-backed credentials
-- **THEN** it SHALL model that credential path as another owner-scoped access-source variant rather than as a special workspace type
 
 ### Requirement: Platform permissions are defined as product actions
 The system SHALL define platform permissions in terms of product actions such as import, reuse, sync, review, accept, and drift evaluation, and SHALL expose enough current-session role context for the product to present those actions safely.

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DriftEvaluation, evaluateDrift } from "../../lib/api";
+import { ReviewOnly } from "../auth/role-gate";
 import { useI18n } from "../i18n/language-provider";
 
 export function DriftEvaluationCard({
@@ -44,11 +45,13 @@ export function DriftEvaluationCard({
         <p>{messages.drift.lastEvaluated.replace("{timestamp}", evaluation.last_evaluated_at)}</p>
       ) : null}
       {evaluation.can_evaluate ? (
-        <div className="action-row">
-          <button type="button" onClick={() => void handleEvaluate()} disabled={loading}>
-            {loading ? messages.drift.evaluating : messages.drift.evaluateNow}
-          </button>
-        </div>
+        <ReviewOnly fallback="Reviewer or admin role required for drift evaluation.">
+          <div className="action-row">
+            <button type="button" onClick={() => void handleEvaluate()} disabled={loading}>
+              {loading ? messages.drift.evaluating : messages.drift.evaluateNow}
+            </button>
+          </div>
+        </ReviewOnly>
       ) : null}
       {error ? <p>{error}</p> : null}
     </section>

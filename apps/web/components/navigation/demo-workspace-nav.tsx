@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 
 import { AdvancedControls } from "../guided-demo/advanced-controls";
+import { AccountScopeSurface } from "../auth/account-scope-surface";
 import { LanguageToggle } from "../i18n/language-toggle";
 import { useI18n } from "../i18n/language-provider";
 import { ProviderModeToggle } from "../runtime/provider-mode-toggle";
@@ -60,6 +61,7 @@ export function DemoWorkspaceNav({
         </div>
       </div>
       <div className="stack">
+        <AccountScopeSurface />
         <LanguageToggle />
         <AdvancedControls>
           <ProviderModeToggle />

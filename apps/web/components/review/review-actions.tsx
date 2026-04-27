@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 
+import { ReviewOnly } from "../auth/role-gate";
 import { useI18n } from "../i18n/language-provider";
 
 export function ReviewActions({
@@ -28,19 +29,21 @@ export function ReviewActions({
   }
 
   return (
-    <div className="stack">
-      <div className="action-row" aria-label={messages.review.actionsLabel.replace("{id}", String(decisionId))}>
-        <button type="button" disabled={loadingState !== null} onClick={() => handleReview("accepted")}>
-          {loadingState === "accepted" ? messages.review.updating : messages.review.actions.accept}
-        </button>
-        <button type="button" disabled={loadingState !== null} onClick={() => handleReview("rejected")}>
-          {loadingState === "rejected" ? messages.review.updating : messages.review.actions.reject}
-        </button>
-        <button type="button" disabled={loadingState !== null} onClick={() => handleReview("superseded")}>
-          {loadingState === "superseded" ? messages.review.updating : messages.review.actions.supersede}
-        </button>
+    <ReviewOnly>
+      <div className="stack">
+        <div className="action-row" aria-label={messages.review.actionsLabel.replace("{id}", String(decisionId))}>
+          <button type="button" disabled={loadingState !== null} onClick={() => handleReview("accepted")}>
+            {loadingState === "accepted" ? messages.review.updating : messages.review.actions.accept}
+          </button>
+          <button type="button" disabled={loadingState !== null} onClick={() => handleReview("rejected")}>
+            {loadingState === "rejected" ? messages.review.updating : messages.review.actions.reject}
+          </button>
+          <button type="button" disabled={loadingState !== null} onClick={() => handleReview("superseded")}>
+            {loadingState === "superseded" ? messages.review.updating : messages.review.actions.supersede}
+          </button>
+        </div>
+        {error ? <p>{error}</p> : null}
       </div>
-      {error ? <p>{error}</p> : null}
-    </div>
+    </ReviewOnly>
   );
 }

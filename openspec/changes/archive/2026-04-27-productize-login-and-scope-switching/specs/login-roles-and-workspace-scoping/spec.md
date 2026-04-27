@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Product actions require an authenticated actor
 The system SHALL resolve an authenticated actor before allowing imported-workspace product actions that read or mutate owner-scoped state, SHALL expose a product login and session-recovery path for browser users, and SHALL preserve trusted system-triggered actions whose authority derives from bound platform state rather than an interactive session.

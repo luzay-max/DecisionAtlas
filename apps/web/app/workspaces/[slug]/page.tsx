@@ -1,5 +1,6 @@
 import React from "react";
 
+import { ScopedUnavailable } from "../../../components/auth/scoped-unavailable";
 import { WorkspaceDashboardContent } from "../../../components/dashboard/workspace-dashboard-content";
 import { getDashboardSummary } from "../../../lib/api";
 
@@ -17,15 +18,6 @@ export default async function WorkspaceDashboardPage({
     return <WorkspaceDashboardContent summary={summary} initialJobId={query.job ?? null} />;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load dashboard summary";
-    return (
-      <main className="page-shell">
-        <section className="panel stack">
-          <p className="eyebrow">Workspace dashboard</p>
-          <h1>{slug}</h1>
-          <p>Dashboard summary is temporarily unavailable.</p>
-          <p>{message}</p>
-        </section>
-      </main>
-    );
+    return <ScopedUnavailable workspaceSlug={slug} message={message} />;
   }
 }

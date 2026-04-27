@@ -93,4 +93,78 @@ describe("authRoute", () => {
       { headers: { "x-decisionatlas-session-token": "boot-token" } }
     );
   });
+
+  it("sets the session cookie after a successful login", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          session_token: "login-token",
+          actor: { id: 2, username: "admin@example.com" },
+          current_owner_scope: "team-a",
+          role: "admin",
+          available_scopes: [{ owner_scope: "team-a", role: "admin" }],
+        }),
+      json: async () => ({}),
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/auth/login",
+      payload: { username: "admin@example.com", password: "secret" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(String(response.headers["set-cookie"])).toContain("decisionatlas_session=login-token");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/auth/login",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username: "admin@example.com", password: "secret" }),
+      }
+    );
+  });
+
+  it("forwards the session cookie when switching owner scope", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          session_token: "existing-token",
+          actor: { id: 2, username: "admin@example.com" },
+          current_owner_scope: "team-b",
+          role: "reviewer",
+          available_scopes: [
+            { owner_scope: "team-a", role: "admin" },
+            { owner_scope: "team-b", role: "reviewer" },
+          ],
+        }),
+      json: async () => ({}),
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/auth/scope",
+      headers: { cookie: "decisionatlas_session=existing-token" },
+      payload: { owner_scope: "team-b" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/auth/scope",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-decisionatlas-session-token": "existing-token",
+        },
+        body: JSON.stringify({ owner_scope: "team-b" }),
+      }
+    );
+  });
 });

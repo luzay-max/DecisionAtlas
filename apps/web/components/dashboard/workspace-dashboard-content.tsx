@@ -5,6 +5,7 @@ import React from "react";
 
 import { DashboardSummary } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
+import { AdminOnly } from "../auth/role-gate";
 import { DemoImportButton } from "./demo-import-button";
 import { KpiStrip } from "./kpi-strip";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
@@ -134,13 +135,15 @@ export function WorkspaceDashboardContent({
           <ImportedReadinessCard readiness={summary.workspace_readiness} workspaceSlug={summary.workspace_slug} />
         ) : null}
         {!isGuidedDemoWorkspace ? (
-          <DemoImportButton
-            workspaceSlug={summary.workspace_slug}
-            repo={summary.github_repo}
-            latestImport={summary.latest_import}
-            importStatus={summary.import_status}
-            initialJobId={initialJobId}
-          />
+          <AdminOnly>
+            <DemoImportButton
+              workspaceSlug={summary.workspace_slug}
+              repo={summary.github_repo}
+              latestImport={summary.latest_import}
+              importStatus={summary.import_status}
+              initialJobId={initialJobId}
+            />
+          </AdminOnly>
         ) : null}
         <div className="action-row">
           <Link href={`/review?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">

@@ -292,6 +292,35 @@ export type ProviderModeState = {
   override_active: boolean;
 };
 
+export type ProductRole = "viewer" | "reviewer" | "admin" | string;
+
+export type OwnerScopeMembership = {
+  owner_scope: string;
+  role: ProductRole;
+};
+
+export type ProductSession = {
+  session_token?: string;
+  actor: {
+    id: number;
+    username: string;
+    bootstrap?: boolean;
+  };
+  current_owner_scope: string;
+  role: ProductRole;
+  available_scopes: OwnerScopeMembership[];
+};
+
+export class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://localhost:3001";
 
 async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit | undefined> {
@@ -325,13 +354,64 @@ async function apiFetch(input: string, init: RequestInit = {}): Promise<Response
   });
 }
 
+async function readError(response: Response, fallback: string): Promise<never> {
+  let detail = fallback;
+  try {
+    const payload = await response.json();
+    if (typeof payload?.detail === "string") {
+      detail = payload.detail;
+    } else if (typeof payload?.error === "string") {
+      detail = payload.error;
+    }
+  } catch {
+    // Keep the caller-facing fallback if the upstream error is not JSON.
+  }
+  throw new ApiError(detail, response.status);
+}
+
+export async function getProductSession(): Promise<ProductSession> {
+  const response = await apiFetch(`${apiBaseUrl}/auth/session`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Authentication required");
+  }
+  return response.json();
+}
+
+export async function loginProductSession(username: string, password: string): Promise<ProductSession> {
+  const response = await apiFetch(`${apiBaseUrl}/auth/login`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!response.ok) {
+    await readError(response, "Invalid username or password");
+  }
+  return response.json();
+}
+
+export async function switchProductScope(ownerScope: string): Promise<ProductSession> {
+  const response = await apiFetch(`${apiBaseUrl}/auth/scope`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({ owner_scope: ownerScope }),
+  });
+  if (!response.ok) {
+    await readError(response, "Scope is not available for this session");
+  }
+  return response.json();
+}
+
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
   const response = await apiFetch(
     `${apiBaseUrl}/decisions?workspace_slug=${encodeURIComponent(workspaceSlug)}&review_state=candidate`,
     { cache: "no-store" }
   );
   if (!response.ok) {
-    throw new Error("Failed to load review queue");
+    await readError(response, "Failed to load review queue");
   }
   return response.json();
 }
@@ -339,7 +419,7 @@ export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecis
 export async function getDecisionDetail(id: string): Promise<DecisionDetail> {
   const response = await apiFetch(`${apiBaseUrl}/decisions/${id}`, { cache: "no-store" });
   if (!response.ok) {
-    throw new Error("Failed to load decision detail");
+    await readError(response, "Failed to load decision detail");
   }
   return response.json();
 }
@@ -355,7 +435,7 @@ export async function reviewDecision(decisionId: number, reviewState: ReviewStat
     })
   });
   if (!response.ok) {
-    throw new Error("Failed to update decision review state");
+    await readError(response, "Failed to update decision review state");
   }
   return response.json();
 }
@@ -372,7 +452,7 @@ export async function askWhy(workspaceSlug: string, question: string): Promise<W
     }),
   });
   if (!response.ok) {
-    throw new Error("Failed to answer why question");
+    await readError(response, "Failed to answer why question");
   }
   return response.json();
 }
@@ -382,7 +462,7 @@ export async function getTimeline(workspaceSlug: string): Promise<TimelineRespon
     cache: "no-store"
   });
   if (!response.ok) {
-    throw new Error("Failed to load timeline");
+    await readError(response, "Failed to load timeline");
   }
   return response.json();
 }
@@ -393,7 +473,7 @@ export async function getDashboardSummary(workspaceSlug: string): Promise<Dashbo
     { cache: "no-store" }
   );
   if (!response.ok) {
-    throw new Error("Failed to load dashboard summary");
+    await readError(response, "Failed to load dashboard summary");
   }
   return response.json();
 }
@@ -403,7 +483,7 @@ export async function getDriftAlerts(workspaceSlug: string): Promise<DriftAlerts
     cache: "no-store"
   });
   if (!response.ok) {
-    throw new Error("Failed to load drift alerts");
+    await readError(response, "Failed to load drift alerts");
   }
   return response.json();
 }
@@ -417,7 +497,7 @@ export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluat
     body: JSON.stringify({ workspace_slug: workspaceSlug })
   });
   if (!response.ok) {
-    throw new Error("Failed to evaluate drift");
+    await readError(response, "Failed to evaluate drift");
   }
   return response.json();
 }
@@ -427,7 +507,7 @@ export async function lookupGithubImport(repo: string): Promise<ImportLookup> {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Failed to look up GitHub workspace");
+    await readError(response, "Failed to look up GitHub workspace");
   }
   return response.json();
 }
@@ -456,7 +536,7 @@ export async function startGithubImport(
     )
   });
   if (!response.ok) {
-    throw new Error("Failed to start GitHub import");
+    await readError(response, "Failed to start GitHub import");
   }
   return response.json();
 }
@@ -464,7 +544,7 @@ export async function startGithubImport(
 export async function getImportJob(jobId: string): Promise<ImportResult> {
   const response = await apiFetch(`${apiBaseUrl}/imports/${jobId}`, { cache: "no-store" });
   if (!response.ok) {
-    throw new Error("Failed to load import job");
+    await readError(response, "Failed to load import job");
   }
   return response.json();
 }
@@ -472,7 +552,7 @@ export async function getImportJob(jobId: string): Promise<ImportResult> {
 export async function getProviderMode(): Promise<ProviderModeState> {
   const response = await apiFetch(`${apiBaseUrl}/runtime/provider-mode`, { cache: "no-store" });
   if (!response.ok) {
-    throw new Error("Failed to load provider mode");
+    await readError(response, "Failed to load provider mode");
   }
   return response.json();
 }
@@ -486,7 +566,7 @@ export async function setProviderMode(mode: "fake" | "live"): Promise<ProviderMo
     body: JSON.stringify({ mode })
   });
   if (!response.ok) {
-    throw new Error("Failed to update provider mode");
+    await readError(response, "Failed to update provider mode");
   }
   return response.json();
 }

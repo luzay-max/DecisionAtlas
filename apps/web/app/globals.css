@@ -112,6 +112,12 @@ body {
   background: #f6f1e7;
 }
 
+.compact-badge {
+  margin-left: 8px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+}
+
 .action-row {
   display: flex;
   gap: 12px;
@@ -271,6 +277,41 @@ body {
 .language-toggle-active {
   color: var(--ink);
   font-weight: 600;
+}
+
+.account-scope-surface {
+  display: grid;
+  gap: 6px;
+  min-width: min(100%, 260px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 0.92rem;
+}
+
+.scope-switcher {
+  display: grid;
+  gap: 6px;
+}
+
+.scope-switcher select {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.login-panel button {
+  width: fit-content;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 14px;
+  font: inherit;
+  background: #fff;
 }
 
 .title-link {

@@ -4,6 +4,8 @@ import Link from "next/link";
 import React from "react";
 
 import { AdvancedControls } from "../components/guided-demo/advanced-controls";
+import { AccountScopeSurface } from "../components/auth/account-scope-surface";
+import { AdminOnly } from "../components/auth/role-gate";
 import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
 import { LanguageToggle } from "../components/i18n/language-toggle";
@@ -18,6 +20,7 @@ export default function HomePage() {
     <main className="home">
       <div className="panel">
         <div className="action-row home-toolbar">
+          <AccountScopeSurface />
           <LanguageToggle />
         </div>
         <p className="eyebrow">{messages.home.eyebrow}</p>
@@ -62,7 +65,9 @@ export default function HomePage() {
           <section className="stack">
             <p className="eyebrow">{messages.liveAnalysis.eyebrow}</p>
             <h2>{messages.liveAnalysis.title}</h2>
-            <LiveAnalysisForm />
+            <AdminOnly>
+              <LiveAnalysisForm />
+            </AdminOnly>
           </section>
         </AdvancedControls>
       </div>
