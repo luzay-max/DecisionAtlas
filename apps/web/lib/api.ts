@@ -284,6 +284,14 @@ export type GitHubInstallationBindingInput = {
   workspace_slug?: string;
 };
 
+export type GitHubPrivateAccessBindingInput = {
+  repo: string;
+  token: string;
+  source_ref?: string;
+  source_label?: string;
+  workspace_slug?: string;
+};
+
 export type DriftEvaluationResult = {
   status: string;
   workspace_slug: string;
@@ -559,6 +567,20 @@ export async function bindGithubAppInstallation(input: GitHubInstallationBinding
   });
   if (!response.ok) {
     await readError(response, "Failed to bind GitHub App installation");
+  }
+  return response.json();
+}
+
+export async function bindGithubPrivateAccess(input: GitHubPrivateAccessBindingInput): Promise<ImportLookup> {
+  const response = await apiFetch(`${apiBaseUrl}/imports/github/private-access/bind`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to bind private repository access");
   }
   return response.json();
 }

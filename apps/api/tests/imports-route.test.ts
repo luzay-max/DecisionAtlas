@@ -242,6 +242,7 @@ describe("POST /imports/github", () => {
     const response = await app.inject({
       method: "POST",
       url: "/imports/github/private-access/bind",
+      headers: { cookie: "decisionatlas_session=admin-token" },
       payload: {
         repo: "org/private-repo",
         token: "ghp-private-token",
@@ -258,6 +259,22 @@ describe("POST /imports/github", () => {
       access_source_label: "Private GitHub source team private repo",
       access_source_status: "authorized"
     });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/imports/github/private-access/bind",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-decisionatlas-session-token": "admin-token",
+        },
+        body: JSON.stringify({
+          repo: "org/private-repo",
+          token: "ghp-private-token",
+          source_ref: "org/private-repo",
+          source_label: "team private repo",
+        }),
+      }
+    );
 
     global.fetch = originalFetch;
   });

@@ -26,18 +26,3 @@ The system SHALL expose imported-workspace readiness as a compact structured sum
 #### Scenario: Live validation can read readiness without UI scraping
 - **WHEN** an operator-guided live validation command evaluates an imported workspace
 - **THEN** it SHALL be able to use structured readiness fields from product APIs instead of scraping rendered UI text or reimplementing separate readiness heuristics
-
-### Requirement: Imported readiness exposes recommended actions explicitly
-The system SHALL expose a primary next action and a bounded set of recommended actions for imported workspaces so product surfaces and validation tooling do not invent their own readiness routing logic, and those actions SHALL distinguish between "review candidates now" and "use the accepted baseline now".
-
-#### Scenario: Dashboard and search share the same imported actions
-- **WHEN** dashboard and search render imported readiness for the same workspace
-- **THEN** they SHALL be able to use the same backend-provided recommended actions instead of diverging in local heuristics
-
-#### Scenario: First accepted baseline changes the primary next action
-- **WHEN** an imported workspace moves from candidate-only review readiness to at least one accepted imported decision
-- **THEN** the imported readiness contract SHALL be able to shift the primary next action away from generic review-only guidance toward why-use or continued baseline-strengthening guidance without requiring local UI heuristics
-
-#### Scenario: Live validation detects readiness divergence
-- **WHEN** live validation observes dashboard readiness and why/search readiness for the same imported workspace
-- **THEN** it SHALL report a mismatch if the surfaces disagree on accepted-baseline state, primary next action, or allowed readiness state family

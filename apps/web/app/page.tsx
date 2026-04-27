@@ -10,6 +10,7 @@ import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
 import { GitHubAppInstallationPanel } from "../components/github-app/github-app-installation-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
 import { LanguageToggle } from "../components/i18n/language-toggle";
+import { PrivateRepoAccessPanel } from "../components/private-access/private-repo-access-panel";
 import { useI18n } from "../components/i18n/language-provider";
 import { ProviderModeToggle } from "../components/runtime/provider-mode-toggle";
 
@@ -70,6 +71,7 @@ export default function HomePage() {
               <LiveAnalysisForm />
             </AdminOnly>
             <GitHubAppInstallationPanel />
+            <PrivateRepoAccessPanel />
           </section>
         </AdvancedControls>
       </div>
