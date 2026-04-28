@@ -1,8 +1,6 @@
 ## Purpose
 Define expected outcomes and evidence quality for imported real-repository workspaces.
-
 ## Requirements
-
 ### Requirement: Imported workspaces expose real-analysis readiness
 The system SHALL summarize imported-workspace readiness so users and validation operators can tell whether a real repository run is ready for review, has established an initial accepted-decision baseline, is ready for grounded why usage, is still evidence-limited, is blocked by low-yield extraction conversion, has failed operationally, or is better handled by reusing existing workspace state instead of blindly rerunning analysis, SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift, and SHALL reserve `conversion_limited` for runs that still produce no reviewable candidate decisions after the refined candidate-conversion path has been attempted.
 
@@ -76,6 +74,21 @@ The system SHALL treat imported why-answers as trustworthy only when they are gr
 #### Scenario: Accepted baseline with weak why grounding exposes bounded follow-up
 - **WHEN** an imported workspace already has an accepted baseline but the asked why-question remains evidence-limited
 - **THEN** the response SHALL keep that outcome bounded and SHALL expose follow-up guidance such as reviewing additional candidates or inspecting import evidence instead of implying the baseline alone solved the question
+
+### Requirement: Real repository outcomes report decision-value quality
+The system SHALL evaluate imported real-repository outcomes not only by readiness state, but also by whether reviewable candidate decisions are valuable, grounded, and useful for establishing the first accepted baseline.
+
+#### Scenario: Validation records candidate value observations
+- **WHEN** an operator validates a curated imported repository
+- **THEN** the report SHALL include candidate-quality observations such as reviewable candidate count, thin-evidence pressure, provenance availability, and whether a first accepted baseline appears achievable
+
+#### Scenario: Low-value candidates are not treated as equal to strong candidates
+- **WHEN** an imported workspace contains candidates with weak grounding or unclear provenance
+- **THEN** the product or validation report SHALL distinguish those candidates from strongly grounded candidates instead of treating all candidates as equally review-ready
+
+#### Scenario: First baseline usefulness is recorded
+- **WHEN** a reviewer accepts the first imported decision in a real repository workspace
+- **THEN** validation output SHALL be able to record whether that baseline unlocks a meaningful why/drift path for matching questions
 
 ## ADDED Requirements
 

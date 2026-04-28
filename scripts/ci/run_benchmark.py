@@ -94,6 +94,17 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
         if expectations.get("minimum_screened_in_artifacts", 0) < 0:
             print(f"Invalid minimum screened-in count for {repository['repo']}.", file=sys.stderr)
             return 1
+        candidate_quality = expectations.get("candidate_quality")
+        if not isinstance(candidate_quality, dict):
+            print(f"Missing candidate_quality expectations for {repository['repo']}.", file=sys.stderr)
+            return 1
+        if candidate_quality.get("minimum_strong_candidates", 0) < 0:
+            print(f"Invalid minimum strong candidate count for {repository['repo']}.", file=sys.stderr)
+            return 1
+        max_thin_ratio = candidate_quality.get("maximum_thin_candidate_ratio", 1)
+        if not isinstance(max_thin_ratio, int | float) or max_thin_ratio < 0 or max_thin_ratio > 1:
+            print(f"Invalid maximum thin candidate ratio for {repository['repo']}.", file=sys.stderr)
+            return 1
         if not expectations.get("expected_readiness_states"):
             print(f"Missing readiness expectations for {repository['repo']}.", file=sys.stderr)
             return 1
@@ -116,7 +127,9 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
             f"min_candidates={expectations.get('minimum_candidate_decisions', 0)} "
             f"min_reviewable={expectations.get('minimum_reviewable_candidates', 0)} "
             f"min_accepted={expectations.get('minimum_accepted_decisions', 0)} "
-            f"min_screened_in={expectations.get('minimum_screened_in_artifacts', 0)}"
+            f"min_screened_in={expectations.get('minimum_screened_in_artifacts', 0)} "
+            f"min_strong={candidate_quality.get('minimum_strong_candidates', 0)} "
+            f"max_thin_ratio={max_thin_ratio}"
         )
     return 0
 
@@ -369,6 +382,72 @@ def _evaluate_dashboard_payload(repository: dict, payload: dict) -> tuple[bool, 
     return all(checks.values()), row
 
 
+def _summarize_candidate_quality(candidates: list[dict]) -> dict:
+    label_counts: dict[str, int] = {}
+    provenance_gaps = 0
+    previewable_refs = 0
+    source_refs = 0
+    confidence_buckets: dict[str, int] = {}
+    for candidate in candidates:
+        quality = candidate.get("candidate_quality") or {}
+        label = str(quality.get("label") or "unknown")
+        label_counts[label] = label_counts.get(label, 0) + 1
+        if quality.get("has_primary_artifact") is False:
+            provenance_gaps += 1
+        source_refs += int(quality.get("source_ref_count") or 0)
+        previewable_refs += int(quality.get("previewable_source_ref_count") or 0)
+        confidence_bucket = str(quality.get("confidence_bucket") or "unknown")
+        confidence_buckets[confidence_bucket] = confidence_buckets.get(confidence_bucket, 0) + 1
+    total = len(candidates)
+    thin = label_counts.get("thin", 0)
+    return {
+        "candidate_count": total,
+        "label_counts": label_counts,
+        "strong_candidate_count": label_counts.get("strong", 0),
+        "thin_candidate_count": thin,
+        "thin_candidate_ratio": round(thin / total, 4) if total else 0,
+        "source_ref_count": source_refs,
+        "previewable_source_ref_count": previewable_refs,
+        "provenance_gap_count": provenance_gaps,
+        "confidence_buckets": confidence_buckets,
+    }
+
+
+def _evaluate_candidate_quality(repository: dict, candidates: list[dict] | None, error_payload: dict | None) -> tuple[bool, dict]:
+    expectations = (repository.get("expectations") or {}).get("candidate_quality") or {}
+    if error_payload is not None or candidates is None:
+        return False, {
+            "passed": False,
+            "operational_error": error_payload,
+            "observations": _summarize_candidate_quality([]),
+            "checks": {
+                "quality_payload_available": False,
+                "minimum_strong_candidates": False,
+                "maximum_thin_candidate_ratio": False,
+                "provenance_available": False,
+            },
+        }
+
+    observations = _summarize_candidate_quality(candidates)
+    total = observations["candidate_count"]
+    checks = {
+        "quality_payload_available": all("candidate_quality" in candidate for candidate in candidates),
+        "minimum_strong_candidates": observations["strong_candidate_count"]
+        >= int(expectations.get("minimum_strong_candidates", 0) or 0),
+        "maximum_thin_candidate_ratio": observations["thin_candidate_ratio"]
+        <= float(expectations.get("maximum_thin_candidate_ratio", 1) or 1),
+        "provenance_available": (
+            observations["provenance_gap_count"] == 0 if expectations.get("require_provenance") and total else True
+        ),
+    }
+    return all(checks.values()), {
+        "passed": all(checks.values()),
+        "operational_error": None,
+        "observations": observations,
+        "checks": checks,
+    }
+
+
 def _evaluate_drift_cases_for_workspace(*, payload: dict, cases: list[dict]) -> tuple[bool, list[dict], str | None]:
     evaluation = payload.get("evaluation") or {}
     observed_state = evaluation.get("state")
@@ -451,6 +530,18 @@ def run_live_real_repo_validation(
         row["bounded_outcome"] = dashboard_row["bounded_outcome"]
         row["dashboard"] = dashboard_row
         repo_passed = dashboard_passed
+
+        candidate_payload, candidate_error = _json_request(
+            base_url=base_url,
+            path=f"/decisions?{query}&review_state=candidate",
+        )
+        candidate_quality_passed, candidate_quality_row = _evaluate_candidate_quality(
+            repository,
+            candidate_payload if isinstance(candidate_payload, list) else None,
+            candidate_error,
+        )
+        row["candidate_quality"] = candidate_quality_row
+        repo_passed = repo_passed and candidate_quality_passed
 
         for case in why_cases_by_repo.get(repository["id"], []):
             why_payload, why_error = _json_request(

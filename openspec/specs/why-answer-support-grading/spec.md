@@ -1,8 +1,6 @@
 ## Purpose
 Define support grading requirements for why-answer evidence.
-
 ## Requirements
-
 ### Requirement: Support grading preserves full-support semantics
 The system SHALL preserve a stronger fully supported why-answer state so users can distinguish between answers that are directionally correct and answers that are strongly grounded, SHALL evaluate imported why support as a bounded support bundle centered on one primary accepted decision, SHALL allow retrieval-backed supporting evidence from the same rationale thread to improve support quality without weakening the meaning of `ok` or `limited_support`, and SHALL allow an imported workspace with a newly established accepted baseline to satisfy those support states only when the asked rationale thread is grounded to that accepted decision.
 
@@ -33,3 +31,19 @@ The system SHALL preserve a stronger fully supported why-answer state so users c
 #### Scenario: Weak post-acceptance match stays evidence-limited
 - **WHEN** an imported workspace has an accepted baseline but the selected answer cannot assemble enough same-thread support for the asked rationale
 - **THEN** the system SHALL return `evidence_limited` rather than upgrading the response to `limited_support`
+
+### Requirement: Why support guidance reflects accepted candidate quality
+The imported why experience SHALL account for accepted candidate quality and same-thread evidence when guiding users after the first imported baseline is accepted.
+
+#### Scenario: Strong accepted candidate improves bounded why guidance
+- **WHEN** an accepted imported decision has strong grounding and a why question matches its rationale thread
+- **THEN** the why experience SHALL be able to present that question as a supported downstream path
+
+#### Scenario: Thin accepted candidate keeps why guidance cautious
+- **WHEN** the first accepted imported decision has thin grounding or unclear provenance
+- **THEN** the why experience SHALL avoid implying broad support and SHALL keep unrelated or weakly grounded questions evidence-limited or review-required
+
+#### Scenario: Review quality cues explain why limitations
+- **WHEN** a why answer remains limited after an accepted baseline exists
+- **THEN** the product SHALL be able to connect that limitation to candidate/source-ref quality where applicable
+

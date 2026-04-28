@@ -1,8 +1,6 @@
 ## Purpose
 Define lightweight real-repository benchmark expectations for validating product quality.
-
 ## Requirements
-
 ### Requirement: Curated real-repo benchmark fixtures
 The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations, review-readiness milestones, focused why/drift cases, and operator-guided live observed outcomes without requiring live imports during default validation, SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements, and SHALL allow why-specific expectations that protect stronger post-acceptance support quality without relying on exact answer prose.
 
@@ -37,3 +35,19 @@ The system SHALL provide a small fixture-backed benchmark set for real imported 
 #### Scenario: Live mode reports missing or unavailable workspaces explicitly
 - **WHEN** a curated repository workspace is missing, unreachable, or blocked by provider or network failure during live validation
 - **THEN** the report SHALL classify that as an operational or missing-workspace outcome rather than silently treating it as a product evidence result
+
+### Requirement: Benchmarks capture candidate value quality
+The lightweight real-repository benchmark set SHALL capture candidate value quality expectations and observations without relying on exact generated prose.
+
+#### Scenario: Fixture expresses candidate quality expectations
+- **WHEN** a curated repository fixture is used to protect review quality
+- **THEN** it SHALL be able to express expectations such as minimum strong candidates, maximum thin-candidate pressure, or required provenance/source-ref availability
+
+#### Scenario: Live report includes candidate quality summary
+- **WHEN** an operator runs live real-repo validation
+- **THEN** the report SHALL summarize candidate quality observations and identify low-value candidate patterns as follow-up work when they appear
+
+#### Scenario: Offline benchmark remains deterministic
+- **WHEN** default validation runs without live services
+- **THEN** it SHALL validate candidate-quality fixture shape without requiring GitHub, model providers, or existing imported workspaces
+

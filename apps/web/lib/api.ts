@@ -12,6 +12,16 @@ export type ReviewDecision = {
   confidence: number;
   workspace_mode?: WorkspaceMode;
   source_summary?: string;
+  candidate_quality?: {
+    label: "strong" | "partial" | "thin" | string;
+    summary: string;
+    source_ref_count: number;
+    previewable_source_ref_count: number;
+    has_primary_artifact: boolean;
+    has_source_url: boolean;
+    confidence_bucket: "high" | "medium" | "low" | string;
+    reasons: string[];
+  };
   review_evidence?: {
     state: "grounded" | "thin" | "missing" | string;
     source_ref_count: number;

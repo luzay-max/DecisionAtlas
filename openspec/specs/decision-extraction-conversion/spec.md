@@ -1,8 +1,6 @@
 ## Purpose
 Define how screened-in artifacts are converted into decision candidates with artifact context preserved.
-
 ## Requirements
-
 ### Requirement: Screened-in artifacts use artifact-aware full extraction
 The system SHALL use artifact-aware full extraction behavior for screened-in imported artifacts so long-form docs, high-signal PRs, and lighter-weight issue or commit evidence are not forced through one identical extraction path, and SHALL allow one bounded recovery extraction attempt when the first conversion pass fails for recoverable reasons on otherwise strong screened-in evidence.
 
@@ -47,3 +45,19 @@ The system SHALL record why screened-in artifacts fail to become candidate decis
 #### Scenario: Imported run reports candidate-yield counters
 - **WHEN** an imported extraction run completes
 - **THEN** the run summary SHALL include enough counters to compare screened-in artifacts, full extraction attempts, candidate creations, and categorized conversion losses for the final conversion path
+
+### Requirement: Conversion diagnostics distinguish valid output from valuable candidate
+The extraction conversion path SHALL distinguish candidates that are structurally valid from candidates that are valuable enough to serve as imported review baseline candidates.
+
+#### Scenario: Structurally valid but low-value candidate is diagnosable
+- **WHEN** extraction creates a candidate with weak decision specificity, thin grounding, or unclear provenance
+- **THEN** diagnostics SHALL preserve enough context for review and validation surfaces to label the candidate as low-value or thin rather than silently treating it as strong
+
+#### Scenario: Strong converted candidate preserves reviewer context
+- **WHEN** extraction creates a candidate with clear decision content and grounded source refs
+- **THEN** conversion output SHALL preserve enough artifact and source-ref context for the review card to show why it is a good baseline candidate
+
+#### Scenario: Quality diagnostics remain bounded
+- **WHEN** conversion diagnostics are generated
+- **THEN** they SHALL use bounded categories and counters rather than raw provider prose or repository-specific hard-coded labels
+

@@ -52,6 +52,62 @@ def _review_evidence_state(source_ref_count: int) -> str:
     return "missing"
 
 
+def _confidence_bucket(confidence: float) -> str:
+    if confidence >= 0.8:
+        return "high"
+    if confidence >= 0.6:
+        return "medium"
+    return "low"
+
+
+def _candidate_quality(
+    *,
+    decision,
+    source_refs: list,
+    primary_artifact,
+) -> dict:
+    source_ref_count = len(source_refs)
+    previewable_source_ref_count = len([source_ref for source_ref in source_refs if str(source_ref.quote or "").strip()])
+    has_primary_artifact = primary_artifact is not None
+    has_source_url = any(source_ref.url for source_ref in source_refs) or bool(getattr(primary_artifact, "url", None))
+    confidence_bucket = _confidence_bucket(float(decision.confidence or 0.0))
+
+    reasons: list[str] = []
+    if source_ref_count >= 2:
+        reasons.append("multiple_source_refs")
+    elif source_ref_count == 1:
+        reasons.append("single_source_ref")
+    else:
+        reasons.append("missing_source_refs")
+    if previewable_source_ref_count > 0:
+        reasons.append("previewable_quote")
+    else:
+        reasons.append("missing_previewable_quote")
+    reasons.append("artifact_provenance" if has_primary_artifact else "missing_artifact_provenance")
+    reasons.append(f"{confidence_bucket}_confidence")
+
+    if source_ref_count >= 2 and previewable_source_ref_count >= 1 and has_primary_artifact and confidence_bucket != "low":
+        label = "strong"
+        summary = "Multiple grounded refs with previewable evidence and artifact provenance."
+    elif source_ref_count >= 1 and (previewable_source_ref_count >= 1 or has_primary_artifact):
+        label = "partial"
+        summary = "Some grounding is available, but reviewer judgment is still required before baseline use."
+    else:
+        label = "thin"
+        summary = "Thin grounding or missing provenance; keep as diagnosable review input, not a strong baseline."
+
+    return {
+        "label": label,
+        "summary": summary,
+        "source_ref_count": source_ref_count,
+        "previewable_source_ref_count": previewable_source_ref_count,
+        "has_primary_artifact": has_primary_artifact,
+        "has_source_url": has_source_url,
+        "confidence_bucket": confidence_bucket,
+        "reasons": reasons,
+    }
+
+
 def _serialize_decision(
     decision,
     *,
@@ -86,6 +142,11 @@ def _serialize_decision(
             "source_ref_preview": [_serialize_source_ref(source_ref) for source_ref in source_refs[:2]],
             "primary_artifact": _serialize_artifact_summary(primary_artifact),
         }
+        payload["candidate_quality"] = _candidate_quality(
+            decision=decision,
+            source_refs=source_refs,
+            primary_artifact=primary_artifact,
+        )
     return payload
 
 
@@ -134,11 +195,13 @@ def get_decision(
             raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
         require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=True)
         provenance = get_workspace_provenance(session=session, workspace=workspace)
+        artifacts = ArtifactRepository(session)
+        decision_source_refs = source_refs.list_by_decision(decision.id)
         return {
-            **_serialize_decision(decision),
+            **_serialize_decision(decision, source_refs=decision_source_refs, artifacts=artifacts),
             "workspace_mode": provenance.workspace_mode,
             "source_summary": provenance.source_summary,
-            "source_refs": [_serialize_source_ref(source_ref) for source_ref in source_refs.list_by_decision(decision.id)],
+            "source_refs": [_serialize_source_ref(source_ref) for source_ref in decision_source_refs],
         }
     finally:
         session.close()

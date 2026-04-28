@@ -71,6 +71,17 @@ def _seed_review_fixture(db_path: Path) -> None:
                 relevance_score=0.88,
             )
         )
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=12,
+                span_end=55,
+                quote="use Redis as a cache because latency mattered",
+                url="https://github.com/org/repo/issues/1",
+                relevance_score=0.82,
+            )
+        )
         session.commit()
 
 
@@ -91,9 +102,13 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[0]["review_state"] == "candidate"
     assert body[0]["title"] == "Use Redis Cache"
     assert body[0]["workspace_mode"] == "imported"
-    assert body[0]["review_evidence"]["state"] == "thin"
-    assert body[0]["review_evidence"]["source_ref_count"] == 1
+    assert body[0]["review_evidence"]["state"] == "grounded"
+    assert body[0]["review_evidence"]["source_ref_count"] == 2
     assert body[0]["review_evidence"]["source_ref_preview"][0]["quote"].startswith("We decided to use Redis")
+    assert body[0]["candidate_quality"]["label"] == "strong"
+    assert body[0]["candidate_quality"]["previewable_source_ref_count"] == 2
+    assert body[0]["candidate_quality"]["has_primary_artifact"] is True
+    assert body[0]["candidate_quality"]["confidence_bucket"] == "high"
     assert body[0]["review_evidence"]["primary_artifact"] == {
         "id": 1,
         "type": "issue",
@@ -105,6 +120,13 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[1]["review_evidence"]["source_ref_count"] == 0
     assert body[1]["review_evidence"]["source_ref_preview"] == []
     assert body[1]["review_evidence"]["primary_artifact"] is None
+    assert body[1]["candidate_quality"]["label"] == "thin"
+    assert body[1]["candidate_quality"]["reasons"] == [
+        "missing_source_refs",
+        "missing_previewable_quote",
+        "missing_artifact_provenance",
+        "low_confidence",
+    ]
 
 
 def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -> None:
@@ -123,7 +145,8 @@ def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -
     assert body["title"] == "Use Redis Cache"
     assert body["workspace_mode"] == "imported"
     assert "source_summary" in body
-    assert len(body["source_refs"]) == 1
+    assert body["candidate_quality"]["label"] == "strong"
+    assert len(body["source_refs"]) == 2
 
 
 def test_review_decision_updates_review_state(tmp_path: Path, monkeypatch) -> None:

@@ -39,6 +39,14 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert all(item["expectations"].get("minimum_reviewable_candidates", 0) >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_accepted_decisions", 0) >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_screened_in_artifacts", 0) >= 0 for item in repositories)
+    assert all(isinstance(item["expectations"].get("candidate_quality"), dict) for item in repositories)
+    assert all(
+        item["expectations"]["candidate_quality"].get("minimum_strong_candidates", 0) >= 0 for item in repositories
+    )
+    assert all(
+        0 <= item["expectations"]["candidate_quality"].get("maximum_thin_candidate_ratio", 1) <= 1
+        for item in repositories
+    )
     assert all(item["expectations"]["expected_outcomes"] for item in repositories)
     assert all(item["expectations"]["expected_readiness_states"] for item in repositories)
     assert all(item["expectations"]["expected_why_states"] for item in repositories)
@@ -58,6 +66,10 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     malformed_repository["expectations"] = dict(repositories[-1]["expectations"])
     malformed_repository["expectations"]["minimum_accepted_decisions"] = 1
     malformed_repository["expectations"]["expected_why_states_after_first_acceptance"] = []
+    assert benchmark.validate_live_repo_set([malformed_repository]) == 1
+    malformed_repository = dict(repositories[0])
+    malformed_repository["expectations"] = dict(repositories[0]["expectations"])
+    malformed_repository["expectations"]["candidate_quality"] = {"maximum_thin_candidate_ratio": 2}
     assert benchmark.validate_live_repo_set([malformed_repository]) == 1
 
 
@@ -112,6 +124,11 @@ def test_live_dashboard_payload_evaluates_broad_readiness_expectations() -> None
             "minimum_reviewable_candidates": 1,
             "minimum_accepted_decisions": 1,
             "minimum_screened_in_artifacts": 3,
+            "candidate_quality": {
+                "minimum_strong_candidates": 1,
+                "maximum_thin_candidate_ratio": 0.5,
+                "require_provenance": True,
+            },
             "expected_readiness_states": ["why_ready"],
             "expected_why_states": ["ready", "evidence_limited"],
             "expected_drift_states": ["unevaluated", "clean"],
@@ -146,6 +163,48 @@ def test_live_dashboard_payload_evaluates_broad_readiness_expectations() -> None
     assert row["candidate_decision_count"] == 1
     assert row["accepted_decision_count"] == 1
     assert row["screened_in_artifact_count"] == 3
+
+
+def test_candidate_quality_payload_evaluates_report_observations() -> None:
+    benchmark = _load_benchmark_module()
+    repository = {
+        "id": "repo",
+        "repo": "org/repo",
+        "workspace_slug": "github-org-repo",
+        "expectations": {
+            "candidate_quality": {
+                "minimum_strong_candidates": 1,
+                "maximum_thin_candidate_ratio": 0.5,
+                "require_provenance": True,
+            }
+        },
+    }
+    candidates = [
+        {
+            "candidate_quality": {
+                "label": "strong",
+                "source_ref_count": 2,
+                "previewable_source_ref_count": 2,
+                "has_primary_artifact": True,
+                "confidence_bucket": "high",
+            }
+        },
+        {
+            "candidate_quality": {
+                "label": "partial",
+                "source_ref_count": 1,
+                "previewable_source_ref_count": 1,
+                "has_primary_artifact": True,
+                "confidence_bucket": "medium",
+            }
+        },
+    ]
+
+    passed, row = benchmark._evaluate_candidate_quality(repository, candidates, None)
+
+    assert passed is True
+    assert row["observations"]["strong_candidate_count"] == 1
+    assert row["observations"]["thin_candidate_ratio"] == 0
 
 
 def test_live_real_repo_validation_writes_missing_workspace_report(tmp_path, monkeypatch) -> None:
@@ -233,6 +292,18 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
                 "drift_status": {"state": "review_required"},
                 "latest_import": {"summary": {"extraction_summary": {"screened_in_artifacts": 1}}},
             }, None
+        if path.startswith("/decisions"):
+            return [
+                {
+                    "candidate_quality": {
+                        "label": "strong",
+                        "source_ref_count": 2,
+                        "previewable_source_ref_count": 1,
+                        "has_primary_artifact": True,
+                        "confidence_bucket": "high",
+                    }
+                }
+            ], None
         if path == "/query/why":
             return {
                 "status": "review_required",
@@ -258,5 +329,7 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert status == 0
     assert report["repositories"][0]["passed"] is True
+    assert report["repositories"][0]["candidate_quality"]["passed"] is True
+    assert report["repositories"][0]["candidate_quality"]["observations"]["strong_candidate_count"] == 1
     assert report["repositories"][0]["why_cases"][0]["passed"] is True
     assert report["repositories"][0]["drift"]["cases"][0]["passed"] is True

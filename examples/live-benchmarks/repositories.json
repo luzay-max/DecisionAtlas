@@ -6,6 +6,11 @@
     "expectations": {
       "analysis_scope": "doc-heavy library with strong public rationale",
       "minimum_candidate_decisions": 3,
+      "candidate_quality": {
+        "minimum_strong_candidates": 1,
+        "maximum_thin_candidate_ratio": 0.75,
+        "require_provenance": true
+      },
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
@@ -19,6 +24,11 @@
     "expectations": {
       "analysis_scope": "large public framework with mixed issue and documentation evidence",
       "minimum_candidate_decisions": 2,
+      "candidate_quality": {
+        "minimum_strong_candidates": 1,
+        "maximum_thin_candidate_ratio": 0.8,
+        "require_provenance": true
+      },
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
@@ -33,6 +43,11 @@
       "analysis_scope": "public library where decision evidence may be thinner than the guided demo",
       "minimum_candidate_decisions": 1,
       "minimum_accepted_decisions": 1,
+      "candidate_quality": {
+        "minimum_strong_candidates": 0,
+        "maximum_thin_candidate_ratio": 1,
+        "require_provenance": false
+      },
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
@@ -49,6 +64,11 @@
       "minimum_candidate_decisions": 0,
       "minimum_reviewable_candidates": 1,
       "minimum_screened_in_artifacts": 10,
+      "candidate_quality": {
+        "minimum_strong_candidates": 0,
+        "maximum_thin_candidate_ratio": 1,
+        "require_provenance": false
+      },
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited", "conversion_limited"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],
@@ -64,6 +84,11 @@
       "minimum_candidate_decisions": 2,
       "minimum_accepted_decisions": 1,
       "minimum_screened_in_artifacts": 0,
+      "candidate_quality": {
+        "minimum_strong_candidates": 1,
+        "maximum_thin_candidate_ratio": 0.75,
+        "require_provenance": true
+      },
       "expected_outcomes": ["ok", "insufficient_evidence"],
       "expected_readiness_states": ["review_ready", "why_ready", "evidence_limited", "alerts_present"],
       "expected_why_states": ["review_required", "ready", "evidence_limited"],

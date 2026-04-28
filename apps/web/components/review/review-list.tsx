@@ -18,6 +18,16 @@ function confidenceLabel(confidence: number, messages: ReturnType<typeof useI18n
   return messages.review.confidenceLow;
 }
 
+function qualityLabel(label: string | undefined, messages: ReturnType<typeof useI18n>["messages"]) {
+  if (label === "strong") {
+    return messages.review.qualityStrong;
+  }
+  if (label === "partial") {
+    return messages.review.qualityPartial;
+  }
+  return messages.review.qualityThin;
+}
+
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
@@ -64,6 +74,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
       ) : null}
       {items.map((decision) => {
         const evidence = decision.review_evidence;
+        const quality = decision.candidate_quality;
         const evidenceState = evidence?.state ?? "missing";
         const evidenceLabel =
           evidenceState === "grounded"
@@ -96,9 +107,17 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
               <div className="callout">
                 <p className="eyebrow">{messages.review.evidence}</p>
                 <p>
+                  <span className="badge">{qualityLabel(quality?.label, messages)}</span>{" "}
+                  {quality?.summary ?? messages.review.qualityThinSummary}
+                </p>
+                <p>
                   <strong>{evidenceLabel}</strong>
                   {evidence ? ` · ${messages.review.sourceRefs.replace("{count}", String(evidence.source_ref_count))}` : null}
+                  {quality
+                    ? ` · ${messages.review.previewableSourceRefs.replace("{count}", String(quality.previewable_source_ref_count))}`
+                    : null}
                 </p>
+                {quality?.label === "thin" ? <p className="muted">{messages.review.qualityThinGuidance}</p> : null}
                 {evidence?.primary_artifact ? (
                   <p>
                     <strong>{messages.review.sourceArtifact}:</strong>{" "}

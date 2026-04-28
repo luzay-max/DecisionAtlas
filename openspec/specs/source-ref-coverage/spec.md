@@ -1,8 +1,6 @@
 ## Purpose
 Define source-reference coverage requirements for extracted decisions.
-
 ## Requirements
-
 ### Requirement: Extracted decisions retain multiple grounded source refs when available
 The system SHALL retain more than one grounded source reference for an extracted decision when the underlying imported artifact contains multiple decision-supporting quotes that can be mapped back to real spans, and SHALL expose compact source-ref coverage to imported review surfaces so reviewers can distinguish strongly grounded candidates from thinly supported candidates.
 
@@ -32,3 +30,19 @@ The system SHALL distinguish valid extracted decisions with thin grounded suppor
 #### Scenario: Review surface flags thin coverage
 - **WHEN** an imported candidate has limited grounded source-ref coverage
 - **THEN** the review surface SHALL show that limitation as review context rather than hiding it behind the detail page
+
+### Requirement: Source-ref coverage supports candidate quality labels
+The system SHALL use source-reference coverage to support candidate quality labels on imported review surfaces.
+
+#### Scenario: Multiple grounded refs indicate stronger support
+- **WHEN** an imported candidate has multiple previewable grounded source refs
+- **THEN** the review surface SHALL be able to label the candidate as stronger evidence than a candidate with only one or no refs
+
+#### Scenario: Missing preview remains explicit
+- **WHEN** source refs exist but no previewable quote is available
+- **THEN** the review surface SHALL distinguish that state from both strong previewable support and completely missing support
+
+#### Scenario: Source-ref diagnostics inform quality reports
+- **WHEN** real-repo validation summarizes candidate quality
+- **THEN** it SHALL be able to report whether thin candidate quality is driven by low source-ref coverage
+

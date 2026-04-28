@@ -129,6 +129,16 @@ describe("ReviewPageContent", () => {
             confidence: 0.91,
             workspace_mode: "imported",
             source_summary: "Imported repository data from GitHub-backed analysis.",
+            candidate_quality: {
+              label: "strong",
+              summary: "Multiple grounded refs with previewable evidence and artifact provenance.",
+              source_ref_count: 2,
+              previewable_source_ref_count: 1,
+              has_primary_artifact: true,
+              has_source_url: true,
+              confidence_bucket: "high",
+              reasons: ["multiple_source_refs", "previewable_quote", "artifact_provenance", "high_confidence"],
+            },
             review_evidence: {
               state: "grounded",
               source_ref_count: 2,
@@ -157,10 +167,12 @@ describe("ReviewPageContent", () => {
     );
 
     expect(screen.getByText(/Accept the first well-supported imported candidate/i)).toBeInTheDocument();
+    expect(screen.getByText("Strong candidate")).toBeInTheDocument();
+    expect(screen.getByText(/Multiple grounded refs with previewable evidence/i)).toBeInTheDocument();
     expect(screen.getByText("Multiple grounded source refs")).toBeInTheDocument();
     expect(
       screen.getByText((_, element) =>
-        element?.textContent === "Multiple grounded source refs · 2 source refs"
+        element?.textContent === "Multiple grounded source refs · 2 source refs · 1 previewable refs"
       )
     ).toBeInTheDocument();
     expect(screen.getByText(/Use HTTP downloads to expose active remote browser status/i)).toBeInTheDocument();
@@ -172,6 +184,49 @@ describe("ReviewPageContent", () => {
       "href",
       "/decisions/7?workspace=github-org-repo"
     );
+  });
+
+  it("labels thin imported candidates so they are not confused with strong baselines", () => {
+    render(
+      <ReviewPageContent
+        workspaceSlug="github-org-repo"
+        decisions={[
+          {
+            id: 8,
+            workspace_id: 2,
+            title: "Use background jobs",
+            status: "active",
+            review_state: "candidate",
+            problem: "Async work is unclear",
+            context: null,
+            constraints: null,
+            chosen_option: "Use background jobs",
+            tradeoffs: "More moving parts",
+            confidence: 0.52,
+            candidate_quality: {
+              label: "thin",
+              summary: "Thin grounding or missing provenance; keep as diagnosable review input, not a strong baseline.",
+              source_ref_count: 0,
+              previewable_source_ref_count: 0,
+              has_primary_artifact: false,
+              has_source_url: false,
+              confidence_bucket: "low",
+              reasons: ["missing_source_refs", "missing_previewable_quote", "missing_artifact_provenance", "low_confidence"],
+            },
+            review_evidence: {
+              state: "missing",
+              source_ref_count: 0,
+              primary_artifact: null,
+              source_ref_preview: [],
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Thin candidate")).toBeInTheDocument();
+    expect(screen.getByText(/Treat this as a diagnostic candidate/i)).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === "No grounded source refs yet · 0 source refs · 0 previewable refs")).toBeInTheDocument();
   });
 
   it("shows imported downstream entry points after candidates are reviewed", async () => {
