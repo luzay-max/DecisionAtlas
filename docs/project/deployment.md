@@ -4,9 +4,9 @@
 
 ---
 
-### Recommended v0.2 Architecture
+### Recommended v0.3 RC Architecture
 
-DecisionAtlas v0.2 is designed as a single-machine demo deployment:
+DecisionAtlas v0.3 RC is still designed around a single-machine demo or preview deployment, with explicit owner-scoped product flows layered on the existing web/API/engine topology:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -44,6 +44,7 @@ DecisionAtlas v0.2 is designed as a single-machine demo deployment:
 | `REDIS_URL` | Redis connection string |
 | `ENGINE_BASE_URL` | Engine service URL |
 | `API_BASE_URL` | API service URL |
+| `AUTO_BOOTSTRAP_AUTH` | Enables local/bootstrap session recovery for local demo and real-stack operation |
 
 For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belong on host-managed or backend service surfaces. Browser-facing config should only receive the web/API URLs it needs to call the API.
 
@@ -66,6 +67,18 @@ For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belo
 | `GITHUB_TOKEN` | GitHub access token |
 | `DEMO_REPO` | Demo repository identifier |
 
+### Platform Access Boundary
+
+The v0.3 RC includes productized operator/admin flows for:
+
+- local/bootstrap session recovery and login
+- owner scope switching
+- role-gated workspace actions
+- GitHub App installation binding
+- token-backed private repository access binding
+
+The RC does not include a full SaaS org-management console, secret vault, billing, GitHub Marketplace/OAuth self-service installation, or multi-user collaborative review workflow.
+
 ### Hosted Operator Flow
 
 Use the hosted operator guide when running a persistent demo environment:
@@ -86,19 +99,16 @@ Use `reseed-demo.ps1` when migrations or database drift require a deeper rebuild
 ### Bring-up Order
 
 ```powershell
-# 1. Start infrastructure
-docker compose up -d postgres redis
-
-# 2. Run migrations
-cd services/engine
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-
-# 3. Start all services
-pnpm --filter @decisionatlas/api dev
-pnpm --filter @decisionatlas/web dev
+pnpm run dev:real
 ```
+
+For local real-stack shutdown:
+
+```powershell
+pnpm run dev:real:stop
+```
+
+Use manual service startup only when debugging a specific layer.
 
 ### Network Security
 

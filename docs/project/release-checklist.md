@@ -3,6 +3,8 @@
 ## Canonical release baseline
 
 - [ ] run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
+- [ ] record the validated commit hash
+- [ ] identify intended tag, for example `v0.3.0-rc.1`
 
 This is the canonical local release baseline validation path for the current branch. It covers:
 
@@ -15,6 +17,9 @@ Run individual commands only when debugging a failure from the canonical script.
 
 ## Mandatory product baseline
 
+- [ ] Local/bootstrap session recovery works in the supported local stack path
+- [ ] Owner scope is visible in product navigation
+- [ ] Role gates distinguish admin/reviewer/viewer product actions
 - [ ] Demo workspace seeds correctly
 - [ ] Review queue shows at least one candidate decision
 - [ ] Why-search returns cited answers for seed queries
@@ -24,15 +29,17 @@ Run individual commands only when debugging a failure from the canonical script.
 - [ ] Imported drift flow is understandable for the current workspace state
 - [ ] Imported dashboard/search readiness shows review, why, and drift states with recommended actions
 - [ ] At least one imported why answer uses chunk-backed supporting evidence without losing the accepted-decision anchor
+- [ ] GitHub App installation binding is documented as an admin/operator flow
+- [ ] Token-backed private repository access binding is documented as an admin/operator flow
 
 ## Mandatory documentation baseline
 
 - [ ] README matches the current product state
 - [ ] `docs/project/quick-start.md` is accurate
 - [ ] `docs/project/demo-script.md` matches current routes
-- [ ] `docs/project/2026-03-27-next-phase-roadmap.md` reflects the latest shipped quality slices
-- [ ] `docs/project/release-notes-v0.2.2.md` records shipped capabilities, validation evidence, supported scope, limitations, and tag readiness
-- [ ] `docs/project/release-notes-v0.2.2_zh-CN.md` mirrors the v0.2.2 release summary for Chinese readers
+- [ ] `docs/plans/2026-04-27-decisionatlas-v0-3-next-roadmap.md` reflects the current next route
+- [ ] `docs/project/release-notes-v0.3.0-rc.1.md` records shipped capabilities, validation evidence, supported scope, limitations, and tag readiness
+- [ ] `docs/project/release-notes-v0.3.0-rc.1_zh-CN.md` mirrors the v0.3.0-rc.1 release summary for Chinese readers
 - [ ] FAQ reflects actual limitations
 - [ ] `docs/project/real-repository-validation-baseline.md` matches the current curated repo set and imported-workspace expectations
 
@@ -46,11 +53,14 @@ Run individual commands only when debugging a failure from the canonical script.
 
 ## Mandatory limitation disclosures
 
-- [ ] auth limitations stated
+- [ ] full SaaS org-management limitation stated
+- [ ] secret vault limitation stated
+- [ ] GitHub Marketplace/OAuth self-service limitation stated
+- [ ] multi-user collaborative review limitation stated
 - [ ] semantic drift conservatism stated
 - [ ] demo-only assumptions stated
 - [ ] real imported-workspace sparsity limits stated
-- [ ] public-repo-only import scope stated
+- [ ] public-repo default import path and admin/operator access-source binding scope stated
 - [ ] imported readiness and evidence-limited outcomes explained
 
 ## Optional operator-guided real-repo validation
@@ -65,5 +75,5 @@ These checks improve release confidence but are not part of the default offline 
 ## Tagging and publish
 
 - [ ] push `main`
-- [ ] create release tag
+- [ ] create release tag only after explicit release confirmation
 - [ ] publish release notes from the latest milestone summary

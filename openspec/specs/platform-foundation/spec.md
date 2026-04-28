@@ -1,5 +1,8 @@
-## ADDED Requirements
+# platform-foundation Specification
 
+## Purpose
+Define the platform-level ownership, access-source, and product-action permission model that imported workspaces, GitHub App access, private repository access, and role-gated product surfaces build on.
+## Requirements
 ### Requirement: Workspace ownership is explicit
 The system SHALL define imported workspaces as belonging to an explicit owner scope rather than treating repository workspaces as globally shared objects, and SHALL make the current owner scope visible in product navigation before users perform workspace actions.
 
@@ -80,3 +83,19 @@ The system SHALL define platform permissions in terms of product actions such as
 #### Scenario: Product action controls reflect current role
 - **WHEN** the product renders workspace lifecycle actions
 - **THEN** it SHALL use the current session role and owner scope to distinguish available, disabled, and hidden actions
+
+### Requirement: v0.3 platform baseline distinguishes productized flows from full SaaS
+The system SHALL describe the v0.3 platform baseline as productized owner-scoped access and workspace lifecycle flows while keeping full SaaS administration outside the release-candidate scope.
+
+#### Scenario: Productized flows are included in the baseline
+- **WHEN** the v0.3 release candidate describes platform capabilities
+- **THEN** it SHALL include authenticated session recovery, owner-scope switching, role-gated product actions, GitHub App installation binding, and token-backed private repository access binding
+
+#### Scenario: Full SaaS capabilities remain out of scope
+- **WHEN** the v0.3 release candidate describes platform limitations
+- **THEN** it SHALL state that billing, org administration, secret vault, GitHub Marketplace/OAuth self-service installation, and collaborative review workflows are not included
+
+#### Scenario: Follow-up work starts from the RC baseline
+- **WHEN** later platform hardening changes are proposed
+- **THEN** they SHALL identify whether they harden the v0.3 RC baseline or introduce capabilities beyond that baseline
+

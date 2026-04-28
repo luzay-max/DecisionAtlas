@@ -11,6 +11,7 @@
 - **Drift Detection**: Flags rule-first and semantic drift alerts after manual evaluation with conservative imported drift semantics.
 - **Human-in-the-Loop Review**: Lets a reviewer accept, reject, or supersede extracted decisions.
 - **Live Repository Analysis**: Supports one-off live analysis runs for public GitHub repositories through imported workspaces with incremental sync.
+- **Owner-Scoped Product Flows**: Provides local/bootstrap login, owner scope switching, role-gated workspace actions, GitHub App installation binding, and private repository access binding.
 - **Flexible Provider Support**: Works in local mode with fake providers or live mode with OpenAI-compatible LLMs.
 
 ## 🏗 Architecture
@@ -18,7 +19,7 @@
 The platform consists of three main components:
 
 - `apps/web`: Next.js UI for review, search, timeline, dashboard, and drift.
-- `apps/api`: Fastify edge API and future auth boundary.
+- `apps/api`: Fastify edge API, session recovery, and owner-scoped auth boundary.
 - `services/engine`: FastAPI engine for ingest, extraction, retrieval, and drift.
 - **Data Layer**: `PostgreSQL + pgvector` for durable storage and vector search, `Redis` for background coordination.
 
@@ -94,16 +95,17 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [Deployment](./docs/project/deployment.md)
 - [FAQ](./docs/project/faq.md)
 - [Demo Script](./docs/project/demo-script.md)
-- [Release Notes v0.2.2](./docs/project/release-notes-v0.2.2.md)
+- [Release Notes v0.3.0-rc.1](./docs/project/release-notes-v0.3.0-rc.1.md)
 - [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 
 ## ⚠️ Known Limitations
 
-- MVP auth and multi-user permissions are not implemented yet.
+- v0.3 RC includes local/bootstrap session recovery, owner scope switching, and role-gated product actions, but not a full SaaS org-management console.
+- GitHub App installation binding and token-backed private repository access binding are admin/operator flows; full GitHub Marketplace/OAuth self-service and secret vault behavior are not included.
+- Multi-user collaborative review workflows and billing are not included.
 - Semantic drift labels are conservative and intentionally narrow.
-- Live analysis currently supports public GitHub repositories only (via token mode, not GitHub App auth).
 - Imported workspaces can still be sparse depending on repository signal quality.
 
 ---
-*Current Project Stage: `v0.2.2` Release Baseline Preparation - guided demo stable, imported workspace readiness strengthened, platformization still deferred.*
+*Current Project Stage: `v0.3.0-rc.1` Release Candidate Preparation - guided demo stable, imported workspaces bounded, and owner-scoped platform access flows productized for operator/admin use.*

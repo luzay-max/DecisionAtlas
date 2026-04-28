@@ -11,6 +11,7 @@
 - **漂移检测**：通过保守的导入漂移语义，在人工评估后标记出基于规则和语义的漂移告警。
 - **人工审核循环**：允许审核者接受、拒绝或取代提取出的决策。
 - **实时仓库分析**：通过导入的工作区，支持对公共 GitHub 仓库进行一次性实时分析，并支持增量同步。
+- **Owner Scope 产品流程**：支持本地/bootstrap 登录、owner scope 切换、基于角色的工作区操作、GitHub App 安装绑定和私有仓库访问绑定。
 - **灵活的模型提供商支持**：支持使用伪提供商（Fake Provider）的本地模式，或兼容 OpenAI 的实时 LLM 模式。
 
 ## 🏗 架构
@@ -18,7 +19,7 @@
 平台主要由以下三个核心组件构成：
 
 - `apps/web`: 基于 Next.js 的前端 UI，用于审核、搜索、时间线、仪表盘和漂移检测。
-- `apps/api`: Fastify 边缘 API，以及未来的身份验证边界。
+- `apps/api`: Fastify 边缘 API、session 恢复和 owner-scoped auth 边界。
 - `services/engine`: FastAPI 引擎，负责数据摄取、提取、检索和漂移计算。
 - **数据层**：`PostgreSQL + pgvector` 用于持久化存储和向量搜索，`Redis` 用于后台任务协调。
 
@@ -94,16 +95,17 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [部署指南](./docs/project/deployment_zh-CN.md)
 - [常见问题 (FAQ)](./docs/project/faq_zh-CN.md)
 - [演示脚本](./docs/project/demo-script_zh-CN.md)
-- [v0.2.2 发布说明](./docs/project/release-notes-v0.2.2_zh-CN.md)
+- [v0.3.0-rc.1 发布说明](./docs/project/release-notes-v0.3.0-rc.1_zh-CN.md)
 - [架构与规划](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [真实仓库验证](./docs/project/real-repository-validation-baseline.md)
 
 ## ⚠️ 已知限制
 
-- MVP 阶段尚未实现身份验证和多用户权限。
+- v0.3 RC 已包含本地/bootstrap session 恢复、owner scope 切换和基于角色的产品操作，但还不是完整 SaaS 组织管理台。
+- GitHub App 安装绑定和 token-backed 私有仓库访问绑定是 admin/operator 流程；尚不包含完整 GitHub Marketplace/OAuth 自助安装和 secret vault。
+- 暂不包含多人协作 review workflow 和 billing。
 - 语义漂移标签较为保守，被刻意限制在较窄的范围内。
-- 实时分析目前仅支持公共 GitHub 仓库（通过 Token 模式，暂不支持 GitHub App 认证）。
 - 取决于仓库的信号质量，导入的工作区可能仍然会比较稀疏。
 
 ---
-*当前项目阶段：`v0.2.2` 发布基线准备中 - guided demo 已稳定，导入工作区 readiness 已增强，平台化仍然后置。*
+*当前项目阶段：`v0.3.0-rc.1` Release Candidate 准备中 - guided demo 已稳定，导入工作区保持有界，owner-scoped 平台访问流程已产品化为 operator/admin 可用路径。*

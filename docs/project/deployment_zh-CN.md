@@ -4,9 +4,9 @@
 
 ---
 
-### 推荐 v0.2 架构
+### 推荐 v0.3 RC 架构
 
-DecisionAtlas v0.2 设计为单机器演示部署：
+DecisionAtlas v0.3 RC 仍围绕单机演示或预览部署设计，并在现有 web/API/engine 拓扑上叠加明确的 owner-scoped 产品流程：
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -44,6 +44,7 @@ DecisionAtlas v0.2 设计为单机器演示部署：
 | `REDIS_URL` | Redis 连接字符串 |
 | `ENGINE_BASE_URL` | Engine 服务地址 |
 | `API_BASE_URL` | API 服务地址 |
+| `AUTO_BOOTSTRAP_AUTH` | 为本地 demo 和 real stack 启用本地/bootstrap session 恢复 |
 
 托管环境中，`DATABASE_URL`、`REDIS_URL` 和提供商凭据应只存在于宿主机或后端服务面。浏览器可见配置只应包含访问 API 所需的 Web/API 地址。
 
@@ -66,6 +67,18 @@ DecisionAtlas v0.2 设计为单机器演示部署：
 | `GITHUB_TOKEN` | GitHub 访问令牌 |
 | `DEMO_REPO` | 演示仓库标识符 |
 
+### 平台访问边界
+
+v0.3 RC 包含以下 operator/admin 产品流程：
+
+- 本地/bootstrap session 恢复和登录
+- owner scope 切换
+- 基于角色的工作区操作
+- GitHub App 安装绑定
+- token-backed 私有仓库访问绑定
+
+RC 不包含完整 SaaS 组织管理台、secret vault、billing、GitHub Marketplace/OAuth 自助安装或多人协作 review workflow。
+
 ### 托管操作员流程
 
 运行持久化演示环境时，使用托管操作指南中的检查流程：
@@ -86,19 +99,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps
 ### 启动顺序
 
 ```powershell
-# 1. 启动基础设施
-docker compose up -d postgres redis
-
-# 2. 运行数据库迁移
-cd services/engine
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-
-# 3. 启动所有服务
-pnpm --filter @decisionatlas/api dev
-pnpm --filter @decisionatlas/web dev
+pnpm run dev:real
 ```
+
+停止本地 real stack：
+
+```powershell
+pnpm run dev:real:stop
+```
+
+只有在调试某一层服务时，才建议手动拆开启动。
 
 ### 网络安全
 

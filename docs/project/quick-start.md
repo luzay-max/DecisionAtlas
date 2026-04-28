@@ -38,26 +38,22 @@ This starts a curated demo workspace under `.tmp/` — isolated from your local 
 For a deployment-like environment with PostgreSQL and Redis:
 
 ```powershell
-# 1. Start infrastructure
-docker compose up -d postgres redis
-
-# 2. Prepare the database
-cd services/engine
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-
-# 3. Start services
-# Terminal 1: Engine
-cd services/engine
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# Terminal 2: API
-pnpm --filter @decisionatlas/api dev
-
-# Terminal 3: Web
-pnpm --filter @decisionatlas/web dev
+pnpm run dev:real
 ```
+
+This starts PostgreSQL and Redis, runs migrations, seeds demo data, starts engine/API/web, and enables local bootstrap session recovery for the browser session. Stop it with:
+
+```powershell
+pnpm run dev:real:stop
+```
+
+Use the manual service commands only when debugging a specific layer.
+
+### v0.3 Platform Flows
+
+The v0.3 release-candidate baseline includes local/bootstrap login recovery, owner scope switching, admin/reviewer role gates, GitHub App installation binding, and token-backed private repository access binding.
+
+These are operator/admin setup flows, not a full SaaS admin console. GitHub Marketplace/OAuth self-service installation, secret vault behavior, billing, and collaborative review workflows are still out of scope.
 
 ### Live Provider Mode
 
@@ -109,7 +105,7 @@ Open the web app:
 |-------|----------|
 | `uv` not on PATH | Use `python -m uv ...` instead. The pre-release script handles this automatically. |
 | Import succeeds but no candidates | Verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set. |
-| Live analysis fails | Currently only supports **public GitHub repositories**. Private repos and GitHub App flows are out of scope. |
+| Live analysis fails | Public repository import remains the default path. Admin/operator setup flows can bind GitHub App installations or token-backed private repository access for owner-scoped workspaces. |
 | Docker services unavailable | Retry `docker compose up -d postgres redis` |
 | `.docx` import skipped | Confirm `pandoc` is installed and available in terminal. |
 | Hosted demo state drifted | Run `scripts\demo\reset-demo.ps1` for `demo-workspace`; use `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |

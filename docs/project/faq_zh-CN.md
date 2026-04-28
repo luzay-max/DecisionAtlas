@@ -37,15 +37,21 @@
 
 > 设计上仍然保持保守，倾向于漏报而不是夸大仓库变更。
 
-### MVP 还缺少什么？
+### v0.3 RC 还缺少什么？
 
 | 功能 | 状态 |
 |------|------|
-| 生产级身份验证和权限 | 计划中 |
+| 本地/bootstrap session、owner scope 切换和角色门禁 | 已包含在 v0.3 RC |
+| GitHub App 安装绑定 | 已作为 admin/operator 设置流程包含 |
+| token-backed 私有仓库访问绑定 | 已作为 admin/operator 设置流程包含 |
+| 完整 SaaS 组织管理台 | 不包含 |
+| secret vault 和凭据轮换 UI | 不包含 |
+| GitHub Marketplace/OAuth 自助安装 | 不包含 |
+| 多人协作 review workflow | 不包含 |
+| billing | 不包含 |
 | GitHub 和本地文档以外的机构级连接器 | 计划中 |
 | 成熟的异步任务编排 | 计划中 |
-| 托管式 GitHub App 和 Webhook 同步 | 计划中 |
-| 发布截图和最终公开上线优化 | 计划中 |
+| hosted preview 上线打磨 | 计划中 |
 
 ### 支持 `.docx` 吗？
 
@@ -77,11 +83,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 
 ### 实时分析支持所有仓库吗？
 
-目前还不行。此阶段仅支持**公共 GitHub 仓库**。
+不是全部支持。公共 GitHub 仓库导入仍是默认 live-analysis 路径。
 
-- 不支持私有仓库认证
-- 不支持 GitHub App 安装流程
-- 不支持持久化多仓库连接管理
+v0.3 RC 也包含 admin/operator 流程，可以在当前 owner scope 内将仓库绑定到 GitHub App 安装或 token-backed 私有访问源。这些流程尚不包含完整 Marketplace/OAuth 自助安装、secret vault 或持久化多仓库连接管理。
 
 如果仓库缺乏 ADR、文档或理由，正确的结果可能是 `insufficient_evidence`（证据不足），而不是丰富的答案集。
 

@@ -37,15 +37,21 @@ Imported drift is now more usable:
 
 > It is still conservative by design and may under-report rather than overstate repository change.
 
-### What is missing from the MVP?
+### What is missing from the v0.3 RC?
 
 | Feature | Status |
 |---------|--------|
-| Production auth and permissions | Planned |
+| Local/bootstrap session, owner scope switching, and role gates | Included in v0.3 RC |
+| GitHub App installation binding | Included as an admin/operator setup flow |
+| Token-backed private repository access binding | Included as an admin/operator setup flow |
+| Full SaaS org-management console | Not included |
+| Secret vault and credential rotation UI | Not included |
+| GitHub Marketplace/OAuth self-service installation | Not included |
+| Multi-user collaborative review workflow | Not included |
+| Billing | Not included |
 | Org-wide connectors beyond GitHub and local docs | Planned |
 | Mature async job orchestration | Planned |
-| Hosted GitHub App and webhook sync | Planned |
-| Release screenshots and final public launch polish | Planned |
+| Hosted preview launch polish | Planned |
 
 ### Is `.docx` supported?
 
@@ -77,11 +83,9 @@ These are hosted environment checks, not a replacement for the default release g
 
 ### Does live analysis support any repository?
 
-Not yet. This phase supports **public GitHub repositories only**.
+Not universally. Public GitHub repository import remains the default live-analysis path.
 
-- No private repository auth
-- No GitHub App installation flow
-- No persistent multi-repository connection management
+v0.3 RC also includes admin/operator flows to bind a repository to a GitHub App installation or token-backed private access source inside the current owner scope. Those flows do not yet provide full Marketplace/OAuth self-service installation, secret vault behavior, or persistent multi-repository connection management.
 
 If a repository is thin on ADRs, docs, or rationale, the correct outcome may be `insufficient_evidence` rather than a rich answer set.
 
