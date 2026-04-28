@@ -86,8 +86,41 @@ Troubleshooting:
 Deferred scope:
 
 - Full GitHub Marketplace/OAuth self-service setup.
-- Broader private-repository hardening beyond the current GitHub App installation binding path.
 - Hosted live webhook delivery as a default release-gate requirement.
+
+## Private Repository Access Operations
+
+Token-backed private repository access is an admin/operator setup flow for the current owner scope. It is intended for bounded hosted-preview validation and controlled real-repository checks, not for full SaaS secret management.
+
+Recommended token boundary:
+
+- Use a GitHub token with the minimum repository read access required for the target private repository.
+- Prefer a token dedicated to the hosted preview environment rather than a personal day-to-day token.
+- Treat submitted tokens as backend-only credentials. They must not appear in browser-visible config, client bundles, logs, screenshots, or shared reports.
+- Rotate the token if repository permissions change, if access is revoked, or after a hosted-preview exercise that used sensitive data.
+
+Validation path:
+
+1. Sign in as an admin for the intended owner scope.
+2. Open the private repository access setup panel.
+3. Submit `owner/private-repo`, the token, and an operator-friendly source label.
+4. Confirm the product result shows the private GitHub source label, authorization status, and workspace slug without echoing the submitted token.
+5. Open the workspace dashboard or readiness surface and confirm the same access-source label and status are visible before import, sync, or review actions.
+
+Troubleshooting:
+
+- `missing source` or `credential_required`: create or rebind the private access source for the current owner scope.
+- `unauthorized`, `authorization_failed`, or `invalid`: rotate the token or grant it read access to the repository, then bind again.
+- `repository_not_found`: confirm the repository name and whether the token can see that private repository.
+- `provider_failure` or `network_failure`: retry after GitHub or network recovery; do not rotate credentials unless the failure persists as authorization-specific.
+- `stale status`: rebind or rerun a validation import so the access-source status reflects current GitHub permissions.
+
+Deferred scope:
+
+- No secret vault or encrypted credential-management UI.
+- No token rotation history or credential audit-log UI.
+- No GitHub OAuth / Marketplace self-service private repository onboarding.
+- No live private repository credentials in default CI or `scripts/ci/pre-release.ps1`.
 
 ## Health Check
 

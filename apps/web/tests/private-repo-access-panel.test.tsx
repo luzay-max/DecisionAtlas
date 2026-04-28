@@ -69,6 +69,7 @@ describe("PrivateRepoAccessPanel", () => {
     );
 
     await waitFor(() => expect(screen.getByText(/Current owner scope:/)).toHaveTextContent("team-a"));
+    expect(screen.getByText(/Use a GitHub token with the minimum repository read access needed/)).toBeInTheDocument();
     await user.type(screen.getByLabelText("Private repository"), "org/private-repo");
     await user.type(screen.getByLabelText("GitHub token"), "ghp-private-token");
     await user.type(screen.getByLabelText("Source label"), "team private repo");
@@ -85,6 +86,7 @@ describe("PrivateRepoAccessPanel", () => {
     expect(screen.getByText("Private repository access bound to this owner scope.")).toBeInTheDocument();
     expect(screen.getByText("Private GitHub source team private repo")).toBeInTheDocument();
     expect(screen.getByText(/Authorization status:/)).toHaveTextContent("authorized");
+    expect(screen.getByText("This source is currently authorized.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open workspace" })).toHaveAttribute(
       "href",
       "/workspaces/github-org-private-repo"
@@ -112,6 +114,40 @@ describe("PrivateRepoAccessPanel", () => {
     expect(screen.queryByRole("link", { name: "Open workspace" })).not.toBeInTheDocument();
     expect(screen.queryByText("ghp-private-token")).not.toBeInTheDocument();
     expect(screen.getByLabelText("GitHub token")).toHaveValue("");
+  });
+
+  it("shows actionable recovery copy for unauthorized private access results", async () => {
+    vi.mocked(api.getProductSession).mockResolvedValue(adminSession);
+    vi.mocked(api.bindGithubPrivateAccess).mockResolvedValue({
+      owner_scope: "team-a",
+      repo: "org/private-repo",
+      repo_url: "https://github.com/org/private-repo",
+      workspace_exists: true,
+      workspace_slug: "github-org-private-repo",
+      has_successful_import: false,
+      can_incremental_sync: false,
+      has_running_import: false,
+      latest_import: null,
+      access_source_type: "github_token",
+      access_source_label: "Private GitHub source team private repo",
+      access_source_status: "unauthorized",
+      access_source_status_detail: "GitHub token is unauthorized, expired, revoked, or lacks access to this repository.",
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProductSessionProvider>
+        <PrivateRepoAccessPanel />
+      </ProductSessionProvider>
+    );
+
+    await user.type(await screen.findByLabelText("Private repository"), "org/private-repo");
+    await user.type(screen.getByLabelText("GitHub token"), "ghp-private-token");
+    await user.click(screen.getByRole("button", { name: "Bind private repository access" }));
+
+    await waitFor(() => expect(screen.getByText(/Authorization status:/)).toHaveTextContent("unauthorized"));
+    expect(screen.getByText(/Rotate the token or grant it access to this repository/)).toBeInTheDocument();
+    expect(screen.queryByText("ghp-private-token")).not.toBeInTheDocument();
   });
 
   it("keeps private access setup admin-only", async () => {

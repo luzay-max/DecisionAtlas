@@ -246,6 +246,7 @@ describe("POST /imports/github", () => {
       payload: {
         repo: "org/private-repo",
         token: "ghp-private-token",
+        owner_scope: "malicious-scope",
         source_ref: "org/private-repo",
         source_label: "team private repo",
       }

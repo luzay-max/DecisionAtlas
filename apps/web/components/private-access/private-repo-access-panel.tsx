@@ -4,8 +4,10 @@ import Link from "next/link";
 import React, { useState } from "react";
 
 import { bindGithubPrivateAccess, type ImportLookup } from "../../lib/api";
+import { accessSourceStatusLabel, privateAccessRecoveryCopy } from "../access-source/access-source-status";
 import { AdminOnly } from "../auth/role-gate";
 import { useProductSession } from "../auth/session-provider";
+import { useI18n } from "../i18n/language-provider";
 
 export function PrivateRepoAccessPanel() {
   return (
@@ -16,6 +18,7 @@ export function PrivateRepoAccessPanel() {
 }
 
 function PrivateRepoAccessForm() {
+  const { messages } = useI18n();
   const { session } = useProductSession();
   const [repo, setRepo] = useState("");
   const [token, setToken] = useState("");
@@ -58,8 +61,7 @@ function PrivateRepoAccessForm() {
           Current owner scope: <strong>{session?.current_owner_scope ?? "recovering session"}</strong>
         </p>
         <p>
-          Use this admin setup path for private repositories that are not yet covered by a GitHub App installation.
-          Tokens are submitted once and are not shown after binding.
+          {messages.privateAccess.boundary}
         </p>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
@@ -122,9 +124,12 @@ function PrivateRepoAccessForm() {
           {result.access_source_status ? (
             <p>
               Authorization status:{" "}
-              <strong>{result.access_source_status}</strong>
+              <strong>{accessSourceStatusLabel(messages, result.access_source_status)}</strong>
               {result.access_source_status_detail ? ` - ${result.access_source_status_detail}` : ""}
             </p>
+          ) : null}
+          {privateAccessRecoveryCopy(messages, result.access_source_status) ? (
+            <p>{privateAccessRecoveryCopy(messages, result.access_source_status)}</p>
           ) : null}
           <div className="action-row">
             <Link href={`/workspaces/${encodeURIComponent(result.workspace_slug)}`} className="action-link">

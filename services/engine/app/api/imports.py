@@ -26,7 +26,7 @@ class GitHubImportRequest(BaseModel):
     repo: str
     mode: str = "full"
     owner_scope: str | None = None
-    access_source_type: str = "public"
+    access_source_type: str | None = None
     access_source_ref: str | None = None
 
 

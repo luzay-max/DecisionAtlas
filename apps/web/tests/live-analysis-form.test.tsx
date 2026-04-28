@@ -159,5 +159,43 @@ describe("LiveAnalysisForm", () => {
         )
       ).toBeInTheDocument();
     });
+    expect(screen.getByText("Private repository access setup is required before import can proceed.")).toBeInTheDocument();
+  });
+
+  it("shows token-backed lookup status and bounded detail before actions", async () => {
+    const user = userEvent.setup();
+    lookupGithubImport.mockResolvedValue({
+      owner_scope: "local-default",
+      repo: "org/private-repo",
+      repo_url: "https://github.com/org/private-repo",
+      workspace_exists: true,
+      workspace_slug: "github-org-private-repo",
+      has_successful_import: false,
+      can_incremental_sync: false,
+      has_running_import: false,
+      latest_import: null,
+      access_source_type: "github_token",
+      access_source_label: "Private GitHub source team private repo",
+      access_source_status: "unauthorized",
+      access_source_status_detail: "GitHub token is unauthorized, expired, revoked, or lacks access to this repository.",
+    });
+
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "org/private-repo");
+
+    await waitFor(() => {
+      expect(screen.getByText("Repository access source: Private GitHub source team private repo")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Access status: unauthorized")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Access detail: GitHub token is unauthorized, expired, revoked, or lacks access to this repository."
+      )
+    ).toBeInTheDocument();
   });
 });

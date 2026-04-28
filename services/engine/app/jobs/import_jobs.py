@@ -32,6 +32,9 @@ from app.repositories.workspaces import WorkspaceRepository
 
 DEFAULT_OWNER_SCOPE = "local-default"
 QUALIFYING_WEBHOOK_EVENTS = {"push", "pull_request", "issues"}
+PRIVATE_ACCESS_AUTH_DETAIL = "GitHub token is unauthorized, expired, revoked, or lacks access to this repository."
+PRIVATE_ACCESS_NOT_FOUND_DETAIL = "Repository was not found for the selected private access source."
+PRIVATE_ACCESS_NETWORK_DETAIL = "GitHub provider or network failure while validating private repository access."
 
 
 class RepositoryAccessError(ValueError):
@@ -64,6 +67,20 @@ def queue_github_import(
             access_source_type=access_source_type,
             access_source_ref=access_source_ref,
         )
+        preflight_validated = False
+        if resolved_access_source_type == "github_token":
+            try:
+                _preflight_repository_access(
+                    session=session,
+                    repo_ref=repo_ref,
+                    owner_scope=effective_owner_scope,
+                    access_source_type=resolved_access_source_type,
+                    access_source_ref=resolved_access_source_ref,
+                )
+                preflight_validated = True
+            except RepositoryAccessError:
+                session.commit()
+                raise
         workspaces = WorkspaceRepository(session)
         workspace = _resolve_workspace(
             workspaces=workspaces,
@@ -74,13 +91,14 @@ def queue_github_import(
             access_source_type=resolved_access_source_type,
             access_source_ref=resolved_access_source_ref,
         )
-        _preflight_repository_access(
-            session=session,
-            repo_ref=repo_ref,
-            owner_scope=workspace.owner_scope,
-            access_source_type=workspace.access_source_type,
-            access_source_ref=workspace.access_source_ref,
-        )
+        if not preflight_validated:
+            _preflight_repository_access(
+                session=session,
+                repo_ref=repo_ref,
+                owner_scope=workspace.owner_scope,
+                access_source_type=workspace.access_source_type,
+                access_source_ref=workspace.access_source_ref,
+            )
         if mode not in {"full", "since_last_sync"}:
             raise ValueError(f"Unsupported import mode: {mode}")
 
@@ -443,10 +461,8 @@ def bind_github_private_access_source(
         try:
             metadata = GitHubClient(token=token, max_pages=get_settings().github_import_max_pages).get_repository_metadata(repo_ref)
         except (httpx.HTTPStatusError, GitHubNetworkError) as exc:
-            raise RepositoryAccessError(
-                f"Private repository authorization failed for {repo_ref}.",
-                failure_category="authorization_failed",
-            ) from exc
+            category, _status, detail = _classify_private_access_validation_failure(exc, repo_ref=repo_ref)
+            raise RepositoryAccessError(detail, failure_category=category) from exc
 
         source_key = (source_ref or repo_ref).strip()
         display_label = (source_label or repo_ref).strip()
@@ -807,8 +823,11 @@ def _preflight_repository_access(
             f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
             failure_category="credential_required",
         ) from exc
-    except GitHubNetworkError:
-        return
+    except GitHubNetworkError as exc:
+        raise RepositoryAccessError(
+            f"GitHub provider or network failure while checking repository access for {repo_ref}.",
+            failure_category="network_failure",
+        ) from exc
 
     if access_source_type == "public" and metadata.get("private"):
         raise RepositoryAccessError(
@@ -847,11 +866,23 @@ def _validate_private_access_source(
         GitHubClient(token=record.token_secret, max_pages=max_pages).get_repository_metadata(repo_ref)
         repository.mark_authorized(record, validated_at=validated_at)
     except (httpx.HTTPStatusError, GitHubNetworkError) as exc:
-        repository.mark_invalid(record, validated_at=validated_at, error_message="GitHub authorization check failed.")
-        raise RepositoryAccessError(
-            f"Private repository authorization failed for {repo_ref}.",
-            failure_category="authorization_failed",
-        ) from exc
+        category, status, detail = _classify_private_access_validation_failure(exc, repo_ref=repo_ref)
+        repository.mark_status(record, status=status, validated_at=validated_at, error_message=detail)
+        raise RepositoryAccessError(detail, failure_category=category) from exc
+
+
+def _classify_private_access_validation_failure(exc: Exception, *, repo_ref: str) -> tuple[str, str, str]:
+    if isinstance(exc, GitHubNetworkError):
+        return "network_failure", "provider_failure", f"{PRIVATE_ACCESS_NETWORK_DETAIL} Retry validation for {repo_ref}."
+    if isinstance(exc, httpx.HTTPStatusError):
+        status_code = exc.response.status_code
+        if status_code in {401, 403}:
+            return "authorization_failed", "unauthorized", PRIVATE_ACCESS_AUTH_DETAIL
+        if status_code == 404:
+            return "repository_not_found", "repository_not_found", f"Repository {repo_ref} was not found for the selected private access source."
+        if 400 <= status_code < 500:
+            return "validation_failed", "invalid", f"GitHub rejected private repository access validation for {repo_ref}."
+    return "provider_failure", "provider_failure", f"{PRIVATE_ACCESS_NETWORK_DETAIL} Retry validation for {repo_ref}."
 
 
 def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: str | None) -> None:

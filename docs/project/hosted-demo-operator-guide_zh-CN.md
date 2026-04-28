@@ -86,8 +86,41 @@ POST /imports/github/webhook
 延期范围：
 
 - 完整 GitHub Marketplace/OAuth 自助安装。
-- 超出当前 GitHub App installation binding 路径的更广泛 private-repository hardening。
 - 把 hosted live webhook delivery 纳入默认 release gate。
+
+## 私有仓库访问操作
+
+Token-backed 私有仓库访问是当前 owner scope 下的 admin/operator 设置流程。它用于有界的 hosted-preview 验证和受控真实仓库检查，不是完整 SaaS secret 管理。
+
+推荐 token 边界：
+
+- 使用只具备目标私有仓库读权限所需最小权限的 GitHub token。
+- 优先使用专门给 hosted preview 环境准备的 token，而不是日常个人 token。
+- 提交的 token 必须视为后端专用凭据，不应出现在浏览器可见配置、客户端 bundle、日志、截图或共享报告中。
+- 当仓库权限变化、访问被撤销，或一次使用敏感数据的 hosted-preview 演练结束后，应轮换 token。
+
+验证路径：
+
+1. 以目标 owner scope 的 admin 身份登录。
+2. 打开 private repository access setup 面板。
+3. 提交 `owner/private-repo`、token 和便于操作员识别的 source label。
+4. 确认产品结果显示 private GitHub source label、authorization status 和 workspace slug，且没有回显提交的 token。
+5. 打开 workspace dashboard 或 readiness surface，确认 import、sync 或 review 操作前能看到同样的 access-source label 和 status。
+
+排障：
+
+- `missing source` 或 `credential_required`：为当前 owner scope 创建或重新绑定 private access source。
+- `unauthorized`、`authorization_failed` 或 `invalid`：轮换 token，或授予它该仓库的读权限，然后重新绑定。
+- `repository_not_found`：确认仓库名，以及 token 是否能看到这个私有仓库。
+- `provider_failure` 或 `network_failure`：等待 GitHub 或网络恢复后重试；除非持续变成授权类失败，否则不要直接轮换凭据。
+- `stale status`：重新绑定或重新跑一次校验导入，让 access-source status 反映当前 GitHub 权限。
+
+延期范围：
+
+- 不做 secret vault 或加密凭据管理 UI。
+- 不做 token rotation history 或凭据审计日志 UI。
+- 不做 GitHub OAuth / Marketplace 私有仓库自助接入。
+- 默认 CI 或 `scripts/ci/pre-release.ps1` 不要求 live private repository credentials。
 
 ## 健康检查
 

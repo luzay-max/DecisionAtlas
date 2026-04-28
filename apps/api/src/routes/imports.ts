@@ -128,6 +128,13 @@ export async function importsRoute(app: FastifyInstance) {
       });
     }
 
+    const payload = {
+      repo: parsed.data.repo,
+      token: parsed.data.token,
+      ...(parsed.data.source_ref ? { source_ref: parsed.data.source_ref } : {}),
+      ...(parsed.data.source_label ? { source_label: parsed.data.source_label } : {}),
+      ...(parsed.data.workspace_slug ? { workspace_slug: parsed.data.workspace_slug } : {}),
+    };
     const env = getEnv();
     const authHeaders = await authHeadersForRequest(request);
     const upstream = await fetchUpstreamPayload(
@@ -137,7 +144,7 @@ export async function importsRoute(app: FastifyInstance) {
           "content-type": "application/json",
           ...authHeaders,
         },
-        body: JSON.stringify(parsed.data)
+        body: JSON.stringify(payload)
       }),
       app.log,
       "POST /imports/github/private-access/bind"

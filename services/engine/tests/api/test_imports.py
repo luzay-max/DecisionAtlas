@@ -9,7 +9,7 @@ import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from app.db.models import ImportJob, Workspace
+from app.db.models import GitHubTokenAccessSource, ImportJob, Workspace
 from app.main import create_app
 
 
@@ -321,6 +321,84 @@ def test_bind_private_access_marks_workspace_as_token_backed(tmp_path: Path, mon
     assert body["access_source_type"] == "github_token"
     assert body["access_source_status"] == "authorized"
     assert "Private GitHub source team private repo" == body["access_source_label"]
+    assert "ghp-private-token" not in str(body)
+
+
+def test_bind_private_access_classifies_unauthorized_without_echoing_token(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "private-bind-unauthorized.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    response = httpx.Response(401, request=request, json={"message": "Bad credentials"})
+
+    def fake_get_repository_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("bad credentials", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+
+    client = TestClient(create_app())
+    bind_response = client.post(
+        "/imports/github/private-access/bind",
+        json={
+            "repo": "org/private-repo",
+            "token": "ghp-private-token",
+            "source_ref": "org/private-repo",
+            "source_label": "team private repo",
+        },
+    )
+
+    assert bind_response.status_code == 403
+    body = bind_response.json()
+    assert body["detail"] == "GitHub token is unauthorized, expired, revoked, or lacks access to this repository."
+    assert "ghp-private-token" not in str(body)
+
+
+def test_private_token_import_updates_status_for_repository_not_found(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "private-import-not-found.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(
+            GitHubTokenAccessSource(
+                owner_scope="local-default",
+                source_ref="org/private-repo",
+                display_label="team private repo",
+                repo_identity="org/private-repo",
+                token_secret="ghp-should-not-leak",
+                authorization_status="authorized",
+            )
+        )
+        session.commit()
+
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    response = httpx.Response(404, request=request, json={"message": "Not Found"})
+
+    def fake_get_repository_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("not found", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+
+    client = TestClient(create_app())
+    import_response = client.post("/imports/github", json={"repo": "org/private-repo", "mode": "full"})
+
+    assert import_response.status_code == 403
+    body = import_response.json()
+    assert "not found" in body["detail"]
+    assert "ghp-should-not-leak" not in str(body)
+
+    with Session(engine) as session:
+        source = session.query(GitHubTokenAccessSource).filter_by(source_ref="org/private-repo").one()
+        assert source.authorization_status == "repository_not_found"
+        assert "not found" in str(source.last_error)
 
 
 def test_post_imports_github_returns_credential_required_for_private_repo_without_source(tmp_path: Path, monkeypatch) -> None:

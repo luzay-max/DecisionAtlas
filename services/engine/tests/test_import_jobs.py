@@ -12,7 +12,13 @@ from sqlalchemy.orm import Session
 from app.db.models import Artifact, Workspace
 from app.ingest.github_client import GitHubNetworkError
 from app.ingest.github_types import GitHubImportResult
-from app.jobs.import_jobs import _classify_failure, _normalize_repo, queue_github_import, run_github_import
+from app.jobs.import_jobs import (
+    _classify_failure,
+    _classify_private_access_validation_failure,
+    _normalize_repo,
+    queue_github_import,
+    run_github_import,
+)
 from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderTimeoutError
 
 
@@ -356,6 +362,26 @@ def test_classify_failure_distinguishes_network_provider_and_repository_access()
     assert _classify_failure(GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))) == "network_failure"
     assert _classify_failure(http_error) == "repository_access_failure"
     assert _classify_failure(ProviderTimeoutError("provider timeout")) == "provider_failure"
+
+
+def test_private_access_validation_failure_categories_are_stable() -> None:
+    request = httpx.Request("GET", "https://api.github.com/repos/org/private-repo")
+    unauthorized = httpx.HTTPStatusError("bad credentials", request=request, response=httpx.Response(401, request=request))
+    not_found = httpx.HTTPStatusError("not found", request=request, response=httpx.Response(404, request=request))
+    network = GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))
+
+    assert _classify_private_access_validation_failure(unauthorized, repo_ref="org/private-repo")[0:2] == (
+        "authorization_failed",
+        "unauthorized",
+    )
+    assert _classify_private_access_validation_failure(not_found, repo_ref="org/private-repo")[0:2] == (
+        "repository_not_found",
+        "repository_not_found",
+    )
+    assert _classify_private_access_validation_failure(network, repo_ref="org/private-repo")[0:2] == (
+        "network_failure",
+        "provider_failure",
+    )
 
 
 def test_normalize_repo_rejects_invalid_input_without_retryable_client_path() -> None:

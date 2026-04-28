@@ -85,3 +85,17 @@ class GitHubTokenAccessSourceRepository:
         record.last_error = error_message
         self.session.flush()
         return record
+
+    def mark_status(
+        self,
+        record: GitHubTokenAccessSource,
+        *,
+        status: str,
+        validated_at: datetime,
+        error_message: str | None,
+    ) -> GitHubTokenAccessSource:
+        record.authorization_status = status
+        record.last_validated_at = validated_at
+        record.last_error = error_message
+        self.session.flush()
+        return record

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { lookupGithubImport, type ImportLookup, startGithubImport } from "../../lib/api";
+import { accessRequirementCopy, accessSourceStatusLabel } from "../access-source/access-source-status";
 import { useI18n } from "../i18n/language-provider";
 import { syncSummary } from "../sync/sync-provenance";
 
@@ -58,6 +59,8 @@ export function LiveAnalysisForm() {
     return `${base}?job=${encodeURIComponent(jobId)}`;
   }
   const latestLookupSyncSummary = syncSummary(messages, lookup?.latest_import);
+  const lookupAccessStatus = accessSourceStatusLabel(messages, lookup?.access_source_status);
+  const lookupAccessRequirement = accessRequirementCopy(messages, lookup?.access_requirement);
 
   async function startImport(mode: "full" | "since_last_sync", workspaceSlug: string | null) {
     setLoading(true);
@@ -113,6 +116,12 @@ export function LiveAnalysisForm() {
           <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
             {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
+            {lookupAccessStatus ? (
+              <p>{messages.liveAnalysis.accessSourceStatus.replace("{status}", lookupAccessStatus)}</p>
+            ) : null}
+            {lookup.access_source_status_detail ? (
+              <p>{messages.liveAnalysis.accessSourceDetail.replace("{detail}", lookup.access_source_status_detail)}</p>
+            ) : null}
             {latestLookupSyncSummary ? (
               <p>{messages.liveAnalysis.latestSync.replace("{summary}", latestLookupSyncSummary)}</p>
             ) : null}
@@ -138,6 +147,7 @@ export function LiveAnalysisForm() {
           </div>
         </div>
       ) : null}
+      {!lookup?.workspace_exists && lookupAccessRequirement ? <p>{lookupAccessRequirement}</p> : null}
       {!lookup?.workspace_exists && lookup?.access_requirement_detail ? <p>{lookup.access_requirement_detail}</p> : null}
       {message ? <p>{message}</p> : null}
     </form>

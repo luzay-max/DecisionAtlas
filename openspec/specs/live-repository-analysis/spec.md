@@ -1,8 +1,6 @@
 ## Purpose
 Define live repository analysis behavior and honest progress reporting.
-
 ## Requirements
-
 ### Requirement: Live analysis reports honest outcomes
 The system SHALL distinguish successful analysis, insufficient evidence, operational failure, imported-workspace readiness, existing-workspace reuse state, clearer import failure classes, owner-aware repository access context, and product-managed private access setup so users can interpret live-analysis results correctly and know the strongest next action, SHALL expose imported-workspace readiness in a form that product surfaces can reuse consistently after the import completes, and SHALL let admin users bind a repository to a GitHub App installation-backed or token-backed access source before reuse or import.
 
@@ -69,3 +67,23 @@ The system SHALL distinguish successful analysis, insufficient evidence, operati
 #### Scenario: Live analysis is resolved inside the authenticated owner's scope
 - **WHEN** an authenticated actor starts live analysis
 - **THEN** the repository lookup and resulting reuse/import actions SHALL be resolved inside that actor's current owner scope rather than through a global anonymous context
+
+### Requirement: Live analysis reports actionable private access outcomes
+The live-analysis flow SHALL report private repository access outcomes in terms that identify the next useful action.
+
+#### Scenario: Credential setup is required before import
+- **WHEN** live analysis targets a private repository that has no usable owner-scoped access source
+- **THEN** the outcome SHALL state that private access setup is required before import can proceed
+
+#### Scenario: Existing token-backed source is unauthorized
+- **WHEN** live analysis targets a repository bound to a token-backed access source that GitHub rejects
+- **THEN** the outcome SHALL identify the access source as unauthorized, expired, revoked, or insufficiently permitted when that can be determined safely
+
+#### Scenario: Repository-not-found is not treated as credential setup
+- **WHEN** live analysis cannot find the repository using the selected access source
+- **THEN** the outcome SHALL distinguish repository-not-found from credential-required setup
+
+#### Scenario: Network failure is not treated as credential setup
+- **WHEN** live analysis fails because GitHub or the network is unavailable
+- **THEN** the outcome SHALL distinguish provider or network failure from missing or unauthorized credentials
+

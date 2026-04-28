@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 
 import { WorkspaceReadiness } from "../../lib/api";
+import { accessSourceStatusLabel, privateAccessRecoveryCopy } from "../access-source/access-source-status";
 import { useI18n } from "../i18n/language-provider";
 import { syncOriginLabel, syncSummary } from "../sync/sync-provenance";
 
@@ -84,10 +85,13 @@ export function ImportedReadinessCard({
         {readiness.access_source_status ? (
           <p>
             <strong>{messages.importedReadiness.axes.sourceStatus}:</strong>{" "}
-            {messages.status[readiness.access_source_status as keyof typeof messages.status] ?? readiness.access_source_status}
+            {accessSourceStatusLabel(messages, readiness.access_source_status)}
           </p>
         ) : null}
         {readiness.access_source_status_detail ? <p>{readiness.access_source_status_detail}</p> : null}
+        {privateAccessRecoveryCopy(messages, readiness.access_source_status) ? (
+          <p>{privateAccessRecoveryCopy(messages, readiness.access_source_status)}</p>
+        ) : null}
         {latestSyncOrigin ? (
           <p>
             <strong>{messages.importedReadiness.axes.sync}:</strong> {latestSyncOrigin}
