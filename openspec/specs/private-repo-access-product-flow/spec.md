@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define the product flow for configuring and using private repository access.
+
+## Requirements
 
 ### Requirement: Product exposes private repository access setup
 The system SHALL provide an admin-facing product surface for binding token-backed private repository access to a repository inside the current owner scope.

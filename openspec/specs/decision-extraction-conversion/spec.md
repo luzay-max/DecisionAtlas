@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define how screened-in artifacts are converted into decision candidates with artifact context preserved.
+
+## Requirements
 
 ### Requirement: Screened-in artifacts use artifact-aware full extraction
 The system SHALL use artifact-aware full extraction behavior for screened-in imported artifacts so long-form docs, high-signal PRs, and lighter-weight issue or commit evidence are not forced through one identical extraction path, and SHALL allow one bounded recovery extraction attempt when the first conversion pass fails for recoverable reasons on otherwise strong screened-in evidence.

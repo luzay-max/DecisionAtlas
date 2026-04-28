@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define how drift follow-up alerts are collapsed to reduce duplicate or noisy review work.
+
+## Requirements
 
 ### Requirement: Drift follow-up alerts collapse repeated weak signals
 The system SHALL reduce repeated low-signal drift alerts when multiple later artifacts continue the same accepted decision thread without implying a new replacement decision.

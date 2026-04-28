@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define how drift reevaluation replaces stale alerts so users see the current decision status.
+
+## Requirements
 
 ### Requirement: Drift reevaluation replaces stale semantic alerts
 The system SHALL treat the latest drift reevaluation result as the current semantic alert set for the reevaluated imported workspace.

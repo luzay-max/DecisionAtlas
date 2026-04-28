@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define workspace reuse and incremental sync behavior for repository analysis.
+
+## Requirements
 
 ### Requirement: Repository lookup exposes imported workspace reuse state
 The system SHALL let the product look up a repository before starting a live import so the UI can tell whether an imported workspace already exists within the current owner scope, whether incremental sync is available, and whether the reusable workspace is backed by a GitHub App installation.

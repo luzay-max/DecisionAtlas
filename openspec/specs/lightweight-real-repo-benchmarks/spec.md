@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define lightweight real-repository benchmark expectations for validating product quality.
+
+## Requirements
 
 ### Requirement: Curated real-repo benchmark fixtures
 The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations, review-readiness milestones, focused why/drift cases, and operator-guided live observed outcomes without requiring live imports during default validation, SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements, and SHALL allow why-specific expectations that protect stronger post-acceptance support quality without relying on exact answer prose.

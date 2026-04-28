@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define the evidence boundary for treating one decision as superseding another decision.
+
+## Requirements
 
 ### Requirement: Supersession requires decision-layer replacement evidence
 The system SHALL require evidence that a later artifact is replacing the accepted decision itself, not merely substituting an implementation detail underneath the same rationale, before emitting `possible_supersession`, and that boundary SHALL stay conservative for bugfix, lifecycle, and support-path maintenance artifacts.

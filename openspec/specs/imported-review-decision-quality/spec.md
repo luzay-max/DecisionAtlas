@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define decision-quality expectations for imported review cards and review workflows.
+
+## Requirements
 
 ### Requirement: Imported review cards expose enough evidence to judge candidates
 The system SHALL make imported candidate decisions reviewable from the review queue by showing compact evidence, provenance, and confidence context without requiring reviewers to open every decision detail page.

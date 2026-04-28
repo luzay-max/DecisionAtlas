@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define how artifact indexing preserves real evidence for later retrieval and review.
+
+## Requirements
 
 ### Requirement: Artifact indexing preserves document structure for evidence retrieval
 The system SHALL chunk repository artifacts in a structure-aware way so rationale-bearing sections are preserved more faithfully than with flat paragraph splitting alone.

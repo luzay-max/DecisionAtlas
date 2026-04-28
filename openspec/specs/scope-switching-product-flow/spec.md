@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define authenticated scope switching behavior in the product shell.
+
+## Requirements
 
 ### Requirement: Product shell exposes authenticated session state
 The system SHALL expose the current authenticated actor, role, and owner scope in the product shell so users can tell which platform boundary they are operating in.

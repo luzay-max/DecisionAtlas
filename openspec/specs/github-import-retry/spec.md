@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define retry behavior for transient GitHub import failures.
+
+## Requirements
 
 ### Requirement: GitHub import retries transient transport failures
 The system SHALL retry GitHub import requests a bounded number of times when the failure appears transient at the transport layer.

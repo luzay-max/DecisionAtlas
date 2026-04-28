@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define expected outcomes and evidence quality for imported real-repository workspaces.
+
+## Requirements
 
 ### Requirement: Imported workspaces expose real-analysis readiness
 The system SHALL summarize imported-workspace readiness so users and validation operators can tell whether a real repository run is ready for review, has established an initial accepted-decision baseline, is ready for grounded why usage, is still evidence-limited, is blocked by low-yield extraction conversion, has failed operationally, or is better handled by reusing existing workspace state instead of blindly rerunning analysis, SHALL expose that readiness in a richer product-facing form that includes recommended actions and explicit downstream readiness for why and drift, and SHALL reserve `conversion_limited` for runs that still produce no reviewable candidate decisions after the refined candidate-conversion path has been attempted.

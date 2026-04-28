@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define throughput expectations for imported decision extraction across realistic repository sizes.
+
+## Requirements
 
 ### Requirement: Imported decision extraction uses a staged funnel
 The system SHALL use a staged extraction funnel for imported workspaces so expensive full candidate extraction is only applied to artifacts that first appear likely to contain a real engineering decision.

@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define owner-scoped private repository access and credential handling requirements.
+
+## Requirements
 
 ### Requirement: Owner-scoped access sources can authorize private repository import
 The system SHALL require private repository import to resolve through an owner-scoped authorized access source instead of assuming anonymous global access.

@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define live repository analysis behavior and honest progress reporting.
+
+## Requirements
 
 ### Requirement: Live analysis reports honest outcomes
 The system SHALL distinguish successful analysis, insufficient evidence, operational failure, imported-workspace readiness, existing-workspace reuse state, clearer import failure classes, owner-aware repository access context, and product-managed private access setup so users can interpret live-analysis results correctly and know the strongest next action, SHALL expose imported-workspace readiness in a form that product surfaces can reuse consistently after the import completes, and SHALL let admin users bind a repository to a GitHub App installation-backed or token-backed access source before reuse or import.

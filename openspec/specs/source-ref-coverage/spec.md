@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define source-reference coverage requirements for extracted decisions.
+
+## Requirements
 
 ### Requirement: Extracted decisions retain multiple grounded source refs when available
 The system SHALL retain more than one grounded source reference for an extracted decision when the underlying imported artifact contains multiple decision-supporting quotes that can be mapped back to real spans, and SHALL expose compact source-ref coverage to imported review surfaces so reviewers can distinguish strongly grounded candidates from thinly supported candidates.

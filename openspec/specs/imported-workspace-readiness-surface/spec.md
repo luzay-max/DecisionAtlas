@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define readiness signals for imported workspaces before users begin review.
+
+## Requirements
 
 ### Requirement: Imported workspace readiness is surfaced as a structured product summary
 The system SHALL expose imported-workspace readiness as a compact structured summary that explains what the workspace is ready for now, why it is in that state, which actions are recommended next, whether the workspace has already established its first accepted-decision baseline, access-source label and authorization state for private repositories, and enough stable status fields for operator-guided live validation to compare dashboard and search behavior without duplicating UI heuristics.

@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define how strong drift signals avoid implying false-positive certainty without sufficient evidence.
+
+## Requirements
 
 ### Requirement: Strong drift alerts avoid implementation-heavy false positives
 The system SHALL avoid promoting implementation-heavy fixes, lifecycle repairs, and support-path maintenance into `possible_supersession` unless stronger evidence shows the accepted decision itself is being displaced.

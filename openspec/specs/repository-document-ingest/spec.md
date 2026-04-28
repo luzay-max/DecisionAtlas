@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define repository document ingestion coverage and prioritization requirements.
+
+## Requirements
 
 ### Requirement: GitHub import includes high-signal repository markdown documents
 The system SHALL import a conservative but more outcome-oriented set of high-signal markdown repository documents alongside issues, pull requests, and commits for real GitHub workspace imports.

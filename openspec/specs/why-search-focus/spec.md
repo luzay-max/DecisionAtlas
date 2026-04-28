@@ -1,4 +1,7 @@
-## MODIFIED Requirements
+## Purpose
+Define why-search focus behavior for selecting primary decision context.
+
+## Requirements
 
 ### Requirement: Why-search selects a primary accepted decision
 The system SHALL select one primary accepted decision for a why-answer before deciding whether any secondary decision may be included as supporting context, and SHALL keep focused imported why questions anchored to the accepted decision that best matches the asked rationale thread instead of whichever nearby decision happened to rank first lexically.

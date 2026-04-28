@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define precision requirements for semantic drift classification and review surfacing.
+
+## Requirements
 
 ### Requirement: Semantic drift classification prefers precision over broad overlap
 The system SHALL require stronger semantic evidence for `possible_supersession` than broad topical similarity plus a generic replacement marker, that evidence SHALL indicate replacement at the decision layer rather than only at an implementation layer, and implementation-heavy maintenance or bugfix language SHALL make stronger replacement classification harder unless unusually explicit decision replacement evidence is present.
