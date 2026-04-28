@@ -97,6 +97,7 @@ export const messages = {
       placeholder: "owner/repo or https://github.com/owner/repo",
       helper: "This creates or reuses an imported workspace for the repository and starts a real analysis run.",
       accessSource: "Repository access source: {source}",
+      latestSync: "Latest sync: {summary}",
       lookupLoading: "Checking whether this repository already has an imported workspace...",
       reuseTitle: "Existing imported workspace found",
       reuseBody: "Repository results already exist in workspace {workspace}. Open it, sync since the last successful import, or run a full analysis again.",
@@ -146,6 +147,7 @@ export const messages = {
       outcomeLabel: "Outcome",
       failureLabel: "Failure",
       syncOriginLabel: "Sync origin",
+      latestSyncSummary: "Latest sync summary: {summary}",
       importMode: {
         full: "full",
         since_last_sync: "since last sync",
@@ -543,6 +545,7 @@ export const messages = {
       placeholder: "owner/repo 或 https://github.com/owner/repo",
       helper: "系统会为该仓库创建或复用一个导入工作区，并启动一次真实分析流程。",
       accessSource: "仓库访问来源：{source}",
+      latestSync: "最近同步：{summary}",
       lookupLoading: "正在检查这个仓库是否已有导入工作区...",
       reuseTitle: "发现已有导入工作区",
       reuseBody: "这个仓库的历史结果已经存在于工作区 {workspace}。你可以直接打开、做增量同步，或重新跑一次完整分析。",
@@ -590,6 +593,7 @@ export const messages = {
       outcomeLabel: "结果",
       failureLabel: "失败类型",
       syncOriginLabel: "同步来源",
+      latestSyncSummary: "最近同步摘要：{summary}",
       importMode: {
         full: "完整",
         since_last_sync: "自上次同步以来",

@@ -569,6 +569,8 @@ def handle_github_webhook(
         "workspace_slug": job["workspace_slug"],
         "owner_scope": owner_scope,
         "job_id": job["job_id"],
+        "sync_origin": job.get("sync_origin"),
+        "trigger_event": job.get("trigger_event"),
         "queued_job": job,
     }
 

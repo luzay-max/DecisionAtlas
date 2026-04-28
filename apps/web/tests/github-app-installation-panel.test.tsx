@@ -83,7 +83,14 @@ describe("GitHubAppInstallationPanel", () => {
     );
     expect(screen.getByText("GitHub App installation bound to this owner scope.")).toBeInTheDocument();
     expect(screen.getByText("GitHub App installation #12345")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Open the workspace dashboard to review latest sync origin, active webhook sync state/i)
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open workspace" })).toHaveAttribute(
+      "href",
+      "/workspaces/github-org-repo"
+    );
+    expect(screen.getByRole("link", { name: "Review sync state" })).toHaveAttribute(
       "href",
       "/workspaces/github-org-repo"
     );

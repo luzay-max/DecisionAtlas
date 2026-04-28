@@ -13,6 +13,7 @@ import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
 import { ImportedReadinessCard } from "../imported/imported-readiness-card";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { syncEventLabel, syncOriginLabel, syncSummary } from "../sync/sync-provenance";
 
 export function WorkspaceDashboardContent({
   summary,
@@ -42,14 +43,9 @@ export function WorkspaceDashboardContent({
     ? (messages.status[latestImportSummary.failure_category as keyof typeof messages.status] ??
       latestImportSummary.failure_category)
     : null;
-  const latestImportOrigin = summary.latest_import?.sync_origin
-    ? (messages.status[summary.latest_import.sync_origin as keyof typeof messages.status] ??
-      summary.latest_import.sync_origin)
-    : null;
-  const latestImportTriggerEvent = summary.latest_import?.trigger_event
-    ? (messages.syncEvents[summary.latest_import.trigger_event as keyof typeof messages.syncEvents] ??
-      summary.latest_import.trigger_event)
-    : null;
+  const latestImportOrigin = syncOriginLabel(messages, summary.latest_import?.sync_origin);
+  const latestImportTriggerEvent = syncEventLabel(messages, summary.latest_import?.trigger_event);
+  const latestSyncSummary = syncSummary(messages, summary.latest_import);
   const skippedDocumentCount = latestImportSummary
     ? Object.values(latestImportSummary.document_summary?.skipped ?? {}).reduce((total, count) => total + count, 0)
     : 0;
@@ -171,6 +167,9 @@ export function WorkspaceDashboardContent({
                 {messages.dashboard.syncOriginLabel}: {latestImportOrigin}
                 {latestImportTriggerEvent ? ` · ${latestImportTriggerEvent}` : ""}
               </p>
+            ) : null}
+            {latestSyncSummary ? (
+              <p>{messages.dashboard.latestSyncSummary.replace("{summary}", latestSyncSummary)}</p>
             ) : null}
             {latestImportStage ? (
               <p>

@@ -230,6 +230,8 @@ describe("WorkspaceDashboardContent", () => {
         (element.textContent?.includes("Latest sync: webhook-triggered incremental sync") ?? false)
       )
     ).toBeInTheDocument();
+    expect(screen.getByText("Latest sync summary: webhook-triggered incremental sync · pull request event · succeeded")).toBeInTheDocument();
+    expect(screen.getByText("webhook-triggered incremental sync · pull request event · succeeded")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to imported dashboard" })).toHaveAttribute(
       "href",
       "/workspaces/imported-workspace"

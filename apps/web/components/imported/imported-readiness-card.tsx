@@ -5,6 +5,7 @@ import React from "react";
 
 import { WorkspaceReadiness } from "../../lib/api";
 import { useI18n } from "../i18n/language-provider";
+import { syncOriginLabel, syncSummary } from "../sync/sync-provenance";
 
 const actionHref: Record<string, (workspaceSlug: string) => string> = {
   review_candidates: (workspaceSlug) => `/review?workspace=${encodeURIComponent(workspaceSlug)}`,
@@ -55,14 +56,8 @@ export function ImportedReadinessCard({
           String(readiness.candidate_decision_count)
         )
       : null;
-  const latestSyncOrigin = readiness.latest_sync_origin
-    ? messages.status[readiness.latest_sync_origin as keyof typeof messages.status] ?? readiness.latest_sync_origin
-    : null;
-  const activeSyncOrigin = readiness.active_sync_origin
-    ? messages.status[readiness.active_sync_origin as keyof typeof messages.status] ?? readiness.active_sync_origin
-    : null;
-  const syncEventLabel = (event: string | null | undefined) =>
-    event ? messages.syncEvents[event as keyof typeof messages.syncEvents] ?? event : null;
+  const latestSyncOrigin = syncOriginLabel(messages, readiness.latest_sync_origin);
+  const activeSyncOrigin = syncOriginLabel(messages, readiness.active_sync_origin);
 
   return (
     <section className="card stack">
@@ -131,17 +126,11 @@ export function ImportedReadinessCard({
             <strong>{messages.importedReadiness.recentSyncs}</strong>
           </p>
           {readiness.recent_syncs.slice(0, 3).map((sync) => {
-            const syncOrigin = sync.sync_origin
-              ? messages.status[sync.sync_origin as keyof typeof messages.status] ?? sync.sync_origin
-              : sync.mode;
-            const syncStatus = messages.status[sync.status as keyof typeof messages.status] ?? sync.status;
-            const triggerEvent = sync.trigger_event
-              ? syncEventLabel(sync.trigger_event)
-              : null;
+            const compactSummary = syncSummary(messages, sync) ?? sync.mode;
             return (
               <p key={sync.job_id}>
-                {syncOrigin} · {syncStatus}
-                {triggerEvent ? ` · ${triggerEvent}` : ""}
+                {compactSummary}
+                {sync.finished_at ? ` · ${sync.finished_at}` : sync.started_at ? ` · ${sync.started_at}` : ""}
               </p>
             );
           })}

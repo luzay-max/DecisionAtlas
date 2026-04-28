@@ -115,6 +115,7 @@ describe("LiveAnalysisForm", () => {
       expect(screen.getByText("Existing imported workspace found")).toBeInTheDocument();
     });
     expect(screen.getByText("Repository access source: GitHub App installation #12345")).toBeInTheDocument();
+    expect(screen.getByText("Latest sync: webhook-triggered incremental sync · succeeded")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Sync since last import" }));
 

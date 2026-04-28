@@ -35,6 +35,7 @@ Optional live-provider environment:
 | `EMBEDDING_API_KEY` | engine | Optional backend-only secret if different from `LLM_API_KEY` |
 | `LLM_BASE_URL` | engine | Optional compatible provider endpoint |
 | `GITHUB_TOKEN` | engine | Optional backend-only token for public GitHub rate limits |
+| `GITHUB_APP_WEBHOOK_SECRET` | engine | Optional backend-only secret used to verify GitHub App webhook signatures |
 
 Provider keys and repository credentials must stay on host-managed or backend-only surfaces. Do not expose them through browser-visible config, client bundles, or public logs.
 
@@ -47,6 +48,46 @@ demo-workspace
 ```
 
 Imported real-repository workspaces are a separate operator-managed lane. They can be used as a bounded credibility check, but they are not the primary public walkthrough and are not reset by the default demo recovery scripts.
+
+## GitHub App Webhook Sync Operations
+
+GitHub App installation binding is an admin/operator setup flow. Full GitHub Marketplace/OAuth self-service installation is still out of scope, but an operator can validate webhook-driven incremental sync for an already installed GitHub App.
+
+Webhook endpoint:
+
+```text
+POST /imports/github/webhook
+```
+
+Expected headers:
+
+| Header | Required | Notes |
+|--------|----------|-------|
+| `X-GitHub-Event` | yes | Supported events: `push`, `pull_request`, `issues` |
+| `X-GitHub-Delivery` | recommended | Used as delivery provenance for the queued sync |
+| `X-Hub-Signature-256` | required when `GITHUB_APP_WEBHOOK_SECRET` is set | Must match the backend-only webhook secret |
+
+Validation path:
+
+1. Bind the repository to an installation from the admin GitHub App setup panel.
+2. Confirm the workspace or lookup surface shows the GitHub App installation access-source label.
+3. Send or replay a supported webhook event for the same installation and repository.
+4. Confirm the workspace dashboard/readiness surface shows webhook-triggered sync provenance.
+5. Keep the default release gate separate: live webhook delivery is operator-guided and is not required by `scripts/ci/pre-release.ps1`.
+
+Troubleshooting:
+
+- `missing installation binding`: bind the repository and installation before replaying the webhook.
+- `unmatched repository`: confirm the webhook payload repository full name matches the bound imported workspace.
+- `invalid headers or signature`: verify event headers and `GITHUB_APP_WEBHOOK_SECRET`; the secret must remain backend-only.
+- `duplicate active sync`: wait for the current queued/running sync to finish before replaying the delivery.
+- `provider or network failure`: inspect the latest import failure and rerun the same delivery after provider/network recovery.
+
+Deferred scope:
+
+- Full GitHub Marketplace/OAuth self-service setup.
+- Broader private-repository hardening beyond the current GitHub App installation binding path.
+- Hosted live webhook delivery as a default release-gate requirement.
 
 ## Health Check
 

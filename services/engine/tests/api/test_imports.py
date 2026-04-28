@@ -420,6 +420,8 @@ def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp
     assert body["status"] == "queued"
     assert body["workspace_slug"] == "github-org-repo"
     assert body["job_id"]
+    assert body["sync_origin"] == "webhook"
+    assert body["trigger_event"] == "pull_request"
     assert scheduled == [
         {
             "job_id": body["job_id"],
@@ -428,3 +430,67 @@ def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp
             "mode": "since_last_sync",
         }
     ]
+
+
+def test_webhook_does_not_enqueue_duplicate_active_sync(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "webhook-active-sync.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    client = TestClient(create_app())
+    bind_response = client.post(
+        "/imports/github/installations/bind",
+        json={
+            "repo": "org/repo",
+            "installation_id": "12345",
+        },
+    )
+    assert bind_response.status_code == 200
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = session.query(Workspace).filter_by(slug="github-org-repo").one()
+        session.add(
+            ImportJob(
+                job_id="job-active",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="since_last_sync",
+                status="running",
+                sync_origin="installation_manual_incremental",
+                imported_count=0,
+                summary_json={"stage": "importing_artifacts"},
+            )
+        )
+        session.commit()
+
+    scheduled: list[dict] = []
+
+    def fake_run_github_import(**kwargs):
+        scheduled.append(kwargs)
+        return {"job_id": kwargs["job_id"]}
+
+    monkeypatch.setattr("app.api.imports.run_github_import", fake_run_github_import)
+
+    response = client.post(
+        "/imports/github/webhook",
+        headers={
+            "X-GitHub-Event": "pull_request",
+            "X-GitHub-Delivery": "delivery-duplicate",
+        },
+        json={
+            "action": "synchronize",
+            "installation": {"id": 12345},
+            "repository": {"full_name": "org/repo"},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ignored"
+    assert body["reason"] == "active_sync_exists"
+    assert body["workspace_slug"] == "github-org-repo"
+    assert scheduled == []

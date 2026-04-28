@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { lookupGithubImport, type ImportLookup, startGithubImport } from "../../lib/api";
 import { useI18n } from "../i18n/language-provider";
+import { syncSummary } from "../sync/sync-provenance";
 
 export function LiveAnalysisForm() {
   const { messages } = useI18n();
@@ -56,6 +57,7 @@ export function LiveAnalysisForm() {
     }
     return `${base}?job=${encodeURIComponent(jobId)}`;
   }
+  const latestLookupSyncSummary = syncSummary(messages, lookup?.latest_import);
 
   async function startImport(mode: "full" | "since_last_sync", workspaceSlug: string | null) {
     setLoading(true);
@@ -111,6 +113,9 @@ export function LiveAnalysisForm() {
           <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
             {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
+            {latestLookupSyncSummary ? (
+              <p>{messages.liveAnalysis.latestSync.replace("{summary}", latestLookupSyncSummary)}</p>
+            ) : null}
             {lookup.has_running_import ? <p>{messages.liveAnalysis.runningImportHint}</p> : null}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             <Link href={workspaceHref(lookup.workspace_slug, lookup.has_running_import ? lookup.latest_import?.job_id : null)}>

@@ -56,7 +56,7 @@ function InstallationForm() {
         </p>
         <p>
           Use this admin setup path when a GitHub App installation already exists. Full GitHub callback automation is a
-          follow-up slice.
+          follow-up slice; live webhook delivery remains operator-guided.
         </p>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
@@ -115,15 +115,17 @@ function InstallationForm() {
           <p>
             Workspace <strong>{result.workspace_slug}</strong> is now installation-backed for {result.repo}.
           </p>
+          <p>
+            Open the workspace dashboard to review latest sync origin, active webhook sync state, and recent sync
+            history.
+          </p>
           <div className="action-row">
             <Link href={`/workspaces/${encodeURIComponent(result.workspace_slug)}`} className="action-link">
               Open workspace
             </Link>
-            {result.can_incremental_sync ? (
-              <Link href={`/workspaces/${encodeURIComponent(result.workspace_slug)}`} className="action-link">
-                Review sync state
-              </Link>
-            ) : null}
+            <Link href={`/workspaces/${encodeURIComponent(result.workspace_slug)}`} className="action-link">
+              Review sync state
+            </Link>
           </div>
         </div>
       ) : null}

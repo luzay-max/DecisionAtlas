@@ -35,6 +35,7 @@ public traffic -> web -> api -> engine -> postgres / redis
 | `EMBEDDING_API_KEY` | engine | 如果不同于 `LLM_API_KEY`，可单独设置 |
 | `LLM_BASE_URL` | engine | 可选的兼容提供商端点 |
 | `GITHUB_TOKEN` | engine | 可选，用于公共 GitHub rate limit |
+| `GITHUB_APP_WEBHOOK_SECRET` | engine | 可选的后端专用密钥，用于校验 GitHub App webhook 签名 |
 
 提供商密钥和仓库凭据必须保留在宿主机或后端面。不要把它们暴露到浏览器可见配置、客户端 bundle 或公开日志里。
 
@@ -47,6 +48,46 @@ demo-workspace
 ```
 
 导入的真实仓库工作区是另一条由操作员管理的车道。它可以作为有界可信度检查，但不是主要公开演练路径，也不会被默认 demo 恢复脚本删除。
+
+## GitHub App Webhook 同步操作
+
+GitHub App 安装绑定是 admin/operator 设置流程。完整 GitHub Marketplace/OAuth 自助安装仍不在范围内，但操作员可以对已经安装的 GitHub App 验证 webhook 驱动的增量同步。
+
+Webhook endpoint：
+
+```text
+POST /imports/github/webhook
+```
+
+预期 headers：
+
+| Header | 必需 | 说明 |
+|--------|------|------|
+| `X-GitHub-Event` | 是 | 支持事件：`push`、`pull_request`、`issues` |
+| `X-GitHub-Delivery` | 建议 | 作为排队同步的 delivery provenance |
+| `X-Hub-Signature-256` | 当 `GITHUB_APP_WEBHOOK_SECRET` 已设置时必需 | 必须匹配后端专用 webhook secret |
+
+验证路径：
+
+1. 在 admin GitHub App setup 面板中，把仓库绑定到 installation。
+2. 确认 workspace 或 lookup surface 显示 GitHub App installation access-source label。
+3. 针对同一个 installation 和 repository 发送或重放支持的 webhook event。
+4. 确认 workspace dashboard/readiness surface 显示 webhook-triggered sync provenance。
+5. 保持默认发布门禁分离：live webhook delivery 是 operator-guided，不要求进入 `scripts/ci/pre-release.ps1`。
+
+排障：
+
+- `missing installation binding`：重放 webhook 前先绑定 repository 和 installation。
+- `unmatched repository`：确认 webhook payload 中的 repository full name 与已绑定 imported workspace 一致。
+- `invalid headers or signature`：检查 event headers 和 `GITHUB_APP_WEBHOOK_SECRET`；secret 必须只存在于后端。
+- `duplicate active sync`：等待当前 queued/running sync 结束后再重放 delivery。
+- `provider or network failure`：查看 latest import failure，在 provider/network 恢复后重放同一 delivery。
+
+延期范围：
+
+- 完整 GitHub Marketplace/OAuth 自助安装。
+- 超出当前 GitHub App installation binding 路径的更广泛 private-repository hardening。
+- 把 hosted live webhook delivery 纳入默认 release gate。
 
 ## 健康检查
 
