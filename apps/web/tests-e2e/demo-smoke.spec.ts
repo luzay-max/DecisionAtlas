@@ -25,15 +25,16 @@ test("demo smoke flow", async ({ page }) => {
 
   await page.goto("/workspaces/demo-workspace");
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
-  await expect(page.getByText("Review the seeded candidate decisions")).toBeVisible();
+  await expect(page.getByText("Guided Demo", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Review candidates|Ask why/ }).first()).toBeVisible();
 
   await page.goto("/review?workspace=demo-workspace");
-  await expect(page.getByText("Add Decision Diff View")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Candidate decisions waiting for review|All candidates reviewed/i })).toBeVisible();
 
   await page.goto("/search?workspace=demo-workspace");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("Use Redis Cache: Use Redis as cache only.")).toBeVisible();
 
   await page.goto("/drift?workspace=demo-workspace");
-  await expect(page.getByText("possible drift")).toBeVisible();
+  await expect(page.getByText(/possible[_ ]drift/i)).toBeVisible();
 });
