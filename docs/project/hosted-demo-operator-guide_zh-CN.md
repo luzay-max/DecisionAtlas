@@ -1,10 +1,12 @@
 # Hosted Demo Operator Guide | 托管演示操作指南
 
-[English](hosted-demo-operator-guide.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [返回首页](../README_zh-CN.md)
+[English](hosted-demo-operator-guide.md) | [快速开始](quick-start_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [返回首页](../README_zh-CN.md)
 
 ---
 
 本指南用于运维单机托管版 DecisionAtlas 演示环境。它是运行环境的操作手册，不替代默认的本地发布门禁。
+
+准备外部 preview 时，请使用 [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) 作为演示前检查清单，并在 `v0-3-hosted-preview-readiness-report.md` 记录结果。
 
 ## 环境契约
 

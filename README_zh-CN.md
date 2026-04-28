@@ -95,6 +95,7 @@ LLM_BASE_URL=https://api.openai.com/v1
 - [部署指南](./docs/project/deployment_zh-CN.md)
 - [常见问题 (FAQ)](./docs/project/faq_zh-CN.md)
 - [演示脚本](./docs/project/demo-script_zh-CN.md)
+- [Hosted Preview Readiness](./docs/project/hosted-preview-readiness_zh-CN.md)
 - [v0.3.0-rc.1 发布说明](./docs/project/release-notes-v0.3.0-rc.1_zh-CN.md)
 - [架构与规划](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [真实仓库验证](./docs/project/real-repository-validation-baseline.md)

@@ -1,6 +1,6 @@
 # 快速开始
 
-[返回首页](../README_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [English](quick-start.md)
+[返回首页](../README_zh-CN.md) | [部署指南](deployment_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) | [English](quick-start.md)
 
 ---
 
@@ -84,6 +84,8 @@ Invoke-WebRequest http://localhost:8000/health
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
 ```
+
+外部 hosted walkthrough 前，请使用 [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) 记录 health、smoke、reset/reseed recovery 状态和 known limitations。这些 hosted 检查是 post-RC confidence layer，不替代标准 release gate。
 
 如需进行 release-style 验证，请在仓库根目录运行标准本地门禁：
 

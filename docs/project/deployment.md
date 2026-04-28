@@ -1,6 +1,6 @@
 # Deployment
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](deployment_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](deployment_zh-CN.md)
 
 ---
 
@@ -95,6 +95,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps
 ```
 
 Use `reseed-demo.ps1` when migrations or database drift require a deeper rebuild of `demo-workspace`. The default recovery scripts do not delete imported workspaces.
+
+Before showing the environment externally, run the [Hosted Preview Readiness](hosted-preview-readiness.md) checklist. Hosted preview readiness is a post-RC confidence layer for a running environment; it does not replace the canonical release gate.
 
 ### Bring-up Order
 

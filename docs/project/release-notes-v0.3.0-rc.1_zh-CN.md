@@ -22,6 +22,10 @@ release 文档更新前的基线代码提交：`76d63ff`
   - health、smoke、reset、reseed 脚本用于 operator-guided demo confidence
   - 本地 real/demo stack 入口已经清理
   - 已删除过期早期脚本：`scripts/dev/up.ps1`、`scripts/dev/prepare-demo.ps1` 和 `scripts/ci/run_demo_smoke.ps1`
+- hosted preview readiness 作为 post-RC confidence layer 被记录：
+  - `docs/project/hosted-preview-readiness.md` 定义演示前清单
+  - `docs/project/v0-3-hosted-preview-readiness-report.md` 记录 hosted-preview readiness 证据和限制
+  - hosted checks 不替代标准本地 release gate
 - imported workspace 质量工作仍属于当前基线：
   - 有界 readiness 状态
   - review 质量改进
@@ -76,7 +80,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 - 不包含 GitHub Marketplace/OAuth 自助安装。
 - 不包含 secret vault 和凭据轮换历史 UI。
 - 不包含多人协作 review workflow。
-- hosted preview readiness 是该 RC 基线之后的后续阶段。
+- hosted preview readiness 是运行环境上的 post-RC confidence layer，不是生产 SaaS 承诺。
 - live real-repo validation 仍依赖操作员、provider 和网络条件。
 - imported workspace 仍可能因仓库信号质量而稀疏。
 - semantic drift 仍然保守且刻意收窄。

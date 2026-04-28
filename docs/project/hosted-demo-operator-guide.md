@@ -1,10 +1,12 @@
 # Hosted Demo Operator Guide
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Demo Script](demo-script.md) | [中文](hosted-demo-operator-guide_zh-CN.md)
+[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [Demo Script](demo-script.md) | [中文](hosted-demo-operator-guide_zh-CN.md)
 
 ---
 
 This guide is for operating a single-machine hosted DecisionAtlas demo. It is an operator runbook for a running environment, not a replacement for the default local release gate.
+
+For external preview preparation, use [Hosted Preview Readiness](hosted-preview-readiness.md) as the concise pre-demo checklist and record results in `v0-3-hosted-preview-readiness-report.md`.
 
 ## Environment Contract
 
@@ -180,6 +182,7 @@ Default reset and reseed actions target only `demo-workspace`. Imported workspac
 
 Before a public demo:
 
+- Review [Hosted Preview Readiness](hosted-preview-readiness.md) and confirm there are no `blocking` items in the current readiness report.
 - Confirm backend-only secrets are set only on host/backend surfaces.
 - Run hosted health check.
 - Run hosted smoke check.

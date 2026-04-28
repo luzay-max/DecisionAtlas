@@ -1,6 +1,6 @@
 # Deployment | 部署指南
 
-[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [返回首页](../README_zh-CN.md)
+[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) | [返回首页](../README_zh-CN.md)
 
 ---
 
@@ -87,6 +87,8 @@ RC 不包含完整 SaaS 组织管理台、secret vault、billing、GitHub Market
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
 ```
+
+对外展示前，请运行 [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) 清单。hosted preview readiness 是运行环境的 post-RC confidence layer，不替代标准 release gate。
 
 需要恢复时，先重置 seeded demo：
 

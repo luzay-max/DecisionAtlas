@@ -1,6 +1,6 @@
 # Quick Start
 
-[Home](../README.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [中文](quick-start_zh-CN.md)
+[Home](../README.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](quick-start_zh-CN.md)
 
 ---
 
@@ -84,6 +84,8 @@ For an operator check against a running hosted or local demo environment:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
 ```
+
+Before an external hosted walkthrough, use [Hosted Preview Readiness](hosted-preview-readiness.md) to record health, smoke, reset/reseed recovery status, and any known limitations. These hosted checks are a post-RC confidence layer, not a replacement for the canonical release gate.
 
 For release-style validation, run the canonical local gate from the repository root:
 

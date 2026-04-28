@@ -22,6 +22,10 @@ Baseline code commit before release-doc updates: `76d63ff`
   - health, smoke, reset, and reseed scripts exist for operator-guided demo confidence
   - local real/demo stack entry points have been cleaned up
   - removed obsolete early scripts: `scripts/dev/up.ps1`, `scripts/dev/prepare-demo.ps1`, and `scripts/ci/run_demo_smoke.ps1`
+- Hosted preview readiness is tracked as a post-RC confidence layer:
+  - `docs/project/hosted-preview-readiness.md` defines the pre-demo checklist
+  - `docs/project/v0-3-hosted-preview-readiness-report.md` records hosted-preview readiness evidence and limitations
+  - hosted checks do not replace the canonical local release gate
 - Imported workspace quality work remains part of the baseline:
   - bounded readiness states
   - review quality improvements
@@ -76,7 +80,7 @@ Validation result for this release candidate:
 - GitHub Marketplace/OAuth self-service installation is not included.
 - Secret vault behavior and credential rotation history UI are not included.
 - Multi-user collaborative review workflow is not included.
-- Hosted preview readiness is a follow-up phase after this RC baseline.
+- Hosted preview readiness is a post-RC confidence layer for a running hosted environment, not a production SaaS claim.
 - Live real-repo validation remains operator-guided and provider/network dependent.
 - Imported workspaces can still be sparse depending on repository signal quality.
 - Semantic drift remains conservative and intentionally narrow.
