@@ -5,6 +5,7 @@ import { driftRoute } from "./routes/drift";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { getEnv } from "./plugins/env";
+import { governanceRoute } from "./routes/governance";
 import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
 import { queryRoute } from "./routes/query";
@@ -21,6 +22,7 @@ export function buildServer() {
   app.register(authRoute);
   app.register(healthRoute);
   app.register(importsRoute);
+  app.register(governanceRoute);
   app.register(decisionsRoute);
   app.register(queryRoute);
   app.register(runtimeRoute);

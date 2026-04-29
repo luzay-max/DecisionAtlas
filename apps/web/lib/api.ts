@@ -325,6 +325,40 @@ export type ProviderModeState = {
   override_active: boolean;
 };
 
+export type GovernanceDocument = {
+  id: number;
+  owner_scope: string;
+  title: string;
+  document_type: string;
+  scope: string;
+  status: string;
+  source_path?: string | null;
+  content_hash: string;
+  created_at?: string | null;
+};
+
+export type GovernanceRule = {
+  id: number;
+  owner_scope: string;
+  document_id: number;
+  source_title?: string | null;
+  title: string;
+  description: string;
+  severity: string;
+  scope: string;
+  rationale?: string | null;
+  source_excerpt: string;
+  review_state: "pending" | "accepted" | "rejected" | string;
+  status: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+};
+
+export type GovernanceSummary = {
+  documents: GovernanceDocument[];
+  rules: GovernanceRule[];
+};
+
 export type ProductRole = "viewer" | "reviewer" | "admin" | string;
 
 export type OwnerScopeMembership = {
@@ -632,4 +666,62 @@ export async function setProviderMode(mode: "fake" | "live"): Promise<ProviderMo
     await readError(response, "Failed to update provider mode");
   }
   return response.json();
+}
+
+export async function listGovernanceDocuments(): Promise<GovernanceDocument[]> {
+  const response = await apiFetch(`${apiBaseUrl}/governance/documents`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Failed to load governance documents");
+  }
+  const body = await response.json();
+  return body.documents ?? [];
+}
+
+export async function listGovernanceRules(reviewState?: string): Promise<GovernanceRule[]> {
+  const suffix = reviewState ? `?review_state=${encodeURIComponent(reviewState)}` : "";
+  const response = await apiFetch(`${apiBaseUrl}/governance/rules${suffix}`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Failed to load governance rules");
+  }
+  const body = await response.json();
+  return body.rules ?? [];
+}
+
+export async function importGovernanceDocument(input: {
+  title: string;
+  document_type: string;
+  content: string;
+  scope?: string;
+  status?: string;
+  source_path?: string;
+}): Promise<{ document: GovernanceDocument; drafts: GovernanceRule[] }> {
+  const response = await apiFetch(`${apiBaseUrl}/governance/documents`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to import governance document");
+  }
+  return response.json();
+}
+
+export async function reviewGovernanceRule(
+  draftId: number,
+  reviewState: "accepted" | "rejected"
+): Promise<GovernanceRule> {
+  const response = await apiFetch(`${apiBaseUrl}/governance/rules/${draftId}/review`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ review_state: reviewState }),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to review governance rule");
+  }
+  const body = await response.json();
+  return body.rule;
 }

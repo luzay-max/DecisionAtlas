@@ -1,8 +1,8 @@
 # DecisionAtlas 下一阶段总计划
 
 日期：2026-04-29  
-当前基线：`main` @ `a402eed`  
-状态：v0.3 RC 已封存，阶段 3 已完成，阶段 4 准备启动
+当前基线：`main` @ `0e295f3`  
+状态：v0.3 RC 已封存，阶段 3 已完成，阶段 4 MVP 正在实现
 
 ## 当前状态判断
 
@@ -23,14 +23,15 @@ DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要�
 当前 OpenSpec 状态：
 
 ```text
-active changes: 0
+active changes: 1
+prototype-governance-markdown-ingest
 ```
 
 当前 Git 状态：
 
 ```text
 main is synced with origin/main
-latest commit: a402eed Productize workspace reuse and incremental sync
+latest commit: 0e295f3 Record stage 3 completion and stage 4 next
 release tag: v0.3.0-rc.1 exists locally
 ```
 
@@ -39,7 +40,7 @@ release tag: v0.3.0-rc.1 exists locally
 - 真实 Postgres/Redis stack 和外部 hosted preview 仍需要在具备环境时重跑确认。
 - 真实仓库决策质量和 why-search 检索质量已经完成一轮收紧，但仍需要继续通过真实仓库验证效果。
 - Workspace 复用与增量同步已完成产品化：重复仓库分析会先暴露已有 workspace、增量同步、完整重跑和 active import 状态。
-- AI governance knowledge layer 已经形成方向文档，但还没有进入可执行 MVP。
+- AI governance knowledge layer 已经进入阶段 4 第一刀：先建设 Markdown 治理知识层，不做自动裁决或 CI 阻断。
 
 因此，下一阶段不应继续零散加功能。主线应从：
 
@@ -53,7 +54,7 @@ v0.3 平台化能力补齐
 v0.3 RC 封存 + v0.4 产品价值深化
 ```
 
-阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。下一阶段应进入阶段 4，围绕 Markdown Governance Ingest MVP 启动 AI 可调用治理知识层的第一刀。
+阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。当前正在执行阶段 4，围绕 Markdown Governance Ingest MVP 启动 AI 可调用治理知识层的第一刀。
 
 ## 总体目标
 
@@ -254,6 +255,8 @@ productize-workspace-reuse-and-incremental-sync
 prototype-governance-markdown-ingest
 ```
 
+当前状态：实现中。
+
 ### 目标
 
 启动 AI Governance Knowledge Layer 的第一刀：让用户上传或导入 Markdown 规范、路线、错误总结和人工决策，并把它们转成可审核规则草稿。
@@ -294,11 +297,12 @@ prototype-governance-markdown-ingest
 - 不做复杂知识图谱 UI。
 - 不自动把 AI 抽取结果升级成有效规则。
 - 不接入 CI 阻断。
+- 不在本阶段做 git diff 的 AI 自动裁决。
 
 ### 验收标准
 
 - 用户能导入一组 Markdown 项目规范。
-- AI 能抽取规则草稿。
+- 系统能用确定性规则抽取可审核规则草稿，不依赖 provider credential。
 - 人能审核并接受规则。
 - accepted rules 能被后续 checker 读取。
 
