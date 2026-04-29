@@ -186,7 +186,15 @@ def test_candidate_quality_payload_evaluates_report_observations() -> None:
                 "source_ref_count": 2,
                 "previewable_source_ref_count": 2,
                 "has_primary_artifact": True,
+                "has_source_url": True,
                 "confidence_bucket": "high",
+                "reasons": [
+                    "multiple_source_refs",
+                    "previewable_quote",
+                    "artifact_provenance",
+                    "source_url_available",
+                    "high_confidence",
+                ],
             }
         },
         {
@@ -195,7 +203,15 @@ def test_candidate_quality_payload_evaluates_report_observations() -> None:
                 "source_ref_count": 1,
                 "previewable_source_ref_count": 1,
                 "has_primary_artifact": True,
+                "has_source_url": False,
                 "confidence_bucket": "medium",
+                "reasons": [
+                    "single_source_ref",
+                    "previewable_quote",
+                    "artifact_provenance",
+                    "missing_source_url",
+                    "medium_confidence",
+                ],
             }
         },
     ]
@@ -205,6 +221,10 @@ def test_candidate_quality_payload_evaluates_report_observations() -> None:
     assert passed is True
     assert row["observations"]["strong_candidate_count"] == 1
     assert row["observations"]["thin_candidate_ratio"] == 0
+    assert row["observations"]["source_url_gap_count"] == 1
+    assert row["observations"]["reason_counts"]["missing_source_url"] == 1
+    assert row["observations"]["reason_counts"]["source_url_available"] == 1
+    assert row["checks"]["reason_payload_available"] is True
 
 
 def test_live_real_repo_validation_writes_missing_workspace_report(tmp_path, monkeypatch) -> None:
@@ -300,7 +320,15 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
                         "source_ref_count": 2,
                         "previewable_source_ref_count": 1,
                         "has_primary_artifact": True,
+                        "has_source_url": True,
                         "confidence_bucket": "high",
+                        "reasons": [
+                            "multiple_source_refs",
+                            "previewable_quote",
+                            "artifact_provenance",
+                            "source_url_available",
+                            "high_confidence",
+                        ],
                     }
                 }
             ], None

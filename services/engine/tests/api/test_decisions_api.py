@@ -106,8 +106,12 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[0]["review_evidence"]["source_ref_count"] == 2
     assert body[0]["review_evidence"]["source_ref_preview"][0]["quote"].startswith("We decided to use Redis")
     assert body[0]["candidate_quality"]["label"] == "strong"
+    assert body[0]["candidate_quality"]["summary"] == (
+        "Multiple grounded refs with previewable evidence, provenance, and source URL support."
+    )
     assert body[0]["candidate_quality"]["previewable_source_ref_count"] == 2
     assert body[0]["candidate_quality"]["has_primary_artifact"] is True
+    assert body[0]["candidate_quality"]["has_source_url"] is True
     assert body[0]["candidate_quality"]["confidence_bucket"] == "high"
     assert body[0]["review_evidence"]["primary_artifact"] == {
         "id": 1,
@@ -125,7 +129,96 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
         "missing_source_refs",
         "missing_previewable_quote",
         "missing_artifact_provenance",
+        "missing_source_url",
         "low_confidence",
+    ]
+
+
+def test_candidate_quality_boundaries_do_not_promote_weak_evidence(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "quality-boundaries.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(slug="quality-workspace", name="Quality", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact_without_url = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="2",
+            repo="org/repo",
+            title="Queue decision",
+            content="Use a queue for slow jobs.",
+            author="alice",
+            url=None,
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact_without_url)
+        session.flush()
+        partial_decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Queue",
+            status="active",
+            review_state="candidate",
+            problem="Slow jobs",
+            context=None,
+            constraints=None,
+            chosen_option="Use a queue",
+            tradeoffs="More moving parts",
+            confidence=0.92,
+        )
+        weak_decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Cache",
+            status="active",
+            review_state="candidate",
+            problem="Slow reads",
+            context=None,
+            constraints=None,
+            chosen_option="Use cache",
+            tradeoffs="More infra",
+            confidence=0.97,
+        )
+        session.add_all([partial_decision, weak_decision])
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=partial_decision.id,
+                artifact_id=artifact_without_url.id,
+                span_start=0,
+                span_end=24,
+                quote="Use a queue for slow jobs.",
+                url=None,
+                relevance_score=0.9,
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/decisions", params={"workspace_slug": "quality-workspace", "review_state": "candidate"})
+
+    assert response.status_code == 200
+    by_title = {item["title"]: item for item in response.json()}
+    assert by_title["Use Queue"]["candidate_quality"]["label"] == "partial"
+    assert by_title["Use Queue"]["candidate_quality"]["reasons"] == [
+        "single_source_ref",
+        "previewable_quote",
+        "artifact_provenance",
+        "missing_source_url",
+        "high_confidence",
+    ]
+    assert by_title["Use Cache"]["candidate_quality"]["label"] == "thin"
+    assert by_title["Use Cache"]["candidate_quality"]["reasons"] == [
+        "missing_source_refs",
+        "missing_previewable_quote",
+        "missing_artifact_provenance",
+        "missing_source_url",
+        "high_confidence",
     ]
 
 

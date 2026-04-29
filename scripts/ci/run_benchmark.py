@@ -385,19 +385,26 @@ def _evaluate_dashboard_payload(repository: dict, payload: dict) -> tuple[bool, 
 def _summarize_candidate_quality(candidates: list[dict]) -> dict:
     label_counts: dict[str, int] = {}
     provenance_gaps = 0
+    source_url_gaps = 0
     previewable_refs = 0
     source_refs = 0
     confidence_buckets: dict[str, int] = {}
+    reason_counts: dict[str, int] = {}
     for candidate in candidates:
         quality = candidate.get("candidate_quality") or {}
         label = str(quality.get("label") or "unknown")
         label_counts[label] = label_counts.get(label, 0) + 1
         if quality.get("has_primary_artifact") is False:
             provenance_gaps += 1
+        if quality.get("has_source_url") is False:
+            source_url_gaps += 1
         source_refs += int(quality.get("source_ref_count") or 0)
         previewable_refs += int(quality.get("previewable_source_ref_count") or 0)
         confidence_bucket = str(quality.get("confidence_bucket") or "unknown")
         confidence_buckets[confidence_bucket] = confidence_buckets.get(confidence_bucket, 0) + 1
+        for reason in quality.get("reasons") or []:
+            reason = str(reason)
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
     total = len(candidates)
     thin = label_counts.get("thin", 0)
     return {
@@ -409,7 +416,9 @@ def _summarize_candidate_quality(candidates: list[dict]) -> dict:
         "source_ref_count": source_refs,
         "previewable_source_ref_count": previewable_refs,
         "provenance_gap_count": provenance_gaps,
+        "source_url_gap_count": source_url_gaps,
         "confidence_buckets": confidence_buckets,
+        "reason_counts": reason_counts,
     }
 
 
@@ -422,6 +431,7 @@ def _evaluate_candidate_quality(repository: dict, candidates: list[dict] | None,
             "observations": _summarize_candidate_quality([]),
             "checks": {
                 "quality_payload_available": False,
+                "reason_payload_available": False,
                 "minimum_strong_candidates": False,
                 "maximum_thin_candidate_ratio": False,
                 "provenance_available": False,
@@ -432,6 +442,9 @@ def _evaluate_candidate_quality(repository: dict, candidates: list[dict] | None,
     total = observations["candidate_count"]
     checks = {
         "quality_payload_available": all("candidate_quality" in candidate for candidate in candidates),
+        "reason_payload_available": all(
+            isinstance((candidate.get("candidate_quality") or {}).get("reasons"), list) for candidate in candidates
+        ),
         "minimum_strong_candidates": observations["strong_candidate_count"]
         >= int(expectations.get("minimum_strong_candidates", 0) or 0),
         "maximum_thin_candidate_ratio": observations["thin_candidate_ratio"]

@@ -28,6 +28,10 @@ function qualityLabel(label: string | undefined, messages: ReturnType<typeof use
   return messages.review.qualityThin;
 }
 
+function qualityReasonLabel(reason: string, messages: ReturnType<typeof useI18n>["messages"]) {
+  return messages.review.qualityReasons[reason as keyof typeof messages.review.qualityReasons] ?? reason.replaceAll("_", " ");
+}
+
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
@@ -117,6 +121,13 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
                     ? ` · ${messages.review.previewableSourceRefs.replace("{count}", String(quality.previewable_source_ref_count))}`
                     : null}
                 </p>
+                {quality?.reasons?.length ? (
+                  <p className="muted">
+                    <strong>{messages.review.qualityReasonsTitle}:</strong>{" "}
+                    {quality.reasons.map((reason) => qualityReasonLabel(reason, messages)).join(" · ")}
+                  </p>
+                ) : null}
+                {quality?.label === "partial" ? <p className="muted">{messages.review.qualityPartialGuidance}</p> : null}
                 {quality?.label === "thin" ? <p className="muted">{messages.review.qualityThinGuidance}</p> : null}
                 {evidence?.primary_artifact ? (
                   <p>

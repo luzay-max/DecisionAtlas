@@ -84,14 +84,21 @@ def _candidate_quality(
     else:
         reasons.append("missing_previewable_quote")
     reasons.append("artifact_provenance" if has_primary_artifact else "missing_artifact_provenance")
+    reasons.append("source_url_available" if has_source_url else "missing_source_url")
     reasons.append(f"{confidence_bucket}_confidence")
 
-    if source_ref_count >= 2 and previewable_source_ref_count >= 1 and has_primary_artifact and confidence_bucket != "low":
+    if (
+        source_ref_count >= 2
+        and previewable_source_ref_count >= 1
+        and has_primary_artifact
+        and has_source_url
+        and confidence_bucket != "low"
+    ):
         label = "strong"
-        summary = "Multiple grounded refs with previewable evidence and artifact provenance."
-    elif source_ref_count >= 1 and (previewable_source_ref_count >= 1 or has_primary_artifact):
+        summary = "Multiple grounded refs with previewable evidence, provenance, and source URL support."
+    elif source_ref_count >= 1 and (previewable_source_ref_count >= 1 or has_primary_artifact or has_source_url):
         label = "partial"
-        summary = "Some grounding is available, but reviewer judgment is still required before baseline use."
+        summary = "Some grounding is available, but missing support keeps this below a strong baseline candidate."
     else:
         label = "thin"
         summary = "Thin grounding or missing provenance; keep as diagnosable review input, not a strong baseline."

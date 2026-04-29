@@ -131,13 +131,19 @@ describe("ReviewPageContent", () => {
             source_summary: "Imported repository data from GitHub-backed analysis.",
             candidate_quality: {
               label: "strong",
-              summary: "Multiple grounded refs with previewable evidence and artifact provenance.",
+              summary: "Multiple grounded refs with previewable evidence, provenance, and source URL support.",
               source_ref_count: 2,
               previewable_source_ref_count: 1,
               has_primary_artifact: true,
               has_source_url: true,
               confidence_bucket: "high",
-              reasons: ["multiple_source_refs", "previewable_quote", "artifact_provenance", "high_confidence"],
+              reasons: [
+                "multiple_source_refs",
+                "previewable_quote",
+                "artifact_provenance",
+                "source_url_available",
+                "high_confidence",
+              ],
             },
             review_evidence: {
               state: "grounded",
@@ -169,6 +175,7 @@ describe("ReviewPageContent", () => {
     expect(screen.getByText(/Accept the first well-supported imported candidate/i)).toBeInTheDocument();
     expect(screen.getByText("Strong candidate")).toBeInTheDocument();
     expect(screen.getByText(/Multiple grounded refs with previewable evidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/Multiple source refs.*Previewable quote.*Artifact provenance.*Source URL available/i)).toBeInTheDocument();
     expect(screen.getByText("Multiple grounded source refs")).toBeInTheDocument();
     expect(
       screen.getByText((_, element) =>
@@ -184,6 +191,66 @@ describe("ReviewPageContent", () => {
       "href",
       "/decisions/7?workspace=github-org-repo"
     );
+  });
+
+  it("explains partial imported candidates with bounded missing-support reasons", () => {
+    render(
+      <ReviewPageContent
+        workspaceSlug="github-org-repo"
+        decisions={[
+          {
+            id: 9,
+            workspace_id: 2,
+            title: "Use worker queue",
+            status: "active",
+            review_state: "candidate",
+            problem: "Long-running jobs block requests",
+            context: null,
+            constraints: null,
+            chosen_option: "Move jobs to a queue",
+            tradeoffs: "More operational moving parts",
+            confidence: 0.9,
+            candidate_quality: {
+              label: "partial",
+              summary: "Some grounding is available, but missing support keeps this below a strong baseline candidate.",
+              source_ref_count: 1,
+              previewable_source_ref_count: 1,
+              has_primary_artifact: true,
+              has_source_url: false,
+              confidence_bucket: "high",
+              reasons: ["single_source_ref", "previewable_quote", "artifact_provenance", "missing_source_url", "high_confidence"],
+            },
+            review_evidence: {
+              state: "thin",
+              source_ref_count: 1,
+              primary_artifact: {
+                id: 4,
+                type: "issue",
+                title: "Queue rollout",
+                repo: "org/repo",
+                url: null,
+              },
+              source_ref_preview: [
+                {
+                  id: 10,
+                  artifact_id: 4,
+                  span_start: 0,
+                  span_end: 50,
+                  quote: "Move long-running jobs to a queue before request handling.",
+                  url: null,
+                  relevance_score: 0.83,
+                },
+              ],
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Partial candidate")).toBeInTheDocument();
+    expect(screen.getByText(/below a strong baseline candidate/i)).toBeInTheDocument();
+    expect(screen.getByText(/Single source ref.*Previewable quote.*Missing source URL.*High confidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/usable but incomplete candidate/i)).toBeInTheDocument();
   });
 
   it("labels thin imported candidates so they are not confused with strong baselines", () => {
@@ -202,7 +269,7 @@ describe("ReviewPageContent", () => {
             constraints: null,
             chosen_option: "Use background jobs",
             tradeoffs: "More moving parts",
-            confidence: 0.52,
+            confidence: 0.95,
             candidate_quality: {
               label: "thin",
               summary: "Thin grounding or missing provenance; keep as diagnosable review input, not a strong baseline.",
@@ -210,8 +277,14 @@ describe("ReviewPageContent", () => {
               previewable_source_ref_count: 0,
               has_primary_artifact: false,
               has_source_url: false,
-              confidence_bucket: "low",
-              reasons: ["missing_source_refs", "missing_previewable_quote", "missing_artifact_provenance", "low_confidence"],
+              confidence_bucket: "high",
+              reasons: [
+                "missing_source_refs",
+                "missing_previewable_quote",
+                "missing_artifact_provenance",
+                "missing_source_url",
+                "high_confidence",
+              ],
             },
             review_evidence: {
               state: "missing",
@@ -225,6 +298,7 @@ describe("ReviewPageContent", () => {
     );
 
     expect(screen.getByText("Thin candidate")).toBeInTheDocument();
+    expect(screen.getByText(/Missing source refs.*Missing previewable quote.*Missing source URL.*High confidence/i)).toBeInTheDocument();
     expect(screen.getByText(/Treat this as a diagnostic candidate/i)).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.textContent === "No grounded source refs yet · 0 source refs · 0 previewable refs")).toBeInTheDocument();
   });
