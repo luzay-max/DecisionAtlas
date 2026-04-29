@@ -14,13 +14,13 @@
 
 ## 3. Commit, Tag, And Push
 
-- [ ] 3.1 Commit the master plan, OpenSpec artifacts, and release documentation updates.
-- [ ] 3.2 Verify the final release commit hash after the release commit is created.
-- [ ] 3.3 Create local tag `v0.3.0-rc.1` on the final release commit.
-- [ ] 3.4 Push the release commit and tag to `origin`.
-- [ ] 3.5 Verify local and remote tag state after push.
+- [x] 3.1 Commit the master plan, OpenSpec artifacts, and release documentation updates.
+- [x] 3.2 Verify the final release commit hash after the release commit is created.
+- [x] 3.3 Create local tag `v0.3.0-rc.1` on the final release commit.
+- [x] 3.4 Push the release commit and tag to `origin`.
+- [x] 3.5 Verify local and remote tag state after push.
 
 ## 4. Final Checks
 
-- [ ] 4.1 Re-check `git status --short --branch` to confirm the branch is clean and synced.
-- [ ] 4.2 Record any environment-dependent checks that remain known limitations rather than release blockers.
+- [x] 4.1 Re-check `git status --short --branch` to confirm the branch is clean and synced.
+- [x] 4.2 Record any environment-dependent checks that remain known limitations rather than release blockers.
