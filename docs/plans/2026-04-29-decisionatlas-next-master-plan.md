@@ -1,12 +1,12 @@
 # DecisionAtlas 下一阶段总计划
 
 日期：2026-04-29  
-当前基线：`main` @ `c8162d6`  
-状态：v0.3 RC 已封存，阶段 3 正在启动
+当前基线：`main` @ `a402eed`  
+状态：v0.3 RC 已封存，阶段 3 已完成，阶段 4 准备启动
 
 ## 当前状态判断
 
-DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2 的计划实施。
+DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2、阶段 3 的计划实施。
 
 当前已成立的能力包括：
 
@@ -23,15 +23,14 @@ DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要�
 当前 OpenSpec 状态：
 
 ```text
-active changes: 1
-current change: productize-workspace-reuse-and-incremental-sync
+active changes: 0
 ```
 
 当前 Git 状态：
 
 ```text
 main is synced with origin/main
-latest commit: c8162d6 Improve imported why retrieval quality
+latest commit: a402eed Productize workspace reuse and incremental sync
 release tag: v0.3.0-rc.1 exists locally
 ```
 
@@ -39,7 +38,7 @@ release tag: v0.3.0-rc.1 exists locally
 
 - 真实 Postgres/Redis stack 和外部 hosted preview 仍需要在具备环境时重跑确认。
 - 真实仓库决策质量和 why-search 检索质量已经完成一轮收紧，但仍需要继续通过真实仓库验证效果。
-- Workspace 复用与增量同步的底层能力已经存在，但产品入口仍需要防止用户误触重复 full import。
+- Workspace 复用与增量同步已完成产品化：重复仓库分析会先暴露已有 workspace、增量同步、完整重跑和 active import 状态。
 - AI governance knowledge layer 已经形成方向文档，但还没有进入可执行 MVP。
 
 因此，下一阶段不应继续零散加功能。主线应从：
@@ -54,7 +53,7 @@ v0.3 平台化能力补齐
 v0.3 RC 封存 + v0.4 产品价值深化
 ```
 
-当前阶段 3 的定位是产品化已有 lookup / import job / sync provenance / imported readiness 能力，不另起一条新架构线。实施重点是让用户在重复分析同一仓库时先看到已有 workspace、增量同步和完整重跑的差异，再决定下一步。
+阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。下一阶段应进入阶段 4，围绕 Markdown Governance Ingest MVP 启动 AI 可调用治理知识层的第一刀。
 
 ## 总体目标
 
