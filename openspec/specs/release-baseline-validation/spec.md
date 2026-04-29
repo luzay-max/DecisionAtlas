@@ -53,10 +53,10 @@ The system SHALL define the release baseline in a way that covers both the stabl
 - **THEN** they SHALL identify it as an optional confidence layer rather than as a requirement for the default offline release baseline
 
 ### Requirement: Release notes define the version baseline
-The system SHALL include release notes for each prepared version baseline that summarize shipped capabilities, validation evidence, supported scope, and known limitations.
+The system SHALL include release notes for each prepared version baseline that summarize shipped capabilities, validation evidence, supported scope, known limitations, and final tag status once the version baseline has been tagged.
 
 #### Scenario: Release notes summarize shipped capabilities
-- **WHEN** a version baseline such as `v0.2.2` is prepared
+- **WHEN** a version baseline such as `v0.2.2` or a release candidate such as `v0.3.0-rc.1` is prepared
 - **THEN** release notes SHALL summarize the material shipped capabilities since the previous baseline without requiring readers to inspect git history
 
 #### Scenario: Release notes preserve limitation clarity
@@ -67,8 +67,12 @@ The system SHALL include release notes for each prepared version baseline that s
 - **WHEN** the canonical validation path passes for a prepared version baseline
 - **THEN** release notes or release checklist SHALL identify the intended tag name and commit readiness for that release baseline
 
+#### Scenario: Release notes identify final tag status
+- **WHEN** a prepared version baseline has been tagged locally and pushed to the remote
+- **THEN** release notes or release checklist SHALL identify the final tag target commit and remote tag status
+
 ### Requirement: Release baseline validation supports release candidates
-The system SHALL support release-candidate baseline preparation in addition to final version baselines, using the same canonical validation entrypoint and explicit tag-readiness evidence.
+The system SHALL support release-candidate baseline preparation in addition to final version baselines, using the same canonical validation entrypoint, explicit tag-readiness evidence, and final tag verification when the release candidate is actually tagged.
 
 #### Scenario: Release candidate uses canonical validation
 - **WHEN** a maintainer prepares a release-candidate baseline such as `v0.3.0-rc.1`
@@ -79,8 +83,12 @@ The system SHALL support release-candidate baseline preparation in addition to f
 - **THEN** they SHALL identify it as a release candidate and SHALL NOT imply that it is a final production SaaS release
 
 #### Scenario: Later validation can compare against the RC
-- **WHEN** follow-up hosted preview, real-stack validation, GitHub App sync, or private access hardening work begins
+- **WHEN** follow-up hosted preview, real-stack validation, GitHub App sync, private access hardening, real-repository quality, or governance-layer work begins
 - **THEN** the release-candidate baseline SHALL provide a stable reference point for comparing later behavior and validation results
+
+#### Scenario: Release candidate verifies pushed tag
+- **WHEN** a release candidate is finalized as a Git tag
+- **THEN** maintainers SHALL verify that the tag exists locally and on `origin` before treating the release candidate as sealed
 
 ### Requirement: Release baseline validation distinguishes confidence layers
 The system SHALL distinguish mandatory canonical release validation from broader real-stack confidence validation so release gates remain deterministic while operator-recorded validation can still inform release readiness.
@@ -111,4 +119,3 @@ The system SHALL keep hosted preview readiness distinct from mandatory release b
 #### Scenario: Preview limitations stay visible
 - **WHEN** hosted preview docs or release notes describe external availability
 - **THEN** they SHALL state that the preview is not a production SaaS release and does not include SLA, billing, full org management, or unlimited real repository imports
-
