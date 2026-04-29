@@ -1,6 +1,6 @@
 # DecisionAtlas 发布说明：v0.3.0-rc.1
 
-状态：release candidate 准备中  
+状态：release candidate 已完成 tag 前确认  
 计划 tag：`v0.3.0-rc.1`  
 release 文档更新前的基线代码提交：`76d63ff`
 
@@ -56,6 +56,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 - Playwright smoke 通过：`1 passed`。
 - 未发现阻塞 release 的验证不一致。
 
+最终 tag 前验证结果：
+
+- 2026-04-29 09:32 +08:00 通过，退出码 `0`。
+- release gate 前的 OpenSpec strict validation 通过：`34 passed, 0 failed`。
+- workspace 验证通过：API tests `25 passed`，web tests `58 passed`，API/web typecheck 通过。
+- engine pytest 通过：`167 passed`。
+- 离线 benchmark fixture validation 通过，覆盖 benchmark queries、live-repo fixtures、real-repo why/drift fixtures。
+- Playwright smoke 通过：`1 passed`。
+- 最终 tag 目标：由 `finalize-v0-3-rc-tag-and-validation` 创建的 release commit；tag 后用 `git rev-parse --short v0.3.0-rc.1` 验证。
+
 ## 支持范围
 
 - 稳定 seeded guided demo workspace
@@ -91,9 +101,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 - 计划 tag：`v0.3.0-rc.1`
 - release 文档更新前的基线代码提交：`76d63ff`
 - 已验证 release-doc 工作树：2026-04-28 09:29 +08:00 pre-release validation 通过。
-- 最终 tag 目标：包含这些发布说明和已归档 OpenSpec change 的 release commit。
+- 最终 tag 前验证：2026-04-29 09:32 +08:00 pre-release validation 通过；OpenSpec strict validation 通过，`34 passed, 0 failed`。
+- 最终 tag 目标：包含这些发布说明、v0.3 到 v0.4 总计划和 `finalize-v0-3-rc-tag-and-validation` OpenSpec change 的 release commit。
 - tag 前置条件：release commit 后不存在 active OpenSpec change，且 working tree 干净。
-- tag 状态：尚未创建；仅在明确 release 确认后创建。
+- tag 状态：release commit 后即可创建；推送后需要验证本地和远端 tag 状态。
 
 最终 release commit 创建并确认后，建议使用：
 

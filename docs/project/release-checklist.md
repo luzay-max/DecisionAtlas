@@ -2,9 +2,9 @@
 
 ## Canonical release baseline
 
-- [ ] run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
-- [ ] record the validated commit hash
-- [ ] identify intended tag, for example `v0.3.0-rc.1`
+- [x] run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
+- [x] record the validated commit hash or final tag target verification command
+- [x] identify intended tag, for example `v0.3.0-rc.1`
 
 This is the canonical local release baseline validation path for the current branch. It covers:
 
@@ -14,6 +14,16 @@ This is the canonical local release baseline validation path for the current bra
 - Playwright smoke coverage
 
 Run individual commands only when debugging a failure from the canonical script.
+
+Latest v0.3 RC pre-tag validation:
+
+- Intended tag: `v0.3.0-rc.1`
+- OpenSpec strict validation: 2026-04-29 09:32 +08:00, `34 passed, 0 failed`
+- Canonical release gate: 2026-04-29 09:32 +08:00, passed with exit code `0`
+- Workspace tests: API `25 passed`, web `58 passed`
+- Engine pytest: `167 passed`
+- Playwright smoke: `1 passed`
+- Final tag target verification after tagging: `git rev-parse --short v0.3.0-rc.1`
 
 ## Mandatory product baseline
 
@@ -75,5 +85,7 @@ These checks improve release confidence but are not part of the default offline 
 ## Tagging and publish
 
 - [ ] push `main`
-- [ ] create release tag only after explicit release confirmation
+- [ ] create release tag `v0.3.0-rc.1` only after the release commit is clean
+- [ ] push release tag `v0.3.0-rc.1`
+- [ ] verify local and remote tag state
 - [ ] publish release notes from the latest milestone summary

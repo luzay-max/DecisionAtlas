@@ -42,6 +42,13 @@
 ## Validation
 
 - OpenSpec validation was run during the v0.3 archive cycles and the main specs were kept synchronized.
+- Final v0.3 RC pre-tag validation was run on 2026-04-29 09:32 +08:00:
+  - `openspec validate --all --strict`: `34 passed, 0 failed`
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1`: passed with exit code `0`
+  - API tests: `25 passed`
+  - web tests: `58 passed`
+  - engine pytest: `167 passed`
+  - Playwright smoke: `1 passed`
 - The local browser full-chain check against the running project passed across:
   - home page
   - demo workspace dashboard
@@ -64,6 +71,7 @@
 - `openspec list --json` showed no active changes after the latest archive cycles.
 - The v0.3 roadmap has moved through release-candidate baseline, real-stack validation, hosted-preview readiness, GitHub App/private access hardening, and real-repository decision quality work.
 - The product currently supports a coherent guided demo and a bounded real-repository analysis path, but it should still be described as a v0.3 RC / hosted-preview baseline rather than a production SaaS release.
+- `v0.3.0-rc.1` is ready to tag after the `finalize-v0-3-rc-tag-and-validation` release commit is created and pushed.
 
 ## Notes For Next Work
 

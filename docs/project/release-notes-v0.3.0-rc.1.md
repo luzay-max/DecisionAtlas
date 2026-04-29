@@ -1,6 +1,6 @@
 # DecisionAtlas Release Notes: v0.3.0-rc.1
 
-Status: release-candidate preparation  
+Status: release candidate finalized for tagging  
 Intended tag: `v0.3.0-rc.1`  
 Baseline code commit before release-doc updates: `76d63ff`
 
@@ -56,6 +56,16 @@ Validation result for this release candidate:
 - Playwright smoke passed: `1 passed`.
 - No release-blocking validation mismatch was found.
 
+Final pre-tag validation result:
+
+- Passed on 2026-04-29 09:32 +08:00 with exit code `0`.
+- OpenSpec strict validation passed before the release gate: `34 passed, 0 failed`.
+- Workspace validation passed: API tests `25 passed`, web tests `58 passed`, API/web typecheck passed.
+- Engine pytest passed: `167 passed`.
+- Offline benchmark fixture validation passed for benchmark queries, live-repo fixtures, and real-repo why/drift fixtures.
+- Playwright smoke passed: `1 passed`.
+- Final tag target: the release commit created by `finalize-v0-3-rc-tag-and-validation`; verify after tagging with `git rev-parse --short v0.3.0-rc.1`.
+
 ## Supported scope
 
 - stable seeded guided demo workspace
@@ -91,9 +101,10 @@ Validation result for this release candidate:
 - Intended tag: `v0.3.0-rc.1`
 - Baseline code commit before release-doc updates: `76d63ff`
 - Validated release-doc working tree: pre-release validation passed on 2026-04-28 09:29 +08:00.
-- Final tag target: the release commit that includes these notes and the archived OpenSpec change.
+- Final pre-tag validation: pre-release validation passed on 2026-04-29 09:32 +08:00; OpenSpec strict validation passed with `34 passed, 0 failed`.
+- Final tag target: the release commit that includes these notes, the v0.3-to-v0.4 master plan, and the `finalize-v0-3-rc-tag-and-validation` OpenSpec change.
 - Pre-tag condition: no active OpenSpec changes and a clean working tree after the release commit.
-- Tag status: not created yet; create only after explicit release confirmation.
+- Tag status: ready to create after the release commit; verify local and remote tag state after pushing.
 
 Suggested tag commands after the final release commit is created and checked:
 
