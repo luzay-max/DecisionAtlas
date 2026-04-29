@@ -111,6 +111,7 @@ The report records one row per curated repository with:
   - imported readiness should expose explicit review / why / drift state
   - focused why-questions around HTTP downloads and keep-alive shutdown behavior should be able to reach `ok` with citations after accepted decisions exist
   - equivalent focused why phrasing around HTTP download status should still land on the same accepted rationale thread
+  - live why-case reports should record the observed primary decision title so retrieval regressions are visible even when answer terms still match
   - drift should stay conservative on implementation-heavy follow-up fixes
 
 ## Current Baseline Patterns

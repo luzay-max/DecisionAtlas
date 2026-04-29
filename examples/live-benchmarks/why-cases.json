@@ -6,6 +6,7 @@
     "workspace_slug": "github-browser-use-browser-use",
     "question": "为什么要用 HTTP 下载来跟踪远程浏览器状态？",
     "expected_status": "ok",
+    "expected_primary_title": "Enable HTTP-based downloads for remote browsers with agent status tracking",
     "expected_terms": ["http", "download", "active_downloads"],
     "min_citations": 2,
     "notes": "Protects the imported why case that relies on accepted-decision grounding plus structured chunk evidence."
@@ -17,6 +18,7 @@
     "workspace_slug": "github-browser-use-browser-use",
     "question": "为什么要让代理感知远程浏览器的 HTTP 下载状态？",
     "expected_status": "ok",
+    "expected_primary_title": "Enable HTTP-based downloads for remote browsers with agent status tracking",
     "expected_terms": ["http", "download", "active_downloads"],
     "min_citations": 2,
     "notes": "Protects an equivalent imported why phrasing so focused wording changes still land on the same accepted rationale thread."
@@ -28,6 +30,7 @@
     "workspace_slug": "github-browser-use-browser-use",
     "question": "为什么在代理关闭时要优雅停止浏览器会话并保持 keep_alive=True？",
     "expected_status": "ok",
+    "expected_primary_title": "Gracefully stop browser session on agent close with keep_alive=True to prevent asyncio deadlock",
     "expected_terms": ["keep_alive", "browser", "close"],
     "min_citations": 2,
     "notes": "Protects the imported why case around browser-session shutdown and keep-alive behavior."

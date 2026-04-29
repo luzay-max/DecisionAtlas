@@ -173,6 +173,10 @@ def validate_why_cases(why_cases: list[dict], repositories: list[dict]) -> int:
         if not case.get("expected_terms"):
             print(f"Missing expected_terms for why case {case_id}.", file=sys.stderr)
             return 1
+        expected_primary_title = case.get("expected_primary_title")
+        if expected_primary_title is not None and not str(expected_primary_title).strip():
+            print(f"Invalid expected_primary_title for why case {case_id}.", file=sys.stderr)
+            return 1
         print(
             f"{case_id}: workspace={case['workspace_slug']} "
             f"status={case['expected_status']} min_citations={case['min_citations']}"
@@ -237,22 +241,50 @@ def validate_fixtures(queries: list[dict], expected_answers: list[dict]) -> int:
     return 0
 
 
-def _evaluate_why_payload(payload: dict, expected: dict) -> tuple[bool, str]:
+def _why_payload_observations(payload: dict, expected: dict) -> dict:
     answer = (payload.get("answer") or "").lower()
     expected_terms = [term.lower() for term in expected.get("expected_terms", [])]
     observed_status = payload.get("status")
     citations = payload.get("citations", [])
-    status_matches = observed_status == expected.get("expected_status", "ok")
-    citations_match = len(citations) >= expected["min_citations"]
-    term_matches = all(term in answer for term in expected_terms)
-    passed = status_matches and citations_match and term_matches
+    primary_decision = payload.get("primary_decision") if isinstance(payload.get("primary_decision"), dict) else {}
+    observed_primary_title = primary_decision.get("title")
+    expected_primary_title = expected.get("expected_primary_title")
+    primary_title_match = (
+        str(expected_primary_title).lower() in str(observed_primary_title).lower()
+        if expected_primary_title
+        else True
+    )
+    matched_terms = [term for term in expected_terms if term in answer]
+    return {
+        "expected_status": expected.get("expected_status", "ok"),
+        "observed_status": observed_status,
+        "expected_min_citations": expected["min_citations"],
+        "observed_citations": len(citations),
+        "expected_terms": expected_terms,
+        "matched_terms": matched_terms,
+        "term_matches": len(matched_terms) == len(expected_terms),
+        "expected_primary_title": expected_primary_title,
+        "observed_primary_title": observed_primary_title,
+        "primary_thread_match": primary_title_match,
+    }
+
+
+def _evaluate_why_payload(payload: dict, expected: dict) -> tuple[bool, str]:
+    observations = _why_payload_observations(payload, expected)
+    status_matches = observations["observed_status"] == observations["expected_status"]
+    citations_match = observations["observed_citations"] >= observations["expected_min_citations"]
+    term_matches = observations["term_matches"]
+    primary_thread_match = observations["primary_thread_match"]
+    passed = status_matches and citations_match and term_matches and primary_thread_match
     if passed:
         return True, "passed"
     return (
         False,
         "expected "
-        f"status={expected.get('expected_status', 'ok')} min_citations={expected['min_citations']} "
-        f"terms={expected_terms}; observed status={observed_status} citations={len(citations)}",
+        f"status={observations['expected_status']} min_citations={observations['expected_min_citations']} "
+        f"terms={observations['expected_terms']} primary={observations['expected_primary_title']}; "
+        f"observed status={observations['observed_status']} citations={observations['observed_citations']} "
+        f"primary={observations['observed_primary_title']}",
     )
 
 
@@ -572,12 +604,20 @@ def run_live_real_repo_validation(
                 }
             else:
                 passed, reason = _evaluate_why_payload(why_payload, case)
+                observations = _why_payload_observations(why_payload, case)
                 case_result = {
                     "id": case["id"],
                     "passed": passed,
                     "status": why_payload.get("status"),
                     "citations": len(why_payload.get("citations", [])),
                     "reason": reason,
+                    "expected_status": observations["expected_status"],
+                    "expected_min_citations": observations["expected_min_citations"],
+                    "expected_terms": observations["expected_terms"],
+                    "matched_terms": observations["matched_terms"],
+                    "expected_primary_title": observations["expected_primary_title"],
+                    "observed_primary_title": observations["observed_primary_title"],
+                    "primary_thread_match": observations["primary_thread_match"],
                     "readiness_state": ((why_payload.get("answer_context") or {}).get("workspace_readiness") or {}).get(
                         "state"
                     ),

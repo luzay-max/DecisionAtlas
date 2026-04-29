@@ -6,7 +6,7 @@ from app.retrieval.vector_search import vector_search
 from sqlalchemy.orm import Session
 
 FULLTEXT_WEIGHT = 1.0
-VECTOR_WEIGHT = 0.45
+VECTOR_WEIGHT = 0.65
 
 
 def _normalized_scores(hits: list[RetrievalHit]) -> dict[int, float]:

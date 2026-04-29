@@ -1,6 +1,5 @@
-## Purpose
-Define support grading requirements for why-answer evidence.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Support grading preserves full-support semantics
 The system SHALL preserve a stronger fully supported why-answer state so users can distinguish between answers that are directionally correct and answers that are strongly grounded, SHALL evaluate imported why support as a bounded support bundle centered on one primary accepted decision, SHALL allow retrieval-backed supporting evidence from the same rationale thread to improve support quality without weakening the meaning of `ok` or `limited_support`, SHALL allow an imported workspace with a newly established accepted baseline to satisfy those support states only when the asked rationale thread is grounded to that accepted decision, and SHALL keep weak or unrelated matches in `evidence_limited` or `review_required` even when retrieval scores appear high.
 

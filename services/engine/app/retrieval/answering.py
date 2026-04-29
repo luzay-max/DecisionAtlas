@@ -181,6 +181,8 @@ def _chunk_supporting_citations(
         lowered = content.lower()
         query_overlap = sum(1 for term in query_terms if term in lowered)
         decision_overlap = sum(1 for term in decision_terms if term in lowered)
+        if decision_overlap <= 0:
+            continue
         if query_overlap == 0 and decision_overlap < 2:
             continue
 
@@ -277,9 +279,9 @@ def _ranked_primary_candidates(
     source_refs: SourceRefRepository,
     hits: list,
     query: str,
-) -> list[tuple[Decision, float, float]]:
+) -> list[tuple[Decision, float, float, float]]:
     query_terms = significant_query_terms(query)
-    ranked: list[tuple[Decision, float, float]] = []
+    ranked: list[tuple[Decision, float, float, float]] = []
 
     for index, hit in enumerate(hits[:5]):
         decision = decisions.get_by_id(hit.decision_id)
@@ -292,7 +294,7 @@ def _ranked_primary_candidates(
         if len(decision_source_refs) >= 2:
             structural_fit += 1.0
         reranked_score = structural_fit + (hit.score * 3.0) - (index * 0.1)
-        ranked.append((decision, reranked_score, hit.score))
+        ranked.append((decision, reranked_score, hit.score, structural_fit))
 
     return sorted(ranked, key=lambda item: item[1], reverse=True)
 
@@ -303,9 +305,9 @@ def _pick_primary_and_supporting_decisions(
     source_refs: SourceRefRepository,
     hits: list,
     query: str,
-) -> tuple[Decision | None, list[Decision]]:
+) -> tuple[Decision | None, list[Decision], dict]:
     if not hits:
-        return None, []
+        return None, [], {"support_reasons": ["no_retrieval_hits"]}
 
     query_terms = significant_query_terms(query)
     is_broad_query = is_broad_why_query(query)
@@ -316,15 +318,27 @@ def _pick_primary_and_supporting_decisions(
         query=query,
     )
     if not ranked_candidates:
-        return None, []
-    primary, _, primary_raw_score = ranked_candidates[0]
+        return None, [], {"support_reasons": ["no_ranked_candidates"]}
+    primary, _, primary_raw_score, primary_structural_fit = ranked_candidates[0]
+    primary_source_refs = source_refs.list_by_decision(primary.id)
+    primary_decision_overlap = _decision_query_overlap(primary, query_terms)
+    primary_source_ref_overlap = _source_ref_query_overlap(primary_source_refs, query_terms)
+    primary_match = {
+        "decision_overlap": primary_decision_overlap,
+        "source_ref_overlap": primary_source_ref_overlap,
+        "structural_fit": round(primary_structural_fit, 4),
+        "raw_score": round(primary_raw_score, 4),
+        "support_reasons": [],
+    }
+    if primary_decision_overlap <= 0 and primary_source_ref_overlap <= 0:
+        primary_match["support_reasons"].append("weak_primary_thread_match")
 
     supporting: list[Decision] = []
 
     if not is_broad_query:
-        return primary, supporting
+        return primary, supporting, primary_match
 
-    for candidate, _, raw_score in ranked_candidates[1:4]:
+    for candidate, _, raw_score, _ in ranked_candidates[1:4]:
         if raw_score < (primary_raw_score * 0.75):
             continue
         candidate_overlap = _decision_query_overlap(candidate, query_terms)
@@ -336,7 +350,7 @@ def _pick_primary_and_supporting_decisions(
         supporting.append(candidate)
         break
 
-    return primary, supporting
+    return primary, supporting, primary_match
 
 
 def answer_why_question(
@@ -440,7 +454,7 @@ def answer_why_question(
         )
 
     source_refs = SourceRefRepository(session)
-    primary_decision, supporting_decisions = _pick_primary_and_supporting_decisions(
+    primary_decision, supporting_decisions, retrieval_context = _pick_primary_and_supporting_decisions(
         decisions=decisions,
         source_refs=source_refs,
         hits=hits,
@@ -460,6 +474,24 @@ def answer_why_question(
                 ),
             },
             citations=[],
+        )
+    if "weak_primary_thread_match" in retrieval_context.get("support_reasons", []):
+        return _build_answer_payload(
+            status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+            question=question,
+            answer="Insufficient evidence. The matched decision does not have enough same-thread support for this why-question yet.",
+            context={
+                **context,
+                "retrieval": retrieval_context,
+                "workspace_readiness": _query_specific_imported_readiness(
+                    readiness=workspace_readiness,
+                    answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
+                    candidate_count=candidate_count,
+                ),
+            },
+            citations=[],
+            primary_decision=primary_decision,
+            supporting_context=[],
         )
 
     citations = []
@@ -517,6 +549,7 @@ def answer_why_question(
             answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
             context={
                 **context,
+                "retrieval": retrieval_context,
                 "workspace_readiness": _query_specific_imported_readiness(
                     readiness=workspace_readiness,
                     answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
@@ -536,6 +569,7 @@ def answer_why_question(
             answer="Insufficient evidence. The matched decisions do not have enough supporting citations yet.",
             context={
                 **context,
+                "retrieval": retrieval_context,
                 "workspace_readiness": _query_specific_imported_readiness(
                     readiness=workspace_readiness,
                     answer_status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
@@ -555,6 +589,7 @@ def answer_why_question(
         answer=answer_text,
         context={
             **context,
+            "retrieval": retrieval_context,
             "workspace_readiness": _query_specific_imported_readiness(
                 readiness=workspace_readiness,
                 answer_status=answer_status,

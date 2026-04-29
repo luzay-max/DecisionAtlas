@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Decision, Workspace
 from app.indexing.embedder import FakeEmbedder
 from app.retrieval.hybrid import hybrid_search
+from app.retrieval.query_rewrite import rewrite_query
 
 
 class SemanticBiasEmbedder:
@@ -24,6 +25,28 @@ class SemanticBiasEmbedder:
             else:
                 embeddings.append([1.0, 0.0] if "database" in lowered else [0.0, 1.0])
         return embeddings
+
+
+class HttpDownloadSemanticEmbedder:
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        embeddings: list[list[float]] = []
+        for text in texts:
+            lowered = text.lower()
+            if "http" in lowered or "active downloads" in lowered or "active_downloads" in lowered:
+                embeddings.append([1.0, 0.0])
+            elif "download status" in lowered:
+                embeddings.append([0.25, 0.75])
+            else:
+                embeddings.append([0.0, 1.0])
+        return embeddings
+
+
+def test_rewrite_query_expands_imported_why_aliases() -> None:
+    rewritten = rewrite_query("why use app identity for rc branch work")
+
+    assert "token" in rewritten
+    assert "release" in rewritten
+    assert "candidate" in rewritten
 
 
 def test_hybrid_search_merges_full_text_and_vector_hits(tmp_path: Path, monkeypatch) -> None:
@@ -186,3 +209,59 @@ def test_hybrid_search_allows_vector_signal_to_break_near_ties(tmp_path: Path, m
 
     assert hits
     assert hits[0].title == "Keep PostgreSQL Primary"
+
+
+def test_hybrid_search_uses_semantic_signal_for_equivalent_imported_phrasing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "hybrid-equivalent-imported.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add_all(
+            [
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Track remote browser download status in operator workflow",
+                    status="active",
+                    review_state="accepted",
+                    problem="Operators need status visibility",
+                    context=None,
+                    constraints=None,
+                    chosen_option="Track remote browser download status in the workflow",
+                    tradeoffs="Adds status fields",
+                    confidence=0.82,
+                ),
+                Decision(
+                    workspace_id=workspace.id,
+                    title="Enable HTTP-based downloads for remote browsers with agent status tracking",
+                    status="active",
+                    review_state="accepted",
+                    problem="Remote browser downloads need agent visibility",
+                    context=None,
+                    constraints=None,
+                    chosen_option="Use HTTP downloads and expose active_downloads to the agent",
+                    tradeoffs="Adds an HTTP download path",
+                    confidence=0.94,
+                ),
+            ]
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        hits = hybrid_search(
+            session=session,
+            workspace_slug="demo-workspace",
+            query=rewrite_query("why should the agent know remote browser active downloads"),
+            embedder=HttpDownloadSemanticEmbedder(),
+        )
+
+    assert hits
+    assert hits[0].title == "Enable HTTP-based downloads for remote browsers with agent status tracking"

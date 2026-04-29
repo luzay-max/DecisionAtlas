@@ -376,6 +376,155 @@ def test_rewrite_query_normalizes_cache_only_variants() -> None:
     assert rewrite_query("why keep redis cache-only") == rewrite_query("why keep redis cache only")
 
 
+def test_rewrite_query_expands_imported_why_technical_aliases() -> None:
+    rewritten = rewrite_query("why should app identity handle rc branch work")
+
+    assert "token" in rewritten
+    assert "release" in rewritten
+    assert "candidate" in rewritten
+
+
+def test_answering_keeps_high_vector_match_evidence_limited_without_same_thread_fit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "answer-weak-primary-thread.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="issue",
+            source_id="redis",
+            repo="org/repo",
+            title="Redis decision",
+            content="Use Redis as cache because latency mattered.",
+            author="alice",
+            url="https://github.com/org/repo/issues/1",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints=None,
+            chosen_option="Use Redis as cache only",
+            tradeoffs="Extra dependency",
+            confidence=0.88,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=44,
+                quote="Use Redis as cache because latency mattered.",
+                url=artifact.url,
+                relevance_score=0.88,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use postgres as primary database",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "evidence_limited"
+    assert response["answer_context"]["retrieval"]["support_reasons"] == ["weak_primary_thread_match"]
+    assert response["primary_decision"]["title"] == "Use Redis Cache"
+
+
+def test_answering_does_not_upgrade_with_unrelated_chunk_support(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "answer-unrelated-chunk.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="imported-workspace", name="Imported", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id,
+            type="pr",
+            source_id="release-1",
+            repo="org/repo",
+            title="GitHub App token for release candidates",
+            content="Use a GitHub App identity when ensuring release candidate branches.",
+            author="alice",
+            url="https://github.com/org/repo/pull/10",
+            timestamp=None,
+            metadata_json=None,
+        )
+        session.add(artifact)
+        session.flush()
+        decision = Decision(
+            workspace_id=workspace.id,
+            title="Use GitHub App token for release candidate branch operations",
+            status="active",
+            review_state="accepted",
+            problem="Release candidate branch operations fail with the default token",
+            context=None,
+            constraints=None,
+            chosen_option="Use a GitHub App token for release candidate branch operations",
+            tradeoffs="Requires separate app identity",
+            confidence=0.92,
+        )
+        session.add(decision)
+        session.flush()
+        session.add(
+            SourceRef(
+                decision_id=decision.id,
+                artifact_id=artifact.id,
+                span_start=0,
+                span_end=68,
+                quote="Use a GitHub App identity when ensuring release candidate branches.",
+                url=artifact.url,
+                relevance_score=0.9,
+            )
+        )
+        session.add(
+            ArtifactChunk(
+                artifact_id=artifact.id,
+                chunk_index=0,
+                content="PostgreSQL replica lag affects analytics dashboards and cache refreshes.",
+                embedding=None,
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        response = answer_why_question(
+            session=session,
+            workspace_slug="imported-workspace",
+            question="why use github app token for release candidate branch operations",
+            embedder=FakeEmbedder(),
+        )
+
+    assert response["status"] == "limited_support"
+    assert len(response["citations"]) == 1
+
+
 def test_answering_prefers_structured_chunk_support_over_generic_chunk(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "answer-structured-chunk.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")

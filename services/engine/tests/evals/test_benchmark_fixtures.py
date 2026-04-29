@@ -86,11 +86,15 @@ def test_live_benchmark_why_cases_have_repeatable_expectations() -> None:
     assert all(item["expected_status"] for item in why_cases)
     assert all(item["expected_terms"] for item in why_cases)
     assert all(item["min_citations"] >= 1 for item in why_cases)
+    assert all(item.get("expected_primary_title", "").strip() for item in why_cases)
 
     benchmark = _load_benchmark_module()
     assert benchmark.validate_why_cases(why_cases, repositories) == 0
     malformed_case = dict(why_cases[0])
     malformed_case["repo_id"] = "missing-repo"
+    assert benchmark.validate_why_cases([malformed_case], repositories) == 1
+    malformed_case = dict(why_cases[0])
+    malformed_case["expected_primary_title"] = "   "
     assert benchmark.validate_why_cases([malformed_case], repositories) == 1
 
 
@@ -281,6 +285,7 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
         "workspace_slug": "github-org-repo",
         "question": "why use queue",
         "expected_status": "review_required",
+        "expected_primary_title": "Use queue",
         "expected_terms": ["review"],
         "min_citations": 1,
     }
@@ -337,6 +342,7 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
                 "status": "review_required",
                 "answer": "Review one candidate before using why-search.",
                 "citations": [{"id": 1}],
+                "primary_decision": {"title": "Use queue"},
                 "answer_context": {"workspace_readiness": {"state": "review_ready"}},
             }, None
         if path.startswith("/drift"):
@@ -359,5 +365,8 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
     assert report["repositories"][0]["passed"] is True
     assert report["repositories"][0]["candidate_quality"]["passed"] is True
     assert report["repositories"][0]["candidate_quality"]["observations"]["strong_candidate_count"] == 1
+    assert report["repositories"][0]["why_cases"][0]["expected_terms"] == ["review"]
+    assert report["repositories"][0]["why_cases"][0]["matched_terms"] == ["review"]
+    assert report["repositories"][0]["why_cases"][0]["primary_thread_match"] is True
     assert report["repositories"][0]["why_cases"][0]["passed"] is True
     assert report["repositories"][0]["drift"]["cases"][0]["passed"] is True

@@ -1,7 +1,4 @@
-## Purpose
-Define retrieval-quality requirements for why-search answers.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Why-search improves retrieval recall for equivalent questions
 The system SHALL normalize technically equivalent why-questions and combine lexical and semantic retrieval strongly enough that equivalent user wording still finds the same accepted decision rationale, SHALL make that retrieval quality visible in imported why outcomes by reducing avoidable drift to neighboring but distinct accepted decisions, and SHALL keep accepted decisions as the imported answer anchor even when retrieval uses rewritten or expanded query terms.
