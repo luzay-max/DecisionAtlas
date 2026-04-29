@@ -59,6 +59,15 @@ export function ImportedReadinessCard({
       : null;
   const latestSyncOrigin = syncOriginLabel(messages, readiness.latest_sync_origin);
   const activeSyncOrigin = syncOriginLabel(messages, readiness.active_sync_origin);
+  const activeImportStatus =
+    readiness.active_import_status
+      ? messages.status[readiness.active_import_status as keyof typeof messages.status] ?? readiness.active_import_status
+      : null;
+  const activeImportMode =
+    readiness.active_import_mode
+      ? messages.dashboard.importMode[readiness.active_import_mode as keyof typeof messages.dashboard.importMode] ??
+        readiness.active_import_mode
+      : null;
 
   return (
     <section className="card stack">
@@ -101,6 +110,15 @@ export function ImportedReadinessCard({
         {activeSyncOrigin ? (
           <p>
             <strong>{messages.importedReadiness.axes.activeSync}:</strong> {activeSyncOrigin}
+          </p>
+        ) : null}
+        {readiness.active_import_job_id && activeImportStatus && activeImportMode ? (
+          <p>
+            <strong>{messages.importedReadiness.axes.activeImport}:</strong>{" "}
+            {messages.importedReadiness.activeImportSummary
+              .replace("{status}", activeImportStatus)
+              .replace("{mode}", activeImportMode)
+              .replace("{jobId}", readiness.active_import_job_id)}
           </p>
         ) : null}
       </div>

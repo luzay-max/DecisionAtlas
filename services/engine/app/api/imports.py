@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
 from app.db.session import get_db_session
 from app.jobs.import_jobs import (
+    ActiveImportConflict,
     bind_github_app_installation,
     bind_github_private_access_source,
     get_import_job_status,
@@ -80,6 +81,14 @@ def import_github(
         return job
     except RepositoryAccessError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ActiveImportConflict as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "active_import": exc.active_job,
+            },
+        ) from exc
     except ValueError as exc:
         if (
             "Unsupported import mode" in str(exc)

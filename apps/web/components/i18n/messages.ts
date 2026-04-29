@@ -190,6 +190,7 @@ export const messages = {
         sourceStatus: "Source status",
         sync: "Latest sync",
         activeSync: "Active sync",
+        activeImport: "Active import job",
       },
       states: {
         analysis_failed: "Imported analysis failed",
@@ -217,6 +218,7 @@ export const messages = {
       },
       baselineSummary: "Accepted baseline: {accepted} accepted decisions, {status}.",
       candidateSummary: "Candidate queue: {candidate} imported decisions still need review.",
+      activeImportSummary: "{status} {mode} · {jobId}",
       actions: {
         review_candidates: "Review imported candidates",
         ask_why: "Ask why in this workspace",
@@ -687,6 +689,7 @@ export const messages = {
         sourceStatus: "来源状态",
         sync: "最近同步",
         activeSync: "活动同步",
+        activeImport: "活动导入任务",
       },
       states: {
         analysis_failed: "导入分析失败",
@@ -713,6 +716,7 @@ export const messages = {
       },
       baselineSummary: "采纳基线：已采纳 {accepted} 条决策，当前状态为“{status}”。",
       candidateSummary: "候选队列：还有 {candidate} 条导入决策等待审阅。",
+      activeImportSummary: "{status} {mode} · {jobId}",
       actions: {
         review_candidates: "审阅导入候选",
         ask_why: "在当前工作区提问为什么",

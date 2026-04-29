@@ -125,6 +125,59 @@ describe("LiveAnalysisForm", () => {
     expect(push).toHaveBeenCalledWith("/workspaces/github-org-repo?job=job-sync");
   });
 
+  it("routes to the active import and disables duplicate repeat-run actions", async () => {
+    const user = userEvent.setup();
+    lookupGithubImport.mockResolvedValue({
+      owner_scope: "local-default",
+      repo: "org/repo",
+      repo_url: "https://github.com/org/repo",
+      workspace_exists: true,
+      workspace_slug: "github-org-repo",
+      has_successful_import: true,
+      can_incremental_sync: false,
+      has_running_import: true,
+      latest_import: {
+        job_id: "job-active",
+        workspace_slug: "github-org-repo",
+        repo: "org/repo",
+        mode: "since_last_sync",
+        status: "running",
+        sync_origin: "manual_incremental",
+        imported_count: 0,
+      },
+      active_import: {
+        job_id: "job-active",
+        workspace_slug: "github-org-repo",
+        repo: "org/repo",
+        mode: "since_last_sync",
+        status: "running",
+        sync_origin: "manual_incremental",
+        imported_count: 0,
+      },
+      access_source_type: "public",
+      access_source_label: "Public GitHub access",
+    });
+
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "org/repo");
+
+    await waitFor(() => {
+      expect(screen.getByText("A queued or running import already exists for this workspace. Open the workspace instead of starting another run.")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("link", { name: "Open existing workspace" })).toHaveAttribute(
+      "href",
+      "/workspaces/github-org-repo?job=job-active"
+    );
+    expect(screen.getByRole("button", { name: "Sync since last import" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Run full analysis again" })).toBeDisabled();
+    expect(startGithubImport).not.toHaveBeenCalled();
+  });
+
   it("shows private access guidance when the repository is not publicly reachable", async () => {
     const user = userEvent.setup();
     lookupGithubImport.mockResolvedValue({

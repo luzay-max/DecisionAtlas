@@ -55,6 +55,16 @@ v0.3 release-candidate 基线包含本地/bootstrap 登录恢复、owner scope �
 
 这些是 operator/admin 设置流程，不是完整 SaaS 管理台。GitHub Marketplace/OAuth 自助安装、secret vault、billing 和多人协作 review workflow 仍不在范围内。
 
+### 重复仓库分析
+
+当你输入的仓库在当前 owner scope 中已经有 imported workspace 时，live-analysis 表单应先展示三个明确选择，而不是直接启动新任务：
+
+- **打开已有工作区**：用于查看当前结果、检查最近导入摘要，或继续 review / why / drift。
+- **自上次导入后同步**：用于仓库已有新变更，但不希望把这次运行当成完整重新分析。
+- **重新完整分析**：用于你明确想从仓库基线重新构建导入结果。
+
+如果该工作区已经有排队中或运行中的导入任务，请打开现有 workspace/job 进度，不要再启动重复运行。
+
 ### 实时大模型提供商模式
 
 修改 `.env` 以连接真实的大模型提供商：
@@ -108,6 +118,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 | `uv` 不在 PATH 中 | 改用 `python -m uv ...`。预发布脚本会自动处理此问题。 |
 | 导入成功但无候选项 | 确认 `LLM_PROVIDER_MODE`、`LLM_API_KEY`、`LLM_MODEL` 和 `EMBEDDING_MODEL` 已正确设置。 |
 | 实时分析失败 | 公共仓库导入仍是默认路径。admin/operator 设置流程可以为 owner-scoped workspace 绑定 GitHub App 安装或 token-backed 私有仓库访问。 |
+| 同一仓库已存在 | 打开已有工作区查看当前结果；仓库有新增变更时使用增量同步；只有明确需要重建时才选择完整重新分析。 |
+| 导入任务已在运行 | 进入已有 workspace/job 进度，等待排队中或运行中的导入结束后，再启动新的同步或重跑。 |
 | Docker 服务不可用 | 重试 `docker compose up -d postgres redis` |
 | `.docx` 导入被跳过 | 确认 `pandoc` 已安装并在终端中可用。 |
 | 托管演示状态漂移 | 对 `demo-workspace` 运行 `scripts\demo\reset-demo.ps1`；当迁移或数据库漂移需要更深重建时使用 `reseed-demo.ps1`。 |

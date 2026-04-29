@@ -79,6 +79,17 @@ class ImportJobRepository:
         )
         return self.session.scalar(stmt) is not None
 
+    def latest_active_for_workspace(self, workspace_id: int) -> ImportJob | None:
+        stmt = (
+            select(ImportJob)
+            .where(
+                ImportJob.workspace_id == workspace_id,
+                ImportJob.status.in_(("queued", "running")),
+            )
+            .order_by(ImportJob.created_at.desc(), ImportJob.id.desc())
+        )
+        return self.session.scalar(stmt)
+
     def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
         job = self._require(job_id)
         job.status = "running"

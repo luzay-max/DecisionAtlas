@@ -136,6 +136,9 @@ def build_imported_workspace_readiness(
         "latest_sync_origin": _sync_origin(latest_import),
         "latest_sync_at": _sync_timestamp(latest_import),
         "active_sync_origin": _active_sync_origin(latest_import),
+        "active_import_job_id": _active_import_field(latest_import, "job_id"),
+        "active_import_status": _active_import_field(latest_import, "status"),
+        "active_import_mode": _active_import_field(latest_import, "mode"),
         "recent_syncs": _recent_syncs(recent_sync_jobs),
     }
 
@@ -208,6 +211,13 @@ def _active_sync_origin(latest_import) -> str | None:
     if latest_import is None or getattr(latest_import, "status", None) not in {"queued", "running"}:
         return None
     return _sync_origin(latest_import)
+
+
+def _active_import_field(latest_import, field: str) -> str | None:
+    if latest_import is None or getattr(latest_import, "status", None) not in {"queued", "running"}:
+        return None
+    value = getattr(latest_import, field, None)
+    return str(value) if value is not None else None
 
 
 def _sync_timestamp(latest_import) -> str | None:

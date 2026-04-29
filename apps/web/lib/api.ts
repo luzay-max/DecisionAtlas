@@ -70,6 +70,9 @@ export type WorkspaceReadiness = {
   latest_sync_origin?: string | null;
   latest_sync_at?: string | null;
   active_sync_origin?: string | null;
+  active_import_job_id?: string | null;
+  active_import_status?: string | null;
+  active_import_mode?: string | null;
   recent_syncs?: Array<{
     job_id: string;
     status: string;
@@ -278,6 +281,10 @@ export type ImportLookup = {
   can_incremental_sync: boolean;
   has_running_import: boolean;
   latest_import: ImportResult | null;
+  active_import?: ImportResult | null;
+  latest_sync_origin?: string | null;
+  latest_sync_at?: string | null;
+  last_import_summary?: ImportSummary | null;
   access_source_type?: string;
   access_source_label?: string;
   access_source_status?: string | null;
@@ -386,6 +393,8 @@ async function readError(response: Response, fallback: string): Promise<never> {
     const payload = await response.json();
     if (typeof payload?.detail === "string") {
       detail = payload.detail;
+    } else if (typeof payload?.detail?.message === "string") {
+      detail = payload.detail.message;
     } else if (typeof payload?.error === "string") {
       detail = payload.error;
     }

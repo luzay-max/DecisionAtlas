@@ -91,6 +91,16 @@ v0.3 RC 也包含 admin/operator 流程，可以在当前 owner scope 内将仓�
 
 导入的工作区也可能会明确停留在 `review_required`、`evidence_limited` 或 `conversion_limited`。这些都是预期的有界产品结果，不是运行时故障。
 
+### 如果同一仓库已经导入过，我应该怎么做？
+
+DecisionAtlas 会在当前 owner scope 内先解析 live analysis 目标，再启动新的导入。如果仓库已经有 imported workspace，请使用明确的重复运行选择：
+
+- **打开已有工作区**：继续 review、why-search、drift 检查或导入摘要排查。
+- **自上次导入后同步**：通过 `since_last_sync` 路径获取仓库的新工件。
+- **重新完整分析**：只有在你明确需要更重的完整重分析时才使用。
+
+如果已有任务正在排队或运行，产品应把你带到对应 workspace/job，并避免再次启动重复运行。同步来源标签会区分手动完整导入、手动增量同步、GitHub App 绑定同步、私有来源同步和 webhook 触发的增量同步。
+
 ### 伪/实时提供商切换改变什么？
 
 它会改变**下一次**真实分析或提取运行所使用的提供商。**不会**重写屏幕上已有的演示数据或导入结果。

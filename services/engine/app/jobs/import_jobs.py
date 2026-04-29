@@ -43,6 +43,12 @@ class RepositoryAccessError(ValueError):
         self.failure_category = failure_category
 
 
+class ActiveImportConflict(ValueError):
+    def __init__(self, *, active_job: dict[str, object | None]) -> None:
+        super().__init__("An import is already queued or running for this workspace.")
+        self.active_job = active_job
+
+
 def queue_github_import(
     *,
     workspace_slug: str | None,
@@ -103,6 +109,9 @@ def queue_github_import(
             raise ValueError(f"Unsupported import mode: {mode}")
 
         jobs = ImportJobRepository(session)
+        active_job = jobs.latest_active_for_workspace(workspace.id)
+        if active_job is not None:
+            raise ActiveImportConflict(active_job=serialize_import_job(session=session, job=active_job))
         job = jobs.create(
             job_id=job_id,
             workspace_id=workspace.id,
@@ -308,6 +317,10 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                     "can_incremental_sync": False,
                     "has_running_import": False,
                     "latest_import": None,
+                    "active_import": None,
+                    "latest_sync_origin": None,
+                    "latest_sync_at": None,
+                    "last_import_summary": None,
                     "access_source_type": "github_token",
                     "access_source_label": build_access_source_label(
                         access_source_type="github_token",
@@ -338,6 +351,10 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                     "can_incremental_sync": False,
                     "has_running_import": False,
                     "latest_import": None,
+                    "active_import": None,
+                    "latest_sync_origin": None,
+                    "latest_sync_at": None,
+                    "last_import_summary": None,
                     "access_source_type": "public",
                     "access_source_label": "Public GitHub access",
                     "access_requirement": exc.failure_category,
@@ -353,6 +370,10 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                 "can_incremental_sync": False,
                 "has_running_import": False,
                 "latest_import": None,
+                "active_import": None,
+                "latest_sync_origin": None,
+                "latest_sync_at": None,
+                "last_import_summary": None,
                 "access_source_type": "public",
                 "access_source_label": "Public GitHub access",
                 "access_requirement": None,
@@ -364,6 +385,7 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
         latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
         latest_import = serialize_import_job(session=session, job=latest_job) if latest_job is not None else None
         has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        active_import = latest_import if has_running_import else None
         source_summary = access_source_summary(
             session=session,
             owner_scope=workspace.owner_scope,
@@ -380,6 +402,10 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
             "can_incremental_sync": latest_success is not None and not has_running_import,
             "has_running_import": has_running_import,
             "latest_import": latest_import,
+            "active_import": active_import,
+            "latest_sync_origin": _serialized_sync_origin(latest_import),
+            "latest_sync_at": _serialized_sync_timestamp(latest_import),
+            "last_import_summary": _serialized_import_summary(latest_import),
             "access_source_type": workspace.access_source_type,
             "access_source_label": source_summary["access_source_label"],
             "access_source_status": source_summary["access_source_status"],
@@ -424,6 +450,7 @@ def bind_github_app_installation(
         latest_job = jobs.latest_for_workspace(workspace.id)
         latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
         has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        latest_import = serialize_import_job(session=session, job=latest_job) if latest_job is not None else None
         return {
             "owner_scope": workspace.owner_scope,
             "repo": repo_ref,
@@ -433,7 +460,11 @@ def bind_github_app_installation(
             "has_successful_import": latest_success is not None,
             "can_incremental_sync": latest_success is not None and not has_running_import,
             "has_running_import": has_running_import,
-            "latest_import": serialize_import_job(session=session, job=latest_job) if latest_job is not None else None,
+            "latest_import": latest_import,
+            "active_import": latest_import if has_running_import else None,
+            "latest_sync_origin": _serialized_sync_origin(latest_import),
+            "latest_sync_at": _serialized_sync_timestamp(latest_import),
+            "last_import_summary": _serialized_import_summary(latest_import),
             "access_source_type": workspace.access_source_type,
             "access_source_label": build_access_source_label(
                 access_source_type=workspace.access_source_type,
@@ -490,6 +521,7 @@ def bind_github_private_access_source(
         latest_job = jobs.latest_for_workspace(workspace.id)
         latest_success = jobs.latest_success_for_repo(workspace.id, repo_ref)
         has_running_import = latest_job is not None and latest_job.status in {"queued", "running"}
+        latest_import = serialize_import_job(session=session, job=latest_job) if latest_job is not None else None
         return {
             "owner_scope": workspace.owner_scope,
             "repo": repo_ref,
@@ -500,7 +532,11 @@ def bind_github_private_access_source(
             "has_successful_import": latest_success is not None,
             "can_incremental_sync": latest_success is not None and not has_running_import,
             "has_running_import": has_running_import,
-            "latest_import": serialize_import_job(session=session, job=latest_job) if latest_job is not None else None,
+            "latest_import": latest_import,
+            "active_import": latest_import if has_running_import else None,
+            "latest_sync_origin": _serialized_sync_origin(latest_import),
+            "latest_sync_at": _serialized_sync_timestamp(latest_import),
+            "last_import_summary": _serialized_import_summary(latest_import),
             "access_source_type": workspace.access_source_type,
             "access_source_label": build_access_source_label(
                 access_source_type=workspace.access_source_type,
@@ -748,6 +784,28 @@ def _default_sync_origin(*, mode: str, access_source_type: str | None) -> str:
     if access_source_type == "github_token":
         return "private_manual_incremental" if mode == "since_last_sync" else "private_manual_full"
     return "manual_incremental" if mode == "since_last_sync" else "manual_full"
+
+
+def _serialized_sync_origin(latest_import: dict | None) -> str | None:
+    if not latest_import:
+        return None
+    origin = latest_import.get("sync_origin")
+    return str(origin) if origin else None
+
+
+def _serialized_sync_timestamp(latest_import: dict | None) -> str | None:
+    if not latest_import:
+        return None
+    finished_at = latest_import.get("finished_at")
+    started_at = latest_import.get("started_at")
+    return str(finished_at or started_at) if finished_at or started_at else None
+
+
+def _serialized_import_summary(latest_import: dict | None) -> dict | None:
+    if not latest_import:
+        return None
+    summary = latest_import.get("summary")
+    return summary if isinstance(summary, dict) else None
 
 
 def _access_source_label(access_source_type: str, access_source_ref: str | None) -> str:

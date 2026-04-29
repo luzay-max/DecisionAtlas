@@ -354,6 +354,10 @@ describe("WorkspaceDashboardContent", () => {
             why_state: "review_required",
             drift_state: "evidence_limited",
             recommended_actions: ["inspect_import_summary"],
+            active_sync_origin: "manual_full",
+            active_import_job_id: "job-running",
+            active_import_status: "running",
+            active_import_mode: "full",
           },
           drift_status: {
             state: "evidence_limited",
@@ -368,6 +372,8 @@ describe("WorkspaceDashboardContent", () => {
 
     expect(screen.getByText("Imported analysis is still running")).toBeInTheDocument();
     expect(screen.getByText(/in-progress, not final/i)).toBeInTheDocument();
+    expect(screen.getByText("Active import job:")).toBeInTheDocument();
+    expect(screen.getByText("running full · job-running")).toBeInTheDocument();
     expect(screen.queryByText("Imported workspace needs a next step")).not.toBeInTheDocument();
   });
 

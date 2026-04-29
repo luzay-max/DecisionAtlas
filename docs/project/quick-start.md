@@ -55,6 +55,16 @@ The v0.3 release-candidate baseline includes local/bootstrap login recovery, own
 
 These are operator/admin setup flows, not a full SaaS admin console. GitHub Marketplace/OAuth self-service installation, secret vault behavior, billing, and collaborative review workflows are still out of scope.
 
+### Repeat Repository Analysis
+
+When you enter a repository that already has an imported workspace in the current owner scope, the live-analysis form should show three explicit choices before starting new work:
+
+- **Open existing workspace** when you want to review current results, inspect the latest import summary, or continue why/drift work.
+- **Sync since last import** when the repository has changed and you want to fetch newer artifacts without treating the run as a fresh full re-analysis.
+- **Run full analysis again** when you intentionally want to rebuild the imported workspace result from the repository baseline.
+
+If a queued or running import already exists for that workspace, open the workspace/job progress instead of starting another repeat run.
+
 ### Live Provider Mode
 
 Edit `.env` to connect to a real LLM provider:
@@ -108,6 +118,8 @@ Open the web app:
 | `uv` not on PATH | Use `python -m uv ...` instead. The pre-release script handles this automatically. |
 | Import succeeds but no candidates | Verify `LLM_PROVIDER_MODE`, `LLM_API_KEY`, `LLM_MODEL`, and `EMBEDDING_MODEL` are set. |
 | Live analysis fails | Public repository import remains the default path. Admin/operator setup flows can bind GitHub App installations or token-backed private repository access for owner-scoped workspaces. |
+| Same repository already exists | Open the existing workspace for current results, use incremental sync for new repository changes, or choose full re-analysis only when you intentionally want a heavier rerun. |
+| Import already running | Follow the existing workspace/job link and wait for the queued or running import to finish before starting another sync or rerun. |
 | Docker services unavailable | Retry `docker compose up -d postgres redis` |
 | `.docx` import skipped | Confirm `pandoc` is installed and available in terminal. |
 | Hosted demo state drifted | Run `scripts\demo\reset-demo.ps1` for `demo-workspace`; use `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |

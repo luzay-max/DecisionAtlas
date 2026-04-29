@@ -91,6 +91,16 @@ If a repository is thin on ADRs, docs, or rationale, the correct outcome may be 
 
 The imported workspace may also explicitly stop at `review_required`, `evidence_limited`, or `conversion_limited`. Those are intended bounded product outcomes, not runtime failures.
 
+### What should I do if the same repository was already imported?
+
+DecisionAtlas resolves live analysis inside the current owner scope before starting a new import. If the repository already has an imported workspace, use the explicit repeat-run choices:
+
+- **Open existing workspace** to continue review, why-search, drift inspection, or import-summary debugging.
+- **Sync since last import** to fetch newer repository artifacts through the `since_last_sync` path.
+- **Run full analysis again** only when you intentionally want a heavier re-analysis.
+
+If a job is already queued or running, the product should route you to that workspace/job and discourage another duplicate run. Sync provenance labels distinguish manual full import, manual incremental sync, GitHub App-backed sync, private-source sync, and webhook-triggered incremental sync.
+
 ### What does the fake/live provider switch change?
 
 It changes the provider used for the **next** real analysis or extraction run. It does **not** rewrite the demo data or imported results already on screen.

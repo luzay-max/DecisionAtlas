@@ -258,8 +258,143 @@ def test_get_imports_lookup_reports_existing_workspace_and_latest_job(tmp_path: 
     assert payload["has_successful_import"] is True
     assert payload["can_incremental_sync"] is True
     assert payload["latest_import"]["job_id"] == "job-old"
+    assert payload["active_import"] is None
+    assert payload["latest_sync_origin"] == "manual"
+    assert payload["last_import_summary"] == {"stage": "completed", "outcome": "ok"}
     assert payload["access_source_type"] == "public"
     assert payload["access_source_label"] == "Public GitHub access"
+
+
+def test_lookup_does_not_leak_workspace_from_another_owner_scope(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lookup-cross-scope.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(
+            Workspace(
+                slug="github-other-org-repo",
+                name="org/repo",
+                repo_url="https://github.com/org/repo",
+                owner_scope="other-scope",
+                repo_identity="org/repo",
+            )
+        )
+        session.commit()
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.get_repository_metadata",
+        lambda self, repo: {"full_name": repo, "private": False, "default_branch": "main"},
+    )
+
+    client = TestClient(create_app())
+    response = client.get("/imports/lookup", params={"repo": "org/repo"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["workspace_exists"] is False
+    assert payload["workspace_slug"] is None
+    assert payload["access_requirement"] is None
+
+
+def test_lookup_reports_active_import_state_for_existing_workspace(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "lookup-active-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="github-org-repo",
+            name="org/repo",
+            repo_url="https://github.com/org/repo",
+            owner_scope="local-default",
+            repo_identity="org/repo",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-active",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="since_last_sync",
+                status="running",
+                sync_origin="manual_incremental",
+                imported_count=0,
+                summary_json={"stage": "importing_artifacts"},
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.get("/imports/lookup", params={"repo": "org/repo"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["workspace_exists"] is True
+    assert payload["has_running_import"] is True
+    assert payload["can_incremental_sync"] is False
+    assert payload["active_import"]["job_id"] == "job-active"
+    assert payload["latest_sync_origin"] == "manual_incremental"
+    assert payload["last_import_summary"] == {"stage": "importing_artifacts"}
+
+
+def test_post_imports_github_rejects_duplicate_active_import(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "duplicate-active-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.get_repository_metadata",
+        lambda self, repo: {"full_name": repo, "private": False, "default_branch": "main"},
+    )
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="github-org-repo",
+            name="org/repo",
+            repo_url="https://github.com/org/repo",
+            owner_scope="local-default",
+            repo_identity="org/repo",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(
+            ImportJob(
+                job_id="job-active",
+                workspace_id=workspace.id,
+                repo="org/repo",
+                mode="full",
+                status="queued",
+                sync_origin="manual_full",
+                imported_count=0,
+                summary_json={"stage": "queued"},
+            )
+        )
+        session.commit()
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/github",
+        json={"workspace_slug": "github-org-repo", "repo": "org/repo", "mode": "since_last_sync"},
+    )
+
+    assert response.status_code == 409
+    body = response.json()
+    assert body["detail"]["message"] == "An import is already queued or running for this workspace."
+    assert body["detail"]["active_import"]["job_id"] == "job-active"
 
 
 def test_bind_installation_marks_workspace_as_installation_backed(tmp_path: Path, monkeypatch) -> None:
