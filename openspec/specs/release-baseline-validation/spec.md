@@ -19,7 +19,7 @@ The system SHALL provide a single canonical local release baseline validation pa
 - **THEN** the release-facing notes or checklist SHALL record the canonical validation command and its result before the tag is treated as ready
 
 ### Requirement: Release-facing docs align on baseline commands and lane boundaries
-The system SHALL keep release-facing documentation aligned with the current branch baseline so readers can distinguish the stable guided demo lane from the imported real-repository lane, follow the same validation path described by the project, and understand which version milestone the current docs describe.
+The system SHALL keep release-facing documentation aligned with the current branch baseline so readers can distinguish the stable guided demo lane from the imported real-repository lane, follow the same validation path described by the project, understand which version milestone the current docs describe, and see the current completed stage plus next planned stage without stale OpenSpec or Git status.
 
 #### Scenario: Release-facing docs share the same validation path
 - **WHEN** a maintainer reads README, quick start, or release checklist guidance before validating the branch baseline
@@ -36,6 +36,10 @@ The system SHALL keep release-facing documentation aligned with the current bran
 #### Scenario: English and Chinese docs preserve the same release meaning
 - **WHEN** release-facing docs are updated for a milestone
 - **THEN** the English and Chinese entry points SHALL communicate the same current stage, stable demo lane, imported lane, and limitation categories
+
+#### Scenario: Master plan reflects current completed and next stages
+- **WHEN** a stage change has been completed, synced, archived, committed, and pushed
+- **THEN** the master plan SHALL identify the latest baseline commit, active OpenSpec change count, completed stage, and next planned stage without stale in-progress language
 
 ### Requirement: Release baseline validation covers both stable product lanes
 The system SHALL define the release baseline in a way that covers both the stable guided demo lane and the bounded imported real-repository lane, and SHALL keep the distinction between required offline validation and optional operator-guided live validation explicit.
