@@ -1,0 +1,4 @@
+{
+  "expected_status": "review_required",
+  "decision_marker": "Use local advisory reports before adding CI enforcement."
+}

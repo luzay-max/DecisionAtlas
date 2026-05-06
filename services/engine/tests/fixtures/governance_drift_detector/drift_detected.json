@@ -1,0 +1,4 @@
+{
+  "expected_status": "drift_detected",
+  "missing_capability": "billing-subscription-workflow"
+}

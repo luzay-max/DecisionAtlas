@@ -1,0 +1,5 @@
+{
+  "expected_status": "clean",
+  "roadmap": "# Roadmap\n\nGovernance drift detection keeps OpenSpec specs and accepted governance rules aligned.",
+  "spec_name": "governance-drift-detection"
+}

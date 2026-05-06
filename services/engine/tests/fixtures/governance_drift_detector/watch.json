@@ -1,0 +1,4 @@
+{
+  "expected_status": "watch",
+  "diff": "diff --git a/apps/web/components/billing-panel.tsx b/apps/web/components/billing-panel.tsx\n--- a/apps/web/components/billing-panel.tsx\n+++ b/apps/web/components/billing-panel.tsx\n@@ -1 +1 @@\n-export const label = 'old';\n+export const label = 'new';\n"
+}
