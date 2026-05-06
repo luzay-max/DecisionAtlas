@@ -1,12 +1,12 @@
 # DecisionAtlas 下一阶段总计划
 
 日期：2026-04-29  
-当前基线：`main` @ `aec6e1a`  
-状态：v0.3 RC 已封存，阶段 4 Markdown Governance Ingest MVP 已完成，阶段 5 Governance Diff Checker 为下一阶段
+当前基线：阶段 5 Governance Diff Checker 完成后的 `main`  
+状态：v0.3 RC 已封存，阶段 4 Markdown Governance Ingest MVP 已完成，阶段 5 Governance Diff Checker 已完成，阶段 6 Governance Drift Detection 为下一阶段
 
 ## 当前状态判断
 
-DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2、阶段 3 的计划实施。
+DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5 的计划实施。
 
 当前已成立的能力包括：
 
@@ -23,14 +23,14 @@ DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要�
 当前 OpenSpec 状态：
 
 ```text
-active changes: 0
+active changes: 0 after archiving add-governance-diff-checker
 ```
 
 当前 Git 状态：
 
 ```text
-main is synced with origin/main
-latest commit: aec6e1a Prototype governance markdown ingest
+main has the stage 5 governance checker changes ready to commit and push
+latest committed baseline before stage 5 closeout: 8d2c598
 release tag: v0.3.0-rc.1 exists locally
 ```
 
@@ -39,7 +39,8 @@ release tag: v0.3.0-rc.1 exists locally
 - 真实 Postgres/Redis stack 和外部 hosted preview 仍需要在具备环境时重跑确认。
 - 真实仓库决策质量和 why-search 检索质量已经完成一轮收紧，但仍需要继续通过真实仓库验证效果。
 - Workspace 复用与增量同步已完成产品化：重复仓库分析会先暴露已有 workspace、增量同步、完整重跑和 active import 状态。
-- AI governance knowledge layer 的阶段 4 第一刀已经完成：Markdown 治理知识层已具备可导入、可分类、可审核、可引用的 accepted rules 基础，但仍不做自动裁决或 CI 阻断。
+- AI governance knowledge layer 的阶段 4 第一刀已经完成：Markdown 治理知识层已具备可导入、可分类、可审核、可引用的 accepted rules 基础。
+- 阶段 5 Governance Diff Checker 已完成：当前 git diff 可以对照 OpenSpec、roadmap、main specs、accepted governance rules 和验证期望输出保守、可解释、机器可读的治理检查结果；默认仍是 advisory，不做 CI 阻断或自动改写规则。
 
 因此，下一阶段不应继续零散加功能。主线应从：
 
@@ -53,7 +54,7 @@ v0.3 平台化能力补齐
 v0.3 RC 封存 + v0.4 产品价值深化
 ```
 
-阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。阶段 4 也已完成：Markdown Governance Ingest MVP 已经启动 AI 可调用治理知识层的第一刀。下一阶段应进入阶段 5，围绕 Governance Diff Checker 让当前 git diff 对照 OpenSpec、roadmap、accepted governance rules 和历史错误总结输出保守、可解释的治理检查结果。
+阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。阶段 4 也已完成：Markdown Governance Ingest MVP 已经启动 AI 可调用治理知识层的第一刀。阶段 5 已完成：Governance Diff Checker 已能让当前 git diff 对照 OpenSpec、roadmap、accepted governance rules 和历史错误总结输出保守、可解释的治理检查结果。下一阶段应进入阶段 6，围绕 Governance Drift Detection 发现项目方向、规范和历史人工决策之间的长期漂移。
 
 ## 总体目标
 
