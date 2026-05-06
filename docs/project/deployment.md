@@ -4,9 +4,9 @@
 
 ---
 
-### Recommended v0.3 RC Architecture
+### Recommended Post-Stage-7 Architecture
 
-DecisionAtlas v0.3 RC is still designed around a single-machine demo or preview deployment, with explicit owner-scoped product flows layered on the existing web/API/engine topology:
+DecisionAtlas remains designed around a single-machine demo or preview deployment, with explicit owner-scoped product flows and local governance guardrails layered on the existing web/API/engine topology:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -79,6 +79,18 @@ The v0.3 RC includes productized operator/admin flows for:
 
 The RC does not include a full SaaS org-management console, secret vault, billing, GitHub Marketplace/OAuth self-service installation, or multi-user collaborative review workflow.
 
+### Governance Guardrail Boundary
+
+The post-stage-7 baseline includes local advisory governance tools:
+
+```powershell
+python scripts\governance\check.py --pretty
+python scripts\governance\drift_report.py --pretty
+python scripts\governance\agent_guardrail.py --summary
+```
+
+These tools are intended for developers, operators, and AI agents before commit/archive/release review. They do not modify project files or block CI by default.
+
 ### Hosted Operator Flow
 
 Use the hosted operator guide when running a persistent demo environment:
@@ -101,14 +113,16 @@ Before showing the environment externally, run the [Hosted Preview Readiness](ho
 ### Bring-up Order
 
 ```powershell
-pnpm run dev:real
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
 For local real-stack shutdown:
 
 ```powershell
-pnpm run dev:real:stop
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
 ```
+
+`pnpm run dev:real` and `pnpm run dev:real:stop` are shortcuts for the same scripts.
 
 Use manual service startup only when debugging a specific layer.
 
@@ -131,3 +145,10 @@ After startup, verify:
 5. Verify `/drift`
 
 For a hosted environment, run [Hosted Demo Operator Guide](hosted-demo-operator-guide.md) checks before a public walkthrough.
+
+Also run the advisory governance guardrail before archiving or publishing a milestone:
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+```

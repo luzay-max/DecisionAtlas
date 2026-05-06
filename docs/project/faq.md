@@ -44,6 +44,9 @@ Imported drift is now more usable:
 | Local/bootstrap session, owner scope switching, and role gates | Included in v0.3 RC |
 | GitHub App installation binding | Included as an admin/operator setup flow |
 | Token-backed private repository access binding | Included as an admin/operator setup flow |
+| Markdown governance document ingest | Included as a local governance knowledge layer |
+| Governance diff checker and drift detector | Included as local advisory tools |
+| AI-agent governance guardrail | Included as a local advisory `continue` / `caution` / `pause` summary |
 | Full SaaS org-management console | Not included |
 | Secret vault and credential rotation UI | Not included |
 | GitHub Marketplace/OAuth self-service installation | Not included |
@@ -64,6 +67,13 @@ Yes, optionally. `.docx` import depends on `pandoc` being installed locally.
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 ```
 
+For the current post-stage-7 governance workflow, also run:
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+```
+
 Use individual commands only when debugging a failing phase:
 
 ```powershell
@@ -80,6 +90,33 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 ```
 
 These are hosted environment checks, not a replacement for the default release gate.
+
+### What is the AI-agent governance guardrail?
+
+It is a local advisory check for AI-assisted development. It combines:
+
+- the governance diff checker, which inspects the current workspace diff against OpenSpec, roadmap, accepted governance rules, and validation expectations;
+- the governance drift detector, which looks for longer-term mismatch across roadmap, main specs, archived changes, accepted rules, postmortems, and current diff context.
+
+Run:
+
+```powershell
+python scripts\governance\agent_guardrail.py --summary
+```
+
+The result is:
+
+- `continue`: no blocking governance concern detected.
+- `caution`: review the recommended actions before claiming completion.
+- `pause`: stop and ask for human review.
+
+It does not modify code, rewrite specs, accept governance rules, or block CI by default.
+
+### Can users import project standards and decisions?
+
+Yes. The governance Markdown ingest flow can import Markdown standards, coding guidelines, architecture policies, roadmaps, postmortems, checklists, decision records, anti-patterns, release policies, and security policies.
+
+Imported content creates reviewable rule drafts. Only accepted rules become authoritative input for the governance checker and agent guardrail.
 
 ### Does live analysis support any repository?
 

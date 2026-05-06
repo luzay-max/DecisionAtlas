@@ -38,14 +38,16 @@ This starts a curated demo workspace under `.tmp/` — isolated from your local 
 For a deployment-like environment with PostgreSQL and Redis:
 
 ```powershell
-pnpm run dev:real
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
 This starts PostgreSQL and Redis, runs migrations, seeds demo data, starts engine/API/web, and enables local bootstrap session recovery for the browser session. Stop it with:
 
 ```powershell
-pnpm run dev:real:stop
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
 ```
+
+`pnpm run dev:real` and `pnpm run dev:real:stop` call the same scripts and remain valid shortcuts.
 
 Use the manual service commands only when debugging a specific layer.
 
@@ -54,6 +56,22 @@ Use the manual service commands only when debugging a specific layer.
 The v0.3 release-candidate baseline includes local/bootstrap login recovery, owner scope switching, admin/reviewer role gates, GitHub App installation binding, and token-backed private repository access binding.
 
 These are operator/admin setup flows, not a full SaaS admin console. GitHub Marketplace/OAuth self-service installation, secret vault behavior, billing, and collaborative review workflows are still out of scope.
+
+### Post Stage 7 Governance Flow
+
+The current post-stage-7 baseline includes a local AI-agent governance guardrail. It aggregates the current diff checker and long-term drift detector into an advisory status:
+
+- `continue`: no blocking governance concern detected.
+- `caution`: review recommended actions before claiming completion.
+- `pause`: stop and ask for human review; do not silently rewrite code, specs, or accepted rules.
+
+Run it before committing or archiving an OpenSpec change:
+
+```powershell
+python scripts\governance\agent_guardrail.py --summary
+```
+
+Use `--pretty` when an AI agent or reviewer needs the full machine-readable JSON.
 
 ### Repeat Repository Analysis
 
@@ -103,6 +121,16 @@ For release-style validation, run the canonical local gate from the repository r
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 ```
 
+For current governance-focused validation, also run:
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+cd services/engine
+.\.venv\Scripts\python.exe -m pytest tests/governance/test_diff_checker.py tests/governance/test_drift_detector.py tests/governance/test_agent_guardrail.py -q
+.\.venv\Scripts\python.exe -m pytest tests/db/test_migrations.py tests/db/test_schema.py -q
+```
+
 Open the web app:
 
 - Web UI: `http://localhost:3000`
@@ -121,5 +149,6 @@ Open the web app:
 | Same repository already exists | Open the existing workspace for current results, use incremental sync for new repository changes, or choose full re-analysis only when you intentionally want a heavier rerun. |
 | Import already running | Follow the existing workspace/job link and wait for the queued or running import to finish before starting another sync or rerun. |
 | Docker services unavailable | Retry `docker compose up -d postgres redis` |
+| Real stack migration fails with `value too long for type character varying(32)` | Ensure the code includes the shortened Alembic revision `0008_governance_ingest`; run `tests/db/test_migrations.py` to catch future revision IDs over 32 characters. |
 | `.docx` import skipped | Confirm `pandoc` is installed and available in terminal. |
 | Hosted demo state drifted | Run `scripts\demo\reset-demo.ps1` for `demo-workspace`; use `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |

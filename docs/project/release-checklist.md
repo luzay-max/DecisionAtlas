@@ -25,6 +25,16 @@ Latest v0.3 RC pre-tag validation:
 - Playwright smoke: `1 passed`
 - Final tag target verification after tagging: `git rev-parse --short v0.3.0-rc.1`
 
+Latest post-stage-7 documentation and governance validation:
+
+- OpenSpec strict validation: 2026-05-06, `37 passed, 0 failed`
+- Governance guardrail tests: `6 passed`
+- Governance stage 5/6/7 tests: `19 passed`
+- Migration revision-length/schema tests: `2 passed`
+- Real Postgres `alembic upgrade head`: passed after shortening revision `0008_governance_ingest`
+- Real stack startup: `scripts/dev/start-real-stack.bat`, exit code `0`
+- Playwright smoke against running real stack: `1 passed`
+
 ## Mandatory product baseline
 
 - [ ] Local/bootstrap session recovery works in the supported local stack path
@@ -41,13 +51,21 @@ Latest v0.3 RC pre-tag validation:
 - [ ] At least one imported why answer uses chunk-backed supporting evidence without losing the accepted-decision anchor
 - [ ] GitHub App installation binding is documented as an admin/operator flow
 - [ ] Token-backed private repository access binding is documented as an admin/operator flow
+- [ ] Governance Markdown ingest is documented as a human-reviewed rules flow
+- [ ] AI-agent governance guardrail returns advisory `continue` / `caution` / `pause`
+- [ ] Governance guardrail is documented as non-blocking by default
 
 ## Mandatory documentation baseline
 
 - [ ] README matches the current product state
+- [ ] `README_zh-CN.md` mirrors README workflow guidance
 - [ ] `docs/project/quick-start.md` is accurate
+- [ ] `docs/project/quick-start_zh-CN.md` mirrors quick-start guidance
+- [ ] `docs/project/governance-agent-guardrail.md` documents agent usage and pause behavior
 - [ ] `docs/project/demo-script.md` matches current routes
 - [ ] `docs/plans/2026-04-27-decisionatlas-v0-3-next-roadmap.md` reflects the current next route
+- [ ] `docs/plans/2026-05-06-decisionatlas-post-stage-7-master-plan.md` records the current post-stage-7 route
+- [ ] `docs/project/2026-05-06-update-log.md` records the latest stage 7, migration, and real-stack validation evidence
 - [ ] `docs/project/release-notes-v0.3.0-rc.1.md` records shipped capabilities, validation evidence, supported scope, limitations, and tag readiness
 - [ ] `docs/project/release-notes-v0.3.0-rc.1_zh-CN.md` mirrors the v0.3.0-rc.1 release summary for Chinese readers
 - [ ] FAQ reflects actual limitations

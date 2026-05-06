@@ -44,6 +44,9 @@
 | 本地/bootstrap session、owner scope 切换和角色门禁 | 已包含在 v0.3 RC |
 | GitHub App 安装绑定 | 已作为 admin/operator 设置流程包含 |
 | token-backed 私有仓库访问绑定 | 已作为 admin/operator 设置流程包含 |
+| Markdown 治理文档导入 | 已作为本地治理知识层包含 |
+| Governance diff checker 和 drift detector | 已作为本地 advisory 工具包含 |
+| AI-agent 治理护栏 | 已作为本地 advisory `continue` / `caution` / `pause` 摘要包含 |
 | 完整 SaaS 组织管理台 | 不包含 |
 | secret vault 和凭据轮换 UI | 不包含 |
 | GitHub Marketplace/OAuth 自助安装 | 不包含 |
@@ -64,6 +67,13 @@
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 ```
 
+当前 post-stage-7 治理流程还建议运行：
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+```
+
 只有在调试失败阶段时，才建议单独运行子命令：
 
 ```powershell
@@ -80,6 +90,33 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 ```
 
 这些是托管环境检查，不替代默认发布门禁。
+
+### AI-agent 治理护栏是什么？
+
+它是面向 AI 辅助开发的本地 advisory 检查。它会聚合：
+
+- governance diff checker：检查当前 workspace diff 是否符合 OpenSpec、roadmap、accepted governance rules 和验证期望；
+- governance drift detector：检查 roadmap、main specs、archived changes、accepted rules、postmortems 和当前 diff context 之间的长期不一致。
+
+运行：
+
+```powershell
+python scripts\governance\agent_guardrail.py --summary
+```
+
+结果含义：
+
+- `continue`：未发现阻断级治理问题。
+- `caution`：声明完成前先处理推荐动作。
+- `pause`：停止并请求人工审核。
+
+它不会自动修改代码、重写 specs、接受治理规则，也不会默认阻断 CI。
+
+### 用户可以导入项目规范和人工决策吗？
+
+可以。Governance Markdown ingest 可以导入 Markdown 格式的开发标准、代码规范、架构原则、路线图、复盘、检查清单、人工决策、反模式、发布规则和安全规范。
+
+导入内容会生成可审核规则草稿。只有人工接受后的规则才会成为 governance checker 和 agent guardrail 的 authoritative input。
 
 ### 实时分析支持所有仓库吗？
 

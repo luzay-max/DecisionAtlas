@@ -4,9 +4,9 @@
 
 ---
 
-### 推荐 v0.3 RC 架构
+### 推荐 Post-Stage-7 架构
 
-DecisionAtlas v0.3 RC 仍围绕单机演示或预览部署设计，并在现有 web/API/engine 拓扑上叠加明确的 owner-scoped 产品流程：
+DecisionAtlas 仍围绕单机演示或预览部署设计，并在现有 web/API/engine 拓扑上叠加明确的 owner-scoped 产品流程和本地治理护栏：
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -79,6 +79,18 @@ v0.3 RC 包含以下 operator/admin 产品流程：
 
 RC 不包含完整 SaaS 组织管理台、secret vault、billing、GitHub Marketplace/OAuth 自助安装或多人协作 review workflow。
 
+### 治理护栏边界
+
+post-stage-7 基线包含本地 advisory 治理工具：
+
+```powershell
+python scripts\governance\check.py --pretty
+python scripts\governance\drift_report.py --pretty
+python scripts\governance\agent_guardrail.py --summary
+```
+
+这些工具面向开发者、operator 和 AI agent，用于提交、归档或发布检查前的治理自查。它们不会自动修改项目文件，也不会默认阻断 CI。
+
 ### 托管操作员流程
 
 运行持久化演示环境时，使用托管操作指南中的检查流程：
@@ -101,14 +113,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps
 ### 启动顺序
 
 ```powershell
-pnpm run dev:real
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
 停止本地 real stack：
 
 ```powershell
-pnpm run dev:real:stop
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
 ```
+
+`pnpm run dev:real` 和 `pnpm run dev:real:stop` 是同一组脚本的快捷方式。
 
 只有在调试某一层服务时，才建议手动拆开启动。
 
@@ -131,3 +145,10 @@ pnpm run dev:real:stop
 5. 验证 `/drift` 漂移检测
 
 托管环境在公开演示前，请运行[托管演示操作指南](hosted-demo-operator-guide_zh-CN.md)中的检查。
+
+归档或发布里程碑前，也运行 advisory 治理护栏：
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+```

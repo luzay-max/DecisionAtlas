@@ -38,14 +38,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
 需要与 PostgreSQL 和 Redis 一起运行的部署式环境：
 
 ```powershell
-pnpm run dev:real
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
 该命令会启动 PostgreSQL 和 Redis、运行迁移、seed 演示数据、启动 engine/API/web，并为浏览器会话启用本地 bootstrap session 恢复。停止命令：
 
 ```powershell
-pnpm run dev:real:stop
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
 ```
+
+`pnpm run dev:real` 和 `pnpm run dev:real:stop` 会调用同一组脚本，仍然是有效快捷方式。
 
 只有在调试某一层服务时，才建议手动拆开运行服务命令。
 
@@ -54,6 +56,22 @@ pnpm run dev:real:stop
 v0.3 release-candidate 基线包含本地/bootstrap 登录恢复、owner scope 切换、admin/reviewer 角色门禁、GitHub App 安装绑定，以及 token-backed 私有仓库访问绑定。
 
 这些是 operator/admin 设置流程，不是完整 SaaS 管理台。GitHub Marketplace/OAuth 自助安装、secret vault、billing 和多人协作 review workflow 仍不在范围内。
+
+### 阶段 7 后治理流程
+
+当前 post-stage-7 基线包含本地 AI-agent 治理护栏。它会聚合当前 diff checker 和长期 drift detector，输出 advisory 状态：
+
+- `continue`：未发现阻断级治理问题。
+- `caution`：声明完成前应先处理推荐动作。
+- `pause`：停止并请求人工审核，不应静默改代码、specs 或 accepted rules。
+
+提交或归档 OpenSpec change 前运行：
+
+```powershell
+python scripts\governance\agent_guardrail.py --summary
+```
+
+当 AI agent 或 reviewer 需要完整机器可读 JSON 时，使用 `--pretty`。
 
 ### 重复仓库分析
 
@@ -103,6 +121,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 ```
 
+当前治理相关验证还应运行：
+
+```powershell
+openspec validate --all --strict
+python scripts\governance\agent_guardrail.py --summary
+cd services/engine
+.\.venv\Scripts\python.exe -m pytest tests/governance/test_diff_checker.py tests/governance/test_drift_detector.py tests/governance/test_agent_guardrail.py -q
+.\.venv\Scripts\python.exe -m pytest tests/db/test_migrations.py tests/db/test_schema.py -q
+```
+
 打开 Web 应用：
 
 - Web UI: `http://localhost:3000`
@@ -121,5 +149,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1
 | 同一仓库已存在 | 打开已有工作区查看当前结果；仓库有新增变更时使用增量同步；只有明确需要重建时才选择完整重新分析。 |
 | 导入任务已在运行 | 进入已有 workspace/job 进度，等待排队中或运行中的导入结束后，再启动新的同步或重跑。 |
 | Docker 服务不可用 | 重试 `docker compose up -d postgres redis` |
+| Real stack migration 报 `value too long for type character varying(32)` | 确认代码已包含缩短后的 Alembic revision `0008_governance_ingest`；运行 `tests/db/test_migrations.py` 防止未来 revision ID 超过 32 字符。 |
 | `.docx` 导入被跳过 | 确认 `pandoc` 已安装并在终端中可用。 |
 | 托管演示状态漂移 | 对 `demo-workspace` 运行 `scripts\demo\reset-demo.ps1`；当迁移或数据库漂移需要更深重建时使用 `reseed-demo.ps1`。 |
