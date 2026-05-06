@@ -1,6 +1,6 @@
 """add governance markdown ingest
 
-Revision ID: 0008_add_governance_markdown_ingest
+Revision ID: 0008_governance_ingest
 Revises: 0007_auth_sessions_roles
 Create Date: 2026-04-29
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "0008_add_governance_markdown_ingest"
+revision = "0008_governance_ingest"
 down_revision = "0007_auth_sessions_roles"
 branch_labels = None
 depends_on = None

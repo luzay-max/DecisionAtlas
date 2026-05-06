@@ -1,12 +1,12 @@
 # DecisionAtlas 下一阶段总计划
 
 日期：2026-04-29  
-当前基线：阶段 5 Governance Diff Checker 完成后的 `main`  
-状态：v0.3 RC 已封存，阶段 4 Markdown Governance Ingest MVP 已完成，阶段 5 Governance Diff Checker 已完成，阶段 6 Governance Drift Detection 为下一阶段
+当前基线：阶段 7 AI Agent Governance Integration 完成后的本地工作区（上一提交基线 `main` @ `dc8e00c`，阶段 7 待提交）  
+状态：v0.3 RC 已封存，阶段 4 Markdown Governance Ingest MVP、阶段 5 Governance Diff Checker、阶段 6 Governance Drift Detection、阶段 7 AI Agent Governance Integration 均已完成；阶段 8 为下一阶段
 
 ## 当前状态判断
 
-DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5 的计划实施。
+DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要推进，并已经完成阶段 0、阶段 1、阶段 2、阶段 3、阶段 4、阶段 5、阶段 6、阶段 7 的计划实施。
 
 当前已成立的能力包括：
 
@@ -23,14 +23,15 @@ DecisionAtlas 已经完成从 demo hardening 到 v0.3 平台化基线的主要�
 当前 OpenSpec 状态：
 
 ```text
-active changes: 0 after archiving add-governance-diff-checker
+active changes: 0 after archiving integrate-ai-agent-governance-guardrails
 ```
 
 当前 Git 状态：
 
 ```text
-main has the stage 5 governance checker changes ready to commit and push
-latest committed baseline before stage 5 closeout: 8d2c598
+main has stage 4, stage 5, and stage 6 governance work committed locally; stage 7 governance guardrail work is implemented and archived in the working tree
+latest committed baseline: dc8e00c feat: add governance drift detection
+local branch state: main...origin/main [ahead 3]
 release tag: v0.3.0-rc.1 exists locally
 ```
 
@@ -41,6 +42,8 @@ release tag: v0.3.0-rc.1 exists locally
 - Workspace 复用与增量同步已完成产品化：重复仓库分析会先暴露已有 workspace、增量同步、完整重跑和 active import 状态。
 - AI governance knowledge layer 的阶段 4 第一刀已经完成：Markdown 治理知识层已具备可导入、可分类、可审核、可引用的 accepted rules 基础。
 - 阶段 5 Governance Diff Checker 已完成：当前 git diff 可以对照 OpenSpec、roadmap、main specs、accepted governance rules 和验证期望输出保守、可解释、机器可读的治理检查结果；默认仍是 advisory，不做 CI 阻断或自动改写规则。
+- 阶段 6 Governance Drift Detection 已完成：系统已具备本地 governance drift report，可跨 roadmap、main specs、archived changes、accepted rules、update logs、postmortems 和当前 diff 输出 `clean` / `watch` / `drift_detected` / `review_required` 的长期治理漂移信号。
+- 阶段 7 AI Agent Governance Integration 已完成：系统已具备 `scripts/governance/agent_guardrail.py` 本地入口，可把 diff check 与 drift report 聚合成 `continue` / `caution` / `pause` 的 agent-facing advisory summary。
 
 因此，下一阶段不应继续零散加功能。主线应从：
 
@@ -54,7 +57,7 @@ v0.3 平台化能力补齐
 v0.3 RC 封存 + v0.4 产品价值深化
 ```
 
-阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。阶段 4 也已完成：Markdown Governance Ingest MVP 已经启动 AI 可调用治理知识层的第一刀。阶段 5 已完成：Governance Diff Checker 已能让当前 git diff 对照 OpenSpec、roadmap、accepted governance rules 和历史错误总结输出保守、可解释的治理检查结果。下一阶段应进入阶段 6，围绕 Governance Drift Detection 发现项目方向、规范和历史人工决策之间的长期漂移。
+阶段 3 已完成：已有 lookup / import job / sync provenance / imported readiness 能力已经被产品化为明确的重复仓库分析入口。阶段 4 也已完成：Markdown Governance Ingest MVP 已经启动 AI 可调用治理知识层的第一刀。阶段 5 已完成：Governance Diff Checker 已能让当前 git diff 对照 OpenSpec、roadmap、accepted governance rules 和历史错误总结输出保守、可解释的治理检查结果。阶段 6 已完成：Governance Drift Detection 已能发现项目方向、规范和历史人工决策之间的长期漂移。阶段 7 已完成：阶段 5/6 的治理检查能力已经被封装为 AI agent 可调用、可解释、可暂停的本地 advisory guardrail。下一阶段应进入阶段 8，把治理能力从“本地可调用”推进到“开发流程可稳定使用、可审计、可复现”。
 
 ## 总体目标
 
@@ -386,6 +389,105 @@ add-governance-drift-detection
 - 能指出冲突来源、影响范围和建议人工决策点。
 - 人类新决策可以反向更新规则状态。
 
+当前状态：已完成。
+
+## 阶段 7：AI Agent Governance Integration
+
+建议 change：
+
+```text
+integrate-ai-agent-governance-guardrails
+```
+
+### 目标
+
+把阶段 5 的 Governance Diff Checker 和阶段 6 的 Governance Drift Detection 封装成 AI agent 可调用的开发护栏，让 AI 在改代码前后都能自查是否符合 OpenSpec、roadmap、accepted governance rules、历史错误总结和总方向。
+
+### 产品定位
+
+阶段 7 不是把 AI 变成自动裁判，而是把人类确认过的项目方向变成 agent 工作流中的显式上下文。AI 可以报告、建议、暂停并要求人工决策，但不能自动覆盖人类规则或替代 review。
+
+### 范围
+
+- 增加 agent-facing governance runbook，定义 AI 在开发前、开发中、开发后如何调用：
+  - `scripts/governance/check.py`
+  - `scripts/governance/drift_report.py`
+- 定义标准化输出摘要：
+  - current diff compliance
+  - roadmap/spec alignment
+  - accepted-rule conflicts
+  - repeated historical issue signals
+  - missing tests or validation evidence
+  - human decision required
+- 增加一个本地组合命令或脚本，聚合 diff check 和 drift report 的核心结果。
+- 明确 agent pause rules：
+  - blocker finding
+  - `review_required`
+  - accepted rule conflict
+  - unsynced human decision
+  - missing OpenSpec for behavior change
+- 增加 fixtures / tests，验证组合输出不会在 clean 情况下误报为阻断。
+- 更新开发文档，说明这仍是 advisory workflow，不是 CI blocking。
+
+### 非目标
+
+- 不接入自动 CI 阻断。
+- 不自动修改代码。
+- 不自动更新 specs 或 accepted rules。
+- 不接入外部 LLM provider 作为唯一判断来源。
+- 不做完整企业治理平台或多团队权限治理。
+
+### 验收标准
+
+- AI agent 可以通过一个稳定入口获得当前 change 的治理摘要。
+- clean 情况下输出可继续开发的建议。
+- blocker / `review_required` 情况下输出明确暂停原因和人工决策点。
+- 输出必须包含 source-linked evidence，而不是只有自然语言判断。
+- 现有 pre-release gate 不受影响。
+
+当前状态：已完成。实现入口为 `scripts/governance/agent_guardrail.py`，主 spec 为 `openspec/specs/ai-agent-governance-guardrails/spec.md`，归档 change 为 `openspec/changes/archive/2026-05-06-integrate-ai-agent-governance-guardrails/`。
+
+## 阶段 8：Governance Workflow Hardening And Demo Reset Reliability
+
+建议 change：
+
+```text
+harden-governance-workflow-and-demo-reset
+```
+
+### 目标
+
+把阶段 7 的本地 AI governance guardrail 从“可调用”推进到“开发流程中稳定可用”，同时修复真实栈演示中发现的 demo review queue 可重复性问题。
+
+### 产品定位
+
+阶段 8 不是扩大治理平台范围，而是补齐可复现性和操作边界：开发者、AI agent、operator 都能明确知道什么时候运行检查、如何处理 `caution` / `pause`、如何把 demo 数据重置到稳定演示状态。
+
+### 范围
+
+- 增加一条标准化开发前/开发后 governance guardrail 使用说明，明确 OpenSpec apply、archive、commit 前的检查节点。
+- 补一个 lightweight runbook 或脚本，输出当前治理状态、active changes、agent guardrail status、required actions。
+- 处理 demo workspace 在真实 Postgres 下 review queue 已被消费后无法稳定复演的问题：
+  - 明确 reset / reseed 命令。
+  - 或新增 demo reset 脚本，恢复候选队列、accepted baseline、why-search、timeline、drift 的预期演示状态。
+- 修复并记录 Alembic revision ID 长度约束，防止 Postgres `alembic_version.version_num varchar(32)` 再次失败。
+- 更新 quick start / operator guide / troubleshooting 中的真实栈启动和 demo reset 注意事项。
+
+### 非目标
+
+- 不把 governance guardrail 接入默认 CI 阻断。
+- 不自动修改 specs、roadmap 或 accepted rules。
+- 不做完整 PR bot。
+- 不做完整企业级 audit log。
+
+### 验收标准
+
+- 真实栈从 clean Postgres/Redis 状态可启动。
+- demo reset 后 review queue、why-search、timeline、drift 均回到稳定 guided demo 状态。
+- `python scripts/governance/agent_guardrail.py --summary` 可作为开发者/AI agent 的明确检查入口。
+- migration revision ID 长度有测试保护。
+- 文档说明清楚：哪些检查是 advisory，哪些情况需要人工决策。
+
 ## 推荐执行顺序
 
 ```text
@@ -396,6 +498,8 @@ add-governance-drift-detection
 4. prototype-governance-markdown-ingest
 5. add-governance-diff-checker
 6. add-governance-drift-detection
+7. integrate-ai-agent-governance-guardrails
+8. harden-governance-workflow-and-demo-reset
 ```
 
 ## 暂缓事项
@@ -427,6 +531,9 @@ add-governance-drift-detection
 - 重复导入成本和用户困惑下降。
 - Markdown 项目规范能变成 AI 可读取、可审核的规则。
 - AI 能基于项目规则判断当前变更是否偏离方向。
+- AI agent 能在开发前后调用治理检查入口，并在需要人工决策时明确暂停。
+- 真实栈 demo 能重复 reset / reseed，避免审阅队列状态污染影响演示。
+- migration / startup 失败能被测试或 runbook 提前捕获。
 
 最终方向：
 
