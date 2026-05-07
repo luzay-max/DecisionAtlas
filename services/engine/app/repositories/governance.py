@@ -66,6 +66,9 @@ class GovernanceRepository:
         scope: str,
         rationale: str | None,
         source_excerpt: str,
+        rule_type: str = "standard",
+        extraction_reason: str | None = None,
+        lifecycle_status: str = "current",
     ) -> GovernanceRuleDraft:
         draft = GovernanceRuleDraft(
             owner_scope=owner_scope,
@@ -76,6 +79,9 @@ class GovernanceRepository:
             scope=scope,
             rationale=rationale,
             source_excerpt=source_excerpt,
+            rule_type=rule_type,
+            extraction_reason=extraction_reason,
+            lifecycle_status=lifecycle_status,
             review_state="pending",
             status="draft",
         )
@@ -105,10 +111,12 @@ class GovernanceRepository:
         status: str,
         reviewed_by: str,
         reviewed_at: datetime,
+        review_rationale: str | None = None,
     ) -> GovernanceRuleDraft:
         draft.review_state = review_state
         draft.status = status
         draft.reviewed_by = reviewed_by
         draft.reviewed_at = reviewed_at
+        draft.review_rationale = review_rationale
         self.session.flush()
         return draft

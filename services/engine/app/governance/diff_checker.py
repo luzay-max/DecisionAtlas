@@ -33,6 +33,10 @@ class SourceReference:
     title: str | None = None
     excerpt: str | None = None
     id: str | int | None = None
+    review_rationale: str | None = None
+    rule_type: str | None = None
+    extraction_reason: str | None = None
+    lifecycle_status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -52,6 +56,10 @@ class MatchedRule:
     scope: str
     source_title: str | None = None
     source_excerpt: str | None = None
+    review_rationale: str | None = None
+    rule_type: str | None = None
+    extraction_reason: str | None = None
+    lifecycle_status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -246,6 +254,11 @@ def collect_accepted_governance_rules(
             r.severity,
             r.scope,
             r.source_excerpt,
+            r.rule_type,
+            r.extraction_reason,
+            r.review_rationale,
+            r.lifecycle_status,
+            r.superseded_by_rule_id,
             r.review_state,
             r.status,
             d.title AS source_title,
@@ -255,6 +268,7 @@ def collect_accepted_governance_rules(
         WHERE r.owner_scope = ?
           AND r.review_state = 'accepted'
           AND r.status = 'active'
+          AND r.lifecycle_status = 'current'
         ORDER BY r.reviewed_at DESC, r.id DESC
     """
     try:
@@ -355,6 +369,10 @@ def _evaluate_accepted_rules(diff_context: GitDiffContext, rules: list[dict[str,
                         id=matched_rule.id,
                         title=matched_rule.source_title or matched_rule.title,
                         excerpt=matched_rule.source_excerpt,
+                        review_rationale=matched_rule.review_rationale,
+                        rule_type=matched_rule.rule_type,
+                        extraction_reason=matched_rule.extraction_reason,
+                        lifecycle_status=matched_rule.lifecycle_status,
                     ),
                 )
             )
@@ -372,6 +390,10 @@ def _evaluate_accepted_rules(diff_context: GitDiffContext, rules: list[dict[str,
                         id=matched_rule.id,
                         title=matched_rule.source_title or matched_rule.title,
                         excerpt=matched_rule.source_excerpt,
+                        review_rationale=matched_rule.review_rationale,
+                        rule_type=matched_rule.rule_type,
+                        extraction_reason=matched_rule.extraction_reason,
+                        lifecycle_status=matched_rule.lifecycle_status,
                     ),
                 )
             )
@@ -460,13 +482,22 @@ def _normalize_rule(rule: dict[str, Any]) -> dict[str, Any]:
         "scope": str(rule.get("scope") or "all").lower(),
         "source_title": rule.get("source_title"),
         "source_excerpt": rule.get("source_excerpt"),
+        "review_rationale": rule.get("review_rationale"),
+        "rule_type": str(rule.get("rule_type") or "standard").lower(),
+        "extraction_reason": rule.get("extraction_reason"),
+        "lifecycle_status": str(rule.get("lifecycle_status") or "current").lower(),
+        "superseded_by_rule_id": rule.get("superseded_by_rule_id"),
         "review_state": str(rule.get("review_state") or "accepted").lower(),
         "status": str(rule.get("status") or "active").lower(),
     }
 
 
 def _is_accepted_rule(rule: dict[str, Any]) -> bool:
-    return str(rule.get("review_state", "accepted")).lower() == "accepted" and str(rule.get("status", "active")).lower() == "active"
+    return (
+        str(rule.get("review_state", "accepted")).lower() == "accepted"
+        and str(rule.get("status", "active")).lower() == "active"
+        and str(rule.get("lifecycle_status", "current")).lower() == "current"
+    )
 
 
 def _matched_rule(rule: dict[str, Any]) -> MatchedRule:
@@ -477,6 +508,10 @@ def _matched_rule(rule: dict[str, Any]) -> MatchedRule:
         scope=rule.get("scope", "all"),
         source_title=rule.get("source_title"),
         source_excerpt=rule.get("source_excerpt"),
+        review_rationale=rule.get("review_rationale"),
+        rule_type=rule.get("rule_type"),
+        extraction_reason=rule.get("extraction_reason"),
+        lifecycle_status=rule.get("lifecycle_status"),
     )
 
 

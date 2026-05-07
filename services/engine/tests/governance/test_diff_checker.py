@@ -67,6 +67,10 @@ def test_accepted_rule_conflict_is_source_linked(tmp_path: Path) -> None:
                 "scope": "engine",
                 "source_title": "Engineering Standards",
                 "source_excerpt": "## Rule: Every change must have targeted tests",
+                "review_rationale": "Accepted as validation baseline.",
+                "rule_type": "standard",
+                "extraction_reason": "rule heading marker",
+                "lifecycle_status": "current",
                 "review_state": "accepted",
                 "status": "active",
             }
@@ -75,8 +79,13 @@ def test_accepted_rule_conflict_is_source_linked(tmp_path: Path) -> None:
 
     assert result.status == "blocked"
     assert result.matched_rules[0].id == 7
+    assert result.matched_rules[0].review_rationale == "Accepted as validation baseline."
+    assert result.matched_rules[0].rule_type == "standard"
+    assert result.matched_rules[0].extraction_reason == "rule heading marker"
+    assert result.matched_rules[0].lifecycle_status == "current"
     assert result.conflicts[0].source is not None
     assert result.conflicts[0].source.title == "Engineering Standards"
+    assert result.conflicts[0].source.review_rationale == "Accepted as validation baseline."
 
 
 def test_pending_and_rejected_rules_are_not_enforceable(tmp_path: Path) -> None:
@@ -103,6 +112,26 @@ def test_pending_and_rejected_rules_are_not_enforceable(tmp_path: Path) -> None:
                 "scope": "engine",
                 "review_state": "rejected",
                 "status": "rejected",
+            },
+            {
+                "id": 13,
+                "title": "Rule: Stale changes must block",
+                "description": "This stale rule should not be enforced.",
+                "severity": "blocker",
+                "scope": "engine",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "stale",
+            },
+            {
+                "id": 14,
+                "title": "Rule: Superseded changes must block",
+                "description": "This superseded rule should not be enforced.",
+                "severity": "blocker",
+                "scope": "engine",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "superseded",
             },
         ],
     )
@@ -135,7 +164,49 @@ def test_collect_accepted_rules_filters_pending_and_rejected_inputs(tmp_path: Pa
             {"id": 1, "title": "Accepted", "review_state": "accepted", "status": "active"},
             {"id": 2, "title": "Pending", "review_state": "pending", "status": "draft"},
             {"id": 3, "title": "Rejected", "review_state": "rejected", "status": "rejected"},
+            {"id": 4, "title": "Stale", "review_state": "accepted", "status": "active", "lifecycle_status": "stale"},
+            {
+                "id": 5,
+                "title": "Superseded",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "superseded",
+            },
         ],
     )
 
     assert [rule["id"] for rule in rules] == [1]
+
+
+def test_matched_accepted_rule_includes_review_traceability_metadata(tmp_path: Path) -> None:
+    _write_project_context(tmp_path)
+    _write_active_change(tmp_path)
+    result = run_governance_check(
+        root=tmp_path,
+        diff_text=_fixture("warning_missing_validation.json")["diff"],
+        accepted_rules=[
+            {
+                "id": 21,
+                "title": "Rule: Every engine change must have tests",
+                "description": "Every backend behavior change must include targeted tests.",
+                "severity": "warning",
+                "scope": "engine",
+                "source_title": "Engineering Standards",
+                "source_excerpt": "## Rule: Every engine change must have tests",
+                "review_rationale": "Accepted because it is actionable and source-backed.",
+                "rule_type": "standard",
+                "extraction_reason": "rule heading marker",
+                "lifecycle_status": "current",
+                "review_state": "accepted",
+                "status": "active",
+            }
+        ],
+    )
+
+    assert result.matched_rules
+    matched = result.matched_rules[0]
+    assert matched.source_excerpt == "## Rule: Every engine change must have tests"
+    assert matched.review_rationale == "Accepted because it is actionable and source-backed."
+    assert matched.rule_type == "standard"
+    assert matched.extraction_reason == "rule heading marker"
+    assert matched.lifecycle_status == "current"

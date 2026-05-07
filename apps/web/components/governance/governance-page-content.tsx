@@ -42,9 +42,25 @@ export function GovernancePageContent({
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [acceptedScopeFilter, setAcceptedScopeFilter] = useState("all");
+  const [acceptedSeverityFilter, setAcceptedSeverityFilter] = useState("all");
+  const [acceptedRuleTypeFilter, setAcceptedRuleTypeFilter] = useState("all");
+  const [acceptedLifecycleFilter, setAcceptedLifecycleFilter] = useState("all");
 
   const pendingRules = rules.filter((rule) => rule.review_state === "pending");
   const acceptedRules = rules.filter((rule) => rule.review_state === "accepted");
+  const filteredAcceptedRules = acceptedRules.filter((rule) => {
+    return (
+      (acceptedScopeFilter === "all" || rule.scope === acceptedScopeFilter) &&
+      (acceptedSeverityFilter === "all" || rule.severity === acceptedSeverityFilter) &&
+      (acceptedRuleTypeFilter === "all" || (rule.rule_type ?? "standard") === acceptedRuleTypeFilter) &&
+      (acceptedLifecycleFilter === "all" || (rule.lifecycle_status ?? "current") === acceptedLifecycleFilter)
+    );
+  });
+  const acceptedScopes = uniqueRuleValues(acceptedRules.map((rule) => rule.scope));
+  const acceptedSeverities = uniqueRuleValues(acceptedRules.map((rule) => rule.severity));
+  const acceptedRuleTypes = uniqueRuleValues(acceptedRules.map((rule) => rule.rule_type ?? "standard"));
+  const acceptedLifecycleStatuses = uniqueRuleValues(acceptedRules.map((rule) => rule.lifecycle_status ?? "current"));
 
   async function handleImport(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,11 +92,11 @@ export function GovernancePageContent({
     }
   }
 
-  async function handleReview(ruleId: number, reviewState: "accepted" | "rejected") {
+  async function handleReview(ruleId: number, reviewState: "accepted" | "rejected", reviewRationale?: string) {
     setReviewingId(ruleId);
     setMessage(null);
     try {
-      const updatedRule = await reviewGovernanceRule(ruleId, reviewState);
+      const updatedRule = await reviewGovernanceRule(ruleId, reviewState, reviewRationale);
       setRules(rules.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule)));
     } catch {
       setMessage(messages.governance.reviewFailed);
@@ -167,7 +183,34 @@ export function GovernancePageContent({
 
         <section className="card stack">
           <h2>{messages.governance.acceptedRules}</h2>
-          {acceptedRules.map((rule) => (
+          <div className="grid two">
+            <FilterSelect
+              label={messages.governance.filterScope}
+              value={acceptedScopeFilter}
+              values={acceptedScopes}
+              onChange={setAcceptedScopeFilter}
+            />
+            <FilterSelect
+              label={messages.governance.filterSeverity}
+              value={acceptedSeverityFilter}
+              values={acceptedSeverities}
+              onChange={setAcceptedSeverityFilter}
+            />
+            <FilterSelect
+              label={messages.governance.filterRuleType}
+              value={acceptedRuleTypeFilter}
+              values={acceptedRuleTypes}
+              onChange={setAcceptedRuleTypeFilter}
+            />
+            <FilterSelect
+              label={messages.governance.filterLifecycle}
+              value={acceptedLifecycleFilter}
+              values={acceptedLifecycleStatuses}
+              onChange={setAcceptedLifecycleFilter}
+            />
+          </div>
+          {filteredAcceptedRules.length === 0 ? <p>{messages.governance.noAcceptedRules}</p> : null}
+          {filteredAcceptedRules.map((rule) => (
             <RuleCard key={rule.id} rule={rule} reviewingId={reviewingId} onReview={handleReview} canReview={false} />
           ))}
         </section>
@@ -184,10 +227,11 @@ function RuleCard({
 }: {
   rule: GovernanceRule;
   reviewingId: number | null;
-  onReview: (ruleId: number, reviewState: "accepted" | "rejected") => Promise<void>;
+  onReview: (ruleId: number, reviewState: "accepted" | "rejected", reviewRationale?: string) => Promise<void>;
   canReview: boolean;
 }) {
   const { messages } = useI18n();
+  const [reviewRationale, setReviewRationale] = useState("");
   const reviewing = reviewingId === rule.id;
   return (
     <article className="stack">
@@ -196,11 +240,21 @@ function RuleCard({
       <p>
         <strong>{messages.governance.severity}:</strong> {rule.severity} ·{" "}
         <strong>{messages.governance.scope}:</strong> {rule.scope} ·{" "}
-        <strong>{messages.governance.status}:</strong> {rule.review_state}
+        <strong>{messages.governance.status}:</strong> {rule.review_state} ·{" "}
+        <strong>{messages.governance.lifecycle}:</strong> {rule.lifecycle_status ?? "current"}
+      </p>
+      <p>
+        <strong>{messages.governance.ruleType}:</strong> {rule.rule_type ?? "standard"} ·{" "}
+        <strong>{messages.governance.extractionReason}:</strong> {rule.extraction_reason ?? messages.governance.notAvailable}
       </p>
       {rule.rationale ? (
         <p>
           <strong>{messages.governance.rationale}:</strong> {rule.rationale}
+        </p>
+      ) : null}
+      {rule.review_rationale ? (
+        <p>
+          <strong>{messages.governance.reviewRationale}:</strong> {rule.review_rationale}
         </p>
       ) : null}
       <p>
@@ -212,11 +266,19 @@ function RuleCard({
       </details>
       {canReview ? (
         <ReviewOnly>
+          <label>
+            <strong>{messages.governance.reviewRationale}</strong>
+            <textarea
+              rows={3}
+              value={reviewRationale}
+              onChange={(event) => setReviewRationale(event.target.value)}
+            />
+          </label>
           <div className="action-row">
-            <button type="button" disabled={reviewing} onClick={() => onReview(rule.id, "accepted")}>
+            <button type="button" disabled={reviewing} onClick={() => onReview(rule.id, "accepted", reviewRationale)}>
               {reviewing ? messages.governance.reviewing : messages.governance.accept}
             </button>
-            <button type="button" disabled={reviewing} onClick={() => onReview(rule.id, "rejected")}>
+            <button type="button" disabled={reviewing} onClick={() => onReview(rule.id, "rejected", reviewRationale)}>
               {reviewing ? messages.governance.reviewing : messages.governance.reject}
             </button>
           </div>
@@ -224,4 +286,35 @@ function RuleCard({
       ) : null}
     </article>
   );
+}
+
+function FilterSelect({
+  label,
+  value,
+  values,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  values: string[];
+  onChange: (value: string) => void;
+}) {
+  const { messages } = useI18n();
+  return (
+    <label>
+      <strong>{label}</strong>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        <option value="all">{messages.governance.allFilter}</option>
+        {values.map((item) => (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function uniqueRuleValues(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort();
 }

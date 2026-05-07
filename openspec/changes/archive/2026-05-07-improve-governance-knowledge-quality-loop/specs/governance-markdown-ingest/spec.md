@@ -1,20 +1,4 @@
-## Purpose
-Define Markdown governance document ingest, rule-draft extraction, and human review behavior.
-## Requirements
-### Requirement: Markdown governance documents can be imported with bounded metadata
-The system SHALL allow an authenticated owner-scoped actor to import Markdown governance documents with bounded document type, title, scope, source path, status, and content hash metadata.
-
-#### Scenario: Import valid markdown governance document
-- **WHEN** an admin imports Markdown content with a supported governance document type
-- **THEN** the system SHALL persist the document in the current owner scope and return its metadata
-
-#### Scenario: Reject unsupported document type
-- **WHEN** an import request uses an unsupported governance document type
-- **THEN** the system SHALL reject the request with a bounded validation error
-
-#### Scenario: Preserve source traceability
-- **WHEN** a document is imported with source path or source label metadata
-- **THEN** the system SHALL preserve that source metadata without requiring the document to come from a repository import
+## MODIFIED Requirements
 
 ### Requirement: Governance rule drafts are extracted for human review
 The system SHALL create reviewable governance rule drafts from imported Markdown using deterministic extraction that does not require live AI provider credentials, SHALL reduce extraction of ordinary descriptive prose, and SHALL preserve bounded extraction metadata that helps reviewers understand why each draft was created.
@@ -81,6 +65,8 @@ The product SHALL provide a minimal surface for importing Markdown governance do
 - **WHEN** the governance page renders
 - **THEN** it SHALL state that accepted rules are stored for later checker work and are not yet CI blockers
 
+## ADDED Requirements
+
 ### Requirement: Governance rule lifecycle metadata is prepared
 The system SHALL preserve bounded lifecycle metadata for governance rule drafts so stale or superseded rules can be represented without automatic replacement.
 
@@ -95,4 +81,3 @@ The system SHALL preserve bounded lifecycle metadata for governance rule drafts 
 #### Scenario: Stale rule is non-authoritative for checker input
 - **WHEN** a rule draft is marked stale
 - **THEN** the system SHALL preserve the stale state and SHALL NOT expose that rule as active accepted checker input
-

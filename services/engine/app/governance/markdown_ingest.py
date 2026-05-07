@@ -25,6 +25,9 @@ DOCUMENT_TYPES = {
 DOCUMENT_STATUSES = {"active", "deprecated", "superseded", "experimental"}
 RULE_SEVERITIES = {"blocker", "warning", "note"}
 RULE_SCOPES = {"frontend", "api", "engine", "docs", "release", "security", "roadmap", "all"}
+RULE_TYPES = {"standard", "postmortem_lesson", "decision_rule", "anti_pattern"}
+LIFECYCLE_STATUSES = {"current", "stale", "superseded"}
+REVIEW_RATIONALE_LIMIT = 1000
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,8 @@ class ExtractedRuleDraft:
     scope: str
     rationale: str | None
     source_excerpt: str
+    rule_type: str
+    extraction_reason: str
 
 
 def import_governance_markdown(
@@ -79,17 +84,21 @@ def import_governance_markdown(
             scope=draft.scope,
             rationale=draft.rationale,
             source_excerpt=draft.source_excerpt,
+            rule_type=draft.rule_type,
+            extraction_reason=draft.extraction_reason,
         )
-        for draft in extract_rule_drafts(content, default_scope=normalized_scope)
+        for draft in extract_rule_drafts(content, default_scope=normalized_scope, document_type=normalized_type)
     ]
     return document, drafts
 
 
-def extract_rule_drafts(content: str, *, default_scope: str = "all") -> list[ExtractedRuleDraft]:
+def extract_rule_drafts(content: str, *, default_scope: str = "all", document_type: str = "standard") -> list[ExtractedRuleDraft]:
     sections = _markdown_sections(content)
     drafts: list[ExtractedRuleDraft] = []
+    normalized_document_type = _normalize_document_type(document_type)
     for title, body in sections:
-        if not _looks_like_rule(title, body):
+        signal = _rule_signal(title, body, document_type=normalized_document_type)
+        if signal is None:
             continue
         severity = _extract_marker(body, "severity")
         scope = _extract_marker(body, "scope")
@@ -105,12 +114,22 @@ def extract_rule_drafts(content: str, *, default_scope: str = "all") -> list[Ext
                 scope=_normalize_allowed(scope or default_scope, RULE_SCOPES, default="all"),
                 rationale=rationale,
                 source_excerpt=_source_excerpt(title, body),
+                rule_type=_rule_type_for_signal(normalized_document_type, title, body),
+                extraction_reason=signal,
             )
         )
     return drafts
 
 
-def review_rule_draft(*, session: Session, owner_scope: str, draft_id: int, review_state: str, reviewer: str) -> GovernanceRuleDraft:
+def review_rule_draft(
+    *,
+    session: Session,
+    owner_scope: str,
+    draft_id: int,
+    review_state: str,
+    reviewer: str,
+    review_rationale: str | None = None,
+) -> GovernanceRuleDraft:
     if review_state not in {"accepted", "rejected"}:
         raise ValueError("review_state must be accepted or rejected")
     repository = GovernanceRepository(session)
@@ -124,6 +143,7 @@ def review_rule_draft(*, session: Session, owner_scope: str, draft_id: int, revi
         status=status,
         reviewed_by=reviewer,
         reviewed_at=datetime.now(UTC),
+        review_rationale=_bounded_optional_text(review_rationale, REVIEW_RATIONALE_LIMIT),
     )
 
 
@@ -153,8 +173,13 @@ def serialize_rule_draft(draft: GovernanceRuleDraft, *, source_title: str | None
         "scope": draft.scope,
         "rationale": draft.rationale,
         "source_excerpt": draft.source_excerpt,
+        "rule_type": draft.rule_type,
+        "extraction_reason": draft.extraction_reason,
         "review_state": draft.review_state,
         "status": draft.status,
+        "review_rationale": draft.review_rationale,
+        "lifecycle_status": draft.lifecycle_status,
+        "superseded_by_rule_id": draft.superseded_by_rule_id,
         "reviewed_by": draft.reviewed_by,
         "reviewed_at": draft.reviewed_at.isoformat() if draft.reviewed_at else None,
     }
@@ -179,8 +204,36 @@ def _markdown_sections(content: str) -> list[tuple[str, str]]:
 
 
 def _looks_like_rule(title: str, body: str) -> bool:
+    return _rule_signal(title, body, document_type="standard") is not None
+
+
+def _rule_signal(title: str, body: str, *, document_type: str) -> str | None:
     value = f"{title}\n{body}".lower()
-    return any(marker in value for marker in ("rule:", "must", "shall", "should", "禁止", "必须", "不得", "规范"))
+    title_value = title.strip().lower()
+    if title_value.startswith("rule:") or "rule:" in value:
+        return "rule heading marker"
+    if _extract_marker(body, "severity") or _extract_marker(body, "scope"):
+        return "bounded severity or scope marker"
+    if document_type == "postmortem" and any(marker in value for marker in ("lesson", "follow-up", "action item", "复盘", "教训")):
+        return "postmortem lesson marker"
+    if document_type == "decision_record" and any(marker in value for marker in ("decision", "decided", "chosen", "must", "shall", "决策", "决定")):
+        return "decision outcome marker"
+    if document_type == "anti_pattern" and any(marker in value for marker in ("anti-pattern", "do not", "never", "禁止", "不得")):
+        return "anti-pattern prohibition marker"
+    if document_type == "checklist" and re.search(r"(?m)^\s*[-*]\s+\S", body) and _contains_normative_language(value):
+        return "checklist command marker"
+    return None
+
+
+def _rule_type_for_signal(document_type: str, title: str, body: str) -> str:
+    value = f"{title}\n{body}".lower()
+    if document_type == "postmortem":
+        return "postmortem_lesson"
+    if document_type == "decision_record":
+        return "decision_rule"
+    if document_type == "anti_pattern" or any(marker in value for marker in ("anti-pattern", "do not", "never", "禁止", "不得")):
+        return "anti_pattern"
+    return "standard"
 
 
 def _extract_marker(body: str, name: str) -> str | None:
@@ -217,3 +270,19 @@ def _normalize_allowed(value: str | None, allowed: set[str], *, default: str) ->
         return default
     normalized = value.strip().lower()
     return normalized if normalized in allowed else default
+
+
+def _normalize_document_type(value: str) -> str:
+    normalized = value.strip().lower()
+    return normalized if normalized in DOCUMENT_TYPES else "standard"
+
+
+def _contains_normative_language(value: str) -> bool:
+    return any(marker in value for marker in ("must", "shall", "required", "禁止", "必须", "不得"))
+
+
+def _bounded_optional_text(value: str | None, limit: int) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped[:limit] if stripped else None

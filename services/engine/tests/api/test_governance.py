@@ -36,7 +36,62 @@ All implementation changes must keep a tracked tasks.md checklist.
     assert drafts[0].severity == "blocker"
     assert drafts[0].scope == "all"
     assert drafts[0].rationale == "Prevent scope creep."
+    assert drafts[0].rule_type == "standard"
+    assert drafts[0].extraction_reason == "bounded severity or scope marker"
     assert "tasks.md" in drafts[0].description
+
+
+def test_extract_rule_drafts_uses_document_type_signals_and_avoids_plain_prose() -> None:
+    standard = extract_rule_drafts(
+        """
+## Rule: Every change has tests
+
+Every backend behavior change must include a targeted pytest.
+""",
+        document_type="standard",
+    )
+    postmortem = extract_rule_drafts(
+        """
+## Lesson: Playwright smoke must own its server
+
+The smoke flow must start or reuse the expected API/web stack.
+""",
+        document_type="postmortem",
+    )
+    decision = extract_rule_drafts(
+        """
+## Decision: Guardrail pause requires human confirmation
+
+Agents must not silently rewrite governance docs to clear a pause.
+""",
+        document_type="decision_record",
+    )
+    anti_pattern = extract_rule_drafts(
+        """
+## Anti-pattern: Hidden validation skips
+
+Do not claim validation passed when the command was not run.
+""",
+        document_type="anti_pattern",
+    )
+    ordinary = extract_rule_drafts(
+        """
+## Background
+
+This section should help future readers understand context, but it is not a rule.
+""",
+        document_type="standard",
+    )
+
+    assert standard[0].rule_type == "standard"
+    assert standard[0].extraction_reason == "rule heading marker"
+    assert postmortem[0].rule_type == "postmortem_lesson"
+    assert postmortem[0].extraction_reason == "postmortem lesson marker"
+    assert decision[0].rule_type == "decision_rule"
+    assert decision[0].extraction_reason == "decision outcome marker"
+    assert anti_pattern[0].rule_type == "anti_pattern"
+    assert anti_pattern[0].extraction_reason == "anti-pattern prohibition marker"
+    assert ordinary == []
 
 
 def test_post_governance_document_imports_markdown_and_creates_pending_drafts(tmp_path: Path, monkeypatch) -> None:
@@ -71,6 +126,9 @@ Every backend behavior change should include a targeted pytest.
     assert body["drafts"][0]["severity"] == "warning"
     assert body["drafts"][0]["scope"] == "engine"
     assert body["drafts"][0]["source_title"] == "Development Standards"
+    assert body["drafts"][0]["rule_type"] == "standard"
+    assert body["drafts"][0]["extraction_reason"] == "rule heading marker"
+    assert body["drafts"][0]["lifecycle_status"] == "current"
 
 
 def test_governance_document_rejects_unsupported_type(tmp_path: Path, monkeypatch) -> None:
@@ -140,19 +198,31 @@ Document known limitations.
     assert create_response.status_code == 200
     drafts = create_response.json()["drafts"]
 
-    accept_response = client.post(f"/governance/rules/{drafts[0]['id']}/review", json={"review_state": "accepted"})
-    reject_response = client.post(f"/governance/rules/{drafts[1]['id']}/review", json={"review_state": "rejected"})
+    accept_response = client.post(
+        f"/governance/rules/{drafts[0]['id']}/review",
+        json={"review_state": "accepted", "review_rationale": "Critical smoke stability rule."},
+    )
+    reject_response = client.post(
+        f"/governance/rules/{drafts[1]['id']}/review",
+        json={"review_state": "rejected", "review_rationale": "Too broad for an authoritative rule."},
+    )
 
     assert accept_response.status_code == 200
     assert accept_response.json()["rule"]["review_state"] == "accepted"
     assert accept_response.json()["rule"]["status"] == "active"
     assert accept_response.json()["rule"]["source_title"] == "Postmortem Lessons"
     assert "ECONNREFUSED" in accept_response.json()["rule"]["source_excerpt"]
+    assert accept_response.json()["rule"]["review_rationale"] == "Critical smoke stability rule."
+    assert accept_response.json()["rule"]["reviewed_by"] == "local-admin"
+    assert accept_response.json()["rule"]["rule_type"] == "postmortem_lesson"
+    assert accept_response.json()["rule"]["lifecycle_status"] == "current"
     assert reject_response.status_code == 200
     assert reject_response.json()["rule"]["status"] == "rejected"
+    assert reject_response.json()["rule"]["review_rationale"] == "Too broad for an authoritative rule."
 
     accepted_response = client.get("/governance/rules", params={"review_state": "accepted"})
     assert accepted_response.status_code == 200
     accepted_rules = accepted_response.json()["rules"]
     assert len(accepted_rules) == 1
     assert accepted_rules[0]["title"] == "Rule: Playwright smoke must own its server"
+    assert accepted_rules[0]["review_rationale"] == "Critical smoke stability rule."

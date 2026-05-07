@@ -348,8 +348,13 @@ export type GovernanceRule = {
   scope: string;
   rationale?: string | null;
   source_excerpt: string;
+  rule_type?: string | null;
+  extraction_reason?: string | null;
   review_state: "pending" | "accepted" | "rejected" | string;
   status: string;
+  review_rationale?: string | null;
+  lifecycle_status?: string | null;
+  superseded_by_rule_id?: number | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
 };
@@ -710,14 +715,15 @@ export async function importGovernanceDocument(input: {
 
 export async function reviewGovernanceRule(
   draftId: number,
-  reviewState: "accepted" | "rejected"
+  reviewState: "accepted" | "rejected",
+  reviewRationale?: string
 ): Promise<GovernanceRule> {
   const response = await apiFetch(`${apiBaseUrl}/governance/rules/${draftId}/review`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({ review_state: reviewState }),
+    body: JSON.stringify({ review_state: reviewState, review_rationale: reviewRationale }),
   });
   if (!response.ok) {
     await readError(response, "Failed to review governance rule");

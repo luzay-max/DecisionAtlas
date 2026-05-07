@@ -27,6 +27,7 @@ class GovernanceDocumentImportRequest(BaseModel):
 
 class GovernanceRuleReviewRequest(BaseModel):
     review_state: str
+    review_rationale: str | None = None
 
 
 @router.post("/documents")
@@ -112,6 +113,7 @@ def review_governance_rule(
             draft_id=draft_id,
             review_state=request.review_state,
             reviewer=auth.username,
+            review_rationale=request.review_rationale,
         )
         document = GovernanceRepository(session).get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
         session.commit()
