@@ -9,6 +9,16 @@ from urllib import error, request
 from urllib.parse import urlencode
 
 
+VALUE_OUTCOMES = {
+    "useful_now",
+    "reviewable_limited",
+    "conversion_limited",
+    "evidence_limited",
+    "missing_workspace",
+    "operational_blocked",
+}
+
+
 def load_json(path: Path) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -82,6 +92,19 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
         if not repository.get("repo") or "/" not in repository["repo"]:
             print(f"Invalid repository entry: {repository}", file=sys.stderr)
             return 1
+        if not str(repository.get("role", "")).strip():
+            print(f"Missing repository role for {repository['repo']}.", file=sys.stderr)
+            return 1
+        if not str(repository.get("benchmark_purpose", "")).strip():
+            print(f"Missing benchmark purpose for {repository['repo']}.", file=sys.stderr)
+            return 1
+        expected_value_outcomes = expectations.get("expected_value_outcomes")
+        if not isinstance(expected_value_outcomes, list) or not expected_value_outcomes:
+            print(f"Missing expected value outcomes for {repository['repo']}.", file=sys.stderr)
+            return 1
+        if any(outcome not in VALUE_OUTCOMES for outcome in expected_value_outcomes):
+            print(f"Invalid expected value outcome for {repository['repo']}.", file=sys.stderr)
+            return 1
         if expectations.get("minimum_candidate_decisions", 0) < 0:
             print(f"Invalid minimum candidate count for {repository['repo']}.", file=sys.stderr)
             return 1
@@ -124,6 +147,7 @@ def validate_live_repo_set(repositories: list[dict]) -> int:
             return 1
         print(
             f"{repository['id']}: repo={repository['repo']} "
+            f"role={repository['role']} "
             f"min_candidates={expectations.get('minimum_candidate_decisions', 0)} "
             f"min_reviewable={expectations.get('minimum_reviewable_candidates', 0)} "
             f"min_accepted={expectations.get('minimum_accepted_decisions', 0)} "
@@ -173,6 +197,9 @@ def validate_why_cases(why_cases: list[dict], repositories: list[dict]) -> int:
         if not case.get("expected_terms"):
             print(f"Missing expected_terms for why case {case_id}.", file=sys.stderr)
             return 1
+        if case.get("repo_id") == "browser-use" and case.get("expected_primary_title") is None:
+            print(f"Browser-use regression why case {case_id} must name an expected primary title.", file=sys.stderr)
+            return 1
         expected_primary_title = case.get("expected_primary_title")
         if expected_primary_title is not None and not str(expected_primary_title).strip():
             print(f"Invalid expected_primary_title for why case {case_id}.", file=sys.stderr)
@@ -215,6 +242,9 @@ def validate_drift_cases(drift_cases: list[dict], repositories: list[dict]) -> i
             return 1
         if not case.get("allowed_outcomes"):
             print(f"Missing allowed_outcomes for drift case {case_id}.", file=sys.stderr)
+            return 1
+        if case.get("repo_id") == "browser-use" and "possible_supersession" not in case.get("forbidden_alert_types", []):
+            print(f"Browser-use drift case {case_id} must forbid possible_supersession.", file=sys.stderr)
             return 1
         print(
             f"{case_id}: workspace={case['workspace_slug']} "
@@ -527,6 +557,206 @@ def _evaluate_drift_cases_for_workspace(*, payload: dict, cases: list[dict]) -> 
     return failures == 0, case_results, observed_state
 
 
+def _failed_check_names(section: dict | None) -> list[str]:
+    checks = (section or {}).get("checks") or {}
+    return [name for name, passed in checks.items() if passed is False]
+
+
+def _follow_up_categories(row: dict) -> list[str]:
+    categories: list[str] = []
+    dashboard = row.get("dashboard") or {}
+    quality = row.get("candidate_quality") or {}
+    quality_observations = quality.get("observations") or {}
+
+    if row.get("operational_error"):
+        categories.append("operator_setup")
+    if dashboard.get("bounded_outcome") == "conversion_limited":
+        categories.append("extraction_conversion")
+    if dashboard.get("bounded_outcome") == "evidence_limited":
+        categories.append("source_evidence")
+    if quality_observations.get("thin_candidate_ratio", 0) > 0:
+        categories.append("candidate_quality")
+    if quality_observations.get("provenance_gap_count", 0) > 0:
+        categories.append("provenance")
+    if quality_observations.get("source_url_gap_count", 0) > 0:
+        categories.append("source_url_coverage")
+    if any(not case.get("passed") for case in row.get("why_cases", [])):
+        categories.append("why_retrieval")
+    drift = row.get("drift") or {}
+    if drift and not drift.get("passed", True):
+        categories.append("drift_precision")
+    for check_name in _failed_check_names(dashboard):
+        categories.append(f"dashboard:{check_name}")
+    for check_name in _failed_check_names(quality):
+        categories.append(f"candidate_quality:{check_name}")
+    return sorted(set(categories))
+
+
+def _limitation_categories(row: dict) -> list[str]:
+    categories: list[str] = []
+    dashboard = row.get("dashboard") or {}
+    quality = row.get("candidate_quality") or {}
+    quality_observations = quality.get("observations") or {}
+
+    if row.get("bounded_outcome") == "missing_workspace":
+        categories.append("missing_workspace")
+    elif row.get("operational_error"):
+        categories.append("operational_blocker")
+    if dashboard.get("bounded_outcome") == "conversion_limited":
+        categories.append("candidate_conversion")
+    if dashboard.get("bounded_outcome") == "evidence_limited":
+        categories.append("source_evidence")
+    if quality_observations.get("thin_candidate_ratio", 0) > 0:
+        categories.append("thin_candidates")
+    if quality_observations.get("provenance_gap_count", 0) > 0:
+        categories.append("missing_provenance")
+    if quality_observations.get("source_url_gap_count", 0) > 0:
+        categories.append("missing_source_url")
+    if any(not case.get("passed") for case in row.get("why_cases", [])):
+        categories.append("why_support")
+    drift = row.get("drift") or {}
+    if drift and not drift.get("passed", True):
+        categories.append("drift_precision")
+    if row.get("value_outcome_allowed") is False:
+        categories.append("unexpected_value_outcome")
+    return sorted(set(categories))
+
+
+def _value_outcome(row: dict) -> str:
+    if row.get("bounded_outcome") == "missing_workspace":
+        return "missing_workspace"
+    if row.get("operational_error"):
+        return "operational_blocked"
+
+    dashboard = row.get("dashboard") or {}
+    quality = row.get("candidate_quality") or {}
+    drift = row.get("drift") or {}
+    bounded_outcome = dashboard.get("bounded_outcome") or row.get("bounded_outcome")
+    why_cases = row.get("why_cases") or []
+    why_passed = all(case.get("passed") for case in why_cases)
+    drift_passed = bool(drift.get("passed", True))
+    dashboard_passed = all((dashboard.get("checks") or {}).values()) if dashboard.get("checks") else bool(dashboard)
+    quality_passed = bool(quality.get("passed", True))
+    accepted_count = int(dashboard.get("accepted_decision_count") or 0)
+    candidate_count = int(dashboard.get("candidate_decision_count") or 0)
+    total_decisions = int(dashboard.get("total_decision_count") or 0)
+
+    if bounded_outcome == "conversion_limited":
+        return "conversion_limited"
+    if bounded_outcome == "evidence_limited" and total_decisions == 0:
+        return "evidence_limited"
+    if dashboard_passed and quality_passed and why_passed and drift_passed and (accepted_count > 0 or candidate_count > 0):
+        return "useful_now"
+    if candidate_count > 0 or total_decisions > 0:
+        return "reviewable_limited"
+    return "evidence_limited"
+
+
+def _attach_value_summary(row: dict) -> dict:
+    outcome = _value_outcome(row)
+    follow_ups = _follow_up_categories(row)
+    expectations = ((row.get("expectations") or {}).get("expected_value_outcomes")) or []
+    row["value_outcome"] = outcome
+    row["value_outcome_allowed"] = outcome in expectations if expectations else True
+    row["limitation_categories"] = _limitation_categories(row)
+    row["follow_up_categories"] = follow_ups
+    row["key_metrics"] = {
+        "candidate_decision_count": ((row.get("dashboard") or {}).get("candidate_decision_count")),
+        "accepted_decision_count": ((row.get("dashboard") or {}).get("accepted_decision_count")),
+        "total_decision_count": ((row.get("dashboard") or {}).get("total_decision_count")),
+        "screened_in_artifact_count": ((row.get("dashboard") or {}).get("screened_in_artifact_count")),
+        "strong_candidate_count": (((row.get("candidate_quality") or {}).get("observations") or {}).get("strong_candidate_count")),
+        "thin_candidate_ratio": (((row.get("candidate_quality") or {}).get("observations") or {}).get("thin_candidate_ratio")),
+        "why_case_count": len(row.get("why_cases") or []),
+        "why_case_passed_count": sum(1 for case in row.get("why_cases") or [] if case.get("passed")),
+        "drift_case_count": len(((row.get("drift") or {}).get("cases")) or []),
+        "drift_case_passed_count": sum(1 for case in ((row.get("drift") or {}).get("cases")) or [] if case.get("passed")),
+    }
+    return row
+
+
+def _markdown_cell(value: object) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, list):
+        text = ", ".join(str(item) for item in value) if value else "-"
+    else:
+        text = str(value)
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _write_markdown_report(path: Path, report: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# Live Real-Repository Value Benchmark",
+        "",
+        f"- Generated at: `{report.get('generated_at', '-')}`",
+        f"- Base URL: `{report.get('base_url', '-')}`",
+        f"- Repositories: `{(report.get('summary') or {}).get('repositories', 0)}`",
+        f"- Passed: `{(report.get('summary') or {}).get('passed', 0)}`",
+        f"- Failed: `{(report.get('summary') or {}).get('failed', 0)}`",
+        "",
+        "| Repository | Role | Purpose | Workspace | Value outcome | Bounded outcome | Passed | Key metrics | Limitations | Follow-up |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in report.get("repositories", []):
+        metrics = row.get("key_metrics") or {}
+        key_metrics = [
+            f"candidates={metrics.get('candidate_decision_count')}",
+            f"accepted={metrics.get('accepted_decision_count')}",
+            f"strong={metrics.get('strong_candidate_count')}",
+            f"thin_ratio={metrics.get('thin_candidate_ratio')}",
+            f"why={metrics.get('why_case_passed_count')}/{metrics.get('why_case_count')}",
+            f"drift={metrics.get('drift_case_passed_count')}/{metrics.get('drift_case_count')}",
+        ]
+        lines.append(
+            "| "
+            + " | ".join(
+                _markdown_cell(value)
+                for value in (
+                    row.get("repo") or row.get("id"),
+                    row.get("role"),
+                    row.get("benchmark_purpose"),
+                    row.get("workspace_slug"),
+                    row.get("value_outcome"),
+                    row.get("bounded_outcome"),
+                    row.get("passed"),
+                    key_metrics,
+                    row.get("limitation_categories") or [],
+                    row.get("follow_up_categories") or [],
+                )
+            )
+            + " |"
+        )
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _filter_live_repo_inputs(
+    *,
+    repositories: list[dict],
+    why_cases: list[dict],
+    drift_cases: list[dict],
+    repo_ids: list[str],
+) -> tuple[list[dict], list[dict], list[dict]]:
+    if not repo_ids:
+        return repositories, why_cases, drift_cases
+
+    requested = set(repo_ids)
+    known = _repo_ids(repositories)
+    unknown = sorted(requested - known)
+    if unknown:
+        raise ValueError(f"Unknown live benchmark repo id(s): {', '.join(unknown)}")
+
+    return (
+        [repository for repository in repositories if repository.get("id") in requested],
+        [case for case in why_cases if case.get("repo_id") in requested],
+        [case for case in drift_cases if case.get("repo_id") in requested],
+    )
+
+
 def run_live_real_repo_validation(
     *,
     base_url: str,
@@ -534,6 +764,7 @@ def run_live_real_repo_validation(
     why_cases: list[dict],
     drift_cases: list[dict],
     report_path: Path,
+    markdown_report_path: Path | None = None,
 ) -> int:
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
@@ -556,8 +787,16 @@ def run_live_real_repo_validation(
             "id": repository["id"],
             "repo": repository["repo"],
             "workspace_slug": repository["workspace_slug"],
+            "role": repository.get("role"),
+            "benchmark_purpose": repository.get("benchmark_purpose"),
+            "expectations": {"expected_value_outcomes": repository.get("expectations", {}).get("expected_value_outcomes", [])},
             "passed": False,
             "bounded_outcome": "unknown",
+            "value_outcome": "operational_blocked",
+            "value_outcome_allowed": False,
+            "limitation_categories": [],
+            "follow_up_categories": [],
+            "key_metrics": {},
             "operational_error": None,
             "dashboard": None,
             "why_cases": [],
@@ -566,6 +805,7 @@ def run_live_real_repo_validation(
         if dashboard_error is not None or dashboard_payload is None:
             row["bounded_outcome"] = _operational_outcome(dashboard_error, missing_workspace_on_404=True)
             row["operational_error"] = dashboard_error
+            row = _attach_value_summary(row)
             failures += 1
             report["repositories"].append(row)
             print(f"{repository['id']}: outcome={row['bounded_outcome']} passed=False")
@@ -652,6 +892,8 @@ def run_live_real_repo_validation(
             }
         row["drift"] = drift_result
         repo_passed = repo_passed and bool(drift_result["passed"])
+        row = _attach_value_summary(row)
+        repo_passed = repo_passed and bool(row["value_outcome_allowed"])
 
         row["passed"] = repo_passed
         failures += 0 if repo_passed else 1
@@ -665,6 +907,9 @@ def run_live_real_repo_validation(
     report["summary"]["failed"] = failures
     _write_report(report_path, report)
     print(f"Live real-repo validation report written to {report_path}")
+    if markdown_report_path is not None:
+        _write_markdown_report(markdown_report_path, report)
+        print(f"Live real-repo Markdown report written to {markdown_report_path}")
     if failures:
         print(f"Live real-repo validation failed for {failures} repositories.", file=sys.stderr)
         return 1
@@ -685,6 +930,17 @@ def main() -> int:
         "--live-real-repos-report",
         default=".tmp/live-real-repo-validation-report.json",
         help="Output path for the live real-repo validation report.",
+    )
+    parser.add_argument(
+        "--live-real-repos-markdown-report",
+        default=".tmp/live-real-repo-validation-report.md",
+        help="Output path for the live real-repo Markdown value report.",
+    )
+    parser.add_argument(
+        "--repo-id",
+        action="append",
+        default=[],
+        help="Run live real-repo validation for one repository id. Repeat to include multiple repositories.",
     )
     args = parser.parse_args()
 
@@ -714,12 +970,23 @@ def main() -> int:
         return drift_case_status
 
     if args.live_real_repos:
+        try:
+            filtered_repositories, filtered_why_cases, filtered_drift_cases = _filter_live_repo_inputs(
+                repositories=live_repositories,
+                why_cases=why_cases,
+                drift_cases=drift_cases,
+                repo_ids=args.repo_id,
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
         return run_live_real_repo_validation(
             base_url=args.base_url,
-            repositories=live_repositories,
-            why_cases=why_cases,
-            drift_cases=drift_cases,
+            repositories=filtered_repositories,
+            why_cases=filtered_why_cases,
+            drift_cases=filtered_drift_cases,
             report_path=(root / args.live_real_repos_report).resolve(),
+            markdown_report_path=(root / args.live_real_repos_markdown_report).resolve(),
         )
 
     if not args.live:

@@ -35,6 +35,9 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert len(repositories) >= 3
     assert all("/" in item["repo"] for item in repositories)
     assert all(item["workspace_slug"].startswith("github-") for item in repositories)
+    assert all(item["role"].strip() for item in repositories)
+    assert all(item["benchmark_purpose"].strip() for item in repositories)
+    assert all(item["expectations"]["expected_value_outcomes"] for item in repositories)
     assert all(item["expectations"]["minimum_candidate_decisions"] >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_reviewable_candidates", 0) >= 0 for item in repositories)
     assert all(item["expectations"].get("minimum_accepted_decisions", 0) >= 0 for item in repositories)
@@ -52,7 +55,9 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert all(item["expectations"]["expected_why_states"] for item in repositories)
     assert all(item["expectations"]["expected_drift_states"] for item in repositories)
     assert next(item for item in repositories if item["id"] == "n8n")["expectations"]["minimum_reviewable_candidates"] == 1
+    assert next(item for item in repositories if item["id"] == "n8n")["role"] == "large_typescript_stress_repo"
     assert next(item for item in repositories if item["id"] == "browser-use")["expectations"]["minimum_accepted_decisions"] == 1
+    assert next(item for item in repositories if item["id"] == "browser-use")["role"] == "decision_rich_regression_repo"
     assert next(item for item in repositories if item["id"] == "rich")["expectations"][
         "expected_why_states_after_first_acceptance"
     ] == ["ready", "evidence_limited"]
@@ -61,6 +66,13 @@ def test_live_benchmark_repository_set_has_repeatable_expectations() -> None:
     assert benchmark.validate_live_repo_set(repositories) == 0
     malformed_repository = dict(repositories[0])
     malformed_repository["repo"] = "invalid"
+    assert benchmark.validate_live_repo_set([malformed_repository]) == 1
+    malformed_repository = dict(repositories[0])
+    malformed_repository["role"] = ""
+    assert benchmark.validate_live_repo_set([malformed_repository]) == 1
+    malformed_repository = dict(repositories[0])
+    malformed_repository["expectations"] = dict(repositories[0]["expectations"])
+    malformed_repository["expectations"]["expected_value_outcomes"] = ["not_a_value_outcome"]
     assert benchmark.validate_live_repo_set([malformed_repository]) == 1
     malformed_repository = dict(repositories[-1])
     malformed_repository["expectations"] = dict(repositories[-1]["expectations"])
@@ -237,7 +249,10 @@ def test_live_real_repo_validation_writes_missing_workspace_report(tmp_path, mon
         "id": "repo",
         "repo": "org/repo",
         "workspace_slug": "github-org-repo",
+        "role": "small_python_library",
+        "benchmark_purpose": "Missing workspace classification test.",
         "expectations": {
+            "expected_value_outcomes": ["missing_workspace"],
             "expected_readiness_states": ["review_ready"],
             "expected_why_states": ["review_required"],
             "expected_drift_states": ["review_required"],
@@ -261,6 +276,11 @@ def test_live_real_repo_validation_writes_missing_workspace_report(tmp_path, mon
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert status == 1
     assert report["repositories"][0]["bounded_outcome"] == "missing_workspace"
+    assert report["repositories"][0]["role"] == "small_python_library"
+    assert report["repositories"][0]["benchmark_purpose"] == "Missing workspace classification test."
+    assert report["repositories"][0]["value_outcome"] == "missing_workspace"
+    assert report["repositories"][0]["limitation_categories"] == ["missing_workspace"]
+    assert report["repositories"][0]["follow_up_categories"] == ["operator_setup"]
     assert report["summary"] == {"repositories": 1, "passed": 0, "failed": 1}
 
 
@@ -270,7 +290,10 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
         "id": "repo",
         "repo": "org/repo",
         "workspace_slug": "github-org-repo",
+        "role": "decision_rich_regression_repo",
+        "benchmark_purpose": "Useful value classification test.",
         "expectations": {
+            "expected_value_outcomes": ["useful_now"],
             "minimum_candidate_decisions": 1,
             "minimum_reviewable_candidates": 1,
             "expected_readiness_states": ["review_ready"],
@@ -363,6 +386,14 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert status == 0
     assert report["repositories"][0]["passed"] is True
+    assert report["repositories"][0]["role"] == "decision_rich_regression_repo"
+    assert report["repositories"][0]["benchmark_purpose"] == "Useful value classification test."
+    assert report["repositories"][0]["value_outcome"] == "useful_now"
+    assert report["repositories"][0]["value_outcome_allowed"] is True
+    assert report["repositories"][0]["limitation_categories"] == []
+    assert report["repositories"][0]["follow_up_categories"] == []
+    assert report["repositories"][0]["key_metrics"]["why_case_passed_count"] == 1
+    assert report["repositories"][0]["key_metrics"]["drift_case_passed_count"] == 1
     assert report["repositories"][0]["candidate_quality"]["passed"] is True
     assert report["repositories"][0]["candidate_quality"]["observations"]["strong_candidate_count"] == 1
     assert report["repositories"][0]["why_cases"][0]["expected_terms"] == ["review"]
@@ -370,3 +401,136 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
     assert report["repositories"][0]["why_cases"][0]["primary_thread_match"] is True
     assert report["repositories"][0]["why_cases"][0]["passed"] is True
     assert report["repositories"][0]["drift"]["cases"][0]["passed"] is True
+
+
+def test_value_classification_covers_bounded_outcome_families() -> None:
+    benchmark = _load_benchmark_module()
+
+    useful = benchmark._attach_value_summary(
+        {
+            "dashboard": {
+                "bounded_outcome": "why_ready",
+                "candidate_decision_count": 1,
+                "accepted_decision_count": 1,
+                "total_decision_count": 2,
+                "checks": {"readiness_allowed": True},
+            },
+            "candidate_quality": {"passed": True, "observations": {"strong_candidate_count": 1, "thin_candidate_ratio": 0}},
+            "why_cases": [{"passed": True}],
+            "drift": {"passed": True, "cases": [{"passed": True}]},
+            "expectations": {"expected_value_outcomes": ["useful_now"]},
+        }
+    )
+    reviewable_limited = benchmark._attach_value_summary(
+        {
+            "dashboard": {
+                "bounded_outcome": "review_ready",
+                "candidate_decision_count": 1,
+                "accepted_decision_count": 0,
+                "total_decision_count": 1,
+                "checks": {"readiness_allowed": True},
+            },
+            "candidate_quality": {
+                "passed": False,
+                "observations": {"strong_candidate_count": 0, "thin_candidate_ratio": 1, "provenance_gap_count": 1},
+                "checks": {"minimum_strong_candidates": False},
+            },
+            "why_cases": [],
+            "drift": {"passed": True, "cases": []},
+            "expectations": {"expected_value_outcomes": ["reviewable_limited"]},
+        }
+    )
+    conversion_limited = benchmark._attach_value_summary(
+        {"dashboard": {"bounded_outcome": "conversion_limited"}, "candidate_quality": {}, "why_cases": [], "drift": {}}
+    )
+    evidence_limited = benchmark._attach_value_summary(
+        {
+            "dashboard": {"bounded_outcome": "evidence_limited", "total_decision_count": 0},
+            "candidate_quality": {},
+            "why_cases": [],
+            "drift": {},
+        }
+    )
+    missing_workspace = benchmark._attach_value_summary({"bounded_outcome": "missing_workspace", "operational_error": {}})
+    operational_blocked = benchmark._attach_value_summary({"bounded_outcome": "unknown", "operational_error": {"type": "url_error"}})
+
+    assert useful["value_outcome"] == "useful_now"
+    assert reviewable_limited["value_outcome"] == "reviewable_limited"
+    assert "candidate_quality" in reviewable_limited["follow_up_categories"]
+    assert conversion_limited["value_outcome"] == "conversion_limited"
+    assert evidence_limited["value_outcome"] == "evidence_limited"
+    assert missing_workspace["value_outcome"] == "missing_workspace"
+    assert operational_blocked["value_outcome"] == "operational_blocked"
+
+
+def test_live_real_repo_validation_writes_markdown_report_from_json_rows(tmp_path, monkeypatch) -> None:
+    benchmark = _load_benchmark_module()
+    repository = {
+        "id": "repo",
+        "repo": "org/repo",
+        "workspace_slug": "github-org-repo",
+        "role": "small_python_library",
+        "benchmark_purpose": "Markdown mirror test.",
+        "expectations": {
+            "expected_value_outcomes": ["missing_workspace"],
+            "expected_readiness_states": ["review_ready"],
+            "expected_why_states": ["review_required"],
+            "expected_drift_states": ["review_required"],
+        },
+    }
+
+    def fake_request(**kwargs):
+        return None, {"type": "http_error", "status": 404, "detail": "not found"}
+
+    monkeypatch.setattr(benchmark, "_json_request", fake_request)
+    report_path = tmp_path / "report.json"
+    markdown_report_path = tmp_path / "report.md"
+
+    status = benchmark.run_live_real_repo_validation(
+        base_url="http://127.0.0.1:3001",
+        repositories=[repository],
+        why_cases=[],
+        drift_cases=[],
+        report_path=report_path,
+        markdown_report_path=markdown_report_path,
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    markdown = markdown_report_path.read_text(encoding="utf-8")
+    assert status == 1
+    assert report["repositories"][0]["value_outcome"] == "missing_workspace"
+    assert "| org/repo | small_python_library | Markdown mirror test." in markdown
+    assert "missing_workspace" in markdown
+    assert "operator_setup" in markdown
+
+
+def test_live_repo_filtering_keeps_offline_fixture_validation_independent() -> None:
+    benchmark = _load_benchmark_module()
+    root = Path(__file__).resolve().parents[4]
+    repositories = json.loads((root / "examples" / "live-benchmarks" / "repositories.json").read_text(encoding="utf-8"))
+    why_cases = json.loads((root / "examples" / "live-benchmarks" / "why-cases.json").read_text(encoding="utf-8"))
+    drift_cases = json.loads((root / "examples" / "live-benchmarks" / "drift-cases.json").read_text(encoding="utf-8"))
+
+    filtered_repositories, filtered_why_cases, filtered_drift_cases = benchmark._filter_live_repo_inputs(
+        repositories=repositories,
+        why_cases=why_cases,
+        drift_cases=drift_cases,
+        repo_ids=["browser-use"],
+    )
+
+    assert benchmark.validate_live_repo_set(repositories) == 0
+    assert [repository["id"] for repository in filtered_repositories] == ["browser-use"]
+    assert {case["repo_id"] for case in filtered_why_cases} == {"browser-use"}
+    assert {case["repo_id"] for case in filtered_drift_cases} == {"browser-use"}
+
+    try:
+        benchmark._filter_live_repo_inputs(
+            repositories=repositories,
+            why_cases=why_cases,
+            drift_cases=drift_cases,
+            repo_ids=["missing-repo"],
+        )
+    except ValueError as exc:
+        assert "missing-repo" in str(exc)
+    else:
+        raise AssertionError("Expected missing repository filter to fail.")

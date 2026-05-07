@@ -33,29 +33,57 @@ Optional live why-case smoke checks can run against an already-started local sta
 python scripts/ci/run_benchmark.py --live-real-repos
 ```
 
-This live mode is an operator-guided confidence layer. It is not part of the default release gate because it depends on local stack availability, provider configuration, existing imported workspaces, network behavior, and repository state.
+This live mode is an operator-guided confidence layer. It is not part of the default release gate because it depends on local stack availability, provider configuration, existing imported workspaces, network behavior, and repository state. The offline fixture command remains the deterministic default validation path.
 
-By default, live mode writes a structured report to:
+By default, live mode writes structured JSON and operator-readable Markdown reports to:
 
 ```text
 .tmp/live-real-repo-validation-report.json
+.tmp/live-real-repo-validation-report.md
 ```
 
-Use a custom path when you want to preserve a dated report:
+Use custom paths when you want to preserve a dated local report:
 
 ```powershell
-python scripts/ci/run_benchmark.py --live-real-repos --live-real-repos-report .tmp/live-real-repo-validation-2026-04-24.json
+python scripts/ci/run_benchmark.py --live-real-repos --live-real-repos-report .tmp/live-real-repo-validation-2026-05-07.json --live-real-repos-markdown-report .tmp/live-real-repo-validation-2026-05-07.md
 ```
+
+Use `--repo-id` for expensive or flaky iteration. The option can be repeated and only filters live validation inputs; offline fixture validation still checks the complete curated fixture set before live mode starts.
+
+```powershell
+python scripts/ci/run_benchmark.py --live-real-repos --repo-id browser-use
+python scripts/ci/run_benchmark.py --live-real-repos --repo-id httpx --repo-id rich
+```
+
+Generated live reports default to `.tmp/` and should not be committed as stale evidence. Operators should attach a dated report to a release note, issue, or handoff only when the live state is relevant, or summarize the result in prose.
 
 The report records one row per curated repository with:
 
-- repo id, repo name, and workspace slug
+- repo id, repo name, workspace slug, repository role, and benchmark purpose
 - observed bounded outcome such as `review_ready`, `why_ready`, `evidence_limited`, `conversion_limited`, `analysis_failed`, `missing_workspace`, or `operational_failure`
+- value outcome such as `useful_now`, `reviewable_limited`, `conversion_limited`, `evidence_limited`, `missing_workspace`, or `operational_blocked`
 - dashboard readiness, review state, why state, drift state, next action, and recommended actions
 - candidate, accepted, total decision, and screened-in artifact counts when available
+- candidate quality metrics such as strong count, thin ratio, provenance gaps, and source URL gaps
 - focused why-case status, citation count, and failure reason when applicable
 - drift state and forbidden drift-case checks when applicable
+- limitation categories and follow-up categories that separate product improvements from operator setup issues
 - explicit operational errors when the API, provider, network, or local workspace state blocks validation
+
+## Value Outcome Families
+
+The live value benchmark is not a binary product claim. It classifies each repository from bounded observations so a poor run can still be actionable.
+
+| Value outcome | Meaning | Typical next action |
+| --- | --- | --- |
+| `useful_now` | The imported workspace has reviewable or accepted decisions, acceptable candidate quality, and focused why/drift checks meet their bounded expectations. | Use the row as positive real-repository evidence and inspect the raw report for examples. |
+| `reviewable_limited` | The workspace has some reviewable evidence, but candidate quality, provenance, why support, or drift precision leaves explicit limitations. | Improve extraction, review conversion, retrieval, or drift precision depending on the follow-up categories. |
+| `conversion_limited` | Import evidence exists, but screened-in evidence is not converting into useful review candidates. | Tune candidate conversion and extraction filtering. |
+| `evidence_limited` | The repository does not provide enough bounded evidence to judge useful decisions. | Inspect import coverage and source selection before changing product logic. |
+| `missing_workspace` | The expected local imported workspace is absent or unavailable. | Import or restore that workspace before judging product value. |
+| `operational_blocked` | API, provider, network, credentials, or local setup blocked validation. | Fix operator environment first; do not treat the row as product evidence. |
+
+Operational outcomes (`missing_workspace`, `operational_blocked`) are intentionally distinct from product limitations. They explain why live validation could not evaluate product usefulness and should not be counted as evidence that real-repository analysis is weak.
 
 ### `encode/httpx`
 

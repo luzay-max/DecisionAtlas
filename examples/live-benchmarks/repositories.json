@@ -3,8 +3,11 @@
     "id": "httpx",
     "repo": "encode/httpx",
     "workspace_slug": "github-encode-httpx",
+    "role": "doc_heavy_python_library",
+    "benchmark_purpose": "Measure whether documentation-heavy Python libraries produce grounded reviewable rationale candidates.",
     "expectations": {
       "analysis_scope": "doc-heavy library with strong public rationale",
+      "expected_value_outcomes": ["useful_now", "reviewable_limited", "evidence_limited", "missing_workspace", "operational_blocked"],
       "minimum_candidate_decisions": 3,
       "candidate_quality": {
         "minimum_strong_candidates": 1,
@@ -21,8 +24,11 @@
     "id": "fastapi",
     "repo": "fastapi/fastapi",
     "workspace_slug": "github-fastapi-fastapi",
+    "role": "large_python_framework",
+    "benchmark_purpose": "Stress imported analysis on a large framework with mixed docs, issues, and PR rationale.",
     "expectations": {
       "analysis_scope": "large public framework with mixed issue and documentation evidence",
+      "expected_value_outcomes": ["useful_now", "reviewable_limited", "evidence_limited", "missing_workspace", "operational_blocked"],
       "minimum_candidate_decisions": 2,
       "candidate_quality": {
         "minimum_strong_candidates": 1,
@@ -39,8 +45,11 @@
     "id": "rich",
     "repo": "Textualize/rich",
     "workspace_slug": "github-textualize-rich",
+    "role": "small_python_doc_library",
+    "benchmark_purpose": "Check whether a smaller public Python library can establish a first accepted baseline despite thinner decision evidence.",
     "expectations": {
       "analysis_scope": "public library where decision evidence may be thinner than the guided demo",
+      "expected_value_outcomes": ["useful_now", "reviewable_limited", "evidence_limited", "missing_workspace", "operational_blocked"],
       "minimum_candidate_decisions": 1,
       "minimum_accepted_decisions": 1,
       "candidate_quality": {
@@ -59,8 +68,11 @@
     "id": "n8n",
     "repo": "n8n-io/n8n",
     "workspace_slug": "github-n8n-io-n8n",
+    "role": "large_typescript_stress_repo",
+    "benchmark_purpose": "Stress screened-in artifact volume and conversion-limited behavior on a large TypeScript repository.",
     "expectations": {
       "analysis_scope": "large public repository used as a stress case for screened-in but low-conversion extraction runs",
+      "expected_value_outcomes": ["reviewable_limited", "conversion_limited", "evidence_limited", "missing_workspace", "operational_blocked"],
       "minimum_candidate_decisions": 0,
       "minimum_reviewable_candidates": 1,
       "minimum_screened_in_artifacts": 10,
@@ -79,8 +91,11 @@
     "id": "browser-use",
     "repo": "browser-use/browser-use",
     "workspace_slug": "github-browser-use-browser-use",
+    "role": "decision_rich_regression_repo",
+    "benchmark_purpose": "Protect a known imported lane with strong why-search and drift-regression examples.",
     "expectations": {
       "analysis_scope": "imported lane regression repo with strong why and drift examples",
+      "expected_value_outcomes": ["useful_now", "reviewable_limited", "missing_workspace", "operational_blocked"],
       "minimum_candidate_decisions": 2,
       "minimum_accepted_decisions": 1,
       "minimum_screened_in_artifacts": 0,

@@ -1,6 +1,5 @@
-## Purpose
-Define lightweight real-repository benchmark expectations for validating product quality.
-## Requirements
+## MODIFIED Requirements
+
 ### Requirement: Curated real-repo benchmark fixtures
 The system SHALL provide a small fixture-backed benchmark set for real imported repositories that captures repo-level expectations, repository role and benchmark purpose, review-readiness milestones, focused why/drift cases, value-oriented outcome expectations, and operator-guided live observed outcomes without requiring live imports during default validation, SHALL allow fixture-backed expectations for candidate-conversion behavior on repositories used to protect imported review-readiness improvements, and SHALL allow why-specific expectations that protect stronger post-acceptance support quality without relying on exact answer prose.
 
@@ -58,6 +57,8 @@ The lightweight real-repository benchmark set SHALL capture candidate value qual
 #### Scenario: Markdown report mirrors machine-readable evidence
 - **WHEN** the live benchmark writes a machine-readable report
 - **THEN** it SHALL also be able to write an operator-readable Markdown report that summarizes the same repository rows, value outcomes, key metrics, limitations, and follow-up actions
+
+## ADDED Requirements
 
 ### Requirement: Real-repository benchmark reports are operator-readable
 The benchmark runner SHALL produce an operator-readable real-repository value report that explains repository coverage, observed value outcomes, product limitations, operational blockers, and follow-up opportunities.

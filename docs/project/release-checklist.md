@@ -101,6 +101,8 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] confirm the imported workspace reaches a bounded state such as `review_ready`, `why_ready`, `evidence_limited`, or another explicit operator-readable outcome
 - [ ] ask a focused imported why-question and confirm the answer includes citations or a bounded evidence-limited status
 - [ ] run drift evaluation once and confirm the current state is understandable for the imported workspace
+- [ ] optionally run `python scripts/ci/run_benchmark.py --live-real-repos --repo-id browser-use` and inspect both `.tmp/live-real-repo-validation-report.json` and `.tmp/live-real-repo-validation-report.md`
+- [ ] summarize or attach dated live reports when they support a release decision; do not commit default `.tmp/` reports as durable evidence
 
 These checks improve release confidence but are not part of the default offline release gate because they depend on live providers, network conditions, and existing imported workspace state.
 
