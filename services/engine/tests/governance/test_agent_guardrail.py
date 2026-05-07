@@ -43,9 +43,18 @@ def test_guardrail_returns_continue_for_clean_sources() -> None:
     result = aggregate_governance_guardrail(diff_check=_diff_check(), drift_report=_drift_report())
 
     assert result.agent_status == "continue"
+    assert result.workflow_protocol["name"] == "decisionatlas-agent-governance-workflow"
+    assert result.workflow_protocol["advisory_only"] is True
+    assert "continue_implementation" in result.allowed_next_actions
+    assert "run_required_tests" in result.allowed_next_actions
+    assert "skip_targeted_validation" in result.disallowed_next_actions
+    assert result.handoff_summary["agent_status"] == "continue"
+    assert result.handoff_summary["diff_status"] == "pass"
+    assert result.handoff_summary["drift_status"] == "clean"
     body = result.to_dict()
     assert body["source_results"]["diff_check"]["status"] == "pass"
     assert body["source_results"]["drift_report"]["status"] == "clean"
+    assert body["agent_instruction"].startswith("Continue normal work")
 
 
 def test_guardrail_returns_caution_for_non_blocking_warnings() -> None:
@@ -66,6 +75,10 @@ def test_guardrail_returns_caution_for_non_blocking_warnings() -> None:
 
     assert result.agent_status == "caution"
     assert result.required_tests == ["Run targeted tests."]
+    assert "continue_with_explicit_caution_handoff" in result.allowed_next_actions
+    assert "claim_completion_without_disclosing_caution" in result.disallowed_next_actions
+    assert result.handoff_summary["recommended_next_actions"]
+    assert result.handoff_summary["required_tests"] == ["Run targeted tests."]
     assert any("Roadmap alignment" in action for action in result.recommended_next_actions)
 
 
@@ -84,6 +97,11 @@ def test_guardrail_pauses_for_blocked_diff_and_preserves_evidence() -> None:
     )
 
     assert result.agent_status == "pause"
+    assert result.agent_instruction.startswith("Stop implementation")
+    assert "ask_human_for_decision" in result.allowed_next_actions
+    assert "silently_rewrite_openspec_to_clear_guardrail" in result.disallowed_next_actions
+    assert result.human_questions
+    assert result.human_questions[0]["evidence_type"] == "finding"
     assert result.findings[0]["source"]["title"] == "Engineering Standards"
     assert result.source_results["diff_check"]["conflicts"][0]["id"] == "accepted-rule-7-missing-tests"
 
@@ -108,6 +126,13 @@ def test_guardrail_pauses_for_unsynced_human_decision() -> None:
 
     assert result.agent_status == "pause"
     assert result.human_decisions_needed == ["Decide whether the human decision should update specs."]
+    assert {
+        "id": "human-decision-1",
+        "question": "Decide whether the human decision should update specs.",
+        "evidence_type": "human_decision",
+        "evidence_id": "human_decisions_needed[0]",
+    } in result.human_questions
+    assert any(question["evidence_type"] == "signal" for question in result.human_questions)
     assert any("Sync the decision" in action for action in result.recommended_next_actions)
 
 
@@ -131,6 +156,11 @@ def test_pause_result_is_advisory_and_does_not_mutate_files(tmp_path: Path) -> N
 
     assert result.agent_status == "pause"
     assert result.context["advisory_only"] is True
+    assert result.handoff_summary["advisory_only"] is True
+    assert any(
+        question["question"] == "What validation evidence is required before the agent may continue or claim completion?"
+        for question in result.human_questions
+    )
     assert marker.read_text(encoding="utf-8") == "unchanged"
 
 
@@ -150,9 +180,16 @@ def test_cli_outputs_machine_readable_json_and_returns_success(tmp_path: Path, c
             "human_decisions_needed",
             "recommended_next_actions",
             "source_results",
+            "workflow_protocol",
+            "agent_instruction",
+            "allowed_next_actions",
+            "disallowed_next_actions",
+            "human_questions",
+            "handoff_summary",
         ]
     ).issubset(body)
     assert body["context"]["advisory_only"] is True
+    assert body["workflow_protocol"]["advisory_only"] is True
 
 
 def test_cli_summary_outputs_checkpoint_friendly_status_and_returns_success(tmp_path: Path, capsys) -> None:
@@ -163,3 +200,29 @@ def test_cli_summary_outputs_checkpoint_friendly_status_and_returns_success(tmp_
     assert "Agent status:" in summary
     assert "Diff check:" in summary
     assert "Drift report:" in summary
+
+
+def test_summary_output_includes_human_questions_for_pause(tmp_path: Path, capsys, monkeypatch) -> None:
+    def fake_run(*, root, owner_scope, database_url, governance_rules, archived_change_limit):
+        return aggregate_governance_guardrail(
+            diff_check=_diff_check(
+                status="blocked",
+                findings=[
+                    {
+                        "id": "missing-openspec-context",
+                        "severity": "blocker",
+                        "detail": "Behavior changed without an active OpenSpec change.",
+                    }
+                ],
+            ),
+            drift_report=_drift_report(),
+        )
+
+    monkeypatch.setattr("app.governance.agent_guardrail.run_agent_governance_guardrail", fake_run)
+
+    exit_code = main(["--root", str(tmp_path), "--summary"])
+
+    assert exit_code == 0
+    summary = capsys.readouterr().out
+    assert "Human questions:" in summary
+    assert "Should this behavior change get OpenSpec context" in summary

@@ -20,6 +20,12 @@ PAUSE_DRIFT_SIGNALS = {"unsynced_decision"}
 class AgentGuardrailResult:
     agent_status: str
     summary: str
+    workflow_protocol: dict[str, Any] = field(default_factory=dict)
+    agent_instruction: str = ""
+    allowed_next_actions: list[str] = field(default_factory=list)
+    disallowed_next_actions: list[str] = field(default_factory=list)
+    human_questions: list[dict[str, Any]] = field(default_factory=list)
+    handoff_summary: dict[str, Any] = field(default_factory=dict)
     findings: list[dict[str, Any]] = field(default_factory=list)
     signals: list[dict[str, Any]] = field(default_factory=list)
     matched_rules: list[dict[str, Any]] = field(default_factory=list)
@@ -82,9 +88,29 @@ def aggregate_governance_guardrail(*, diff_check: Any, drift_report: Any) -> Age
         signals=signals,
         human_decisions=human_decisions,
     )
+    protocol = _workflow_protocol(
+        agent_status=agent_status,
+        check=check,
+        drift=drift,
+        findings=findings,
+        signals=signals,
+        required_tests=required_tests,
+        human_decisions=human_decisions,
+        recommended_actions=recommended_actions,
+    )
     return AgentGuardrailResult(
         agent_status=agent_status,
         summary=_summary_for_status(agent_status, check=check, drift=drift),
+        workflow_protocol={
+            "name": "decisionatlas-agent-governance-workflow",
+            "version": "1",
+            "advisory_only": True,
+        },
+        agent_instruction=protocol["agent_instruction"],
+        allowed_next_actions=protocol["allowed_next_actions"],
+        disallowed_next_actions=protocol["disallowed_next_actions"],
+        human_questions=protocol["human_questions"],
+        handoff_summary=protocol["handoff_summary"],
         findings=_dedupe_dicts(findings),
         signals=_dedupe_dicts(signals),
         matched_rules=_dedupe_dicts(matched_rules),
@@ -170,7 +196,164 @@ def _human_summary(result: AgentGuardrailResult) -> str:
     if result.recommended_next_actions:
         lines.append("Recommended next actions:")
         lines.extend(f"- {action}" for action in result.recommended_next_actions)
+    if result.human_questions:
+        lines.append("Human questions:")
+        lines.extend(f"- {question['question']}" for question in result.human_questions if question.get("question"))
     return "\n".join(lines)
+
+
+def _workflow_protocol(
+    *,
+    agent_status: str,
+    check: dict[str, Any],
+    drift: dict[str, Any],
+    findings: list[dict[str, Any]],
+    signals: list[dict[str, Any]],
+    required_tests: list[str],
+    human_decisions: list[str],
+    recommended_actions: list[str],
+) -> dict[str, Any]:
+    human_questions = _human_questions(
+        agent_status=agent_status,
+        findings=findings,
+        signals=signals,
+        human_decisions=human_decisions,
+    )
+    if agent_status == "pause":
+        instruction = "Stop implementation and ask for human review before continuing."
+        allowed = [
+            "summarize_guardrail_evidence",
+            "ask_human_for_decision",
+            "record_governance_handoff",
+        ]
+        disallowed = [
+            "continue_implementation_without_human_review",
+            "commit_without_human_review",
+            "silently_rewrite_code_to_clear_guardrail",
+            "silently_rewrite_openspec_to_clear_guardrail",
+            "silently_rewrite_roadmap_or_governance_rules_to_clear_guardrail",
+        ]
+    elif agent_status == "caution":
+        instruction = "Proceed only after addressing or explicitly reporting recommended governance actions."
+        allowed = [
+            "address_recommended_next_actions",
+            "run_required_tests",
+            "continue_with_explicit_caution_handoff",
+        ]
+        disallowed = [
+            "claim_completion_without_disclosing_caution",
+            "skip_required_tests",
+        ]
+    else:
+        instruction = "Continue normal work while still running targeted validation and reporting guardrail status."
+        allowed = [
+            "continue_implementation",
+            "run_required_tests",
+            "record_governance_handoff",
+        ]
+        disallowed = [
+            "skip_targeted_validation",
+            "claim_guardrail_as_correctness_proof",
+        ]
+
+    return {
+        "agent_instruction": instruction,
+        "allowed_next_actions": allowed,
+        "disallowed_next_actions": disallowed,
+        "human_questions": human_questions,
+        "handoff_summary": {
+            "agent_status": agent_status,
+            "diff_status": check.get("status"),
+            "drift_status": drift.get("status"),
+            "required_tests": required_tests,
+            "human_questions": human_questions,
+            "recommended_next_actions": recommended_actions,
+            "advisory_only": True,
+        },
+    }
+
+
+def _human_questions(
+    *,
+    agent_status: str,
+    findings: list[dict[str, Any]],
+    signals: list[dict[str, Any]],
+    human_decisions: list[str],
+) -> list[dict[str, Any]]:
+    if agent_status != "pause":
+        return []
+
+    questions: list[dict[str, Any]] = []
+    for index, decision in enumerate(human_decisions, start=1):
+        questions.append(
+            {
+                "id": f"human-decision-{index}",
+                "question": str(decision),
+                "evidence_type": "human_decision",
+                "evidence_id": f"human_decisions_needed[{index - 1}]",
+            }
+        )
+
+    for finding in findings:
+        question = _question_from_finding(finding)
+        if question:
+            questions.append(question)
+
+    for signal in signals:
+        question = _question_from_signal(signal)
+        if question:
+            questions.append(question)
+
+    if not questions:
+        questions.append(
+            {
+                "id": "human-review-required",
+                "question": "Review the guardrail pause evidence and decide whether the agent may continue.",
+                "evidence_type": "source_results",
+                "evidence_id": "source_results",
+            }
+        )
+    return _dedupe_dicts(questions)
+
+
+def _question_from_finding(finding: dict[str, Any]) -> dict[str, Any] | None:
+    finding_id = str(finding.get("id") or "finding")
+    title = str(finding.get("title") or finding_id)
+    detail = str(finding.get("detail") or title)
+    if finding_id == "missing-openspec-context":
+        question = "Should this behavior change get OpenSpec context before implementation continues?"
+    elif finding_id == "missing-validation-evidence":
+        question = "What validation evidence is required before the agent may continue or claim completion?"
+    elif finding.get("severity") == "blocker":
+        question = f"How should the blocker be resolved before the agent continues: {title}?"
+    else:
+        return None
+    return {
+        "id": f"finding-{finding_id}",
+        "question": question,
+        "evidence_type": "finding",
+        "evidence_id": finding_id,
+        "evidence_summary": detail,
+    }
+
+
+def _question_from_signal(signal: dict[str, Any]) -> dict[str, Any] | None:
+    signal_type = str(signal.get("type") or "")
+    signal_id = str(signal.get("id") or signal_type or "signal")
+    title = str(signal.get("title") or signal_id)
+    if signal_type == "unsynced_decision":
+        question = "Should the unsynced human decision update OpenSpec specs, accepted governance rules, or remain documented only?"
+    elif signal.get("severity") in {"blocker", "warning"} and signal.get("recommended_next_action"):
+        question = f"What decision is needed for this governance drift signal: {title}?"
+    else:
+        return None
+    return {
+        "id": f"signal-{signal_id}",
+        "question": question,
+        "evidence_type": "signal",
+        "evidence_id": signal_id,
+        "evidence_summary": str(signal.get("recommended_next_action") or title),
+    }
 
 
 def _to_plain_dict(value: Any) -> dict[str, Any]:
