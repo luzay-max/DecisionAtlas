@@ -1,3 +1,7 @@
+param(
+  [switch]$ResetSeededDemo
+)
+
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
@@ -145,6 +149,15 @@ Invoke-Uv run alembic upgrade head
 
 Write-Host "Seeding demo workspace into Postgres..." -ForegroundColor Cyan
 Invoke-Uv run python -m app.db.seed_demo
+if ($ResetSeededDemo) {
+  Write-Host "Resetting seeded demo lane before startup because -ResetSeededDemo was provided..." -ForegroundColor Cyan
+  Invoke-Uv run python ..\..\scripts\demo\reset_seeded_demo.py
+  Invoke-Uv run python ..\..\scripts\demo\check_seeded_demo.py
+} else {
+  Write-Host "Checking seeded demo readiness without mutating existing demo state..." -ForegroundColor Cyan
+  Invoke-Uv run python ..\..\scripts\demo\check_seeded_demo.py --no-fail
+  Write-Host "If the guided demo lane is not ready, rerun with -ResetSeededDemo or use scripts\demo\reset-demo.ps1." -ForegroundColor Yellow
+}
 Set-Location $repoRoot
 
 foreach ($port in 8000, 3001, 3000) {
@@ -203,3 +216,6 @@ Write-Host "Engine: http://127.0.0.1:8000/health" -ForegroundColor Green
 Write-Host ""
 Write-Host "Stop the stack with:" -ForegroundColor DarkCyan
 Write-Host "powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1"
+Write-Host ""
+Write-Host "Restore consumed seeded demo state before startup with:" -ForegroundColor DarkCyan
+Write-Host "powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo"

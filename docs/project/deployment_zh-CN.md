@@ -110,10 +110,22 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps
 
 当迁移或数据库漂移需要更深重建时，再使用 `reseed-demo.ps1`。默认恢复脚本不会删除导入工作区。
 
+可直接检查 seeded demo readiness：
+
+```powershell
+python scripts\demo\check_seeded_demo.py
+```
+
 ### 启动顺序
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
+```
+
+默认 real-stack 启动不会破坏已有 `demo-workspace`。如果 seeded review queue 或 drift walkthrough 已被消耗，并且需要在启动前恢复干净的 guided demo lane，运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
 ```
 
 停止本地 real stack：

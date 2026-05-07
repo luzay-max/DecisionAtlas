@@ -106,6 +106,12 @@ For recovery, start with the seeded demo reset:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps1
 ```
 
+Check seeded demo readiness directly with:
+
+```powershell
+python scripts\demo\check_seeded_demo.py
+```
+
 Use `reseed-demo.ps1` when migrations or database drift require a deeper rebuild of `demo-workspace`. The default recovery scripts do not delete imported workspaces.
 
 Before showing the environment externally, run the [Hosted Preview Readiness](hosted-preview-readiness.md) checklist. Hosted preview readiness is a post-RC confidence layer for a running environment; it does not replace the canonical release gate.
@@ -114,6 +120,12 @@ Before showing the environment externally, run the [Hosted Preview Readiness](ho
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
+```
+
+Default real-stack startup is non-destructive for an existing `demo-workspace`. If the seeded review queue or drift walkthrough was consumed and you need a clean guided demo lane before startup, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
 ```
 
 For local real-stack shutdown:

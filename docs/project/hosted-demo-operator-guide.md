@@ -156,6 +156,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 
 This runs the guided demo Playwright smoke against the already running web URL. It sets `PLAYWRIGHT_SKIP_WEBSERVER=1`, so Playwright does not start local services.
 
+To check the seeded demo data state directly, run:
+
+```powershell
+python scripts\demo\check_seeded_demo.py
+```
+
+The readiness check reports whether `demo-workspace` has the accepted decision baseline, review candidate queue, source refs, timeline-ready decisions, and open drift alert needed for the walkthrough.
+
 ## Reset Versus Reseed
 
 Use reset when the seeded demo workspace has drifted because of demo interaction, review state, or temporary data changes:
@@ -178,6 +186,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reseed-demo.p
 
 Default reset and reseed actions target only `demo-workspace`. Imported workspaces are not deleted unless a future operator script explicitly says so.
 
+`reset-demo.ps1` is the first recovery path when review state or temporary demo interaction consumed the walkthrough. `reseed-demo.ps1` runs migrations first and is the deeper recovery path when reset fails, migrations changed, or database drift is suspected.
+
 ## Operator Checklist
 
 Before a public demo:
@@ -186,6 +196,7 @@ Before a public demo:
 - Confirm backend-only secrets are set only on host/backend surfaces.
 - Run hosted health check.
 - Run hosted smoke check.
+- Run `python scripts\demo\check_seeded_demo.py` or confirm the reset/reseed scripts reported a ready seeded demo lane.
 - Open `/workspaces/demo-workspace`.
 - Keep imported real-repo proof optional and separate from the main walkthrough.
 
@@ -193,6 +204,7 @@ If the walkthrough state looks wrong:
 
 - Run `reset-demo.ps1` first.
 - Run `reseed-demo.ps1` if reset does not recover the expected baseline.
+- Re-run `python scripts\demo\check_seeded_demo.py`.
 - Re-run health and smoke checks.
 
 ## Relationship To Release Validation

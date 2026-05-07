@@ -34,5 +34,6 @@ Write-Host "Running migrations before reseeding the hosted demo lane..." -Foregr
 Set-Location $engineDir
 Invoke-Uv run alembic upgrade head
 Invoke-Uv run python ..\..\scripts\demo\reset_seeded_demo.py
+Invoke-Uv run python ..\..\scripts\demo\check_seeded_demo.py
 
 Write-Host "Seeded demo lane reseed complete." -ForegroundColor Green

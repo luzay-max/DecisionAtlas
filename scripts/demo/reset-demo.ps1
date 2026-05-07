@@ -35,5 +35,6 @@ Write-Host "Imported workspaces are not deleted by this script." -ForegroundColo
 
 Set-Location $engineDir
 Invoke-Uv run python ..\..\scripts\demo\reset_seeded_demo.py
+Invoke-Uv run python ..\..\scripts\demo\check_seeded_demo.py
 
 Write-Host "Seeded demo lane reset complete." -ForegroundColor Green

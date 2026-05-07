@@ -26,46 +26,50 @@ DEMO_WORKSPACE_SLUG = "demo-workspace"
 def reset_seeded_demo() -> None:
     settings = get_settings()
     engine = create_engine(settings.database_url)
+    should_seed = True
 
-    with Session(engine) as session:
-        workspace = session.scalar(select(Workspace).where(Workspace.slug == DEMO_WORKSPACE_SLUG))
-        if workspace is None:
-            session.commit()
-            seed_smoke_demo()
-            return
+    try:
+        with Session(engine) as session:
+            workspace = session.scalar(select(Workspace).where(Workspace.slug == DEMO_WORKSPACE_SLUG))
+            if workspace is None:
+                session.commit()
+                should_seed = True
+            else:
+                workspace_id = workspace.id
+                artifact_ids = list(session.scalars(select(Artifact.id).where(Artifact.workspace_id == workspace_id)))
+                decision_ids = list(session.scalars(select(Decision.id).where(Decision.workspace_id == workspace_id)))
 
-        workspace_id = workspace.id
-        artifact_ids = list(session.scalars(select(Artifact.id).where(Artifact.workspace_id == workspace_id)))
-        decision_ids = list(session.scalars(select(Decision.id).where(Decision.workspace_id == workspace_id)))
+                session.execute(delete(ImportJob).where(ImportJob.workspace_id == workspace_id))
+                session.execute(delete(DriftAlert).where(DriftAlert.workspace_id == workspace_id))
 
-        session.execute(delete(ImportJob).where(ImportJob.workspace_id == workspace_id))
-        session.execute(delete(DriftAlert).where(DriftAlert.workspace_id == workspace_id))
+                if decision_ids:
+                    session.execute(delete(SourceRef).where(SourceRef.decision_id.in_(decision_ids)))
+                    session.execute(
+                        delete(Relation).where(
+                            ((Relation.from_type == "decision") & Relation.from_id.in_(decision_ids))
+                            | ((Relation.to_type == "decision") & Relation.to_id.in_(decision_ids))
+                        )
+                    )
 
-        if decision_ids:
-            session.execute(delete(SourceRef).where(SourceRef.decision_id.in_(decision_ids)))
-            session.execute(
-                delete(Relation).where(
-                    ((Relation.from_type == "decision") & Relation.from_id.in_(decision_ids))
-                    | ((Relation.to_type == "decision") & Relation.to_id.in_(decision_ids))
-                )
-            )
+                if artifact_ids:
+                    session.execute(delete(SourceRef).where(SourceRef.artifact_id.in_(artifact_ids)))
+                    session.execute(delete(ArtifactChunk).where(ArtifactChunk.artifact_id.in_(artifact_ids)))
+                    session.execute(
+                        delete(Relation).where(
+                            ((Relation.from_type == "artifact") & Relation.from_id.in_(artifact_ids))
+                            | ((Relation.to_type == "artifact") & Relation.to_id.in_(artifact_ids))
+                        )
+                    )
 
-        if artifact_ids:
-            session.execute(delete(SourceRef).where(SourceRef.artifact_id.in_(artifact_ids)))
-            session.execute(delete(ArtifactChunk).where(ArtifactChunk.artifact_id.in_(artifact_ids)))
-            session.execute(
-                delete(Relation).where(
-                    ((Relation.from_type == "artifact") & Relation.from_id.in_(artifact_ids))
-                    | ((Relation.to_type == "artifact") & Relation.to_id.in_(artifact_ids))
-                )
-            )
+                session.execute(delete(Decision).where(Decision.workspace_id == workspace_id))
+                session.execute(delete(Artifact).where(Artifact.workspace_id == workspace_id))
+                session.execute(delete(Workspace).where(Workspace.id == workspace_id))
+                session.commit()
+    finally:
+        engine.dispose()
 
-        session.execute(delete(Decision).where(Decision.workspace_id == workspace_id))
-        session.execute(delete(Artifact).where(Artifact.workspace_id == workspace_id))
-        session.execute(delete(Workspace).where(Workspace.id == workspace_id))
-        session.commit()
-
-    seed_smoke_demo()
+    if should_seed:
+        seed_smoke_demo()
 
 
 if __name__ == "__main__":

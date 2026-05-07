@@ -1,7 +1,7 @@
 # DecisionAtlas Post-Stage-7 Master Development Plan
 
 日期：2026-05-06  
-当前基线：阶段 7 AI Agent Governance Integration 已实现并归档；最新提交基线仍为 `dc8e00c`，阶段 7 和真实栈 migration 修复待提交  
+当前基线：阶段 7 AI Agent Governance Integration、治理文档同步和真实栈 migration 修复已提交；最新提交基线为 `5447d26 docs: refresh project guidance docs`  
 状态：进入阶段 8，重点从“能力已存在”转向“流程稳定、演示可复现、真实价值可度量”
 
 ## 当前状态

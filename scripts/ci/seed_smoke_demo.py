@@ -35,7 +35,9 @@ def seed_smoke_demo() -> None:
         else:
             workspace.repo_url = repo_url
 
-        issue_artifact = session.scalar(select(Artifact).where(Artifact.source_id == "seed-issue-1"))
+        issue_artifact = session.scalar(
+            select(Artifact).where(Artifact.workspace_id == workspace.id, Artifact.source_id == "seed-issue-1")
+        )
         if issue_artifact is None:
             issue_artifact = Artifact(
                 workspace_id=workspace.id,
@@ -52,7 +54,9 @@ def seed_smoke_demo() -> None:
             session.add(issue_artifact)
             session.flush()
 
-        accepted_decision = session.scalar(select(Decision).where(Decision.title == "Use Redis Cache"))
+        accepted_decision = session.scalar(
+            select(Decision).where(Decision.workspace_id == workspace.id, Decision.title == "Use Redis Cache")
+        )
         if accepted_decision is None:
             accepted_decision = Decision(
                 workspace_id=workspace.id,
@@ -95,7 +99,9 @@ def seed_smoke_demo() -> None:
                 )
             )
 
-        postgres_artifact = session.scalar(select(Artifact).where(Artifact.source_id == "seed-doc-1"))
+        postgres_artifact = session.scalar(
+            select(Artifact).where(Artifact.workspace_id == workspace.id, Artifact.source_id == "seed-doc-1")
+        )
         if postgres_artifact is None:
             postgres_artifact = Artifact(
                 workspace_id=workspace.id,
@@ -115,7 +121,9 @@ def seed_smoke_demo() -> None:
             session.add(postgres_artifact)
             session.flush()
 
-        postgres_decision = session.scalar(select(Decision).where(Decision.title == "Keep PostgreSQL Primary"))
+        postgres_decision = session.scalar(
+            select(Decision).where(Decision.workspace_id == workspace.id, Decision.title == "Keep PostgreSQL Primary")
+        )
         if postgres_decision is None:
             postgres_decision = Decision(
                 workspace_id=workspace.id,
@@ -158,7 +166,9 @@ def seed_smoke_demo() -> None:
                 )
             )
 
-        queue_artifact = session.scalar(select(Artifact).where(Artifact.source_id == "seed-pr-queue"))
+        queue_artifact = session.scalar(
+            select(Artifact).where(Artifact.workspace_id == workspace.id, Artifact.source_id == "seed-pr-queue")
+        )
         if queue_artifact is None:
             queue_artifact = Artifact(
                 workspace_id=workspace.id,
@@ -178,7 +188,9 @@ def seed_smoke_demo() -> None:
             session.add(queue_artifact)
             session.flush()
 
-        queue_decision = session.scalar(select(Decision).where(Decision.title == "Queue Long-Running Jobs"))
+        queue_decision = session.scalar(
+            select(Decision).where(Decision.workspace_id == workspace.id, Decision.title == "Queue Long-Running Jobs")
+        )
         if queue_decision is None:
             queue_decision = Decision(
                 workspace_id=workspace.id,
@@ -221,7 +233,9 @@ def seed_smoke_demo() -> None:
                 )
             )
 
-        review_artifact = session.scalar(select(Artifact).where(Artifact.source_id == "seed-note-review"))
+        review_artifact = session.scalar(
+            select(Artifact).where(Artifact.workspace_id == workspace.id, Artifact.source_id == "seed-note-review")
+        )
         if review_artifact is None:
             review_artifact = Artifact(
                 workspace_id=workspace.id,
@@ -241,7 +255,12 @@ def seed_smoke_demo() -> None:
             session.add(review_artifact)
             session.flush()
 
-        review_decision = session.scalar(select(Decision).where(Decision.title == "Human Review Before Acceptance"))
+        review_decision = session.scalar(
+            select(Decision).where(
+                Decision.workspace_id == workspace.id,
+                Decision.title == "Human Review Before Acceptance",
+            )
+        )
         if review_decision is None:
             review_decision = Decision(
                 workspace_id=workspace.id,
@@ -284,7 +303,9 @@ def seed_smoke_demo() -> None:
                 )
             )
 
-        candidate_decision = session.scalar(select(Decision).where(Decision.title == "Add Decision Diff View"))
+        candidate_decision = session.scalar(
+            select(Decision).where(Decision.workspace_id == workspace.id, Decision.title == "Add Decision Diff View")
+        )
         if candidate_decision is None:
             session.add(
                 Decision(
@@ -302,7 +323,9 @@ def seed_smoke_demo() -> None:
                 )
             )
 
-        drift_artifact = session.scalar(select(Artifact).where(Artifact.source_id == "seed-pr-2"))
+        drift_artifact = session.scalar(
+            select(Artifact).where(Artifact.workspace_id == workspace.id, Artifact.source_id == "seed-pr-2")
+        )
         if drift_artifact is None:
             drift_artifact = Artifact(
                 workspace_id=workspace.id,
@@ -339,6 +362,7 @@ def seed_smoke_demo() -> None:
             )
 
         session.commit()
+    engine.dispose()
 
 
 if __name__ == "__main__":

@@ -156,6 +156,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 
 该命令会把 guided demo Playwright smoke 打到已经运行的 Web URL。它会设置 `PLAYWRIGHT_SKIP_WEBSERVER=1`，因此 Playwright 不会再启动本地服务。
 
+如需直接检查 seeded demo 数据状态，运行：
+
+```powershell
+python scripts\demo\check_seeded_demo.py
+```
+
+readiness 检查会报告 `demo-workspace` 是否具备 walkthrough 所需的 accepted decision baseline、review candidate queue、source refs、timeline-ready decisions 和 open drift alert。
+
 ## Reset 与 Reseed
 
 当 seeded demo workspace 因演示交互、审核状态或临时数据变化而偏离稳定状态时，先使用 reset：
@@ -178,6 +186,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reseed-demo.p
 
 默认 reset 和 reseed 只作用于 `demo-workspace`。导入工作区不会被删除，除非后续有明确说明的 operator 脚本。
 
+当 review 状态或临时演示交互消耗了 walkthrough 时，先用 `reset-demo.ps1`。当 reset 失败、迁移发生变化或怀疑数据库漂移时，再用会先运行 migrations 的 `reseed-demo.ps1`。
+
 ## 操作员检查清单
 
 公开演示前：
@@ -185,6 +195,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reseed-demo.p
 - 确认后端密钥只存在于宿主机或后端面。
 - 运行 hosted health check。
 - 运行 hosted smoke check。
+- 运行 `python scripts\demo\check_seeded_demo.py`，或确认 reset/reseed 脚本报告 seeded demo lane 已 ready。
 - 打开 `/workspaces/demo-workspace`。
 - 把导入真实仓库证明保持为可选环节，与主演练分开。
 
@@ -192,6 +203,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reseed-demo.p
 
 - 先运行 `reset-demo.ps1`。
 - 如果 reset 不能恢复预期 baseline，再运行 `reseed-demo.ps1`。
+- 重新运行 `python scripts\demo\check_seeded_demo.py`。
 - 重新运行 health 和 smoke checks。
 
 ## 与发布验证的关系

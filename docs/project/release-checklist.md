@@ -28,11 +28,12 @@ Latest v0.3 RC pre-tag validation:
 Latest post-stage-7 documentation and governance validation:
 
 - OpenSpec strict validation: 2026-05-06, `37 passed, 0 failed`
-- Governance guardrail tests: `6 passed`
+- Governance guardrail tests: include summary output coverage for workflow checkpoints
 - Governance stage 5/6/7 tests: `19 passed`
-- Migration revision-length/schema tests: `2 passed`
+- Seeded demo recovery tests: verify readiness detection, consumed review queue reset, and imported workspace preservation
+- Migration revision-length/schema tests: include `tests/db/test_migrations.py`
 - Real Postgres `alembic upgrade head`: passed after shortening revision `0008_governance_ingest`
-- Real stack startup: `scripts/dev/start-real-stack.bat`, exit code `0`
+- Real stack startup: default startup is non-destructive; use `scripts/dev/start-real-stack.ps1 -ResetSeededDemo` when the seeded guided demo lane must be restored before startup
 - Playwright smoke against running real stack: `1 passed`
 
 ## Mandatory product baseline
@@ -41,6 +42,8 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] Owner scope is visible in product navigation
 - [ ] Role gates distinguish admin/reviewer/viewer product actions
 - [ ] Demo workspace seeds correctly
+- [ ] Seeded demo readiness check reports accepted decisions, candidate queue, source refs, timeline-ready history, and open drift alert state
+- [ ] Seeded demo reset restores consumed review/demo state without deleting imported workspaces
 - [ ] Review queue shows at least one candidate decision
 - [ ] Why-search returns cited answers for seed queries
 - [ ] Drift page shows at least one alert
@@ -62,6 +65,7 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] `docs/project/quick-start.md` is accurate
 - [ ] `docs/project/quick-start_zh-CN.md` mirrors quick-start guidance
 - [ ] `docs/project/governance-agent-guardrail.md` documents agent usage and pause behavior
+- [ ] quick start/deployment/operator docs distinguish non-destructive seed, reset, reseed, and explicit `-ResetSeededDemo`
 - [ ] `docs/project/demo-script.md` matches current routes
 - [ ] `docs/plans/2026-04-27-decisionatlas-v0-3-next-roadmap.md` reflects the current next route
 - [ ] `docs/plans/2026-05-06-decisionatlas-post-stage-7-master-plan.md` records the current post-stage-7 route

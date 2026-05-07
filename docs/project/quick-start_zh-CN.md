@@ -41,7 +41,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
-该命令会启动 PostgreSQL 和 Redis、运行迁移、seed 演示数据、启动 engine/API/web，并为浏览器会话启用本地 bootstrap session 恢复。停止命令：
+该命令会启动 PostgreSQL 和 Redis、运行迁移、执行非破坏性 demo workspace setup、检查 seeded demo readiness、启动 engine/API/web，并为浏览器会话启用本地 bootstrap session 恢复。如果现有 `demo-workspace` 已被前一次 walkthrough 消耗，请在启动前显式恢复：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
+```
+
+停止命令：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
@@ -111,6 +117,7 @@ Invoke-WebRequest http://localhost:8000/health
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+python scripts\demo\check_seeded_demo.py
 ```
 
 外部 hosted walkthrough 前，请使用 [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) 记录 health、smoke、reset/reseed recovery 状态和 known limitations。这些 hosted 检查是 post-RC confidence layer，不替代标准 release gate。
@@ -151,4 +158,4 @@ cd services/engine
 | Docker 服务不可用 | 重试 `docker compose up -d postgres redis` |
 | Real stack migration 报 `value too long for type character varying(32)` | 确认代码已包含缩短后的 Alembic revision `0008_governance_ingest`；运行 `tests/db/test_migrations.py` 防止未来 revision ID 超过 32 字符。 |
 | `.docx` 导入被跳过 | 确认 `pandoc` 已安装并在终端中可用。 |
-| 托管演示状态漂移 | 对 `demo-workspace` 运行 `scripts\demo\reset-demo.ps1`；当迁移或数据库漂移需要更深重建时使用 `reseed-demo.ps1`。 |
+| 托管演示状态漂移 | 先运行 `python scripts\demo\check_seeded_demo.py`；review/demo 状态被消耗时运行 `scripts\demo\reset-demo.ps1`，迁移或数据库漂移需要更深重建时运行 `reseed-demo.ps1`。 |

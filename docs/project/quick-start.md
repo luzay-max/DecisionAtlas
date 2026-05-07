@@ -41,7 +41,13 @@ For a deployment-like environment with PostgreSQL and Redis:
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
-This starts PostgreSQL and Redis, runs migrations, seeds demo data, starts engine/API/web, and enables local bootstrap session recovery for the browser session. Stop it with:
+This starts PostgreSQL and Redis, runs migrations, performs non-destructive demo workspace setup, checks seeded demo readiness, starts engine/API/web, and enables local bootstrap session recovery for the browser session. If an existing `demo-workspace` was consumed by a prior walkthrough, restore it explicitly before startup:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
+```
+
+Stop it with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
@@ -111,6 +117,7 @@ For an operator check against a running hosted or local demo environment:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.ps1
+python scripts\demo\check_seeded_demo.py
 ```
 
 Before an external hosted walkthrough, use [Hosted Preview Readiness](hosted-preview-readiness.md) to record health, smoke, reset/reseed recovery status, and any known limitations. These hosted checks are a post-RC confidence layer, not a replacement for the canonical release gate.
@@ -151,4 +158,4 @@ Open the web app:
 | Docker services unavailable | Retry `docker compose up -d postgres redis` |
 | Real stack migration fails with `value too long for type character varying(32)` | Ensure the code includes the shortened Alembic revision `0008_governance_ingest`; run `tests/db/test_migrations.py` to catch future revision IDs over 32 characters. |
 | `.docx` import skipped | Confirm `pandoc` is installed and available in terminal. |
-| Hosted demo state drifted | Run `scripts\demo\reset-demo.ps1` for `demo-workspace`; use `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |
+| Hosted demo state drifted | Run `python scripts\demo\check_seeded_demo.py`; then run `scripts\demo\reset-demo.ps1` for consumed review/demo state or `reseed-demo.ps1` when migrations or database drift need a deeper rebuild. |

@@ -16,20 +16,23 @@ def seed_demo() -> Workspace:
     payload_path = Path(__file__).resolve().parents[4] / "examples" / "demo-workspace" / "workspace.json"
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
 
-    with Session(engine) as session:
-        existing = session.scalar(select(Workspace).where(Workspace.slug == payload["slug"]))
-        if existing:
-            return existing
+    try:
+        with Session(engine) as session:
+            existing = session.scalar(select(Workspace).where(Workspace.slug == payload["slug"]))
+            if existing:
+                return existing
 
-        workspace = Workspace(
-            slug=payload["slug"],
-            name=payload["name"],
-            repo_url=payload.get("repo_url"),
-        )
-        session.add(workspace)
-        session.commit()
-        session.refresh(workspace)
-        return workspace
+            workspace = Workspace(
+                slug=payload["slug"],
+                name=payload["name"],
+                repo_url=payload.get("repo_url"),
+            )
+            session.add(workspace)
+            session.commit()
+            session.refresh(workspace)
+            return workspace
+    finally:
+        engine.dispose()
 
 
 if __name__ == "__main__":

@@ -153,3 +153,13 @@ def test_cli_outputs_machine_readable_json_and_returns_success(tmp_path: Path, c
         ]
     ).issubset(body)
     assert body["context"]["advisory_only"] is True
+
+
+def test_cli_summary_outputs_checkpoint_friendly_status_and_returns_success(tmp_path: Path, capsys) -> None:
+    exit_code = main(["--root", str(tmp_path), "--summary"])
+
+    assert exit_code == 0
+    summary = capsys.readouterr().out
+    assert "Agent status:" in summary
+    assert "Diff check:" in summary
+    assert "Drift report:" in summary

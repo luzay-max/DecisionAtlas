@@ -29,15 +29,18 @@ python scripts/governance/agent_guardrail.py --rules-json rules.json --pretty
 
 The command exits with `0` by default, including `caution` and `pause` advisory results. A future explicit CI gate can change that behavior, but this first version is not a blocker.
 
-## When Agents Should Run It
+## Workflow Checkpoints
 
-AI agents should run the guardrail at three points:
+AI agents and developers should run the guardrail at four local workflow checkpoints:
 
 - Before implementation, when a task is likely to modify code, specs, roadmap, governance docs, or project direction.
-- After implementation, before claiming a change is complete.
-- Before committing, archiving, or asking a human to review an OpenSpec change.
+- After implementation, before claiming a change is complete and after targeted validation has been selected or run.
+- Before archiving an OpenSpec change.
+- Before committing completed work.
 
 This is especially important when the work touches accepted rules, roadmap stage transitions, private repository access, import/review behavior, governance documents, or validation expectations.
+
+When the summary is `caution` or `pause`, include the evidence in the handoff instead of hiding it behind a green test result.
 
 ## Status Semantics
 
@@ -71,6 +74,8 @@ The agent must stop and ask for human review when the guardrail detects:
 - human decision needed before governance context can be trusted.
 
 The agent must not silently resolve a `pause` by rewriting code, specs, roadmap, governance documents, or accepted rules. The correct next step is to show the evidence and ask the human what decision should be made.
+
+`pause` remains advisory by default. It is a stop-and-ask signal for agents, not an automatic CI failure or an instruction to mutate project files.
 
 ## Output Contract
 
