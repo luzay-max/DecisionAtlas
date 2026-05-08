@@ -11,6 +11,7 @@ This is the canonical local release baseline validation path for the current bra
 - workspace tests and typechecks
 - engine pytest
 - offline benchmark fixture validation
+- AI-agent governance guardrail interface availability, including optional enforcement preview text
 - Playwright smoke coverage
 
 Run individual commands only when debugging a failure from the canonical script.
@@ -29,6 +30,7 @@ Latest post-stage-7 documentation and governance validation:
 
 - OpenSpec strict validation: 2026-05-06, `37 passed, 0 failed`
 - Governance guardrail tests: include summary output coverage for workflow checkpoints
+- AI-agent governance guardrail interface availability: `caution` advisory on the current working tree; enforcement preview returned `warning`
 - Governance stage 5/6/7 tests: `19 passed`
 - Seeded demo recovery tests: verify readiness detection, consumed review queue reset, and imported workspace preservation
 - Migration revision-length/schema tests: include `tests/db/test_migrations.py`

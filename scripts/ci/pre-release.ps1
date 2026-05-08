@@ -60,6 +60,11 @@ Invoke-Phase "Offline benchmark fixture validation" {
   python scripts\ci\run_benchmark.py
 }
 
+Invoke-Phase "Governance agent guardrail interface availability" {
+  python scripts\governance\agent_guardrail.py --summary
+  python scripts\governance\agent_guardrail.py --enforcement-preview release-checklist --summary
+}
+
 Invoke-Phase "Playwright smoke coverage" {
   pnpm --filter @decisionatlas/web exec playwright install chromium
   pnpm --filter @decisionatlas/web exec playwright test
