@@ -57,6 +57,7 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] Governance Markdown ingest is documented as a human-reviewed rules flow
 - [ ] AI-agent governance guardrail returns advisory `continue` / `caution` / `pause`
 - [ ] Governance guardrail is documented as non-blocking by default
+- [ ] Optional governance enforcement preview, if used, is recorded as advisory evidence and not treated as the default release gate
 
 ## Mandatory documentation baseline
 
@@ -113,10 +114,13 @@ These checks improve release confidence but are not part of the default offline 
 - [ ] seeded demo readiness or reset/reseed recovery result recorded
 - [ ] `/governance` walkthrough checked if the preview includes governance Markdown ingest or rule review
 - [ ] `python scripts/governance/agent_guardrail.py --summary` result recorded, including any `caution` or `pause` evidence
+- [ ] optional `python scripts/governance/agent_guardrail.py --enforcement-preview release-checklist --summary` result recorded with source evidence and any human override note if used
 - [ ] optional live real-repository value report summarized or attached externally if used as preview evidence
 - [ ] preview notes state this is not production SaaS and does not include billing, full org admin, secret vault, marketplace self-service, multiplayer review, or default governance enforcement
 
 These checks are governed hosted-preview confidence evidence. They do not replace the canonical local release baseline and must not be treated as default CI enforcement.
+
+Optional enforcement preview output is warning/report oriented by default. Do not treat `--enforcement-preview` or `--strict-exit` as part of the canonical release baseline unless a future explicit OpenSpec change changes the release gate.
 
 ## Tagging and publish
 

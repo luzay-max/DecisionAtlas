@@ -14,6 +14,7 @@ from app.governance.drift_detector import run_governance_drift_detection
 AGENT_STATUSES = {"continue", "caution", "pause"}
 PAUSE_DIFF_FINDINGS = {"missing-openspec-context", "missing-validation-evidence"}
 PAUSE_DRIFT_SIGNALS = {"unsynced_decision"}
+ENFORCEMENT_PREVIEW_MODES = {"local-strict", "pr-annotation", "release-checklist"}
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,23 @@ class AgentGuardrailResult:
     recommended_next_actions: list[str] = field(default_factory=list)
     source_results: dict[str, Any] = field(default_factory=dict)
     context: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class GovernanceEnforcementPreview:
+    mode: str
+    would_block: bool
+    severity: str
+    advisory_default: bool
+    block_reasons: list[str] = field(default_factory=list)
+    warning_reasons: list[str] = field(default_factory=list)
+    override_required: bool = False
+    override_prompt: str = ""
+    source_evidence: dict[str, Any] = field(default_factory=dict)
+    report_text: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -62,6 +80,54 @@ def run_agent_governance_guardrail(
         archived_change_limit=archived_change_limit,
     )
     return aggregate_governance_guardrail(diff_check=check_result, drift_report=drift_report)
+
+
+def build_enforcement_preview(result: AgentGuardrailResult, *, mode: str) -> GovernanceEnforcementPreview:
+    if mode not in ENFORCEMENT_PREVIEW_MODES:
+        allowed = ", ".join(sorted(ENFORCEMENT_PREVIEW_MODES))
+        raise ValueError(f"Unsupported enforcement preview mode '{mode}'. Expected one of: {allowed}")
+
+    diff_status = result.context.get("diff_status")
+    drift_status = result.context.get("drift_status")
+    block_reasons: list[str] = []
+    warning_reasons: list[str] = []
+
+    if result.agent_status == "pause":
+        block_reasons.append("Agent status is pause and requires human review.")
+    if diff_status == "blocked":
+        block_reasons.append("Governance diff check is blocked.")
+    if drift_status == "review_required":
+        block_reasons.append("Governance drift report requires review.")
+
+    would_block = bool(block_reasons)
+    if not would_block and result.agent_status == "caution":
+        warning_reasons.extend(_preview_warning_reasons(result))
+
+    severity = "blocker" if would_block else "warning" if warning_reasons else "pass"
+    override_prompt = ""
+    if would_block:
+        override_prompt = (
+            "If this is a false positive, record a human-authored override in the handoff "
+            "that cites the source evidence and states why the agent may continue."
+        )
+
+    preview = GovernanceEnforcementPreview(
+        mode=mode,
+        would_block=would_block,
+        severity=severity,
+        advisory_default=True,
+        block_reasons=_dedupe_strings(block_reasons),
+        warning_reasons=_dedupe_strings(warning_reasons),
+        override_required=would_block,
+        override_prompt=override_prompt,
+        source_evidence=_preview_source_evidence(result),
+    )
+    return GovernanceEnforcementPreview(
+        **{
+            **preview.to_dict(),
+            "report_text": _enforcement_preview_report(preview),
+        }
+    )
 
 
 def aggregate_governance_guardrail(*, diff_check: Any, drift_report: Any) -> AgentGuardrailResult:
@@ -138,7 +204,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--archived-change-limit", type=int, default=12)
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     parser.add_argument("--summary", action="store_true", help="Print a concise human-readable summary.")
+    parser.add_argument(
+        "--enforcement-preview",
+        choices=sorted(ENFORCEMENT_PREVIEW_MODES),
+        help="Opt-in governance enforcement preview mode. Default guardrail behavior remains advisory.",
+    )
+    parser.add_argument(
+        "--strict-exit",
+        action="store_true",
+        help="With --enforcement-preview, return non-zero only when preview would_block is true.",
+    )
     args = parser.parse_args(argv)
+    if args.strict_exit and not args.enforcement_preview:
+        parser.error("--strict-exit requires --enforcement-preview")
 
     rules = _rules_from_json_file(Path(args.rules_json)) if args.rules_json else None
     result = run_agent_governance_guardrail(
@@ -148,11 +226,19 @@ def main(argv: list[str] | None = None) -> int:
         governance_rules=rules,
         archived_change_limit=args.archived_change_limit,
     )
+    preview = (
+        build_enforcement_preview(result, mode=args.enforcement_preview)
+        if args.enforcement_preview
+        else None
+    )
     if args.summary:
-        print(_human_summary(result))
+        print(_human_summary(result, enforcement_preview=preview))
     else:
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2 if args.pretty else None))
-    return 0
+        body = result.to_dict()
+        if preview:
+            body["enforcement_preview"] = preview.to_dict()
+        print(json.dumps(body, ensure_ascii=False, indent=2 if args.pretty else None))
+    return 1 if args.strict_exit and preview and preview.would_block else 0
 
 
 def _agent_status(
@@ -186,7 +272,11 @@ def _summary_for_status(agent_status: str, *, check: dict[str, Any], drift: dict
     return "Governance guardrail found no blocking or caution-level governance concerns."
 
 
-def _human_summary(result: AgentGuardrailResult) -> str:
+def _human_summary(
+    result: AgentGuardrailResult,
+    *,
+    enforcement_preview: GovernanceEnforcementPreview | None = None,
+) -> str:
     lines = [
         f"Agent status: {result.agent_status}",
         result.summary,
@@ -199,6 +289,61 @@ def _human_summary(result: AgentGuardrailResult) -> str:
     if result.human_questions:
         lines.append("Human questions:")
         lines.extend(f"- {question['question']}" for question in result.human_questions if question.get("question"))
+    if enforcement_preview:
+        lines.append("")
+        lines.append(enforcement_preview.report_text)
+    return "\n".join(lines)
+
+
+def _preview_warning_reasons(result: AgentGuardrailResult) -> list[str]:
+    reasons: list[str] = []
+    reasons.extend(result.recommended_next_actions)
+    reasons.extend(str(finding.get("detail")) for finding in result.findings if finding.get("detail"))
+    reasons.extend(
+        str(signal.get("recommended_next_action"))
+        for signal in result.signals
+        if signal.get("recommended_next_action")
+    )
+    if not reasons:
+        reasons.append("Guardrail returned caution; disclose or address the advisory evidence before claiming completion.")
+    return _dedupe_strings(reasons)
+
+
+def _preview_source_evidence(result: AgentGuardrailResult) -> dict[str, Any]:
+    return {
+        "agent_status": result.agent_status,
+        "diff_status": result.context.get("diff_status"),
+        "drift_status": result.context.get("drift_status"),
+        "findings": result.findings,
+        "signals": result.signals,
+        "human_questions": result.human_questions,
+        "recommended_next_actions": result.recommended_next_actions,
+        "matched_rules": result.matched_rules,
+        "source_results": result.source_results,
+        "advisory_default": True,
+    }
+
+
+def _enforcement_preview_report(preview: GovernanceEnforcementPreview) -> str:
+    lines = [
+        "Governance enforcement preview:",
+        f"- Mode: {preview.mode}",
+        "- Default advisory: true",
+        f"- Would block: {str(preview.would_block).lower()}",
+        f"- Severity: {preview.severity}",
+    ]
+    if preview.block_reasons:
+        lines.append("- Block reasons:")
+        lines.extend(f"  - {reason}" for reason in preview.block_reasons)
+    if preview.warning_reasons:
+        lines.append("- Warning evidence:")
+        lines.extend(f"  - {reason}" for reason in preview.warning_reasons)
+    if preview.override_required:
+        lines.append(f"- Override handoff: {preview.override_prompt}")
+    if preview.mode == "pr-annotation":
+        lines.append("- PR annotation: local report text only; no GitHub API call was made.")
+    if preview.mode == "release-checklist":
+        lines.append("- Release checklist: record this as optional readiness evidence, not as a default release gate.")
     return "\n".join(lines)
 
 

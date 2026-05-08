@@ -29,6 +29,31 @@ python scripts/governance/agent_guardrail.py --rules-json rules.json --pretty
 
 The command exits with `0` by default, including `caution` and `pause` advisory results. A future explicit CI gate can change that behavior, but this first version is not a blocker.
 
+For an opt-in local enforcement preview:
+
+```powershell
+python scripts/governance/agent_guardrail.py --enforcement-preview local-strict --pretty
+```
+
+This does not change default guardrail behavior. It adds an `enforcement_preview` object that answers whether stricter governance would block based on the current advisory result.
+
+To make local strict preview fail only on would-block results:
+
+```powershell
+python scripts/governance/agent_guardrail.py --enforcement-preview local-strict --strict-exit
+```
+
+Use `--strict-exit` only in explicitly opted-in local workflows. Do not wire it into the default release baseline unless a future OpenSpec change makes that decision.
+
+For local report text suitable for a PR comment or release checklist note:
+
+```powershell
+python scripts/governance/agent_guardrail.py --enforcement-preview pr-annotation --summary
+python scripts/governance/agent_guardrail.py --enforcement-preview release-checklist --summary
+```
+
+These modes generate local text only. They do not call GitHub, post comments, mutate release gates, or require network access.
+
 ## Workflow Checkpoints
 
 AI agents and developers should run the guardrail at four local workflow checkpoints:
@@ -57,6 +82,14 @@ Use the result as readiness evidence, not as enforcement:
 - `pause`: stop and ask for human review before presenting the guardrail as positive governed-preview evidence.
 
 During an external walkthrough, explain that the guardrail is advisory project governance memory. It does not automatically accept Markdown rule drafts, rewrite code, update OpenSpec artifacts, or block CI by default.
+
+Optional enforcement preview output may be recorded as additional readiness evidence:
+
+```powershell
+python scripts/governance/agent_guardrail.py --enforcement-preview release-checklist --summary
+```
+
+Record the preview status, source evidence, and any human override note. Treat it as operator-guided evidence, not as default CI enforcement.
 
 ## Agent Workflow Protocol
 
@@ -166,6 +199,20 @@ The JSON output includes stable fields for agent consumption:
 
 Agents should cite `source_results` evidence when explaining why they paused or proceeded with caution.
 
+When `--enforcement-preview <mode>` is supplied, JSON output also includes:
+
+- `enforcement_preview.mode`: `local-strict`, `pr-annotation`, or `release-checklist`;
+- `enforcement_preview.would_block`: whether stricter governance would block;
+- `enforcement_preview.severity`: `pass`, `warning`, or `blocker`;
+- `enforcement_preview.block_reasons`: source-derived reasons for a would-block result;
+- `enforcement_preview.warning_reasons`: source-derived non-blocking warning evidence;
+- `enforcement_preview.override_required`: whether a human override handoff is needed;
+- `enforcement_preview.override_prompt`: how to record a false-positive override;
+- `enforcement_preview.source_evidence`: guardrail findings, signals, questions, actions, and source results;
+- `enforcement_preview.report_text`: local Markdown-style text for summaries, PR annotations, or release checklist notes.
+
+The preview is derived from the advisory result. It does not replace `agent_status`.
+
 ## Handoff Summary Format
 
 Use `handoff_summary` in final responses, PR descriptions, and commit handoffs:
@@ -182,6 +229,33 @@ Governance:
 ```
 
 If the status is `caution` or `pause`, include the evidence or human question even when all tests pass.
+
+## Enforcement Preview Semantics
+
+Enforcement preview is opt-in and derived from the same guardrail result:
+
+- `continue`: preview passes; targeted validation is still required.
+- `caution`: preview warns; disclose or address evidence before claiming completion.
+- `pause`: preview would block in local strict mode until a human decision is recorded.
+- diff check `blocked`: preview would block.
+- drift report `review_required`: preview would block.
+
+The preview keeps `advisory_default: true` so consumers do not confuse local strict preview with default CI enforcement.
+
+## False-Positive Override Handoff
+
+If strict preview reports `would_block: true` and the human decides it is a false positive, record a human-authored override in the handoff:
+
+```text
+Governance override:
+- Preview mode: <local-strict|pr-annotation|release-checklist>
+- Would block: true
+- Human decision: <why the agent may continue>
+- Evidence cited: <finding/signal/source_result ids or summary>
+- Follow-up: <none|update specs|update accepted rule|add validation>
+```
+
+The guardrail does not write this override automatically. The human decision may later become OpenSpec or accepted-rule work, but that remains a separate explicit change.
 
 ## Agent Examples
 
@@ -210,4 +284,6 @@ The guardrail does not:
 - update roadmap documents;
 - create or accept governance rules;
 - block CI by default;
+- post PR annotations to GitHub;
+- persist override decisions to the database;
 - require an external LLM provider.
