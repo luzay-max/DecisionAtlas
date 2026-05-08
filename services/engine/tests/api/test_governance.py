@@ -6,7 +6,8 @@ from alembic import command
 from alembic.config import Config
 from fastapi.testclient import TestClient
 
-from app.governance.markdown_ingest import extract_rule_drafts
+from app.db.session import get_db_session
+from app.governance.markdown_ingest import extract_rule_drafts, import_governance_markdown, review_rule_draft
 from app.main import create_app
 
 
@@ -226,3 +227,181 @@ Document known limitations.
     assert len(accepted_rules) == 1
     assert accepted_rules[0]["title"] == "Rule: Playwright smoke must own its server"
     assert accepted_rules[0]["review_rationale"] == "Critical smoke stability rule."
+
+
+def test_governance_rule_lifecycle_marks_stale_without_changing_review_state(tmp_path: Path, monkeypatch) -> None:
+    _migrate(tmp_path, monkeypatch, "governance-lifecycle-stale.db")
+
+    client = TestClient(create_app())
+    create_response = client.post(
+        "/governance/documents",
+        json={
+            "title": "Release Standards",
+            "document_type": "release_policy",
+            "content": """
+## Rule: Release checklist is manual
+
+Severity: warning
+Scope: release
+
+Release checklist review must be manual.
+""",
+        },
+    )
+    assert create_response.status_code == 200
+    rule_id = create_response.json()["drafts"][0]["id"]
+    accept_response = client.post(
+        f"/governance/rules/{rule_id}/review",
+        json={"review_state": "accepted", "review_rationale": "Accepted as release baseline."},
+    )
+    assert accept_response.status_code == 200
+
+    lifecycle_response = client.post(
+        f"/governance/rules/{rule_id}/lifecycle",
+        json={"lifecycle_status": "stale", "lifecycle_rationale": "Release checklist moved to protocol status."},
+    )
+
+    assert lifecycle_response.status_code == 200
+    rule = lifecycle_response.json()["rule"]
+    assert rule["review_state"] == "accepted"
+    assert rule["status"] == "active"
+    assert rule["review_rationale"] == "Accepted as release baseline."
+    assert rule["lifecycle_status"] == "stale"
+    assert rule["lifecycle_rationale"] == "Release checklist moved to protocol status."
+    assert rule["superseded_by_rule_id"] is None
+
+
+def test_governance_rule_lifecycle_supersedes_with_current_accepted_target(tmp_path: Path, monkeypatch) -> None:
+    _migrate(tmp_path, monkeypatch, "governance-lifecycle-superseded.db")
+
+    client = TestClient(create_app())
+    create_response = client.post(
+        "/governance/documents",
+        json={
+            "title": "Validation Standards",
+            "document_type": "coding_guideline",
+            "content": """
+## Rule: Old validation wording
+
+Severity: warning
+Scope: engine
+
+Engine changes should mention validation.
+
+## Rule: Targeted validation evidence
+
+Severity: blocker
+Scope: engine
+
+Engine changes must include targeted validation evidence.
+""",
+        },
+    )
+    assert create_response.status_code == 200
+    old_rule_id = create_response.json()["drafts"][0]["id"]
+    replacement_rule_id = create_response.json()["drafts"][1]["id"]
+    for rule_id in (old_rule_id, replacement_rule_id):
+        response = client.post(
+            f"/governance/rules/{rule_id}/review",
+            json={"review_state": "accepted", "review_rationale": "Accepted."},
+        )
+        assert response.status_code == 200
+
+    lifecycle_response = client.post(
+        f"/governance/rules/{old_rule_id}/lifecycle",
+        json={
+            "lifecycle_status": "superseded",
+            "lifecycle_rationale": "Replacement is stricter and current.",
+            "superseded_by_rule_id": replacement_rule_id,
+        },
+    )
+
+    assert lifecycle_response.status_code == 200
+    rule = lifecycle_response.json()["rule"]
+    assert rule["review_state"] == "accepted"
+    assert rule["lifecycle_status"] == "superseded"
+    assert rule["superseded_by_rule_id"] == replacement_rule_id
+    assert rule["lifecycle_rationale"] == "Replacement is stricter and current."
+
+
+def test_governance_rule_lifecycle_rejects_invalid_targets_and_scope(tmp_path: Path, monkeypatch) -> None:
+    _migrate(tmp_path, monkeypatch, "governance-lifecycle-invalid.db")
+
+    client = TestClient(create_app())
+    create_response = client.post(
+        "/governance/documents",
+        json={
+            "title": "Engine Standards",
+            "document_type": "coding_guideline",
+            "content": """
+## Rule: Current engine rule
+
+Severity: warning
+Scope: engine
+
+Engine changes should include validation.
+
+## Rule: Pending engine rule
+
+Severity: warning
+Scope: engine
+
+Pending guidance is not accepted yet.
+""",
+        },
+    )
+    assert create_response.status_code == 200
+    current_rule_id = create_response.json()["drafts"][0]["id"]
+    pending_rule_id = create_response.json()["drafts"][1]["id"]
+    assert client.post(
+        f"/governance/rules/{current_rule_id}/review",
+        json={"review_state": "accepted", "review_rationale": "Accepted."},
+    ).status_code == 200
+
+    self_response = client.post(
+        f"/governance/rules/{current_rule_id}/lifecycle",
+        json={"lifecycle_status": "superseded", "superseded_by_rule_id": current_rule_id},
+    )
+    pending_response = client.post(
+        f"/governance/rules/{current_rule_id}/lifecycle",
+        json={"lifecycle_status": "superseded", "superseded_by_rule_id": pending_rule_id},
+    )
+    missing_response = client.post(
+        f"/governance/rules/{current_rule_id}/lifecycle",
+        json={"lifecycle_status": "superseded", "superseded_by_rule_id": 99999},
+    )
+
+    session = get_db_session()
+    try:
+        other_document, other_drafts = import_governance_markdown(
+            session=session,
+            owner_scope="other-team",
+            title="Other Standards",
+            document_type="coding_guideline",
+            content="## Rule: Other owner rule\n\nSeverity: warning\nScope: engine\n\nOther owner validation rule.",
+        )
+        session.commit()
+        other_rule = review_rule_draft(
+            session=session,
+            owner_scope="other-team",
+            draft_id=other_drafts[0].id,
+            review_state="accepted",
+            reviewer="other-admin",
+        )
+        session.commit()
+        other_rule_id = other_rule.id
+        assert other_document.owner_scope == "other-team"
+    finally:
+        session.close()
+
+    cross_owner_response = client.post(
+        f"/governance/rules/{current_rule_id}/lifecycle",
+        json={"lifecycle_status": "superseded", "superseded_by_rule_id": other_rule_id},
+    )
+
+    assert self_response.status_code == 400
+    assert "cannot supersede themselves" in self_response.json()["detail"]
+    assert pending_response.status_code == 400
+    assert "accepted active" in pending_response.json()["detail"]
+    assert missing_response.status_code == 404
+    assert cross_owner_response.status_code == 404

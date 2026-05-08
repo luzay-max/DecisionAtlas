@@ -30,6 +30,9 @@ class DriftEvidence:
     title: str | None = None
     excerpt: str | None = None
     id: str | int | None = None
+    lifecycle_status: str | None = None
+    lifecycle_rationale: str | None = None
+    superseded_by_rule_id: str | int | None = None
 
 
 @dataclass(frozen=True)
@@ -287,6 +290,9 @@ def collect_governance_rules(
             r.source_excerpt,
             r.review_state,
             r.status,
+            r.lifecycle_status,
+            r.superseded_by_rule_id,
+            r.lifecycle_rationale,
             d.title AS source_title,
             d.source_path AS source_path,
             d.status AS document_status,
@@ -400,22 +406,34 @@ def _detect_stale_rules(context: GovernanceDriftContext) -> list[GovernanceDrift
         if not rule_tokens or len(rule_tokens & set(_tokens(recent_text))) < 2:
             continue
         source_title = str(rule.get("source_title") or rule.get("title") or "stale governance rule")
+        lifecycle_status = str(rule.get("lifecycle_status") or "inactive")
+        replacement = rule.get("superseded_by_rule_id")
+        replacement_text = f" Replacement rule: #{replacement}." if replacement else ""
         signals.append(
             GovernanceDriftSignal(
                 id=f"stale-rule-{rule.get('id') or _slug(source_title)}",
                 type="stale_rule",
                 severity="warning",
                 title="Inactive governance source appears in recent context",
-                detail=f"Rule '{rule.get('title')}' is not an active accepted rule but appears related to recent governance context.",
+                detail=(
+                    f"Rule '{rule.get('title')}' has lifecycle '{lifecycle_status}' and appears related to recent "
+                    f"governance context.{replacement_text}"
+                ),
                 evidence=[
                     DriftEvidence(
                         kind="governance_rule",
                         id=rule.get("id"),
                         title=source_title,
                         excerpt=rule.get("source_excerpt") or rule.get("description"),
+                        lifecycle_status=lifecycle_status,
+                        lifecycle_rationale=rule.get("lifecycle_rationale"),
+                        superseded_by_rule_id=replacement,
                     )
                 ],
-                recommended_next_action="Confirm whether the stale rule should remain inactive, be superseded, or be replaced by a new accepted rule.",
+                recommended_next_action=(
+                    "Confirm whether this inactive lifecycle rule should remain inactive, point to the recorded "
+                    "replacement, or be replaced by a new accepted current rule."
+                ),
             )
         )
     return signals
@@ -617,6 +635,9 @@ def _normalize_rule(rule: dict[str, Any]) -> dict[str, Any]:
         "source_excerpt": rule.get("source_excerpt"),
         "review_state": str(rule.get("review_state") or "accepted").lower(),
         "status": str(rule.get("status") or "active").lower(),
+        "lifecycle_status": str(rule.get("lifecycle_status") or "current").lower(),
+        "superseded_by_rule_id": rule.get("superseded_by_rule_id"),
+        "lifecycle_rationale": rule.get("lifecycle_rationale"),
         "document_status": str(rule.get("document_status") or "active").lower(),
         "document_type": str(rule.get("document_type") or "").lower(),
     }
@@ -626,6 +647,7 @@ def _is_active_accepted_rule(rule: dict[str, Any]) -> bool:
     return (
         str(rule.get("review_state") or "").lower() == "accepted"
         and str(rule.get("status") or "").lower() == "active"
+        and str(rule.get("lifecycle_status") or "current").lower() == "current"
         and str(rule.get("document_status") or "active").lower() == "active"
     )
 

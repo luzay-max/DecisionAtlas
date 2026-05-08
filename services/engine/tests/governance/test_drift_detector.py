@@ -100,7 +100,7 @@ def test_watch_status_for_ambiguous_roadmap_alignment(tmp_path: Path) -> None:
     data = _fixture("watch.json")
     _write_project_context(tmp_path)
 
-    report = run_governance_drift_detection(root=tmp_path, governance_rules=[], diff_text=data["diff"])
+    report = run_governance_drift_detection(root=tmp_path, governance_rules=[], diff_text=data["diff"], status_text="")
 
     assert report.status == data["expected_status"]
     assert any(signal.type == "roadmap_mismatch" for signal in report.signals)
@@ -139,6 +139,43 @@ def test_stale_rule_signal_uses_inactive_rules_as_review_evidence(tmp_path: Path
     assert report.status == "review_required"
     assert any(signal.type == "stale_rule" for signal in report.signals)
     assert report.human_decisions_needed
+
+
+def test_superseded_rule_reuse_is_lifecycle_review_signal_not_active_rule(tmp_path: Path) -> None:
+    _write_project_context(tmp_path)
+    diff = "diff --git a/services/engine/app/token_policy.py b/services/engine/app/token_policy.py\n+legacy token handling remains active\n"
+
+    report = run_governance_drift_detection(
+        root=tmp_path,
+        diff_text=diff,
+        governance_rules=[
+            {
+                "id": 10,
+                "title": "Legacy token handling",
+                "description": "Legacy token handling should not be reused.",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "superseded",
+                "superseded_by_rule_id": 11,
+                "lifecycle_rationale": "Replacement requires scoped token access.",
+                "source_excerpt": "Legacy token handling",
+            },
+            {
+                "id": 11,
+                "title": "Scoped token access",
+                "description": "Use scoped token access for repository imports.",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "current",
+            },
+        ],
+    )
+
+    assert report.context["accepted_rule_count"] == 1
+    signal = next(signal for signal in report.signals if signal.type == "stale_rule")
+    assert signal.evidence[0].lifecycle_status == "superseded"
+    assert signal.evidence[0].superseded_by_rule_id == 11
+    assert "recorded replacement" in (signal.recommended_next_action or "")
 
 
 def test_repeated_postmortem_issue_signal_links_prior_and_recent_evidence(tmp_path: Path) -> None:

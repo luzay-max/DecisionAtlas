@@ -138,6 +138,67 @@ def test_pending_and_rejected_rules_are_not_enforceable(tmp_path: Path) -> None:
 
     assert result.status == "pass"
     assert result.matched_rules == []
+    assert result.context["inactive_rule_traces"] == [
+        {
+            "id": 13,
+            "title": "Rule: Stale changes must block",
+            "lifecycle_status": "stale",
+            "superseded_by_rule_id": None,
+            "lifecycle_rationale": None,
+        },
+        {
+            "id": 14,
+            "title": "Rule: Superseded changes must block",
+            "lifecycle_status": "superseded",
+            "superseded_by_rule_id": None,
+            "lifecycle_rationale": None,
+        },
+    ]
+
+
+def test_current_replacement_rule_remains_authoritative_after_supersession(tmp_path: Path) -> None:
+    _write_project_context(tmp_path)
+    _write_active_change(tmp_path)
+    result = run_governance_check(
+        root=tmp_path,
+        diff_text=_fixture("warning_missing_validation.json")["diff"],
+        accepted_rules=[
+            {
+                "id": 30,
+                "title": "Rule: Old engine changes must have tests",
+                "description": "Old backend behavior changes must include targeted tests.",
+                "severity": "blocker",
+                "scope": "engine",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "superseded",
+                "superseded_by_rule_id": 31,
+                "lifecycle_rationale": "Replaced with clearer test wording.",
+            },
+            {
+                "id": 31,
+                "title": "Rule: Every engine change must have targeted validation",
+                "description": "Every backend behavior change must include targeted tests.",
+                "severity": "blocker",
+                "scope": "engine",
+                "review_state": "accepted",
+                "status": "active",
+                "lifecycle_status": "current",
+            },
+        ],
+    )
+
+    assert result.status == "blocked"
+    assert [rule.id for rule in result.matched_rules] == [31]
+    assert result.context["inactive_rule_traces"] == [
+        {
+            "id": 30,
+            "title": "Rule: Old engine changes must have tests",
+            "lifecycle_status": "superseded",
+            "superseded_by_rule_id": 31,
+            "lifecycle_rationale": "Replaced with clearer test wording.",
+        }
+    ]
 
 
 def test_missing_validation_evidence_warns_and_returns_required_tests(tmp_path: Path) -> None:

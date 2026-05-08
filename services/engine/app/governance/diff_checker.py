@@ -37,6 +37,8 @@ class SourceReference:
     rule_type: str | None = None
     extraction_reason: str | None = None
     lifecycle_status: str | None = None
+    lifecycle_rationale: str | None = None
+    superseded_by_rule_id: str | int | None = None
 
 
 @dataclass(frozen=True)
@@ -60,6 +62,8 @@ class MatchedRule:
     rule_type: str | None = None
     extraction_reason: str | None = None
     lifecycle_status: str | None = None
+    lifecycle_rationale: str | None = None
+    superseded_by_rule_id: str | int | None = None
 
 
 @dataclass(frozen=True)
@@ -127,6 +131,12 @@ def run_governance_check(
         accepted_rules=accepted_rules,
         database_url=database_url,
     )
+    inactive_rule_traces = collect_inactive_governance_rule_traces(
+        repo_root=repo_root,
+        owner_scope=owner_scope,
+        governance_rules=accepted_rules,
+        database_url=database_url,
+    )
     findings: list[GovernanceFinding] = []
     matched_rules: list[MatchedRule] = []
     conflicts: list[GovernanceFinding] = []
@@ -164,6 +174,7 @@ def run_governance_check(
             "roadmap_refs": len(project_context.roadmap_refs),
             "spec_refs": len(project_context.spec_refs),
             "accepted_rule_count": len(rules),
+            "inactive_rule_traces": inactive_rule_traces,
             "advisory_only": True,
         },
     )
@@ -259,6 +270,7 @@ def collect_accepted_governance_rules(
             r.review_rationale,
             r.lifecycle_status,
             r.superseded_by_rule_id,
+            r.lifecycle_rationale,
             r.review_state,
             r.status,
             d.title AS source_title,
@@ -278,6 +290,55 @@ def collect_accepted_governance_rules(
     except sqlite3.Error:
         return []
     return [_normalize_rule(dict(row)) for row in rows]
+
+
+def collect_inactive_governance_rule_traces(
+    *,
+    repo_root: Path,
+    owner_scope: str,
+    governance_rules: list[dict[str, Any]] | None = None,
+    database_url: str | None = None,
+) -> list[dict[str, Any]]:
+    if governance_rules is not None:
+        rules = [_normalize_rule(rule) for rule in governance_rules]
+    else:
+        db_path = _sqlite_path(repo_root=repo_root, database_url=database_url or os.environ.get("DATABASE_URL"))
+        if db_path is None or not db_path.exists():
+            return []
+        query = """
+            SELECT
+                r.id,
+                r.title,
+                r.review_state,
+                r.status,
+                r.lifecycle_status,
+                r.superseded_by_rule_id,
+                r.lifecycle_rationale
+            FROM governance_rule_drafts r
+            WHERE r.owner_scope = ?
+              AND r.review_state = 'accepted'
+              AND r.status = 'active'
+              AND r.lifecycle_status != 'current'
+            ORDER BY r.reviewed_at DESC, r.id DESC
+        """
+        try:
+            with sqlite3.connect(db_path) as connection:
+                connection.row_factory = sqlite3.Row
+                rows = connection.execute(query, (owner_scope,)).fetchall()
+        except sqlite3.Error:
+            return []
+        rules = [_normalize_rule(dict(row)) for row in rows]
+    return [
+        {
+            "id": rule.get("id"),
+            "title": rule.get("title"),
+            "lifecycle_status": rule.get("lifecycle_status"),
+            "superseded_by_rule_id": rule.get("superseded_by_rule_id"),
+            "lifecycle_rationale": rule.get("lifecycle_rationale"),
+        }
+        for rule in rules
+        if _is_inactive_accepted_rule(rule)
+    ][:20]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -487,6 +548,7 @@ def _normalize_rule(rule: dict[str, Any]) -> dict[str, Any]:
         "extraction_reason": rule.get("extraction_reason"),
         "lifecycle_status": str(rule.get("lifecycle_status") or "current").lower(),
         "superseded_by_rule_id": rule.get("superseded_by_rule_id"),
+        "lifecycle_rationale": rule.get("lifecycle_rationale"),
         "review_state": str(rule.get("review_state") or "accepted").lower(),
         "status": str(rule.get("status") or "active").lower(),
     }
@@ -497,6 +559,14 @@ def _is_accepted_rule(rule: dict[str, Any]) -> bool:
         str(rule.get("review_state", "accepted")).lower() == "accepted"
         and str(rule.get("status", "active")).lower() == "active"
         and str(rule.get("lifecycle_status", "current")).lower() == "current"
+    )
+
+
+def _is_inactive_accepted_rule(rule: dict[str, Any]) -> bool:
+    return (
+        str(rule.get("review_state", "accepted")).lower() == "accepted"
+        and str(rule.get("status", "active")).lower() == "active"
+        and str(rule.get("lifecycle_status", "current")).lower() in {"stale", "superseded"}
     )
 
 
@@ -512,6 +582,8 @@ def _matched_rule(rule: dict[str, Any]) -> MatchedRule:
         rule_type=rule.get("rule_type"),
         extraction_reason=rule.get("extraction_reason"),
         lifecycle_status=rule.get("lifecycle_status"),
+        lifecycle_rationale=rule.get("lifecycle_rationale"),
+        superseded_by_rule_id=rule.get("superseded_by_rule_id"),
     )
 
 

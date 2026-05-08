@@ -38,13 +38,19 @@ python scripts/governance/check.py --root . --owner-scope local-default --databa
 - `conflicts`: blocker 级别冲突
 - `required_tests`: 推断出的测试或验证要求
 - `recommended_next_action`: 建议下一步
-- `context`: 本次检查读取到的上下文摘要
+- `context`: 本次检查读取到的上下文摘要，包括 stale / superseded accepted rules 的 `inactive_rule_traces`
 
 ## 状态语义
 
 - `pass`: 未发现治理阻塞；仍需正常 code review。
 - `warning`: 有缺失证据、路线不明确、验证不足等问题，需要人工确认。
 - `blocked`: 有明确治理问题，例如非平凡代码变更缺少 OpenSpec，或直接违反 accepted governance rule。
+
+## Accepted Rule Lifecycle
+
+checker 只把 `review_state=accepted`、`status=active`、`lifecycle_status=current` 的规则作为权威输入。`stale` 和 `superseded` 规则不会生成 authoritative blocker finding。
+
+为了保留审计链路，checker 会在 `context.inactive_rule_traces` 中暴露 accepted 但 inactive 的规则摘要，包括 lifecycle status、lifecycle rationale 和 `superseded_by_rule_id`。这些信息用于人工复核和交接，不用于自动裁决。
 
 ## 边界
 

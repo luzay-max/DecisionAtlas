@@ -133,6 +133,7 @@ class GovernanceRuleDraft(Base):
     review_rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
     lifecycle_status: Mapped[str] = mapped_column(String(50), nullable=False, default="current")
     superseded_by_rule_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    lifecycle_rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)

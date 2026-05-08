@@ -56,7 +56,16 @@ Every backend behavior change should include a targeted pytest or documented ski
 - `accepted`：人类审核通过，后续 AI checker 可以引用。
 - `rejected`：人类审核拒绝，不能作为有效治理规则使用。
 
-accepted rule 仍然不是 CI blocker。它只是后续 diff checker、drift detector 和 AI review agent 的可信上下文。
+## 生命周期语义
+
+`review_state` 和 `lifecycle_status` 是两条独立轴：
+
+- `review_state=accepted` 只表示这条规则曾经通过人工审核。
+- `lifecycle_status=current` 表示这条 accepted rule 当前仍可作为 checker 的 authoritative input。
+- `lifecycle_status=stale` 表示这条 accepted rule 已过期，但保留为历史证据。
+- `lifecycle_status=superseded` 表示这条 accepted rule 已被另一条 accepted current rule 替代，并应记录 `superseded_by_rule_id` 和生命周期理由。
+
+accepted rule 仍然不是 CI blocker。只有 `accepted + active + current` 的规则会进入 diff checker 的权威规则输入。`stale` 和 `superseded` 规则保留来源、审核理由、生命周期理由和替代引用，用于追溯和 drift human-review 信号，而不是直接阻断代码。
 
 ## 当前非目标
 
@@ -66,6 +75,7 @@ accepted rule 仍然不是 CI blocker。它只是后续 diff checker、drift det
 - 不做复杂知识图谱 UI。
 - 不做企业级权限模型。
 - 不把任意上传文档自动升级为有效规则。
+- 不自动把规则标记为 stale 或 superseded；生命周期变化必须由人发起并填写理由。
 
 ## 后续衔接
 

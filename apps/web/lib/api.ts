@@ -355,6 +355,7 @@ export type GovernanceRule = {
   review_rationale?: string | null;
   lifecycle_status?: string | null;
   superseded_by_rule_id?: number | null;
+  lifecycle_rationale?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
 };
@@ -727,6 +728,30 @@ export async function reviewGovernanceRule(
   });
   if (!response.ok) {
     await readError(response, "Failed to review governance rule");
+  }
+  const body = await response.json();
+  return body.rule;
+}
+
+export async function updateGovernanceRuleLifecycle(
+  draftId: number,
+  lifecycleStatus: "stale" | "superseded",
+  lifecycleRationale?: string,
+  supersededByRuleId?: number
+): Promise<GovernanceRule> {
+  const response = await apiFetch(`${apiBaseUrl}/governance/rules/${draftId}/lifecycle`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      lifecycle_status: lifecycleStatus,
+      lifecycle_rationale: lifecycleRationale,
+      superseded_by_rule_id: supersededByRuleId,
+    }),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to update governance rule lifecycle");
   }
   const body = await response.json();
   return body.rule;

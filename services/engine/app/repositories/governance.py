@@ -120,3 +120,17 @@ class GovernanceRepository:
         draft.review_rationale = review_rationale
         self.session.flush()
         return draft
+
+    def update_rule_lifecycle(
+        self,
+        draft: GovernanceRuleDraft,
+        *,
+        lifecycle_status: str,
+        lifecycle_rationale: str | None,
+        superseded_by_rule_id: int | None,
+    ) -> GovernanceRuleDraft:
+        draft.lifecycle_status = lifecycle_status
+        draft.lifecycle_rationale = lifecycle_rationale
+        draft.superseded_by_rule_id = superseded_by_rule_id
+        self.session.flush()
+        return draft

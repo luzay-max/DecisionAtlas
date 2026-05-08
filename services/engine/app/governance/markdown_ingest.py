@@ -28,6 +28,7 @@ RULE_SCOPES = {"frontend", "api", "engine", "docs", "release", "security", "road
 RULE_TYPES = {"standard", "postmortem_lesson", "decision_rule", "anti_pattern"}
 LIFECYCLE_STATUSES = {"current", "stale", "superseded"}
 REVIEW_RATIONALE_LIMIT = 1000
+LIFECYCLE_RATIONALE_LIMIT = 1000
 
 
 @dataclass(frozen=True)
@@ -147,6 +148,51 @@ def review_rule_draft(
     )
 
 
+def update_rule_lifecycle(
+    *,
+    session: Session,
+    owner_scope: str,
+    draft_id: int,
+    lifecycle_status: str,
+    lifecycle_rationale: str | None = None,
+    superseded_by_rule_id: int | None = None,
+) -> GovernanceRuleDraft:
+    normalized_status = _require_allowed(lifecycle_status, {"stale", "superseded"}, "lifecycle_status")
+    repository = GovernanceRepository(session)
+    draft = repository.get_rule_draft(owner_scope=owner_scope, draft_id=draft_id)
+    if draft is None:
+        raise ValueError(f"Governance rule draft not found: {draft_id}")
+    if draft.review_state != "accepted" or draft.status != "active":
+        raise ValueError("Only accepted active governance rules can be marked stale or superseded")
+    if draft.lifecycle_status != "current":
+        raise ValueError("Only current governance rules can transition lifecycle status")
+
+    replacement_id: int | None = None
+    if normalized_status == "stale":
+        if superseded_by_rule_id is not None:
+            raise ValueError("stale lifecycle transitions must not include superseded_by_rule_id")
+    else:
+        if superseded_by_rule_id is None:
+            raise ValueError("superseded lifecycle transitions require superseded_by_rule_id")
+        if superseded_by_rule_id == draft.id:
+            raise ValueError("Governance rules cannot supersede themselves")
+        replacement = repository.get_rule_draft(owner_scope=owner_scope, draft_id=superseded_by_rule_id)
+        if replacement is None:
+            raise ValueError(f"Supersession target not found: {superseded_by_rule_id}")
+        if replacement.review_state != "accepted" or replacement.status != "active":
+            raise ValueError("Supersession target must be an accepted active governance rule")
+        if replacement.lifecycle_status != "current":
+            raise ValueError("Supersession target must be current")
+        replacement_id = replacement.id
+
+    return repository.update_rule_lifecycle(
+        draft,
+        lifecycle_status=normalized_status,
+        lifecycle_rationale=_bounded_optional_text(lifecycle_rationale, LIFECYCLE_RATIONALE_LIMIT),
+        superseded_by_rule_id=replacement_id,
+    )
+
+
 def serialize_document(document: GovernanceDocument) -> dict:
     return {
         "id": document.id,
@@ -180,6 +226,7 @@ def serialize_rule_draft(draft: GovernanceRuleDraft, *, source_title: str | None
         "review_rationale": draft.review_rationale,
         "lifecycle_status": draft.lifecycle_status,
         "superseded_by_rule_id": draft.superseded_by_rule_id,
+        "lifecycle_rationale": draft.lifecycle_rationale,
         "reviewed_by": draft.reviewed_by,
         "reviewed_at": draft.reviewed_at.isoformat() if draft.reviewed_at else None,
     }

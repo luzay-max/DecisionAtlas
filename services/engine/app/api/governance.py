@@ -10,6 +10,7 @@ from app.governance.markdown_ingest import (
     review_rule_draft,
     serialize_document,
     serialize_rule_draft,
+    update_rule_lifecycle,
 )
 from app.repositories.governance import GovernanceRepository
 
@@ -28,6 +29,12 @@ class GovernanceDocumentImportRequest(BaseModel):
 class GovernanceRuleReviewRequest(BaseModel):
     review_state: str
     review_rationale: str | None = None
+
+
+class GovernanceRuleLifecycleRequest(BaseModel):
+    lifecycle_status: str
+    lifecycle_rationale: str | None = None
+    superseded_by_rule_id: int | None = None
 
 
 @router.post("/documents")
@@ -114,6 +121,35 @@ def review_governance_rule(
             review_state=request.review_state,
             reviewer=auth.username,
             review_rationale=request.review_rationale,
+        )
+        document = GovernanceRepository(session).get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
+        session.commit()
+        return {"rule": serialize_rule_draft(draft, source_title=document.title if document else None)}
+    except ValueError as exc:
+        session.rollback()
+        message = str(exc)
+        status_code = 404 if "not found" in message.lower() else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    finally:
+        session.close()
+
+
+@router.post("/rules/{draft_id}/lifecycle")
+def update_governance_rule_lifecycle(
+    draft_id: int,
+    request: GovernanceRuleLifecycleRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    require_scope_role(auth, owner_scope=auth.owner_scope, required_role="reviewer")
+    session = get_db_session()
+    try:
+        draft = update_rule_lifecycle(
+            session=session,
+            owner_scope=auth.owner_scope,
+            draft_id=draft_id,
+            lifecycle_status=request.lifecycle_status,
+            lifecycle_rationale=request.lifecycle_rationale,
+            superseded_by_rule_id=request.superseded_by_rule_id,
         )
         document = GovernanceRepository(session).get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
         session.commit()

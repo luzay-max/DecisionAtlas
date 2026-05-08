@@ -7,6 +7,7 @@ import {
   GovernanceRule,
   importGovernanceDocument,
   reviewGovernanceRule,
+  updateGovernanceRuleLifecycle,
 } from "../../lib/api";
 import { AdminOnly, ReviewOnly } from "../auth/role-gate";
 import { useI18n } from "../i18n/language-provider";
@@ -42,6 +43,7 @@ export function GovernancePageContent({
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [lifecycleUpdatingId, setLifecycleUpdatingId] = useState<number | null>(null);
   const [acceptedScopeFilter, setAcceptedScopeFilter] = useState("all");
   const [acceptedSeverityFilter, setAcceptedSeverityFilter] = useState("all");
   const [acceptedRuleTypeFilter, setAcceptedRuleTypeFilter] = useState("all");
@@ -102,6 +104,29 @@ export function GovernancePageContent({
       setMessage(messages.governance.reviewFailed);
     } finally {
       setReviewingId(null);
+    }
+  }
+
+  async function handleLifecycle(
+    ruleId: number,
+    lifecycleStatus: "stale" | "superseded",
+    lifecycleRationale?: string,
+    supersededByRuleId?: number
+  ) {
+    setLifecycleUpdatingId(ruleId);
+    setMessage(null);
+    try {
+      const updatedRule = await updateGovernanceRuleLifecycle(
+        ruleId,
+        lifecycleStatus,
+        lifecycleRationale,
+        supersededByRuleId
+      );
+      setRules(rules.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule)));
+    } catch {
+      setMessage(messages.governance.lifecycleFailed);
+    } finally {
+      setLifecycleUpdatingId(null);
     }
   }
 
@@ -177,6 +202,7 @@ export function GovernancePageContent({
               reviewingId={reviewingId}
               onReview={handleReview}
               canReview
+              lifecycleUpdatingId={lifecycleUpdatingId}
             />
           ))}
         </section>
@@ -210,9 +236,23 @@ export function GovernancePageContent({
             />
           </div>
           {filteredAcceptedRules.length === 0 ? <p>{messages.governance.noAcceptedRules}</p> : null}
-          {filteredAcceptedRules.map((rule) => (
-            <RuleCard key={rule.id} rule={rule} reviewingId={reviewingId} onReview={handleReview} canReview={false} />
-          ))}
+          {filteredAcceptedRules.map((rule) => {
+            const replacementCandidates = acceptedRules.filter(
+              (candidate) => candidate.id !== rule.id && (candidate.lifecycle_status ?? "current") === "current"
+            );
+            return (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                reviewingId={reviewingId}
+                lifecycleUpdatingId={lifecycleUpdatingId}
+                onReview={handleReview}
+                onLifecycle={handleLifecycle}
+                replacementCandidates={replacementCandidates}
+                canReview={false}
+              />
+            );
+          })}
         </section>
       </div>
     </main>
@@ -222,17 +262,34 @@ export function GovernancePageContent({
 function RuleCard({
   rule,
   reviewingId,
+  lifecycleUpdatingId,
   onReview,
+  onLifecycle,
+  replacementCandidates = [],
   canReview,
 }: {
   rule: GovernanceRule;
   reviewingId: number | null;
+  lifecycleUpdatingId?: number | null;
   onReview: (ruleId: number, reviewState: "accepted" | "rejected", reviewRationale?: string) => Promise<void>;
+  onLifecycle?: (
+    ruleId: number,
+    lifecycleStatus: "stale" | "superseded",
+    lifecycleRationale?: string,
+    supersededByRuleId?: number
+  ) => Promise<void>;
+  replacementCandidates?: GovernanceRule[];
   canReview: boolean;
 }) {
   const { messages } = useI18n();
   const [reviewRationale, setReviewRationale] = useState("");
+  const [lifecycleRationale, setLifecycleRationale] = useState("");
+  const [replacementRuleId, setReplacementRuleId] = useState("");
   const reviewing = reviewingId === rule.id;
+  const lifecycleUpdating = lifecycleUpdatingId === rule.id;
+  const canManageLifecycle =
+    Boolean(onLifecycle) && rule.review_state === "accepted" && (rule.lifecycle_status ?? "current") === "current";
+  const selectedReplacementId = replacementRuleId || String(replacementCandidates[0]?.id ?? "");
   return (
     <article className="stack">
       <h3>{rule.title}</h3>
@@ -255,6 +312,16 @@ function RuleCard({
       {rule.review_rationale ? (
         <p>
           <strong>{messages.governance.reviewRationale}:</strong> {rule.review_rationale}
+        </p>
+      ) : null}
+      {rule.lifecycle_rationale ? (
+        <p>
+          <strong>{messages.governance.lifecycleRationale}:</strong> {rule.lifecycle_rationale}
+        </p>
+      ) : null}
+      {rule.superseded_by_rule_id ? (
+        <p>
+          <strong>{messages.governance.supersededBy}:</strong> #{rule.superseded_by_rule_id}
         </p>
       ) : null}
       <p>
@@ -281,6 +348,53 @@ function RuleCard({
             <button type="button" disabled={reviewing} onClick={() => onReview(rule.id, "rejected", reviewRationale)}>
               {reviewing ? messages.governance.reviewing : messages.governance.reject}
             </button>
+          </div>
+        </ReviewOnly>
+      ) : null}
+      {canManageLifecycle ? (
+        <ReviewOnly>
+          <div className="stack">
+            <label>
+              <strong>{messages.governance.lifecycleRationale}</strong>
+              <textarea
+                rows={3}
+                value={lifecycleRationale}
+                onChange={(event) => setLifecycleRationale(event.target.value)}
+              />
+            </label>
+            <div className="action-row">
+              <button
+                type="button"
+                disabled={lifecycleUpdating}
+                onClick={() => onLifecycle?.(rule.id, "stale", lifecycleRationale)}
+              >
+                {lifecycleUpdating ? messages.governance.reviewing : messages.governance.markStale}
+              </button>
+            </div>
+            <label>
+              <strong>{messages.governance.replacementRule}</strong>
+              <select value={selectedReplacementId} onChange={(event) => setReplacementRuleId(event.target.value)}>
+                {replacementCandidates.length === 0 ? (
+                  <option value="">{messages.governance.noReplacementRules}</option>
+                ) : null}
+                {replacementCandidates.map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    #{candidate.id} {candidate.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="action-row">
+              <button
+                type="button"
+                disabled={lifecycleUpdating || !selectedReplacementId}
+                onClick={() =>
+                  onLifecycle?.(rule.id, "superseded", lifecycleRationale, Number(selectedReplacementId))
+                }
+              >
+                {lifecycleUpdating ? messages.governance.reviewing : messages.governance.markSuperseded}
+              </button>
+            </div>
           </div>
         </ReviewOnly>
       ) : null}

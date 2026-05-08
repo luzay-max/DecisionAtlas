@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -21,6 +21,7 @@ vi.mock("../lib/api", async () => {
     getProductSession: vi.fn(),
     importGovernanceDocument: vi.fn(),
     reviewGovernanceRule: vi.fn(),
+    updateGovernanceRuleLifecycle: vi.fn(),
   };
 });
 
@@ -37,6 +38,7 @@ describe("GovernancePageContent", () => {
     vi.mocked(api.getProductSession).mockReset();
     vi.mocked(api.importGovernanceDocument).mockReset();
     vi.mocked(api.reviewGovernanceRule).mockReset();
+    vi.mocked(api.updateGovernanceRuleLifecycle).mockReset();
     vi.mocked(api.getProductSession).mockResolvedValue(adminSession);
   });
 
@@ -209,5 +211,143 @@ describe("GovernancePageContent", () => {
 
     expect(screen.queryByText("Rule: Engine changes need tests")).not.toBeInTheDocument();
     expect(screen.getByText("Rule: Docs mention known limits")).toBeInTheDocument();
+  });
+
+  it("marks accepted current rules stale with rationale without a reload", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.updateGovernanceRuleLifecycle).mockResolvedValue({
+      id: 2,
+      owner_scope: "team-a",
+      document_id: 1,
+      source_title: "Development Standards",
+      title: "Rule: Engine changes need tests",
+      description: "Every backend behavior change should include a targeted pytest.",
+      severity: "warning",
+      scope: "engine",
+      source_excerpt: "## Rule: Engine changes need tests",
+      rule_type: "standard",
+      extraction_reason: "rule heading marker",
+      review_state: "accepted",
+      status: "active",
+      review_rationale: "Accepted as validation baseline.",
+      lifecycle_status: "stale",
+      lifecycle_rationale: "Replaced by stricter validation evidence.",
+    });
+
+    render(
+      <ProductSessionProvider>
+        <GovernancePageContent
+          initialDocuments={[]}
+          initialRules={[
+            {
+              id: 2,
+              owner_scope: "team-a",
+              document_id: 1,
+              source_title: "Development Standards",
+              title: "Rule: Engine changes need tests",
+              description: "Every backend behavior change should include a targeted pytest.",
+              severity: "warning",
+              scope: "engine",
+              source_excerpt: "## Rule: Engine changes need tests",
+              rule_type: "standard",
+              extraction_reason: "rule heading marker",
+              review_state: "accepted",
+              status: "active",
+              review_rationale: "Accepted as validation baseline.",
+              lifecycle_status: "current",
+            },
+          ]}
+        />
+      </ProductSessionProvider>
+    );
+
+    await user.type(await screen.findByLabelText("Lifecycle rationale"), "Replaced by stricter validation evidence.");
+    await user.click(screen.getByRole("button", { name: "Mark stale" }));
+
+    await waitFor(() => {
+      expect(api.updateGovernanceRuleLifecycle).toHaveBeenCalledWith(
+        2,
+        "stale",
+        "Replaced by stricter validation evidence.",
+        undefined
+      );
+    });
+    expect(screen.getByText(/Lifecycle rationale:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Replaced by stricter validation evidence/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Mark stale" })).not.toBeInTheDocument();
+  });
+
+  it("supersedes accepted current rules with a selected replacement", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.updateGovernanceRuleLifecycle).mockResolvedValue({
+      id: 2,
+      owner_scope: "team-a",
+      document_id: 1,
+      source_title: "Development Standards",
+      title: "Rule: Old validation wording",
+      description: "Engine changes should mention validation.",
+      severity: "warning",
+      scope: "engine",
+      source_excerpt: "## Rule: Old validation wording",
+      rule_type: "standard",
+      extraction_reason: "rule heading marker",
+      review_state: "accepted",
+      status: "active",
+      lifecycle_status: "superseded",
+      superseded_by_rule_id: 3,
+      lifecycle_rationale: "Replacement is stricter.",
+    });
+    const rules: api.GovernanceRule[] = [
+      {
+        id: 2,
+        owner_scope: "team-a",
+        document_id: 1,
+        source_title: "Development Standards",
+        title: "Rule: Old validation wording",
+        description: "Engine changes should mention validation.",
+        severity: "warning",
+        scope: "engine",
+        source_excerpt: "## Rule: Old validation wording",
+        rule_type: "standard",
+        extraction_reason: "rule heading marker",
+        review_state: "accepted",
+        status: "active",
+        lifecycle_status: "current",
+      },
+      {
+        id: 3,
+        owner_scope: "team-a",
+        document_id: 1,
+        source_title: "Development Standards",
+        title: "Rule: Targeted validation evidence",
+        description: "Engine changes must include targeted validation evidence.",
+        severity: "blocker",
+        scope: "engine",
+        source_excerpt: "## Rule: Targeted validation evidence",
+        rule_type: "standard",
+        extraction_reason: "rule heading marker",
+        review_state: "accepted",
+        status: "active",
+        lifecycle_status: "current",
+      },
+    ];
+
+    render(
+      <ProductSessionProvider>
+        <GovernancePageContent initialDocuments={[]} initialRules={rules} />
+      </ProductSessionProvider>
+    );
+
+    const oldRuleCard = (await screen.findByText("Rule: Old validation wording")).closest("article");
+    expect(oldRuleCard).not.toBeNull();
+    await user.type(within(oldRuleCard as HTMLElement).getByLabelText("Lifecycle rationale"), "Replacement is stricter.");
+    await user.selectOptions(within(oldRuleCard as HTMLElement).getByLabelText("Replacement rule"), "3");
+    await user.click(within(oldRuleCard as HTMLElement).getByRole("button", { name: "Mark superseded" }));
+
+    await waitFor(() => {
+      expect(api.updateGovernanceRuleLifecycle).toHaveBeenCalledWith(2, "superseded", "Replacement is stricter.", 3);
+    });
+    expect(screen.getByText(/Superseded by rule:/i)).toBeInTheDocument();
+    expect(screen.getByText(/#3/i)).toBeInTheDocument();
   });
 });
