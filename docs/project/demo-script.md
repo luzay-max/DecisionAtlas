@@ -4,11 +4,11 @@
 
 ---
 
-This walkthrough is designed for a **60-90 second product demo**. The primary story is the stable guided lane, with an optional real-repo credibility check at the end.
+This walkthrough is designed for a **60-90 second product demo**. The primary story is the stable guided lane, with optional governed-preview and real-repo credibility checks at the end.
 
 Before a hosted walkthrough, run the operator health and smoke checks from [Hosted Demo Operator Guide](hosted-demo-operator-guide.md), then record the result with [Hosted Preview Readiness](hosted-preview-readiness.md). If the seeded workspace has drifted, reset `demo-workspace` before starting the public flow.
 
-For external hosted preview, do not start with live repository import. Start with `demo-workspace`, then optionally show imported/platform lanes after explaining their provider, credential, and network dependencies.
+For external hosted preview, do not start with live repository import or governance setup. Start with `demo-workspace`, then optionally show the governed second act and imported/platform lanes after explaining their human-review, provider, credential, and network dependencies.
 
 ### Opening Posture
 
@@ -72,6 +72,27 @@ For external hosted preview, do not start with live repository import. Start wit
 
 > "DecisionAtlas is not training a new model. It is turning engineering decisions into durable, reviewable, searchable operating memory."
 
+### Optional: 45-Second Governed Preview Proof
+
+This is a **bounded second act**, not a replacement for the guided demo.
+
+**Route**: `http://localhost:3000/governance`
+
+**Narration**:
+> "The next layer is governance memory. Human-authored Markdown standards, roadmaps, postmortems, and decisions can be imported as governance context."
+> "The system creates rule drafts, but it does not accept them automatically. A human reviews the draft, keeps the source excerpt, and records rationale."
+> "Accepted rules become context for local governance checks and the AI-agent guardrail."
+
+**Guardrail command**:
+
+```powershell
+python scripts\governance\agent_guardrail.py --summary
+```
+
+**Narration**:
+> "`continue` means no blocking governance concern was found. `caution` means we disclose or address advisory evidence. `pause` means the agent must ask a human before continuing."
+> "The guardrail is advisory by default. It does not rewrite code, mutate specs, accept rules, or block CI."
+
 ### Optional: 30-Second Real-Repo Proof
 
 This is an **operator-guided credibility check**, not part of the core guided walkthrough.
@@ -83,6 +104,7 @@ This is an **operator-guided credibility check**, not part of the core guided wa
 > "That imported workspace now exposes whether review, why-search, and drift are ready, instead of leaving the operator to guess."
 > "Imported why answers stay anchored to accepted decisions, with artifact chunks acting as supporting evidence."
 > "We use this as a bounded proof of real capability, not as the primary demo story."
+> "If we generated a live benchmark report, it stays as dated operator evidence rather than a committed `.tmp` artifact."
 
 ---
 
@@ -96,3 +118,5 @@ This is an **operator-guided credibility check**, not part of the core guided wa
 | 4 | `/search?workspace=demo-workspace` | Citation-first answers |
 | 5 | `/timeline?workspace=demo-workspace` | Time-ordered decision memory |
 | 6 | `/drift?workspace=demo-workspace` | Operational drift detection |
+| Optional | `/governance` | Human-reviewed governance rules |
+| Optional | local guardrail command | Advisory agent handoff |

@@ -106,6 +106,18 @@ Latest post-stage-7 documentation and governance validation:
 
 These checks improve release confidence but are not part of the default offline release gate because they depend on live providers, network conditions, and existing imported workspace state.
 
+## Optional governed hosted preview readiness
+
+- [ ] hosted health check result recorded for web/API/engine, or explicitly marked operator-guided / known limitation when no hosted URLs are supplied
+- [ ] hosted guided-demo smoke result recorded for `demo-workspace`
+- [ ] seeded demo readiness or reset/reseed recovery result recorded
+- [ ] `/governance` walkthrough checked if the preview includes governance Markdown ingest or rule review
+- [ ] `python scripts/governance/agent_guardrail.py --summary` result recorded, including any `caution` or `pause` evidence
+- [ ] optional live real-repository value report summarized or attached externally if used as preview evidence
+- [ ] preview notes state this is not production SaaS and does not include billing, full org admin, secret vault, marketplace self-service, multiplayer review, or default governance enforcement
+
+These checks are governed hosted-preview confidence evidence. They do not replace the canonical local release baseline and must not be treated as default CI enforcement.
+
 ## Tagging and publish
 
 - [ ] push `main`

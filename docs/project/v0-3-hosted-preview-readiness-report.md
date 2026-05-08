@@ -1,48 +1,57 @@
-# DecisionAtlas v0.3 Hosted Preview Readiness Report
+# DecisionAtlas Governed Hosted Preview Readiness Report
 
-Date: 2026-04-28  
-Change: `prepare-v0-3-hosted-preview`  
-Baseline commit before hosted-preview docs: `fa94bec` (`Improve real repo decision quality`)  
+Date: 2026-05-07  
+Change: `prepare-governed-hosted-preview`  
+Baseline commit before this readiness update: `0d87fc3` (`feat: build real repository value benchmark`)  
 Branch: `main`  
-Validation mode: documentation/checklist readiness plus local command availability; external hosted checks are operator-guided unless a hosted URL is supplied.
+Validation mode: governed checklist and local command readiness; external hosted checks remain operator-guided unless hosted URLs are supplied.
 
 ## Summary
 
-Status: ready for hosted-preview implementation, with external environment checks still operator-guided.
+Status: ready for governed hosted-preview implementation, with external hosted environment checks still operator-guided.
 
-The current v0.3 RC baseline has deterministic release validation, real-stack validation evidence, hosted operator scripts, private access hardening, GitHub App sync operations, and candidate quality improvements. This report adds the missing hosted-preview layer: a pre-demo checklist, external walkthrough boundary, recovery drill expectations, and explicit classification for unavailable hosted checks.
+The current baseline has deterministic release validation, seeded demo recovery, hosted operator scripts, governance Markdown ingest, accepted-rule review, local governance diff/drift checks, an AI-agent guardrail protocol, and real-repository value benchmark reporting. This report updates the hosted preview readiness story from generic service readiness to governed preview readiness: a stable guided public lane plus an optional governance second act.
 
-No new production SaaS claim is made. The stable public walkthrough remains `demo-workspace`; imported real-repository, GitHub App, and private repository lanes are optional operator/admin demonstrations.
+No new production SaaS claim is made. The stable public walkthrough remains `demo-workspace`. Governance Markdown ingest, accepted rules, agent guardrails, imported repositories, GitHub App sync, private repository access, and live real-repository value reports are optional operator/admin lanes.
 
 ## Environment Assumptions
 
 - No external hosted URL was provided in this session.
-- Local scripts under `scripts/demo` are the supported operator entrypoints.
+- `main` is currently ahead of `origin/main` by 2 local commits because earlier GitHub push attempts were blocked by network connectivity.
+- The untracked `codex-history-repair.skill` file is intentionally not part of repository evidence.
+- Local scripts under `scripts/demo`, `scripts/governance`, and `scripts/ci/run_benchmark.py` are the supported operator entrypoints.
 - Default release validation remains `scripts/ci/pre-release.ps1`.
-- Provider keys, GitHub tokens, webhook secrets, and private repo credentials are backend-only and not required for default CI.
-- `main` still has local commits that were not pushed earlier because GitHub was unreachable from this environment.
+- Provider keys, GitHub tokens, webhook secrets, private repo credentials, and any hosted database credentials are backend-only and not required for default CI.
 
-## Hosted Preview Readiness Matrix
+## Governed Hosted Preview Matrix
 
 | Lane | Command / action | Observed result | Status | Known limitation | Follow-up |
 | --- | --- | --- | --- | --- | --- |
-| Baseline | `git rev-parse --short HEAD` | `fa94bec` before hosted-preview docs were added. | pass | Local branch was ahead of origin because GitHub push failed earlier. | Push when network can reach GitHub. |
-| Hosted checklist | Created `docs/project/hosted-preview-readiness.md` and Chinese counterpart | Checklist defines required services, environment, validation commands, recovery, walkthrough, and status categories. | pass | Checklist still needs an operator to fill actual hosted URL results. | Use this report as the first readiness record. |
-| Guided public lane | Audited home/guided demo copy and demo script | Product and docs already present guided demo as stable seeded lane and advanced/imported lanes as secondary. | pass | None. | Keep this boundary during external walkthrough. |
-| Demo scripts | Inspected `health-check.ps1`, `smoke-check.ps1`, `reset-demo.ps1`, `reseed-demo.ps1` | Scripts support explicit hosted URLs or local defaults; reset/reseed require `DATABASE_URL` or `-UseLocalDemoDatabase`; smoke uses `PLAYWRIGHT_SKIP_WEBSERVER=1`. | pass | No external services were available to prove a hosted run in this session. | Run against hosted URLs before public preview. |
-| Local health rehearsal | `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\health-check.ps1 -SkipDependencyChecks` | Command executed and failed at web `http://127.0.0.1:3000` because no local web/API/engine stack was running. | known limitation | This confirms command behavior but cannot validate services without a running environment. | Start demo or real stack, then rerun health/smoke. |
-| External health | `scripts/demo/health-check.ps1 -WebBaseUrl <hosted> -ApiBaseUrl <hosted-api> -EngineBaseUrl <hosted-engine>` | Not run because no external hosted URLs were supplied. | known limitation | Cannot mark hosted health as passed without a running hosted environment. | Run command with hosted URLs. |
-| External smoke | `scripts/demo/smoke-check.ps1 -WebBaseUrl <hosted> -ApiBaseUrl <hosted-api> -EngineBaseUrl <hosted-engine>` | Not run because no external hosted URLs were supplied. | known limitation | Cannot mark hosted smoke as passed without a running hosted environment. | Run command with hosted URLs. |
-| Recovery drill | `reset-demo.ps1`; `reseed-demo.ps1`; local rehearsal variants with `-UseLocalDemoDatabase` | Commands are documented; local rehearsal is safe when the local demo database exists. | operator-guided | Not rerun in this session because no running demo stack was declared. | Rehearse immediately before external preview if demo state is uncertain. |
-| Release gate separation | Release-facing docs continue to point to `scripts/ci/pre-release.ps1` | Hosted preview checks are documented as post-RC confidence, not a release-gate replacement. | pass | None. | Keep hosted checks out of default CI until deterministic. |
-| Optional imported/platform lanes | Hosted readiness docs frame imported repos, GitHub App sync, and private repo access as optional operator/admin lanes | External walkthrough can show them only after explaining provider, credential, and network dependency. | pass | Real credentials and providers are not available in default CI. | Validate manually per operator scope if included in demo. |
+| Baseline commit | `git rev-parse --short HEAD` | `0d87fc3` before stage 12 docs were applied. | pass | Local branch is ahead of origin because push is pending. | Push when network can reach GitHub. |
+| Active OpenSpec state | `openspec list --json` | No active changes before stage 12 proposal; stage 12 is now active during implementation. | pass | Stage 12 must be archived after implementation. | Archive after validation. |
+| Guided public lane | `demo-workspace` walkthrough | Existing docs and recovery scripts keep the stable public lane first. | pass | External hosted smoke still needs hosted URLs. | Run hosted smoke before public preview. |
+| Hosted health | `scripts/demo/health-check.ps1 -WebBaseUrl <hosted> -ApiBaseUrl <hosted-api> -EngineBaseUrl <hosted-engine>` | Not run because no external hosted URLs were supplied. | known limitation | Cannot mark hosted health as passed without running hosted services. | Run with hosted URLs. |
+| Hosted smoke | `scripts/demo/smoke-check.ps1 -WebBaseUrl <hosted> -ApiBaseUrl <hosted-api> -EngineBaseUrl <hosted-engine>` | Not run because no external hosted URLs were supplied. | known limitation | Cannot mark hosted smoke as passed without running hosted services. | Run with hosted URLs. |
+| Seeded recovery | `reset-demo.ps1`; `reseed-demo.ps1`; `check_seeded_demo.py` | Commands are documented as scoped to `demo-workspace`. | operator-guided | Not rerun in this report because no hosted database was supplied. | Rehearse immediately before external preview when state is uncertain. |
+| Governance Markdown ingest | `/governance`; API/engine governance tests | Product surface and APIs support import, pending drafts, human review, accepted rules, source excerpts, and review rationale. | operator-guided | Hosted product smoke still needs a running hosted environment. | Validate in hosted environment if governance second act is shown. |
+| Agent guardrail | `python scripts/governance/agent_guardrail.py --summary` | To be rerun at stage 12 completion and recorded with any caution/pause evidence. | operator-guided | Current active change may produce advisory findings until archived. | Rerun before archive and commit. |
+| Real-repo value evidence | `python scripts/ci/run_benchmark.py --live-real-repos --repo-id <id>` | Optional JSON/Markdown report support exists. | operator-guided | Requires running stack and existing imported workspaces. | Summarize or attach dated report externally; do not commit `.tmp` output. |
+| Release gate separation | `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1` | Remains the mandatory deterministic release gate. | pass | Governed preview checks are not default CI enforcement. | Keep separation visible in docs. |
+
+## Guardrail Status Handling
+
+- `continue`: proceed after targeted validation and normal review.
+- `caution`: proceed only if the advisory evidence is addressed or explicitly disclosed in the readiness handoff.
+- `pause`: stop and ask for a human decision before presenting guardrail output as positive governed-preview evidence.
+
+Guardrail output is advisory by default. It does not automatically rewrite code, update OpenSpec, accept governance rules, change roadmap documents, or block CI.
 
 ## Blocking Assessment
 
-- Blocking product-code issues found: none.
-- Blocking documentation issues found: none after adding hosted preview readiness docs.
+- Blocking product-code issues found: none from this documentation/readiness audit.
+- Blocking documentation issues found: none after this change is implemented.
 - Blocking hosted-environment issues found: unknown; no external hosted URL was available.
-- Non-blocking limitations: external health/smoke and recovery drills still require an operator-provided running environment; local health rehearsal also needs a running local stack.
+- Non-blocking limitations: hosted health/smoke, seeded recovery rehearsal, governance product smoke, and live real-repository value reports still require an operator-provided running environment.
 
 ## Pre-Demo Rerun Commands
 
@@ -56,6 +65,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
   -WebBaseUrl "https://your-demo.example.com" `
   -ApiBaseUrl "https://your-api.example.com" `
   -EngineBaseUrl "https://your-engine.example.com"
+
+python scripts\demo\check_seeded_demo.py
+python scripts\governance\agent_guardrail.py --summary
 ```
 
 If the seeded demo state drifted:
@@ -65,6 +77,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reset-demo.ps
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\reseed-demo.ps1
 ```
 
+Optional real-repository credibility evidence:
+
+```powershell
+python scripts\ci\run_benchmark.py --live-real-repos --repo-id browser-use
+```
+
 ## Preview Decision
 
-The repository now has the documentation and reporting structure needed to prepare an external hosted preview. Do not claim the hosted preview is fully passed until an operator runs the hosted health and smoke commands against actual hosted URLs and records the result.
+The repository has the documentation, report structure, and local operator commands needed to prepare a governed hosted preview. Do not claim the external hosted preview fully passed until an operator runs health and smoke checks against actual hosted URLs and records the result. Do not claim governance enforcement; the governed preview demonstrates human-reviewed governance memory and advisory guardrails.

@@ -42,6 +42,22 @@ This is especially important when the work touches accepted rules, roadmap stage
 
 When the summary is `caution` or `pause`, include the evidence in the handoff instead of hiding it behind a green test result.
 
+## Governed Hosted Preview
+
+For a governed hosted preview, run the guardrail before claiming the governance lane is ready:
+
+```powershell
+python scripts/governance/agent_guardrail.py --summary
+```
+
+Use the result as readiness evidence, not as enforcement:
+
+- `continue`: the governed preview can proceed after targeted validation.
+- `caution`: the preview can proceed only if the caution evidence is addressed or disclosed in the readiness handoff.
+- `pause`: stop and ask for human review before presenting the guardrail as positive governed-preview evidence.
+
+During an external walkthrough, explain that the guardrail is advisory project governance memory. It does not automatically accept Markdown rule drafts, rewrite code, update OpenSpec artifacts, or block CI by default.
+
 ## Agent Workflow Protocol
 
 The guardrail JSON includes a tool-agnostic workflow protocol for Codex, OpenCode, Claude, or another agent consuming the result:

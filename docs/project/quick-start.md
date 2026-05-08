@@ -120,7 +120,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\demo\smoke-check.p
 python scripts\demo\check_seeded_demo.py
 ```
 
-Before an external hosted walkthrough, use [Hosted Preview Readiness](hosted-preview-readiness.md) to record health, smoke, reset/reseed recovery status, and any known limitations. These hosted checks are a post-RC confidence layer, not a replacement for the canonical release gate.
+Before an external hosted walkthrough, use [Hosted Preview Readiness](hosted-preview-readiness.md) to record health, smoke, reset/reseed recovery status, governance guardrail status, and any known limitations. These hosted checks are a post-RC confidence layer, not a replacement for the canonical release gate.
+
+For a governed hosted preview, keep the walkthrough in this order:
+
+1. Start with `demo-workspace` as the stable public lane.
+2. Optionally show `/governance` as a human-reviewed governance memory lane.
+3. Run `python scripts\governance\agent_guardrail.py --summary` and disclose any `caution` or `pause` evidence.
+4. Optionally summarize a dated live real-repository value report; do not commit generated `.tmp/` reports.
 
 For release-style validation, run the canonical local gate from the repository root:
 

@@ -8,6 +8,13 @@ This guide is for operating a single-machine hosted DecisionAtlas demo. It is an
 
 For external preview preparation, use [Hosted Preview Readiness](hosted-preview-readiness.md) as the concise pre-demo checklist and record results in `v0-3-hosted-preview-readiness-report.md`.
 
+The governed hosted preview has two acts:
+
+1. The stable public walkthrough: `demo-workspace` dashboard, review, why-search, timeline, and drift.
+2. The optional governance walkthrough: `/governance` Markdown ingest, human-reviewed rule drafts, accepted-rule source evidence, and local agent guardrail summary.
+
+Keep those acts separate. The public walkthrough must not depend on a live import, private credential, accepted governance rule, or guardrail `continue` status.
+
 ## Environment Contract
 
 The hosted demo keeps the current topology:
@@ -50,6 +57,28 @@ demo-workspace
 ```
 
 Imported real-repository workspaces are a separate operator-managed lane. They can be used as a bounded credibility check, but they are not the primary public walkthrough and are not reset by the default demo recovery scripts.
+
+Governance documents and accepted rule drafts are also separate operator-managed state. Default demo reset and reseed actions restore the seeded `demo-workspace` lane; they are not broad governance-history cleanup commands.
+
+## Governed Preview Readiness
+
+Before an external governed preview:
+
+1. Run hosted health check.
+2. Run hosted guided-demo smoke check.
+3. Run `python scripts\demo\check_seeded_demo.py` or perform reset/reseed recovery if the guided lane drifted.
+4. If showing governance, open `/governance` and confirm Markdown ingest, pending drafts, accepted rules, source excerpts, and review rationale are explainable.
+5. Run `python scripts\governance\agent_guardrail.py --summary`.
+6. If showing real-repository proof, optionally run `python scripts\ci\run_benchmark.py --live-real-repos --repo-id <id>` and inspect the generated JSON/Markdown report.
+7. Record pass, blocking, non-blocking, known limitation, or operator-guided status for each lane in the readiness report.
+
+Guardrail result handling:
+
+- `continue`: proceed after targeted validation.
+- `caution`: proceed only if the advisory evidence is addressed or explicitly included in the handoff.
+- `pause`: stop and ask for human review before using the guardrail result as positive preview evidence.
+
+The guardrail is advisory by default. Do not describe it as CI enforcement, automatic rule acceptance, or automatic code/spec remediation.
 
 ## GitHub App Webhook Sync Operations
 
@@ -197,6 +226,9 @@ Before a public demo:
 - Run hosted health check.
 - Run hosted smoke check.
 - Run `python scripts\demo\check_seeded_demo.py` or confirm the reset/reseed scripts reported a ready seeded demo lane.
+- If showing the governed second act, verify `/governance` and run `python scripts\governance\agent_guardrail.py --summary`.
+- Record any guardrail `caution` or `pause` evidence instead of hiding it behind passing smoke checks.
+- Treat live real-repository value reports as optional dated evidence; summarize or attach them externally and do not commit default `.tmp/` reports.
 - Open `/workspaces/demo-workspace`.
 - Keep imported real-repo proof optional and separate from the main walkthrough.
 
