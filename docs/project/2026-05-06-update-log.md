@@ -8,6 +8,28 @@
 - Fixed a real-stack startup blocker caused by an Alembic revision ID exceeding Postgres' default Alembic version table length.
 - Re-ran the real-stack full-chain browser check against the user-started project.
 
+## 2026-05-08 Full-Chain Governance Interface Update
+
+- Added the AI-agent governance guardrail interface to the canonical release gate in `scripts/ci/pre-release.ps1`.
+- Recorded the interface availability check in `docs/project/release-checklist.md`.
+- Committed the gate update as `bb5753a test: include governance guardrail in release gate`.
+- Re-validated the guardrail on a clean working tree:
+  - `python scripts/governance/agent_guardrail.py --summary` -> `continue`
+  - `python scripts/governance/agent_guardrail.py --enforcement-preview release-checklist --summary` -> `pass`, `would_block=false`
+  - `python scripts/governance/drift_report.py --pretty` -> `clean`
+- Re-ran the canonical full-chain gate after the commit:
+  - OpenSpec strict validation: passed
+  - workspace tests/typecheck: passed
+  - engine pytest: `216 passed`
+  - offline benchmark fixture validation: passed
+  - AI-agent governance guardrail interface availability: passed
+  - Playwright smoke: `1 passed`
+- Re-validated the real stack:
+  - `start-real-stack.ps1 -ResetSeededDemo` succeeded
+  - seeded demo ready: `accepted=4, candidate=1, source_refs=8, timeline=4, open_drift_alerts=1`
+  - hosted smoke passed
+  - live real-repo benchmark for `browser-use/browser-use` passed with `why_ready` / `useful_now`
+
 ## Completed Work
 
 ### Stage 7 AI agent governance guardrail
@@ -98,11 +120,12 @@ Note:
 
 - OpenSpec active changes: `0`.
 - Stage 7 is implemented and archived.
-- The latest committed baseline remains `dc8e00c feat: add governance drift detection`; stage 7 and the migration fix are currently in the working tree and should be committed.
-- Local `main` remains ahead of `origin/main` by 3 committed changes before the new uncommitted work.
+- The latest committed baseline is `bb5753a test: include governance guardrail in release gate`.
+- Local `main` remains ahead of `origin/main` by 5 committed changes.
+- The only untracked file in the working tree is `codex-history-repair.skill`, which remains intentionally ignored.
 
 ## Follow-Up
 
-- Commit and push the stage 7 guardrail, synced spec, archive, plan updates, and migration fix.
-- Add a dedicated demo reset/reseed path so the review queue can reliably return to the intended guided demo state after prior runs.
-- Consider a stage 8 change focused on governance workflow hardening and demo reset reliability.
+- Push the committed gate update when network/policy allows.
+- Keep the new AI-agent governance guardrail interface in the canonical release gate and summary docs.
+- Continue with the stage 8 governance workflow hardening and demo reset reliability route already laid out in the master plan.

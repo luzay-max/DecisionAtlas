@@ -1,7 +1,7 @@
 # DecisionAtlas Post-Stage-7 Master Development Plan
 
 日期：2026-05-06  
-当前基线：阶段 7 AI Agent Governance Integration、治理文档同步和真实栈 migration 修复已提交；最新提交基线为 `5447d26 docs: refresh project guidance docs`  
+当前基线：阶段 7 AI Agent Governance Integration、治理文档同步和真实栈 migration 修复已提交；AI-agent governance guardrail interface 已纳入 canonical release gate；最新提交基线为 `bb5753a test: include governance guardrail in release gate`
 状态：进入阶段 8，重点从“能力已存在”转向“流程稳定、演示可复现、真实价值可度量”
 
 ## 当前状态
@@ -25,6 +25,32 @@ DecisionAtlas 当前已经完成 v0.3 到 AI-native governance memory 的关键�
 ```text
 让治理能力进入稳定开发流程，让 demo 和真实栈可复现，让真实仓库价值可持续验证。
 ```
+
+## 后续总计划（总览）
+
+后续路线不再按“新增功能”来定义，而按“稳定性、可信度、对外可讲述性”来推进。
+
+1. 稳定层：阶段 8 到阶段 9。
+   先把 demo reset/reseed、real stack 启动、guardrail 运行节点、pause 语义和状态汇总流程固定下来，再把 guardrail 变成 agent 工作协议的一部分。
+2. 质量层：阶段 10。
+   重点提升 governance 文档到 accepted rules 的质量，减少误抽、补齐 rationale/source excerpt/stale 标记，让 AI 和人都能稳定读懂规则。
+3. 价值层：阶段 11。
+   用固定真实仓库集量化 import、why-search、drift 和候选质量，不再只靠 demo 感觉判断产品价值。
+4. 对外层：阶段 12 到阶段 13。
+   先把本地能力整理成可恢复、可讲清边界的 hosted preview，再探索可选 enforcement preview，但默认仍保持 advisory。
+
+推荐执行顺序仍然保持：
+
+```text
+8. harden-governance-workflow-and-demo-reset
+9. integrate-governance-guardrail-into-agent-workflow
+10. improve-governance-knowledge-quality-loop
+11. build-real-repository-value-benchmark
+12. prepare-governed-hosted-preview
+13. prototype-governance-enforcement-preview
+```
+
+当前优先级最高的是阶段 8，因为它直接解决可复现性、恢复能力和开发流程稳定性。
 
 ## 总体原则
 
