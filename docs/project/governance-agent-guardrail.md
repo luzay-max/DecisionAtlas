@@ -21,6 +21,14 @@ For a concise local summary:
 python scripts/governance/agent_guardrail.py --summary
 ```
 
+For the default local governance development protocol status:
+
+```powershell
+python scripts/governance/agent_guardrail.py --protocol-status --summary
+```
+
+Use the protocol status before non-trivial implementation, after targeted validation, before archiving an OpenSpec change, and before committing completed work. It combines active OpenSpec context with guardrail status, required tests, recommended actions, human questions, and handoff guidance.
+
 For offline governance rules exported from the API:
 
 ```powershell
@@ -66,6 +74,38 @@ AI agents and developers should run the guardrail at four local workflow checkpo
 This is especially important when the work touches accepted rules, roadmap stage transitions, private repository access, import/review behavior, governance documents, or validation expectations.
 
 When the summary is `caution` or `pause`, include the evidence in the handoff instead of hiding it behind a green test result.
+
+## Default Development Protocol
+
+The default local governance development protocol is the standard workflow for non-trivial AI-assisted and developer-driven changes. It does not replace OpenSpec, targeted tests, review, or the canonical release gate.
+
+Run the protocol status command from the repository root:
+
+```powershell
+python scripts/governance/agent_guardrail.py --protocol-status --summary
+```
+
+The machine-readable form is available without `--summary`:
+
+```powershell
+python scripts/governance/agent_guardrail.py --protocol-status --pretty
+```
+
+The protocol status includes:
+
+- active OpenSpec change context, or an explicit `none` state.
+- guardrail `agent_status`, diff status, and drift status.
+- required tests and recommended next actions.
+- human questions when review is needed.
+- handoff guidance for final responses, archive notes, commit summaries, or readiness records.
+
+Interpretation:
+
+- `continue`: normal work may continue, but targeted validation and normal review are still required.
+- `caution`: continue only after addressing or explicitly disclosing the caution evidence.
+- `pause`: stop and ask for human review; do not silently rewrite code, OpenSpec artifacts, roadmap documents, governance documents, or accepted rules to clear the signal.
+
+This protocol remains advisory by default. It does not mutate project files, call external providers, post PR comments, or make CI fail unless a future explicit change introduces enforcement.
 
 ## Governed Hosted Preview
 

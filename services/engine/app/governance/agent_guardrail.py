@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 from dataclasses import asdict, dataclass, field, is_dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -52,6 +53,20 @@ class GovernanceEnforcementPreview:
     override_prompt: str = ""
     source_evidence: dict[str, Any] = field(default_factory=dict)
     report_text: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class DevelopmentProtocolStatus:
+    protocol_name: str
+    version: str
+    advisory_only: bool
+    openspec_context: dict[str, Any]
+    guardrail: dict[str, Any]
+    checkpoints: dict[str, Any]
+    handoff_guidance: dict[str, Any]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -130,6 +145,50 @@ def build_enforcement_preview(result: AgentGuardrailResult, *, mode: str) -> Gov
     )
 
 
+def build_development_protocol_status(
+    result: AgentGuardrailResult,
+    *,
+    root: Path | str,
+) -> DevelopmentProtocolStatus:
+    repo_root = Path(root).resolve()
+    openspec_context = _openspec_context(repo_root)
+    return DevelopmentProtocolStatus(
+        protocol_name="decisionatlas-default-governance-development-protocol",
+        version="1",
+        advisory_only=True,
+        openspec_context=openspec_context,
+        guardrail={
+            "agent_status": result.agent_status,
+            "summary": result.summary,
+            "diff_status": result.context.get("diff_status"),
+            "drift_status": result.context.get("drift_status"),
+            "required_tests": result.required_tests,
+            "recommended_next_actions": result.recommended_next_actions,
+            "human_questions": result.human_questions,
+            "allowed_next_actions": result.allowed_next_actions,
+            "disallowed_next_actions": result.disallowed_next_actions,
+            "handoff_summary": result.handoff_summary,
+        },
+        checkpoints={
+            "preflight": {
+                "when": "Before non-trivial implementation that may affect behavior, specs, roadmap, governance documents, validation expectations, or project direction.",
+                "command": "python scripts/governance/agent_guardrail.py --protocol-status",
+            },
+            "postflight": {
+                "when": "After implementation and targeted validation, before claiming completion.",
+                "command": "python scripts/governance/agent_guardrail.py --protocol-status",
+            },
+            "before_archive": {
+                "when": "Before archiving an OpenSpec change.",
+                "command": "python scripts/governance/agent_guardrail.py --protocol-status",
+            },
+            "before_commit": {
+                "when": "Before committing completed work.",
+                "command": "python scripts/governance/agent_guardrail.py --protocol-status",
+            },
+        },
+        handoff_guidance=_protocol_handoff_guidance(result=result, openspec_context=openspec_context),
+    )
 def aggregate_governance_guardrail(*, diff_check: Any, drift_report: Any) -> AgentGuardrailResult:
     check = _to_plain_dict(diff_check)
     drift = _to_plain_dict(drift_report)
@@ -205,6 +264,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     parser.add_argument("--summary", action="store_true", help="Print a concise human-readable summary.")
     parser.add_argument(
+        "--protocol-status",
+        action="store_true",
+        help="Print default local governance development protocol status.",
+    )
+    parser.add_argument(
         "--enforcement-preview",
         choices=sorted(ENFORCEMENT_PREVIEW_MODES),
         help="Opt-in governance enforcement preview mode. Default guardrail behavior remains advisory.",
@@ -231,10 +295,17 @@ def main(argv: list[str] | None = None) -> int:
         if args.enforcement_preview
         else None
     )
-    if args.summary:
+    protocol_status = (
+        build_development_protocol_status(result, root=Path(args.root))
+        if args.protocol_status
+        else None
+    )
+    if args.summary and protocol_status:
+        print(_protocol_human_summary(protocol_status))
+    elif args.summary:
         print(_human_summary(result, enforcement_preview=preview))
     else:
-        body = result.to_dict()
+        body = protocol_status.to_dict() if protocol_status else result.to_dict()
         if preview:
             body["enforcement_preview"] = preview.to_dict()
         print(json.dumps(body, ensure_ascii=False, indent=2 if args.pretty else None))
@@ -293,6 +364,136 @@ def _human_summary(
         lines.append("")
         lines.append(enforcement_preview.report_text)
     return "\n".join(lines)
+
+
+def _protocol_human_summary(status: DevelopmentProtocolStatus) -> str:
+    data = status.to_dict()
+    guardrail = data["guardrail"]
+    openspec_context = data["openspec_context"]
+    lines = [
+        f"Protocol: {data['protocol_name']} v{data['version']}",
+        "Advisory only: true",
+        f"OpenSpec: {openspec_context['state']}",
+        f"Active changes: {', '.join(openspec_context['active_changes']) if openspec_context['active_changes'] else 'none'}",
+        f"Agent status: {guardrail['agent_status']}",
+        f"Diff check: {guardrail['diff_status']}",
+        f"Drift report: {guardrail['drift_status']}",
+    ]
+    if guardrail["required_tests"]:
+        lines.append("Required tests:")
+        lines.extend(f"- {test}" for test in guardrail["required_tests"])
+    if guardrail["recommended_next_actions"]:
+        lines.append("Recommended next actions:")
+        lines.extend(f"- {action}" for action in guardrail["recommended_next_actions"])
+    if guardrail["human_questions"]:
+        lines.append("Human questions:")
+        lines.extend(f"- {question['question']}" for question in guardrail["human_questions"] if question.get("question"))
+    lines.append(f"Handoff: {data['handoff_guidance']['completion_claim']}")
+    return "\n".join(lines)
+
+
+def _protocol_handoff_guidance(
+    *,
+    result: AgentGuardrailResult,
+    openspec_context: dict[str, Any],
+) -> dict[str, Any]:
+    if result.agent_status == "pause":
+        completion_claim = "Do not claim completion. Ask for human review and include the pause evidence."
+    elif result.agent_status == "caution":
+        completion_claim = "Claim completion only after addressing or explicitly disclosing caution evidence."
+    else:
+        completion_claim = "May continue normal work, but targeted validation and review are still required."
+    return {
+        "completion_claim": completion_claim,
+        "include_in_handoff": [
+            "agent_status",
+            "diff_status",
+            "drift_status",
+            "active_openspec_changes",
+            "required_tests",
+            "recommended_next_actions",
+            "human_questions",
+            "advisory_only",
+        ],
+        "active_openspec_changes": openspec_context.get("active_changes", []),
+        "advisory_only": True,
+    }
+
+
+def _openspec_context(root: Path) -> dict[str, Any]:
+    command = ["openspec", "list", "--json"]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _filesystem_openspec_context(root, command=" ".join(command), error=str(exc))
+    if completed.returncode != 0:
+        return _filesystem_openspec_context(
+            root,
+            command=" ".join(command),
+            error=completed.stderr.strip() or completed.stdout.strip(),
+        )
+    try:
+        payload = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        return {
+            "state": "unavailable",
+            "active_changes": [],
+            "command": " ".join(command),
+            "error": f"Invalid openspec JSON: {exc}",
+        }
+    changes = payload.get("changes", [])
+    active_changes = _active_change_names(changes)
+    return {
+        "state": "active" if active_changes else "none",
+        "active_changes": active_changes,
+        "command": " ".join(command),
+        "source": "openspec-cli",
+    }
+
+
+def _filesystem_openspec_context(root: Path, *, command: str, error: str) -> dict[str, Any]:
+    changes_root = root / "openspec" / "changes"
+    if not changes_root.exists():
+        return {
+            "state": "unavailable",
+            "active_changes": [],
+            "command": command,
+            "source": "filesystem-fallback",
+            "error": error,
+        }
+    active_changes = [
+        item.name
+        for item in sorted(changes_root.iterdir(), key=lambda path: path.name)
+        if item.is_dir() and item.name != "archive" and (item / ".openspec.yaml").exists()
+    ]
+    return {
+        "state": "active" if active_changes else "none",
+        "active_changes": active_changes,
+        "command": command,
+        "source": "filesystem-fallback",
+        "fallback_reason": error,
+    }
+
+
+def _active_change_names(changes: Any) -> list[str]:
+    if not isinstance(changes, list):
+        return []
+    names: list[str] = []
+    for change in changes:
+        if isinstance(change, str):
+            names.append(change)
+        elif isinstance(change, dict):
+            name = change.get("name") or change.get("changeName") or change.get("id")
+            if name and not change.get("archived", False):
+                names.append(str(name))
+    return _dedupe_strings(names)
 
 
 def _preview_warning_reasons(result: AgentGuardrailResult) -> list[str]:
@@ -488,6 +689,8 @@ def _question_from_signal(signal: dict[str, Any]) -> dict[str, Any] | None:
     title = str(signal.get("title") or signal_id)
     if signal_type == "unsynced_decision":
         question = "Should the unsynced human decision update OpenSpec specs, accepted governance rules, or remain documented only?"
+    elif signal_type == "stale_rule":
+        question = "Should this inactive governance rule remain stale or superseded, use the recorded replacement, or become a new accepted current rule?"
     elif signal.get("severity") in {"blocker", "warning"} and signal.get("recommended_next_action"):
         question = f"What decision is needed for this governance drift signal: {title}?"
     else:

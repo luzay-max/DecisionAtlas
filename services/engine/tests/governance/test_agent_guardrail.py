@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.governance.agent_guardrail import aggregate_governance_guardrail, build_enforcement_preview, main
+from app.governance.agent_guardrail import (
+    aggregate_governance_guardrail,
+    build_development_protocol_status,
+    build_enforcement_preview,
+    main,
+)
 
 
 def _diff_check(
@@ -134,6 +139,28 @@ def test_guardrail_pauses_for_unsynced_human_decision() -> None:
     } in result.human_questions
     assert any(question["evidence_type"] == "signal" for question in result.human_questions)
     assert any("Sync the decision" in action for action in result.recommended_next_actions)
+
+
+def test_guardrail_stale_rule_question_mentions_lifecycle_replacement() -> None:
+    result = aggregate_governance_guardrail(
+        diff_check=_diff_check(),
+        drift_report=_drift_report(
+            status="review_required",
+            signals=[
+                {
+                    "id": "stale-rule-10",
+                    "type": "stale_rule",
+                    "severity": "warning",
+                    "title": "Inactive governance source appears in recent context",
+                    "recommended_next_action": "Confirm whether this inactive lifecycle rule should use the recorded replacement.",
+                }
+            ],
+            human_decisions_needed=["Decide whether the inactive governance rule should remain inactive or be replaced."],
+        ),
+    )
+
+    assert result.agent_status == "pause"
+    assert any("recorded replacement" in question["question"] for question in result.human_questions)
 
 
 def test_pause_result_is_advisory_and_does_not_mutate_files(tmp_path: Path) -> None:
@@ -370,3 +397,169 @@ def test_release_checklist_preview_summary_is_advisory_evidence(
     assert "Governance enforcement preview:" in summary
     assert "Would block: false" in summary
     assert "not as a default release gate" in summary
+
+
+def test_protocol_status_reports_no_active_openspec_change(tmp_path: Path, monkeypatch) -> None:
+    result = aggregate_governance_guardrail(diff_check=_diff_check(), drift_report=_drift_report())
+
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "none",
+            "active_changes": [],
+            "command": "openspec list --json",
+        },
+    )
+
+    status = build_development_protocol_status(result, root=tmp_path)
+    body = status.to_dict()
+
+    assert body["advisory_only"] is True
+    assert body["openspec_context"]["state"] == "none"
+    assert body["openspec_context"]["active_changes"] == []
+    assert body["guardrail"]["agent_status"] == "continue"
+    assert body["handoff_guidance"]["active_openspec_changes"] == []
+
+
+def test_protocol_status_continue_requires_validation(tmp_path: Path, monkeypatch) -> None:
+    result = aggregate_governance_guardrail(
+        diff_check=_diff_check(required_tests=["Run focused protocol tests."]),
+        drift_report=_drift_report(),
+    )
+
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "active",
+            "active_changes": ["default-governance-development-protocol"],
+            "command": "openspec list --json",
+        },
+    )
+
+    body = build_development_protocol_status(result, root=tmp_path).to_dict()
+
+    assert body["guardrail"]["agent_status"] == "continue"
+    assert body["guardrail"]["required_tests"] == ["Run focused protocol tests."]
+    assert "targeted validation" in body["handoff_guidance"]["completion_claim"]
+    assert "skip_targeted_validation" in body["guardrail"]["disallowed_next_actions"]
+
+
+def test_protocol_status_caution_requires_disclosure(tmp_path: Path, monkeypatch) -> None:
+    result = aggregate_governance_guardrail(
+        diff_check=_diff_check(
+            status="warning",
+            findings=[
+                {
+                    "id": "ambiguous-roadmap-alignment",
+                    "severity": "warning",
+                    "detail": "Disclose roadmap alignment evidence.",
+                }
+            ],
+        ),
+        drift_report=_drift_report(status="watch"),
+    )
+
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "active",
+            "active_changes": ["default-governance-development-protocol"],
+            "command": "openspec list --json",
+        },
+    )
+
+    body = build_development_protocol_status(result, root=tmp_path).to_dict()
+
+    assert body["guardrail"]["agent_status"] == "caution"
+    assert "claim_completion_without_disclosing_caution" in body["guardrail"]["disallowed_next_actions"]
+    assert "explicitly disclosing caution evidence" in body["handoff_guidance"]["completion_claim"]
+    assert any("Disclose roadmap" in action for action in body["guardrail"]["recommended_next_actions"])
+
+
+def test_protocol_status_pause_preserves_human_questions_and_disallows_self_remediation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    result = aggregate_governance_guardrail(
+        diff_check=_diff_check(
+            status="blocked",
+            findings=[
+                {
+                    "id": "missing-openspec-context",
+                    "severity": "blocker",
+                    "detail": "Behavior changed without OpenSpec context.",
+                }
+            ],
+        ),
+        drift_report=_drift_report(),
+    )
+
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "active",
+            "active_changes": ["default-governance-development-protocol"],
+            "command": "openspec list --json",
+        },
+    )
+
+    body = build_development_protocol_status(result, root=tmp_path).to_dict()
+
+    assert body["guardrail"]["agent_status"] == "pause"
+    assert body["guardrail"]["human_questions"]
+    assert "silently_rewrite_code_to_clear_guardrail" in body["guardrail"]["disallowed_next_actions"]
+    assert "Do not claim completion" in body["handoff_guidance"]["completion_claim"]
+    assert body["handoff_guidance"]["advisory_only"] is True
+
+
+def test_cli_protocol_status_outputs_machine_readable_json(tmp_path: Path, capsys, monkeypatch) -> None:
+    def fake_run(*, root, owner_scope, database_url, governance_rules, archived_change_limit):
+        return aggregate_governance_guardrail(diff_check=_diff_check(), drift_report=_drift_report())
+
+    monkeypatch.setattr("app.governance.agent_guardrail.run_agent_governance_guardrail", fake_run)
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "none",
+            "active_changes": [],
+            "command": "openspec list --json",
+        },
+    )
+
+    exit_code = main(["--root", str(tmp_path), "--protocol-status"])
+
+    assert exit_code == 0
+    body = json.loads(capsys.readouterr().out)
+    assert body["protocol_name"] == "decisionatlas-default-governance-development-protocol"
+    assert body["openspec_context"]["state"] == "none"
+    assert body["guardrail"]["agent_status"] == "continue"
+
+
+def test_cli_protocol_status_summary_outputs_handoff_guidance(
+    tmp_path: Path,
+    capsys,
+    monkeypatch,
+) -> None:
+    def fake_run(*, root, owner_scope, database_url, governance_rules, archived_change_limit):
+        return aggregate_governance_guardrail(
+            diff_check=_diff_check(status="blocked"),
+            drift_report=_drift_report(),
+        )
+
+    monkeypatch.setattr("app.governance.agent_guardrail.run_agent_governance_guardrail", fake_run)
+    monkeypatch.setattr(
+        "app.governance.agent_guardrail._openspec_context",
+        lambda root: {
+            "state": "none",
+            "active_changes": [],
+            "command": "openspec list --json",
+        },
+    )
+
+    exit_code = main(["--root", str(tmp_path), "--protocol-status", "--summary"])
+
+    assert exit_code == 0
+    summary = capsys.readouterr().out
+    assert "Protocol: decisionatlas-default-governance-development-protocol v1" in summary
+    assert "Agent status: pause" in summary
+    assert "Handoff: Do not claim completion" in summary

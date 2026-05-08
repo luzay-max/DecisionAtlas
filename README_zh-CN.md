@@ -88,6 +88,7 @@ pnpm run dev:real
 ```powershell
 openspec validate --all --strict
 python scripts\governance\agent_guardrail.py --summary
+python scripts\governance\agent_guardrail.py --protocol-status --summary
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 
@@ -104,6 +105,14 @@ cd services/engine
 - `continue`：未发现阻断级治理问题。
 - `caution`：存在建议处理的风险，完成推荐动作后再声明完成。
 - `pause`：必须暂停并请求人工审核，不应静默改代码、specs 或 accepted rules。
+
+默认本地治理开发协议使用：
+
+```powershell
+python scripts\governance\agent_guardrail.py --protocol-status --summary
+```
+
+在非平凡实现前、targeted validation 后、归档 OpenSpec change 前以及提交完成工作前运行。它会报告 active OpenSpec context、guardrail status、required tests、recommended actions、human questions 和 handoff guidance。该协议仍是 advisory，独立于可选 enforcement preview 和 canonical release gate。
 
 ## 💡 示例查询
 
@@ -131,12 +140,13 @@ LLM_BASE_URL=https://api.openai.com/v1
 DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 
 1. 创建 change，包含 proposal、design、specs 和 tasks。
-2. 按 tasks 增量实现。
-3. 运行 targeted tests 和 `openspec validate --all --strict`。
-4. 提交/归档前运行 `python scripts\governance\agent_guardrail.py --summary`。
-5. 将 delta specs 同步到 main specs。
-6. 将完成的 change 归档到 `openspec/changes/archive/`。
-7. 将代码、specs、归档和文档一起提交。
+2. 运行 governance preflight：`python scripts\governance\agent_guardrail.py --protocol-status --summary`。
+3. 按 tasks 增量实现。
+4. 运行 targeted tests 和 `openspec validate --all --strict`。
+5. 运行 governance postflight：`python scripts\governance\agent_guardrail.py --protocol-status --summary`。
+6. 将 delta specs 同步到 main specs。
+7. 将完成的 change 归档到 `openspec/changes/archive/`。
+8. 将代码、specs、归档和文档一起提交，并在 handoff 中记录任何 `caution` 或 `pause` 证据。
 
 当前阶段 7 后的规划记录在：
 

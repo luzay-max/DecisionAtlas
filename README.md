@@ -88,6 +88,7 @@ Use these checks before archiving an OpenSpec change or preparing a release snap
 ```powershell
 openspec validate --all --strict
 python scripts\governance\agent_guardrail.py --summary
+python scripts\governance\agent_guardrail.py --protocol-status --summary
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 
@@ -104,6 +105,14 @@ The governance guardrail is advisory by default:
 - `continue`: no blocking governance concern detected.
 - `caution`: review recommended actions before claiming completion.
 - `pause`: stop and ask for human review; do not silently rewrite code, specs, or accepted rules.
+
+The default local governance development protocol uses:
+
+```powershell
+python scripts\governance\agent_guardrail.py --protocol-status --summary
+```
+
+Run it before non-trivial implementation, after targeted validation, before archiving an OpenSpec change, and before committing completed work. It reports active OpenSpec context, guardrail status, required tests, recommended actions, human questions, and handoff guidance. It remains advisory and is separate from optional enforcement preview or the canonical release gate.
 
 ## 💡 Example Queries
 
@@ -131,12 +140,13 @@ LLM_BASE_URL=https://api.openai.com/v1
 DecisionAtlas uses OpenSpec for scoped changes. The expected workflow is:
 
 1. Propose a change with proposal, design, specs, and tasks.
-2. Implement tasks incrementally.
-3. Run targeted tests and `openspec validate --all --strict`.
-4. Run `python scripts\governance\agent_guardrail.py --summary` before commit/archive.
-5. Sync delta specs to main specs.
-6. Archive the completed change under `openspec/changes/archive/`.
-7. Commit the code, specs, archive, and documentation together.
+2. Run governance preflight with `python scripts\governance\agent_guardrail.py --protocol-status --summary`.
+3. Implement tasks incrementally.
+4. Run targeted tests and `openspec validate --all --strict`.
+5. Run governance postflight with `python scripts\governance\agent_guardrail.py --protocol-status --summary`.
+6. Sync delta specs to main specs.
+7. Archive the completed change under `openspec/changes/archive/`.
+8. Commit the code, specs, archive, and documentation together, including any `caution` or `pause` evidence in the handoff.
 
 Current post-stage-7 planning is captured in:
 
