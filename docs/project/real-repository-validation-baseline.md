@@ -70,6 +70,48 @@ The report records one row per curated repository with:
 - limitation categories and follow-up categories that separate product improvements from operator setup issues
 - explicit operational errors when the API, provider, network, or local workspace state blocks validation
 
+## Regression Snapshots And Comparison
+
+Live reports are useful snapshots, but release review also needs to know whether the real-repository lane improved or regressed compared with a previous observed baseline.
+
+After generating a live report, create a compact history snapshot from it:
+
+```powershell
+python scripts/ci/run_benchmark.py --benchmark-snapshot-source .tmp/live-real-repo-validation-report.json --benchmark-snapshot-output .tmp/live-real-repo-snapshot-2026-05-08.json
+```
+
+The snapshot is smaller than the full live report. It keeps bounded evidence only:
+
+- generated date and schema version
+- repository id, role, purpose, workspace slug, value outcome, bounded outcome, and pass state
+- key metrics such as candidate count, accepted count, strong candidate count, thin ratio, why-case pass count, and drift-case pass count
+- limitation and follow-up categories
+- compact why/drift summaries
+- operational error category when the row was blocked by setup, API, provider, network, auth, or missing workspace state
+
+It intentionally does not preserve exact answer prose, raw model output, credentials, private repository content, or local-only `.tmp` paths.
+
+To compare a current report or snapshot with a previous snapshot:
+
+```powershell
+python scripts/ci/run_benchmark.py --benchmark-compare-current .tmp/live-real-repo-validation-report.json --benchmark-compare-baseline .tmp/live-real-repo-snapshot-2026-05-07.json --benchmark-compare-output .tmp/live-real-repo-comparison-2026-05-08.json --benchmark-compare-markdown-output .tmp/live-real-repo-comparison-2026-05-08.md
+```
+
+Comparison output classifies each repository as:
+
+- `improved`: bounded value outcome moved upward.
+- `unchanged`: outcome stayed stable.
+- `regressed`: current product-value outcome is weaker than the baseline.
+- `product-limited`: current outcome remains evidence-limited or conversion-limited and needs product follow-up.
+- `operationally-blocked`: current run was blocked by missing workspace, API, auth/session, provider, GitHub/network, or local setup.
+- `newly-evaluated`: current report contains a repository that was not in the baseline.
+- `missing-from-current`: baseline contains a repository missing from the current comparison input.
+- `needs-review`: comparison lacks enough bounded outcome information for automatic classification.
+
+Operational blockers are not counted as product regressions. They should still be disclosed in release handoff, but the next action is operator setup or rerun, not extraction/retrieval tuning.
+
+This comparison output is designed to become input for a later release evidence automation step. This step does not yet aggregate release evidence automatically; it only makes the real-repo benchmark evidence structured and comparable.
+
 ## Value Outcome Families
 
 The live value benchmark is not a binary product claim. It classifies each repository from bounded observations so a poor run can still be actionable.

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-08T00:00:00+00:00",
+  "source": "live-real-repo-validation-report",
+  "summary": {
+    "repositories": 1,
+    "passed": 1,
+    "failed": 0
+  },
+  "repositories": [
+    {
+      "id": "browser-use",
+      "repo": "browser-use/browser-use",
+      "workspace_slug": "github-browser-use-browser-use",
+      "role": "decision_rich_regression_repo",
+      "benchmark_purpose": "Sanitized example snapshot for benchmark history validation.",
+      "passed": true,
+      "value_outcome": "useful_now",
+      "bounded_outcome": "why_ready",
+      "value_outcome_allowed": true,
+      "key_metrics": {
+        "candidate_decision_count": 2,
+        "accepted_decision_count": 1,
+        "total_decision_count": 3,
+        "screened_in_artifact_count": 10,
+        "strong_candidate_count": 1,
+        "thin_candidate_ratio": 0.25,
+        "why_case_count": 2,
+        "why_case_passed_count": 2,
+        "drift_case_count": 1,
+        "drift_case_passed_count": 1
+      },
+      "limitation_categories": [],
+      "follow_up_categories": [],
+      "why_summary": {
+        "case_count": 2,
+        "passed_count": 2,
+        "failed_ids": [],
+        "statuses": ["ok"],
+        "primary_thread_match_count": 2
+      },
+      "drift_summary": {
+        "state": "clean",
+        "case_count": 1,
+        "passed_count": 1,
+        "failed_ids": [],
+        "forbidden_failure_count": 0
+      },
+      "operational_error_type": null
+    }
+  ]
+}

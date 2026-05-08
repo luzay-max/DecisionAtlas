@@ -534,3 +534,190 @@ def test_live_repo_filtering_keeps_offline_fixture_validation_independent() -> N
         assert "missing-repo" in str(exc)
     else:
         raise AssertionError("Expected missing repository filter to fail.")
+
+
+def _benchmark_row(
+    *,
+    repo_id: str = "repo",
+    repo: str = "org/repo",
+    value_outcome: str = "reviewable_limited",
+    bounded_outcome: str = "review_ready",
+    candidates: int = 1,
+    accepted: int = 0,
+    strong: int = 0,
+    thin_ratio: float = 1.0,
+    why_passed: int = 0,
+    drift_passed: int = 0,
+    operational_error: dict | None = None,
+) -> dict:
+    return {
+        "id": repo_id,
+        "repo": repo,
+        "workspace_slug": f"github-{repo.replace('/', '-')}",
+        "role": "test_repo",
+        "benchmark_purpose": "Regression comparison test.",
+        "passed": operational_error is None,
+        "value_outcome": value_outcome,
+        "bounded_outcome": bounded_outcome,
+        "value_outcome_allowed": operational_error is None,
+        "key_metrics": {
+            "candidate_decision_count": candidates,
+            "accepted_decision_count": accepted,
+            "strong_candidate_count": strong,
+            "thin_candidate_ratio": thin_ratio,
+            "why_case_count": 1,
+            "why_case_passed_count": why_passed,
+            "drift_case_count": 1,
+            "drift_case_passed_count": drift_passed,
+        },
+        "limitation_categories": [] if value_outcome == "useful_now" else ["thin_candidates"],
+        "follow_up_categories": [] if value_outcome == "useful_now" else ["candidate_quality"],
+        "why_cases": [
+            {
+                "id": "why",
+                "passed": why_passed > 0,
+                "status": "ok" if why_passed else "evidence_limited",
+                "primary_thread_match": why_passed > 0,
+            }
+        ],
+        "drift": {
+            "state": "clean" if drift_passed else "alerts_present",
+            "cases": [{"id": "drift", "passed": drift_passed > 0, "matching_forbidden_alerts": []}],
+        },
+        "operational_error": operational_error,
+    }
+
+
+def test_benchmark_history_snapshot_extracts_bounded_report_fields() -> None:
+    benchmark = _load_benchmark_module()
+    report = {
+        "generated_at": "2026-05-08T00:00:00+00:00",
+        "base_url": "http://127.0.0.1:3001",
+        "repositories": [
+            _benchmark_row(
+                value_outcome="useful_now",
+                bounded_outcome="why_ready",
+                candidates=2,
+                accepted=1,
+                strong=1,
+                thin_ratio=0.25,
+                why_passed=1,
+                drift_passed=1,
+            )
+        ],
+    }
+
+    snapshot = benchmark.build_benchmark_history_snapshot(report)
+
+    assert benchmark.validate_benchmark_history_snapshot(snapshot) == 0
+    assert snapshot["schema_version"] == 1
+    row = snapshot["repositories"][0]
+    assert row["id"] == "repo"
+    assert row["key_metrics"]["candidate_decision_count"] == 2
+    assert row["why_summary"] == {
+        "case_count": 1,
+        "passed_count": 1,
+        "failed_ids": [],
+        "statuses": ["ok"],
+        "primary_thread_match_count": 1,
+    }
+    assert row["drift_summary"]["passed_count"] == 1
+    assert "base_url" not in row
+
+
+def test_benchmark_history_snapshot_validation_rejects_malformed_shape() -> None:
+    benchmark = _load_benchmark_module()
+    root = Path(__file__).resolve().parents[4]
+    example = json.loads((root / "examples" / "live-benchmarks" / "history-snapshot.example.json").read_text(encoding="utf-8"))
+    malformed = dict(example)
+    malformed["repositories"] = [dict(example["repositories"][0])]
+    malformed["repositories"][0]["value_outcome"] = "not-valid"
+
+    assert benchmark.validate_benchmark_history_snapshot(example) == 0
+    assert benchmark.validate_benchmark_history_snapshot(malformed) == 1
+
+
+def test_benchmark_comparison_classifies_row_movements_and_operational_blockers() -> None:
+    benchmark = _load_benchmark_module()
+    baseline = benchmark.build_benchmark_history_snapshot(
+        {
+            "generated_at": "2026-05-07T00:00:00+00:00",
+            "repositories": [
+                _benchmark_row(repo_id="improved", value_outcome="evidence_limited", bounded_outcome="evidence_limited"),
+                _benchmark_row(repo_id="unchanged", value_outcome="useful_now", bounded_outcome="why_ready", accepted=1, strong=1, why_passed=1, drift_passed=1),
+                _benchmark_row(repo_id="regressed", value_outcome="useful_now", bounded_outcome="why_ready", accepted=1, strong=1, why_passed=1, drift_passed=1),
+                _benchmark_row(repo_id="blocked", value_outcome="useful_now", bounded_outcome="why_ready", accepted=1, strong=1),
+                _benchmark_row(repo_id="missing", value_outcome="reviewable_limited", bounded_outcome="review_ready"),
+            ],
+        }
+    )
+    current = benchmark.build_benchmark_history_snapshot(
+        {
+            "generated_at": "2026-05-08T00:00:00+00:00",
+            "repositories": [
+                _benchmark_row(repo_id="improved", value_outcome="useful_now", bounded_outcome="why_ready", accepted=1, strong=1, why_passed=1, drift_passed=1),
+                _benchmark_row(repo_id="unchanged", value_outcome="useful_now", bounded_outcome="why_ready", accepted=1, strong=1, why_passed=1, drift_passed=1),
+                _benchmark_row(repo_id="regressed", value_outcome="reviewable_limited", bounded_outcome="review_ready"),
+                _benchmark_row(
+                    repo_id="blocked",
+                    value_outcome="operational_blocked",
+                    bounded_outcome="operational_failure",
+                    operational_error={"type": "url_error"},
+                ),
+                _benchmark_row(repo_id="new", value_outcome="reviewable_limited", bounded_outcome="review_ready"),
+            ],
+        }
+    )
+
+    comparison = benchmark.compare_benchmark_snapshots(current_snapshot=current, baseline_snapshot=baseline)
+    movements = {row["id"]: row["movement"] for row in comparison["repositories"]}
+
+    assert movements["improved"] == "improved"
+    assert movements["unchanged"] == "unchanged"
+    assert movements["regressed"] == "regressed"
+    assert movements["blocked"] == "operationally-blocked"
+    assert movements["new"] == "newly-evaluated"
+    assert movements["missing"] == "missing-from-current"
+    assert comparison["summary"]["regressed"] == 1
+    assert comparison["summary"]["improved"] == 1
+    assert comparison["summary"]["operationally_blocked"] == 1
+
+
+def test_benchmark_comparison_reports_metric_deltas_and_markdown(tmp_path: Path) -> None:
+    benchmark = _load_benchmark_module()
+    baseline = benchmark.build_benchmark_history_snapshot(
+        {
+            "generated_at": "2026-05-07T00:00:00+00:00",
+            "repositories": [_benchmark_row(candidates=1, accepted=0, strong=0, thin_ratio=1.0)],
+        }
+    )
+    current = benchmark.build_benchmark_history_snapshot(
+        {
+            "generated_at": "2026-05-08T00:00:00+00:00",
+            "repositories": [
+                _benchmark_row(
+                    value_outcome="useful_now",
+                    bounded_outcome="why_ready",
+                    candidates=3,
+                    accepted=1,
+                    strong=2,
+                    thin_ratio=0.25,
+                    why_passed=1,
+                    drift_passed=1,
+                )
+            ],
+        }
+    )
+
+    comparison = benchmark.compare_benchmark_snapshots(current_snapshot=current, baseline_snapshot=baseline)
+    row = comparison["repositories"][0]
+    markdown_path = tmp_path / "comparison.md"
+    benchmark._write_benchmark_comparison_markdown(markdown_path, comparison)
+    markdown = markdown_path.read_text(encoding="utf-8")
+
+    assert row["metric_deltas"]["candidate_decision_count"]["delta"] == 2
+    assert row["metric_deltas"]["accepted_decision_count"]["delta"] == 1
+    assert row["metric_deltas"]["strong_candidate_count"]["delta"] == 2
+    assert row["metric_deltas"]["thin_candidate_ratio"]["delta"] == -0.75
+    assert "# Real-Repository Benchmark Regression Comparison" in markdown
+    assert "| org/repo | improved |" in markdown

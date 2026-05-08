@@ -17,6 +17,25 @@ VALUE_OUTCOMES = {
     "missing_workspace",
     "operational_blocked",
 }
+BENCHMARK_HISTORY_SCHEMA_VERSION = 1
+OPERATIONAL_VALUE_OUTCOMES = {"missing_workspace", "operational_blocked"}
+PRODUCT_LIMITED_VALUE_OUTCOMES = {"conversion_limited", "evidence_limited"}
+VALUE_OUTCOME_RANK = {
+    "useful_now": 5,
+    "reviewable_limited": 4,
+    "evidence_limited": 2,
+    "conversion_limited": 1,
+}
+BENCHMARK_MOVEMENTS = {
+    "improved",
+    "unchanged",
+    "regressed",
+    "product-limited",
+    "operationally-blocked",
+    "newly-evaluated",
+    "missing-from-current",
+    "needs-review",
+}
 
 
 def load_json(path: Path) -> list[dict]:
@@ -79,6 +98,13 @@ def _decision_total(decision_counts: dict) -> int:
 def _write_report(path: Path, report: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _load_json_object(path: Path) -> dict:
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Expected JSON object at {path}")
+    return loaded
 
 
 def validate_live_repo_set(repositories: list[dict]) -> int:
@@ -734,6 +760,306 @@ def _write_markdown_report(path: Path, report: dict) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _operational_error_type(row: dict | None) -> str | None:
+    error_payload = (row or {}).get("operational_error")
+    if not isinstance(error_payload, dict):
+        return None
+    status = error_payload.get("status")
+    error_type = error_payload.get("type")
+    if status:
+        return f"{error_type or 'http_error'}:{status}"
+    return str(error_type) if error_type else "operational_error"
+
+
+def _why_case_summary(row: dict) -> dict:
+    cases = row.get("why_cases") or []
+    return {
+        "case_count": len(cases),
+        "passed_count": sum(1 for case in cases if case.get("passed")),
+        "failed_ids": [str(case.get("id")) for case in cases if case.get("passed") is False and case.get("id")],
+        "statuses": sorted({str(case.get("status")) for case in cases if case.get("status")}),
+        "primary_thread_match_count": sum(1 for case in cases if case.get("primary_thread_match") is True),
+    }
+
+
+def _drift_case_summary(row: dict) -> dict:
+    drift = row.get("drift") or {}
+    cases = drift.get("cases") or []
+    return {
+        "state": drift.get("state"),
+        "case_count": len(cases),
+        "passed_count": sum(1 for case in cases if case.get("passed")),
+        "failed_ids": [str(case.get("id")) for case in cases if case.get("passed") is False and case.get("id")],
+        "forbidden_failure_count": sum(
+            len(case.get("matching_forbidden_alerts") or []) for case in cases if isinstance(case, dict)
+        ),
+    }
+
+
+def _snapshot_row_from_report_row(row: dict) -> dict:
+    return {
+        "id": row.get("id"),
+        "repo": row.get("repo"),
+        "workspace_slug": row.get("workspace_slug"),
+        "role": row.get("role"),
+        "benchmark_purpose": row.get("benchmark_purpose"),
+        "passed": bool(row.get("passed")),
+        "value_outcome": row.get("value_outcome"),
+        "bounded_outcome": row.get("bounded_outcome"),
+        "value_outcome_allowed": row.get("value_outcome_allowed"),
+        "key_metrics": dict(row.get("key_metrics") or {}),
+        "limitation_categories": list(row.get("limitation_categories") or []),
+        "follow_up_categories": list(row.get("follow_up_categories") or []),
+        "why_summary": _why_case_summary(row),
+        "drift_summary": _drift_case_summary(row),
+        "operational_error_type": _operational_error_type(row),
+    }
+
+
+def build_benchmark_history_snapshot(report: dict, *, generated_at: str | None = None) -> dict:
+    rows = [_snapshot_row_from_report_row(row) for row in report.get("repositories") or []]
+    return {
+        "schema_version": BENCHMARK_HISTORY_SCHEMA_VERSION,
+        "generated_at": generated_at or report.get("generated_at") or datetime.now(UTC).isoformat(),
+        "source": "live-real-repo-validation-report",
+        "summary": {
+            "repositories": len(rows),
+            "passed": sum(1 for row in rows if row.get("passed")),
+            "failed": sum(1 for row in rows if not row.get("passed")),
+        },
+        "repositories": rows,
+    }
+
+
+def validate_benchmark_history_snapshot(snapshot: dict) -> int:
+    if snapshot.get("schema_version") != BENCHMARK_HISTORY_SCHEMA_VERSION:
+        print("Invalid benchmark history schema_version.", file=sys.stderr)
+        return 1
+    if not str(snapshot.get("generated_at", "")).strip():
+        print("Benchmark history snapshot is missing generated_at.", file=sys.stderr)
+        return 1
+    rows = snapshot.get("repositories")
+    if not isinstance(rows, list):
+        print("Benchmark history snapshot repositories must be a list.", file=sys.stderr)
+        return 1
+    seen_ids: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            print("Benchmark history row must be an object.", file=sys.stderr)
+            return 1
+        repo_id = str(row.get("id") or "")
+        if not repo_id or repo_id in seen_ids:
+            print(f"Invalid or duplicate benchmark history repo id: {repo_id}", file=sys.stderr)
+            return 1
+        seen_ids.add(repo_id)
+        if row.get("value_outcome") not in VALUE_OUTCOMES:
+            print(f"Invalid value_outcome for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+        if not isinstance(row.get("key_metrics"), dict):
+            print(f"Missing key_metrics for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+        if not isinstance(row.get("limitation_categories"), list):
+            print(f"Missing limitation_categories for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+        if not isinstance(row.get("follow_up_categories"), list):
+            print(f"Missing follow_up_categories for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+        if not isinstance(row.get("why_summary"), dict):
+            print(f"Missing why_summary for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+        if not isinstance(row.get("drift_summary"), dict):
+            print(f"Missing drift_summary for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
+    return 0
+
+
+def _snapshot_from_report_or_snapshot(payload: dict) -> dict:
+    if payload.get("schema_version") == BENCHMARK_HISTORY_SCHEMA_VERSION:
+        return payload
+    return build_benchmark_history_snapshot(payload)
+
+
+def _rows_by_id(snapshot: dict) -> dict[str, dict]:
+    return {str(row["id"]): row for row in snapshot.get("repositories") or [] if row.get("id")}
+
+
+def _metric_delta(current: dict, baseline: dict, key: str) -> dict:
+    current_metrics = current.get("key_metrics") or {}
+    baseline_metrics = baseline.get("key_metrics") or {}
+    current_value = current_metrics.get(key)
+    baseline_value = baseline_metrics.get(key)
+    try:
+        delta = None if current_value is None or baseline_value is None else round(float(current_value) - float(baseline_value), 4)
+    except (TypeError, ValueError):
+        delta = None
+    return {"current": current_value, "baseline": baseline_value, "delta": delta}
+
+
+def _category_delta(current: dict, baseline: dict, key: str) -> dict:
+    current_values = set(current.get(key) or [])
+    baseline_values = set(baseline.get(key) or [])
+    return {
+        "current": sorted(current_values),
+        "baseline": sorted(baseline_values),
+        "added": sorted(current_values - baseline_values),
+        "removed": sorted(baseline_values - current_values),
+    }
+
+
+def _comparison_metric_deltas(current: dict, baseline: dict) -> dict:
+    metric_keys = [
+        "candidate_decision_count",
+        "accepted_decision_count",
+        "strong_candidate_count",
+        "thin_candidate_ratio",
+        "why_case_passed_count",
+        "drift_case_passed_count",
+    ]
+    deltas = {key: _metric_delta(current, baseline, key) for key in metric_keys}
+    deltas["limitation_categories"] = _category_delta(current, baseline, "limitation_categories")
+    deltas["follow_up_categories"] = _category_delta(current, baseline, "follow_up_categories")
+    return deltas
+
+
+def _comparison_reasons(current: dict | None, baseline: dict | None, movement: str, metric_deltas: dict | None = None) -> list[str]:
+    if current is None:
+        return ["Repository existed in the baseline snapshot but is missing from the current comparison input."]
+    if baseline is None:
+        return ["Repository is present in the current comparison input but not in the baseline snapshot."]
+    reasons = [
+        f"value_outcome: {baseline.get('value_outcome')} -> {current.get('value_outcome')}",
+        f"bounded_outcome: {baseline.get('bounded_outcome')} -> {current.get('bounded_outcome')}",
+    ]
+    if current.get("operational_error_type"):
+        reasons.append(f"operational_error: {current.get('operational_error_type')}")
+    if movement == "regressed":
+        reasons.append("Current bounded value outcome is weaker than the baseline.")
+    elif movement == "improved":
+        reasons.append("Current bounded value outcome is stronger than the baseline.")
+    elif movement == "product-limited":
+        reasons.append("Current row remains product-limited and needs product follow-up, not operator setup.")
+    if metric_deltas:
+        for key in ("candidate_decision_count", "accepted_decision_count", "strong_candidate_count", "thin_candidate_ratio"):
+            delta = (metric_deltas.get(key) or {}).get("delta")
+            if delta not in (None, 0):
+                reasons.append(f"{key} delta: {delta:+g}")
+    return reasons
+
+
+def _classify_benchmark_movement(current: dict | None, baseline: dict | None) -> str:
+    if current is None:
+        return "missing-from-current"
+    if baseline is None:
+        return "newly-evaluated"
+    current_outcome = str(current.get("value_outcome") or "")
+    baseline_outcome = str(baseline.get("value_outcome") or "")
+    if current_outcome in OPERATIONAL_VALUE_OUTCOMES or current.get("operational_error_type"):
+        return "operationally-blocked"
+    current_rank = VALUE_OUTCOME_RANK.get(current_outcome)
+    baseline_rank = VALUE_OUTCOME_RANK.get(baseline_outcome)
+    if current_rank is None or baseline_rank is None:
+        return "needs-review"
+    if current_rank > baseline_rank:
+        return "improved"
+    if current_rank < baseline_rank:
+        return "regressed"
+    if current_outcome in PRODUCT_LIMITED_VALUE_OUTCOMES:
+        return "product-limited"
+    return "unchanged"
+
+
+def compare_benchmark_snapshots(current_snapshot: dict, baseline_snapshot: dict) -> dict:
+    current_rows = _rows_by_id(current_snapshot)
+    baseline_rows = _rows_by_id(baseline_snapshot)
+    repo_ids = sorted(set(current_rows) | set(baseline_rows))
+    rows: list[dict] = []
+    summary_counts = {movement: 0 for movement in sorted(BENCHMARK_MOVEMENTS)}
+    for repo_id in repo_ids:
+        current = current_rows.get(repo_id)
+        baseline = baseline_rows.get(repo_id)
+        movement = _classify_benchmark_movement(current, baseline)
+        summary_counts[movement] += 1
+        metric_deltas = _comparison_metric_deltas(current, baseline) if current and baseline else {}
+        row = {
+            "id": repo_id,
+            "repo": (current or baseline or {}).get("repo"),
+            "workspace_slug": (current or baseline or {}).get("workspace_slug"),
+            "movement": movement,
+            "current_value_outcome": current.get("value_outcome") if current else None,
+            "baseline_value_outcome": baseline.get("value_outcome") if baseline else None,
+            "current_bounded_outcome": current.get("bounded_outcome") if current else None,
+            "baseline_bounded_outcome": baseline.get("bounded_outcome") if baseline else None,
+            "metric_deltas": metric_deltas,
+            "reasons": _comparison_reasons(current, baseline, movement, metric_deltas),
+        }
+        rows.append(row)
+    return {
+        "schema_version": BENCHMARK_HISTORY_SCHEMA_VERSION,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "comparison_type": "real-repo-benchmark-regression",
+        "baseline_generated_at": baseline_snapshot.get("generated_at"),
+        "current_generated_at": current_snapshot.get("generated_at"),
+        "summary": {
+            "repositories": len(rows),
+            "movements": summary_counts,
+            "regressed": summary_counts.get("regressed", 0),
+            "improved": summary_counts.get("improved", 0),
+            "operationally_blocked": summary_counts.get("operationally-blocked", 0),
+            "release_evidence_ready": True,
+        },
+        "repositories": rows,
+    }
+
+
+def _write_benchmark_comparison_markdown(path: Path, comparison: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    summary = comparison.get("summary") or {}
+    movements = summary.get("movements") or {}
+    lines = [
+        "# Real-Repository Benchmark Regression Comparison",
+        "",
+        f"- Generated at: `{comparison.get('generated_at', '-')}`",
+        f"- Baseline generated at: `{comparison.get('baseline_generated_at', '-')}`",
+        f"- Current generated at: `{comparison.get('current_generated_at', '-')}`",
+        f"- Repositories: `{summary.get('repositories', 0)}`",
+        f"- Improved: `{summary.get('improved', 0)}`",
+        f"- Regressed: `{summary.get('regressed', 0)}`",
+        f"- Operationally blocked: `{summary.get('operationally_blocked', 0)}`",
+        "",
+        "| Repository | Movement | Value outcome | Bounded outcome | Metric deltas | Reasons |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in comparison.get("repositories", []):
+        metric_deltas = row.get("metric_deltas") or {}
+        metrics = []
+        for key in ("candidate_decision_count", "accepted_decision_count", "strong_candidate_count", "thin_candidate_ratio"):
+            delta = (metric_deltas.get(key) or {}).get("delta")
+            if delta not in (None, 0):
+                metrics.append(f"{key}={delta:+g}")
+        lines.append(
+            "| "
+            + " | ".join(
+                _markdown_cell(value)
+                for value in (
+                    row.get("repo") or row.get("id"),
+                    row.get("movement"),
+                    f"{row.get('baseline_value_outcome')} -> {row.get('current_value_outcome')}",
+                    f"{row.get('baseline_bounded_outcome')} -> {row.get('current_bounded_outcome')}",
+                    metrics,
+                    row.get("reasons") or [],
+                )
+            )
+            + " |"
+        )
+    lines.append("")
+    lines.append("## Movement Counts")
+    lines.append("")
+    for movement, count in sorted(movements.items()):
+        lines.append(f"- {movement}: {count}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _filter_live_repo_inputs(
     *,
     repositories: list[dict],
@@ -942,6 +1268,30 @@ def main() -> int:
         default=[],
         help="Run live real-repo validation for one repository id. Repeat to include multiple repositories.",
     )
+    parser.add_argument(
+        "--benchmark-snapshot-source",
+        help="Read a live real-repo validation report and write a compact history snapshot.",
+    )
+    parser.add_argument(
+        "--benchmark-snapshot-output",
+        help="Output path for --benchmark-snapshot-source.",
+    )
+    parser.add_argument(
+        "--benchmark-compare-current",
+        help="Current live report or compact snapshot to compare.",
+    )
+    parser.add_argument(
+        "--benchmark-compare-baseline",
+        help="Baseline compact snapshot or live report to compare against.",
+    )
+    parser.add_argument(
+        "--benchmark-compare-output",
+        help="Output path for machine-readable benchmark comparison JSON.",
+    )
+    parser.add_argument(
+        "--benchmark-compare-markdown-output",
+        help="Optional output path for operator-readable benchmark comparison Markdown.",
+    )
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[2]
@@ -968,6 +1318,53 @@ def main() -> int:
     drift_case_status = validate_drift_cases(drift_cases, live_repositories)
     if drift_case_status != 0:
         return drift_case_status
+
+    if args.benchmark_snapshot_source:
+        if not args.benchmark_snapshot_output:
+            print("--benchmark-snapshot-output is required with --benchmark-snapshot-source.", file=sys.stderr)
+            return 1
+        try:
+            source_report = _load_json_object((root / args.benchmark_snapshot_source).resolve())
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"Failed to read benchmark snapshot source: {exc}", file=sys.stderr)
+            return 1
+        snapshot = _snapshot_from_report_or_snapshot(source_report)
+        validation_status = validate_benchmark_history_snapshot(snapshot)
+        if validation_status != 0:
+            return validation_status
+        output_path = (root / args.benchmark_snapshot_output).resolve()
+        _write_report(output_path, snapshot)
+        print(f"Real-repo benchmark history snapshot written to {output_path}")
+        return 0
+
+    if args.benchmark_compare_current or args.benchmark_compare_baseline:
+        if not args.benchmark_compare_current or not args.benchmark_compare_baseline or not args.benchmark_compare_output:
+            print(
+                "--benchmark-compare-current, --benchmark-compare-baseline, and --benchmark-compare-output are required together.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            current_payload = _load_json_object((root / args.benchmark_compare_current).resolve())
+            baseline_payload = _load_json_object((root / args.benchmark_compare_baseline).resolve())
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(f"Failed to read benchmark comparison input: {exc}", file=sys.stderr)
+            return 1
+        current_snapshot = _snapshot_from_report_or_snapshot(current_payload)
+        baseline_snapshot = _snapshot_from_report_or_snapshot(baseline_payload)
+        if validate_benchmark_history_snapshot(current_snapshot) != 0:
+            return 1
+        if validate_benchmark_history_snapshot(baseline_snapshot) != 0:
+            return 1
+        comparison = compare_benchmark_snapshots(current_snapshot=current_snapshot, baseline_snapshot=baseline_snapshot)
+        output_path = (root / args.benchmark_compare_output).resolve()
+        _write_report(output_path, comparison)
+        print(f"Real-repo benchmark comparison written to {output_path}")
+        if args.benchmark_compare_markdown_output:
+            markdown_path = (root / args.benchmark_compare_markdown_output).resolve()
+            _write_benchmark_comparison_markdown(markdown_path, comparison)
+            print(f"Real-repo benchmark comparison Markdown written to {markdown_path}")
+        return 0
 
     if args.live_real_repos:
         try:
