@@ -16,6 +16,57 @@ This is the canonical local release baseline validation path for the current bra
 
 Run individual commands only when debugging a failure from the canonical script.
 
+## Default governance development protocol
+
+- [ ] run `python scripts/governance/agent_guardrail.py --protocol-status --summary` before non-trivial implementation
+- [ ] run `python scripts/governance/agent_guardrail.py --protocol-status --summary` after targeted validation and before claiming completion
+- [ ] record any `caution` or `pause` evidence in the implementation, archive, commit, or readiness handoff
+
+The protocol status is local workflow evidence for developers and AI agents. It reports active OpenSpec context, guardrail status, diff status, drift status, required tests, recommended actions, human questions, and handoff guidance.
+
+This protocol does not replace the canonical release baseline command. It remains advisory by default and is separate from optional `--enforcement-preview` or `--strict-exit` behavior.
+
+## Release evidence bundle
+
+- [ ] generate a release evidence bundle after running the relevant validation commands
+- [ ] attach or reference both `.tmp/release-evidence.json` and `.tmp/release-evidence.md` in release, PR, archive, or hosted-preview handoff notes
+- [ ] disclose any `warning`, `caution`, `pause`, missing optional input, or real-repo benchmark blocker before claiming clean readiness
+
+Default local evidence command after a normal release review:
+
+```powershell
+python scripts/ci/collect_release_evidence.py `
+  --pre-release-status passed `
+  --openspec-status passed `
+  --offline-benchmark-status passed `
+  --guardrail-status caution
+```
+
+Evidence command with explicit real-repo benchmark comparison output:
+
+```powershell
+python scripts/ci/collect_release_evidence.py `
+  --pre-release-status passed `
+  --openspec-status passed `
+  --offline-benchmark-status passed `
+  --guardrail-report .tmp/agent-guardrail.json `
+  --benchmark-comparison-report .tmp/real-repo-benchmark-comparison.json
+```
+
+Required gates:
+
+- canonical pre-release baseline: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
+- OpenSpec strict validation: `openspec validate --all --strict`
+- offline benchmark fixture validation: `python scripts/ci/run_benchmark.py`
+
+Advisory confidence signals:
+
+- governance guardrail status or JSON report
+- targeted test summary
+- real-repo benchmark comparison JSON
+
+The evidence bundle is local and non-mutating. It does not create tags, push commits, publish releases, archive OpenSpec changes, or run live/network-heavy benchmark checks by default. Optional evidence must be supplied through explicit paths; missing optional evidence is recorded instead of treated as a hidden pass.
+
 Latest v0.3 RC pre-tag validation:
 
 - Intended tag: `v0.3.0-rc.1`
@@ -30,7 +81,7 @@ Latest post-stage-7 documentation and governance validation:
 
 - OpenSpec strict validation: 2026-05-06, `37 passed, 0 failed`
 - Governance guardrail tests: include summary output coverage for workflow checkpoints
-- AI-agent governance guardrail interface availability: `caution` advisory on the current working tree; enforcement preview returned `warning`
+- AI-agent governance guardrail interface availability: `continue` on a clean working tree; enforcement preview returned `pass`
 - Governance stage 5/6/7 tests: `19 passed`
 - Seeded demo recovery tests: verify readiness detection, consumed review queue reset, and imported workspace preservation
 - Migration revision-length/schema tests: include `tests/db/test_migrations.py`
@@ -59,6 +110,7 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] Governance Markdown ingest is documented as a human-reviewed rules flow
 - [ ] AI-agent governance guardrail returns advisory `continue` / `caution` / `pause`
 - [ ] Governance guardrail is documented as non-blocking by default
+- [ ] Default governance development protocol status reports OpenSpec context, guardrail status, required tests, recommended actions, human questions, and handoff guidance
 - [ ] Optional governance enforcement preview, if used, is recorded as advisory evidence and not treated as the default release gate
 
 ## Mandatory documentation baseline
@@ -68,6 +120,7 @@ Latest post-stage-7 documentation and governance validation:
 - [ ] `docs/project/quick-start.md` is accurate
 - [ ] `docs/project/quick-start_zh-CN.md` mirrors quick-start guidance
 - [ ] `docs/project/governance-agent-guardrail.md` documents agent usage and pause behavior
+- [ ] `docs/project/governance-agent-guardrail.md` documents the default local governance development protocol
 - [ ] quick start/deployment/operator docs distinguish non-destructive seed, reset, reseed, and explicit `-ResetSeededDemo`
 - [ ] `docs/project/demo-script.md` matches current routes
 - [ ] `docs/plans/2026-04-27-decisionatlas-v0-3-next-roadmap.md` reflects the current next route

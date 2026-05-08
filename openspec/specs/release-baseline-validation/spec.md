@@ -153,3 +153,55 @@ The system SHALL keep optional governance enforcement preview output separate fr
 #### Scenario: Preview limitation is explicit
 - **WHEN** release or hosted-preview documentation mentions enforcement preview
 - **THEN** it SHALL state that the preview is opt-in, warning/report oriented by default, and not default CI enforcement
+
+### Requirement: Release-facing docs distinguish development protocol from release gates
+The system SHALL keep the default local governance development protocol distinct from canonical release validation and optional enforcement preview.
+
+#### Scenario: Docs identify canonical release gate
+- **WHEN** release-facing docs mention the default governance development protocol
+- **THEN** they SHALL continue to identify the canonical local release gate as the mandatory deterministic release validation path
+
+#### Scenario: Docs identify development protocol scope
+- **WHEN** developers or AI agents read workflow guidance
+- **THEN** the docs SHALL describe the default governance development protocol as local workflow guidance for preflight, postflight, archive, commit, and handoff behavior
+
+#### Scenario: Docs identify enforcement preview as opt-in
+- **WHEN** docs mention enforcement preview or strict exit behavior
+- **THEN** they SHALL state that enforcement preview remains opt-in and is not default CI enforcement
+
+### Requirement: Release checklist records governance protocol evidence
+The system SHALL allow release and readiness records to include governance protocol evidence without making advisory guardrail status a default release blocker.
+
+#### Scenario: Checklist can record protocol status
+- **WHEN** a maintainer prepares release or readiness evidence
+- **THEN** the checklist MAY record the latest protocol status, guardrail status, recommended actions, and human questions as advisory evidence
+
+#### Scenario: Advisory status does not replace release gate
+- **WHEN** protocol status is recorded in release or readiness evidence
+- **THEN** the documentation SHALL state that it does not replace the canonical release baseline command
+
+#### Scenario: Pause evidence requires human decision before positive claims
+- **WHEN** protocol status reports `pause` during release or hosted-preview preparation
+- **THEN** release-facing guidance SHALL require a human decision before using that status as positive readiness evidence
+
+### Requirement: Release baseline validation can reference generated evidence bundles
+Release-facing validation records SHALL be able to reference generated release evidence bundles without replacing the canonical release gate.
+
+#### Scenario: Bundle summarizes canonical release gate
+- **WHEN** a release evidence bundle includes canonical pre-release validation status
+- **THEN** release-facing documentation MAY reference the bundle as supporting evidence
+- **AND** the canonical pre-release validation result SHALL remain visible as its own required gate.
+
+#### Scenario: Bundle keeps confidence layers separate
+- **WHEN** the evidence bundle includes OpenSpec validation, governance guardrail status, benchmark results, and targeted test summaries
+- **THEN** the bundle SHALL preserve which results are required gates and which results are advisory confidence layers.
+
+#### Scenario: Advisory evidence requires disclosure
+- **WHEN** advisory evidence reports `caution`, `warning`, `pause`, or an equivalent non-clean status
+- **THEN** release-facing documentation that references the bundle SHALL disclose that status before making a positive readiness claim.
+
+#### Scenario: Bundle does not replace manual release decision
+- **WHEN** all generated evidence is present
+- **THEN** the bundle SHALL support the release decision
+- **AND** the bundle SHALL NOT automatically publish, archive, tag, or approve a release.
+
