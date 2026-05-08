@@ -88,6 +88,47 @@ python scripts\ci\run_benchmark.py --live-real-repos --repo-id browser-use
 
 The generated JSON and Markdown reports default to `.tmp/`. Summarize or attach dated reports when useful; do not commit default `.tmp/` reports as durable preview evidence.
 
+## Readiness Artifact
+
+After running the relevant checks, generate a hosted/operator readiness artifact:
+
+```powershell
+python scripts\demo\collect_hosted_readiness.py `
+  --web-base-url "https://your-demo.example.com" `
+  --api-base-url "https://your-api.example.com" `
+  --engine-base-url "https://your-engine.example.com" `
+  --health-status pass `
+  --smoke-status pass `
+  --seeded-readiness-status pass `
+  --recovery-status operator_guided `
+  --guardrail-status caution `
+  --release-evidence-report .tmp/release-evidence.json `
+  --real-repo-evidence-report .tmp/live-real-repo-comparison-2026-05-08.json
+```
+
+The command writes `.tmp/hosted-operator-readiness.json` and `.tmp/hosted-operator-readiness.md`. Attach or summarize the Markdown handoff in external preview notes.
+
+When hosted URLs are unavailable during local preparation, use an operator-guided rehearsal record:
+
+```powershell
+python scripts\demo\collect_hosted_readiness.py `
+  --health-status operator_guided `
+  --smoke-status operator_guided `
+  --seeded-readiness-status pass `
+  --recovery-status operator_guided
+```
+
+Interpretation:
+
+- `pass`: the lane has current positive evidence.
+- `blocking`: the public walkthrough cannot proceed if the lane is required for web/API/engine/seeded-demo readiness.
+- `non_blocking`: disclose the issue; the stable public walkthrough can still proceed if required lanes are clean.
+- `known_limitation`: the lane depends on unavailable hosted infrastructure, credentials, provider access, GitHub state, or network conditions.
+- `operator_guided`: an operator must still provide hosted URLs, credentials, reports, or a manual decision.
+- `not_provided`: optional evidence was not attached and must not be treated as pass.
+
+The readiness artifact is local and non-mutating. It does not reset or reseed data, import repositories, run live benchmark checks, create tags, push commits, publish releases, or replace the canonical release gate.
+
 ## Recovery Drill
 
 Use reset for a drifted seeded walkthrough state:

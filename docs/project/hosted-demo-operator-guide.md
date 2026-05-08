@@ -80,6 +80,46 @@ Guardrail result handling:
 
 The guardrail is advisory by default. Do not describe it as CI enforcement, automatic rule acceptance, or automatic code/spec remediation.
 
+## Delivery Readiness Handoff
+
+Before an external preview, generate a bounded hosted/operator readiness handoff after running the checks that are available for that environment:
+
+```powershell
+python scripts\demo\collect_hosted_readiness.py `
+  --web-base-url "https://your-demo.example.com" `
+  --api-base-url "https://your-api.example.com" `
+  --engine-base-url "https://your-engine.example.com" `
+  --health-status pass `
+  --smoke-status pass `
+  --seeded-readiness-status pass `
+  --recovery-status operator_guided `
+  --guardrail-status caution `
+  --release-evidence-report .tmp/release-evidence.json
+```
+
+This writes:
+
+- `.tmp/hosted-operator-readiness.json`
+- `.tmp/hosted-operator-readiness.md`
+
+If hosted URLs are not available during local rehearsal, generate an honest operator-guided record rather than marking hosted checks as passed:
+
+```powershell
+python scripts\demo\collect_hosted_readiness.py `
+  --health-status operator_guided `
+  --smoke-status operator_guided `
+  --seeded-readiness-status pass `
+  --recovery-status operator_guided
+```
+
+Stop/go interpretation:
+
+- `blocking` on web, API, engine, hosted health, hosted smoke, or seeded demo readiness means the external public walkthrough should not proceed until fixed or explicitly excluded.
+- `operator_guided`, `known_limitation`, or `not_provided` on required hosted lanes means an operator still needs to run or record the hosted check before claiming the external preview passed.
+- Governance, imported repository, private access, release evidence, and real-repo benchmark lanes are optional credibility lanes. They must be disclosed when non-clean, but they do not replace the stable `demo-workspace` public walkthrough.
+
+Recovery evidence must state whether reset or reseed was rehearsed, blocked, not run, or operator-guided. Default reset and reseed actions are scoped to `demo-workspace`; they do not implicitly delete imported workspaces or governance history.
+
 ## GitHub App Webhook Sync Operations
 
 GitHub App installation binding is an admin/operator setup flow. Full GitHub Marketplace/OAuth self-service installation is still out of scope, but an operator can validate webhook-driven incremental sync for an already installed GitHub App.
