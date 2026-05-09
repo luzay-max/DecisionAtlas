@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-05-09T02:55:24.026736+00:00",
+  "comparison_type": "real-repo-benchmark-regression",
+  "baseline_generated_at": "2026-05-08T05:22:07.632443+00:00",
+  "current_generated_at": "2026-05-08T05:22:07.632443+00:00",
+  "summary": {
+    "repositories": 1,
+    "movements": {
+      "improved": 0,
+      "missing-from-current": 0,
+      "needs-review": 0,
+      "newly-evaluated": 0,
+      "operationally-blocked": 0,
+      "product-limited": 0,
+      "regressed": 0,
+      "unchanged": 1
+    },
+    "regressed": 0,
+    "improved": 0,
+    "operationally_blocked": 0,
+    "release_evidence_ready": true
+  },
+  "repositories": [
+    {
+      "id": "browser-use",
+      "repo": "browser-use/browser-use",
+      "workspace_slug": "github-browser-use-browser-use",
+      "movement": "unchanged",
+      "current_value_outcome": "useful_now",
+      "baseline_value_outcome": "useful_now",
+      "current_bounded_outcome": "why_ready",
+      "baseline_bounded_outcome": "why_ready",
+      "metric_deltas": {
+        "candidate_decision_count": {
+          "current": 62,
+          "baseline": 62,
+          "delta": 0.0
+        },
+        "accepted_decision_count": {
+          "current": 5,
+          "baseline": 5,
+          "delta": 0.0
+        },
+        "strong_candidate_count": {
+          "current": 34,
+          "baseline": 34,
+          "delta": 0.0
+        },
+        "thin_candidate_ratio": {
+          "current": 0.0,
+          "baseline": 0.0,
+          "delta": 0.0
+        },
+        "why_case_passed_count": {
+          "current": 3,
+          "baseline": 3,
+          "delta": 0.0
+        },
+        "drift_case_passed_count": {
+          "current": 3,
+          "baseline": 3,
+          "delta": 0.0
+        },
+        "limitation_categories": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        },
+        "follow_up_categories": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        }
+      },
+      "reasons": [
+        "value_outcome: useful_now -> useful_now",
+        "bounded_outcome: why_ready -> why_ready"
+      ]
+    }
+  ]
+}

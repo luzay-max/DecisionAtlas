@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "commit": "9b83fa9",
+      "counts": {
+        "benchmark_improvements": 0,
+        "benchmark_operational_blockers": 0,
+        "benchmark_regressions": 0,
+        "blockers": 0,
+        "known_limitations": 0,
+        "not_provided": 1,
+        "operator_guided": 6,
+        "warnings": 0
+      },
+      "created_at": "2026-05-09T00:00:00+00:00",
+      "entry_id": "2026-05-09-release-rehearsal",
+      "family_statuses": {
+        "benchmark_comparison": "passed",
+        "hosted_readiness": "operator_guided",
+        "release_evidence": "warning"
+      },
+      "label": "release-rehearsal",
+      "status": "warning",
+      "version_label": "2026-05-09-release-rehearsal",
+      "warnings": []
+    }
+  ],
+  "generated_at": "2026-05-09T03:00:05.296152+00:00",
+  "history_root": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\docs\\evidence\\readiness",
+  "schema_version": 1
+}
