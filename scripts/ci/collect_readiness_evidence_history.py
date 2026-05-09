@@ -55,6 +55,15 @@ def _resolve_path(path: Path | None, root: Path) -> Path | None:
     return path if path.is_absolute() else root / path
 
 
+def _display_path(path: Path | None, root: Path) -> str | None:
+    if path is None:
+        return None
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
 def _read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -239,14 +248,14 @@ def build_entry(
 
         family_summary = _family_summary(source.family, data)
         family_summary["label"] = FAMILY_LABELS[source.family]
-        family_summary["source_path"] = str(json_source) if json_source is not None else None
-        family_summary["source_markdown_path"] = str(markdown_source) if markdown_source is not None else None
+        family_summary["source_path"] = _display_path(json_source, root)
+        family_summary["source_markdown_path"] = _display_path(markdown_source, root)
         families[source.family] = family_summary
         artifacts[source.family] = {
             "json": copied_json,
             "markdown": copied_markdown,
-            "source_json_path": str(json_source) if json_source is not None else None,
-            "source_markdown_path": str(markdown_source) if markdown_source is not None else None,
+            "source_json_path": _display_path(json_source, root),
+            "source_markdown_path": _display_path(markdown_source, root),
         }
 
     counts = _entry_counts(families)

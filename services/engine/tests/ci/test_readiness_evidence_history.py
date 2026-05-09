@@ -84,6 +84,8 @@ def test_readiness_history_extracts_release_hosted_and_benchmark_summaries(tmp_p
     assert entry["families"]["release_evidence"]["status"] == "warning"
     assert entry["families"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert entry["families"]["benchmark_comparison"]["regressed"] == 1
+    assert entry["families"]["release_evidence"]["source_path"] == "release.json"
+    assert entry["artifacts"]["release_evidence"]["source_json_path"] == "release.json"
     assert entry["counts"]["benchmark_operational_blockers"] == 1
     assert (tmp_path / "history" / "2026-05-09-release-rc-1" / "entry.json").exists()
 
