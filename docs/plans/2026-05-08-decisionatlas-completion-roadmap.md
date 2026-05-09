@@ -16,20 +16,20 @@ DecisionAtlas 已经不是空白项目，也不是单点演示：
 
 所以后续路线不是“继续补 demo”，而是“补完整产品所需的缺口”。
 
-## 距离完整产品还缺什么
+## 距离近期完整产品还缺什么
 
-### 1. 产品边界还不算完整
+### 1. Self-hosted 产品边界还不算完整
 
-当前系统已经接近 v0.3 RC，但离“可以对外长期交付的完整产品”还差这些能力：
+当前系统已经接近 v0.3 RC，但近期“完整产品”的目标不再定义为完整 SaaS，而是定义为可以本地部署、私有交付、可收费维护的 self-hosted 产品。还差这些能力：
 
-- full SaaS org management。
-- billing。
-- GitHub Marketplace / OAuth self-service 安装。
-- secret vault。
-- credential rotation history UI。
-- 多人协作 review workflow。
+- 稳定、清晰、可复现的 Docker Compose / 本地部署路径。
+- Community / Team Self-hosted / Enterprise Self-hosted 的能力边界。
+- license、support、limitation、upgrade policy 文档。
+- private repo operator guide。
+- 备份、恢复、升级、迁移说明。
+- 客户可读的 Code Decision Audit / governance report 模板。
 
-这些不是当前主线最优先，但如果目标是完整产品，它们最终都得补。
+full SaaS org management、billing、Marketplace / OAuth self-service、secret vault、多租户后台是远期 hosted managed service 的能力，不再作为近期完整产品的前置条件。
 
 ### 2. 真实仓库闭环还不够稳定
 
@@ -117,26 +117,28 @@ DecisionAtlas 已经不是空白项目，也不是单点演示：
 - release checklist 和 validation 报告联动。
 - 失败分类和排障文档。
 
-### 第四优先级: 完成平台化能力
+### 第四优先级: 完成 self-hosted 产品化能力
 
-目标是把项目从单机型产品推进到可长期运营形态。
+目标是把项目从工程可运行推进到可本地部署、可私有交付、可年度授权收费的产品形态。
 
 要做的功能：
 
-- org / billing / account 管理。
-- GitHub Marketplace / OAuth self-service。
-- secret management。
-- collaboration workflow。
-- 更完整的权限与审计。
+- 稳定 Docker Compose / 本地部署路径。
+- Community / Team / Enterprise 功能边界。
+- private repo operator guide。
+- license / support / limitation 文档。
+- 备份恢复和升级说明。
+- 客户可读报告模板。
+- self-hosted release checklist。
 
-这部分是“完整产品”里的最后一层，不应早于核心闭环和治理系统。
+这部分是近期商业化的最后一层，不应早于核心闭环和治理系统。完整 SaaS 能力可以作为远期可选方向，而不是当前“完整产品”的定义。
 
 ## 推荐开发顺序
 
 1. 先把核心闭环做稳。
 2. 再把治理知识系统做成协议。
 3. 再把运营和发布能力标准化。
-4. 最后做平台化扩展。
+4. 最后做 self-hosted 产品化。
 
 ## 暂时不建议优先做的事
 
@@ -145,6 +147,8 @@ DecisionAtlas 已经不是空白项目，也不是单点演示：
 - 默认 CI 强阻断式治理。
 - 大规模 connector 扩张。
 - 复杂 SaaS 后台先于 import / why / drift 的质量提升。
+- 永久买断授权先于年度维护模式。
+- hosted managed service 先于 self-hosted 可销售交付。
 
 ## 判断项目是否接近“完整”
 
@@ -156,14 +160,19 @@ DecisionAtlas 已经不是空白项目，也不是单点演示：
 - AI agent 能稳定读取治理上下文并按协议暂停。
 - demo / hosted preview 可恢复。
 - release / README / 中文文档 / limitation disclosure 保持一致。
+- self-hosted 部署可以在非本人机器上按文档跑通。
+- Community / Team / Enterprise 边界清楚。
+- 客户可以拿到一份可读的决策治理报告和 readiness evidence。
 
 ## 结论
 
-DecisionAtlas 距离“完整项目”还差的不是单一大功能，而是四个收口：
+DecisionAtlas 距离近期“完整产品”还差的不是单一大功能，而是四个收口：
 
 - 核心闭环要更稳。
 - 治理知识要更准。
 - 运营交付要更可复现。
-- 平台能力要最后补齐。
+- self-hosted 产品化要最后补齐。
 
 如果要先抓一个主线，应该先抓“真实仓库闭环 + 治理协议落地”，这两项会决定后续所有扩展是否值得做。
+
+远期如果客户明确要求托管交付，再考虑 hosted managed service、billing、多租户 SaaS、Marketplace / OAuth self-service 和更复杂的组织管理。

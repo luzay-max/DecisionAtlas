@@ -72,7 +72,8 @@ DecisionAtlas 已经从“搭建能力”进入“优化可靠性、可解释性
 - 统一 demo reset、启动、验证、恢复流程。
 - 补齐 operator guide 和 release checklist。
 - 维持 advisory-first，严格模式只做 opt-in。
-- 明确边界：这是治理与决策辅助系统，不是完整 SaaS 平台。
+- 明确边界：这是治理与决策辅助系统，近期产品化目标是 self-hosted / 私有部署可销售交付，不是完整 SaaS 平台。
+- 补齐 Community / Team Self-hosted / Enterprise Self-hosted 的能力边界、license/support/limitation 说明和客户可读报告模板。
 
 ## 推荐执行顺序
 
@@ -90,9 +91,11 @@ DecisionAtlas 已经从“搭建能力”进入“优化可靠性、可解释性
 短期不优先：
 
 - 多租户 SaaS 化
+- billing / Marketplace / 自助 OAuth
 - 默认 CI 强阻断
 - 大规模 connector 扩张
 - 复杂权限平台
+- 永久买断授权
 - 重新造一套与 OpenSpec 重复的计划系统
 
 ## 成功标准
@@ -101,4 +104,6 @@ DecisionAtlas 已经从“搭建能力”进入“优化可靠性、可解释性
 - 真实仓库 benchmark 可以稳定回归。
 - drift / diff / guardrail 的输出一致、可解释、可复核。
 - demo 可以重启、恢复、演示，不依赖记忆。
+- self-hosted 部署可以按文档在非本人机器上跑通。
+- 对外销售边界清楚：Community 免费试用、Team 年度授权、Enterprise 私有部署和支持。
 - 后续计划是“优化主线”，不是重复上一轮阶段目标。
