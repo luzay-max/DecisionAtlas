@@ -108,6 +108,21 @@ python scripts\demo\collect_hosted_readiness.py `
 
 The command writes `.tmp/hosted-operator-readiness.json` and `.tmp/hosted-operator-readiness.md`. Attach or summarize the Markdown handoff in external preview notes.
 
+When a hosted readiness artifact represents a preview checkpoint, archive it with the related release and benchmark evidence so the project keeps a dated trend record:
+
+```powershell
+python scripts\ci\collect_readiness_evidence_history.py archive `
+  --label hosted-preview-YYYY-MM-DD `
+  --hosted-readiness-json .tmp/hosted-operator-readiness.json `
+  --hosted-readiness-markdown .tmp/hosted-operator-readiness.md `
+  --release-evidence-json .tmp/release-evidence.json `
+  --release-evidence-markdown .tmp/release-evidence.md `
+  --benchmark-comparison-json .tmp/live-real-repo-comparison-2026-05-08.json `
+  --benchmark-comparison-markdown .tmp/live-real-repo-comparison-2026-05-08.md
+```
+
+The archive command copies only explicitly supplied artifacts into `docs/evidence/readiness/<date>-<label>/`, updates the history index, and preserves `operator_guided`, `known_limitation`, `blocking`, `warning`, and `not_provided` states.
+
 When hosted URLs are unavailable during local preparation, use an operator-guided rehearsal record:
 
 ```powershell

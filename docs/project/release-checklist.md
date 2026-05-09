@@ -67,6 +67,35 @@ Advisory confidence signals:
 
 The evidence bundle is local and non-mutating. It does not create tags, push commits, publish releases, archive OpenSpec changes, or run live/network-heavy benchmark checks by default. Optional evidence must be supplied through explicit paths; missing optional evidence is recorded instead of treated as a hidden pass.
 
+## Readiness evidence history
+
+- [ ] after generating release, hosted readiness, or benchmark comparison evidence, archive selected artifacts into durable readiness history when they represent a release, preview, or meaningful validation checkpoint
+- [ ] review `docs/evidence/readiness/index.md` and `docs/evidence/readiness/trend.md` before claiming readiness trend improvement
+- [ ] disclose `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states instead of converting them into pass
+
+Example archive command:
+
+```powershell
+python scripts/ci/collect_readiness_evidence_history.py archive `
+  --label v0-3-rc1 `
+  --version-label v0.3.0-rc.1 `
+  --commit <commit> `
+  --release-evidence-json .tmp/release-evidence.json `
+  --release-evidence-markdown .tmp/release-evidence.md `
+  --hosted-readiness-json .tmp/hosted-operator-readiness.json `
+  --hosted-readiness-markdown .tmp/hosted-operator-readiness.md `
+  --benchmark-comparison-json .tmp/live-real-repo-comparison-2026-05-08.json `
+  --benchmark-comparison-markdown .tmp/live-real-repo-comparison-2026-05-08.md
+```
+
+Regenerate history summaries without archiving a new entry:
+
+```powershell
+python scripts/ci/collect_readiness_evidence_history.py summarize
+```
+
+`.tmp` remains scratch output. Durable readiness history requires explicit archive command inputs and must not include secrets, private repository contents, raw model output, or unnecessary local-only logs.
+
 Latest v0.3 RC pre-tag validation:
 
 - Intended tag: `v0.3.0-rc.1`

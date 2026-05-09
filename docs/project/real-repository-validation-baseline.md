@@ -110,7 +110,16 @@ Comparison output classifies each repository as:
 
 Operational blockers are not counted as product regressions. They should still be disclosed in release handoff, but the next action is operator setup or rerun, not extraction/retrieval tuning.
 
-This comparison output is designed to become input for a later release evidence automation step. This step does not yet aggregate release evidence automatically; it only makes the real-repo benchmark evidence structured and comparable.
+This comparison output is designed to feed release evidence and readiness evidence history. After a meaningful comparison run, archive the JSON and Markdown reports with the related release and hosted readiness artifacts:
+
+```powershell
+python scripts/ci/collect_readiness_evidence_history.py archive `
+  --label real-repo-benchmark-YYYY-MM-DD `
+  --benchmark-comparison-json .tmp/live-real-repo-comparison-2026-05-08.json `
+  --benchmark-comparison-markdown .tmp/live-real-repo-comparison-2026-05-08.md
+```
+
+The history entry preserves repository count, movement counts, regression count, improvement count, and operational blocker count. It does not rerun live benchmarks or infer missing evidence from `.tmp`; every archived source must be supplied explicitly.
 
 ## Value Outcome Families
 
