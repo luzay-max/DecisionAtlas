@@ -96,6 +96,15 @@ python scripts/ci/collect_readiness_evidence_history.py summarize
 
 `.tmp` remains scratch output. Durable readiness history requires explicit archive command inputs and must not include secrets, private repository contents, raw model output, or unnecessary local-only logs.
 
+## Self-hosted commercial readiness
+
+- [ ] review [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) before customer evaluation or private deployment handoff
+- [ ] run [Self-Hosted Readiness Checklist](self-hosted-readiness-checklist.md) for Community, Team Self-hosted, or Enterprise Self-hosted packaging
+- [ ] prepare [Code Decision Audit Template](code-decision-audit-template.md) when the release or evaluation is used as a paid pilot/customer handoff
+- [ ] disclose deferred capabilities: billing, full SaaS org management, hosted multi-tenancy, Marketplace/self-service OAuth, hosted secret vault, permanent buyout licensing, and hosted managed service operations
+- [ ] disclose that product/support tier boundaries do not imply runtime license enforcement in the current baseline
+- [ ] preserve `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states in customer-facing evidence
+
 Latest v0.3 RC pre-tag validation:
 
 - Intended tag: `v0.3.0-rc.1`

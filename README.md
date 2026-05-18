@@ -157,6 +157,9 @@ Current post-stage-7 planning is captured in:
 
 - [Quick Start](./docs/project/quick-start.md)
 - [Deployment](./docs/project/deployment.md)
+- [Self-Hosted Commercial Baseline](./docs/project/self-hosted-commercial-baseline.md)
+- [Self-Hosted Readiness Checklist](./docs/project/self-hosted-readiness-checklist.md)
+- [Code Decision Audit Template](./docs/project/code-decision-audit-template.md)
 - [FAQ](./docs/project/faq.md)
 - [Demo Script](./docs/project/demo-script.md)
 - [Hosted Preview Readiness](./docs/project/hosted-preview-readiness.md)
@@ -174,6 +177,8 @@ Current post-stage-7 planning is captured in:
 - v0.3 RC includes local/bootstrap session recovery, owner scope switching, and role-gated product actions, but not a full SaaS org-management console.
 - GitHub App installation binding and token-backed private repository access binding are admin/operator flows; full GitHub Marketplace/OAuth self-service and secret vault behavior are not included.
 - Multi-user collaborative review workflows and billing are not included.
+- Near-term productization targets self-hosted Community / Team / Enterprise packaging; hosted managed service, billing, and Marketplace-style onboarding remain future optional work.
+- Product/support tier boundaries are documented for self-hosted packaging, but runtime license enforcement is not part of the current baseline.
 - Semantic drift labels are conservative and intentionally narrow.
 - Imported workspaces can still be sparse depending on repository signal quality.
 - Governance guardrails are advisory by default and do not block CI unless a future explicit change enables that mode.

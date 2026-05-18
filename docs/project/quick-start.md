@@ -1,10 +1,12 @@
 # Quick Start
 
-[Home](../README.md) | [Deployment](deployment.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](quick-start_zh-CN.md)
+[Home](../../README.md) | [Deployment](deployment.md) | [Self-Hosted Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](quick-start_zh-CN.md)
 
 ---
 
 This project is optimized for local development on a single machine.
+
+For customer evaluation or private deployment packaging, use [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) after this quick start. It defines Community, Team Self-hosted, and Enterprise Self-hosted boundaries without introducing billing, Marketplace, hosted multi-tenancy, or runtime license enforcement.
 
 ### Prerequisites
 
