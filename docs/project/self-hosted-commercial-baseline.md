@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Code Decision Audit Template](code-decision-audit-template.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Code Decision Audit Template](code-decision-audit-template.md)
 
 ---
 
@@ -158,6 +158,8 @@ Troubleshooting categories:
 
 Use [Self-Hosted Readiness Checklist](self-hosted-readiness-checklist.md) before claiming a self-hosted deployment is ready.
 
+Use [Self-Hosted Delivery Rehearsal](self-hosted-delivery-rehearsal.md) before customer evaluation, paid pilot handoff, or enterprise delivery claims. Customer-facing readiness claims should reference a completed readiness history entry or explicitly disclose why rehearsal evidence is missing.
+
 Core checks:
 
 ```powershell
@@ -232,6 +234,8 @@ Rollback expectation:
 ## Commercial Handoff
 
 For first paid pilots, use [Code Decision Audit Template](code-decision-audit-template.md). It lets an operator deliver a bounded report without adding runtime license enforcement.
+
+For a complete handoff, attach the latest self-hosted delivery rehearsal summary and readiness evidence history entry. Non-clean states such as `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` must remain visible in customer-facing material.
 
 The recommended pilot claim is:
 

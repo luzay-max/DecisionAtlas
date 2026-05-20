@@ -1,10 +1,12 @@
 # Self-Hosted Readiness Checklist
 
-[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Deployment](deployment.md) | [Release Checklist](release-checklist.md) | [Hosted Preview Readiness](hosted-preview-readiness.md)
+[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Deployment](deployment.md) | [Release Checklist](release-checklist.md) | [Hosted Preview Readiness](hosted-preview-readiness.md)
 
 ---
 
 Use this checklist before claiming a local/private DecisionAtlas deployment is ready for customer evaluation, Team Self-hosted use, or Enterprise Self-hosted handoff.
+
+For customer-facing claims, run or reference [Self-Hosted Delivery Rehearsal](self-hosted-delivery-rehearsal.md). If rehearsal evidence is missing, disclose that gap and avoid claiming clean readiness.
 
 ## Boundary
 
@@ -145,6 +147,7 @@ Use these states in customer-facing handoff:
 - [ ] Self-hosted tier boundary reviewed.
 - [ ] Deferred SaaS capabilities disclosed.
 - [ ] Deployment and validation commands recorded.
+- [ ] Self-hosted delivery rehearsal summary attached or explicitly marked missing.
 - [ ] Evidence bundle and readiness history attached or referenced.
 - [ ] Code Decision Audit report prepared if this is a paid pilot.
 - [ ] Limitations and recommended next actions are explicit.

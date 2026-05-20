@@ -100,10 +100,20 @@ python scripts/ci/collect_readiness_evidence_history.py summarize
 
 - [ ] review [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) before customer evaluation or private deployment handoff
 - [ ] run [Self-Hosted Readiness Checklist](self-hosted-readiness-checklist.md) for Community, Team Self-hosted, or Enterprise Self-hosted packaging
+- [ ] run or reference [Self-Hosted Delivery Rehearsal](self-hosted-delivery-rehearsal.md) before customer-facing self-hosted readiness claims
 - [ ] prepare [Code Decision Audit Template](code-decision-audit-template.md) when the release or evaluation is used as a paid pilot/customer handoff
 - [ ] disclose deferred capabilities: billing, full SaaS org management, hosted multi-tenancy, Marketplace/self-service OAuth, hosted secret vault, permanent buyout licensing, and hosted managed service operations
 - [ ] disclose that product/support tier boundaries do not imply runtime license enforcement in the current baseline
 - [ ] preserve `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states in customer-facing evidence
+
+Latest self-hosted delivery rehearsal:
+
+- Entry: `docs/evidence/readiness/2026-05-20-self-hosted-delivery-rehearsal/`
+- Summary: `docs/evidence/readiness/2026-05-20-self-hosted-delivery-rehearsal/summary.md`
+- Status: `warning`
+- Release evidence: required gates passed; optional targeted test summary `not_provided`
+- Hosted readiness: `operator_guided`; API and seeded demo passed, Web/Engine/full health/smoke/recovery need rerun before clean walkthrough claim
+- Benchmark comparison: passed with 0 regressions and 0 operational blockers
 
 Latest v0.3 RC pre-tag validation:
 

@@ -1,0 +1,186 @@
+{
+  "advisory_signals": [
+    {
+      "category": "advisory_signal",
+      "command": "python scripts/governance/agent_guardrail.py",
+      "details": {
+        "advisory_only": true,
+        "agent_status": "continue",
+        "diff_status": "pass",
+        "drift_status": "clean",
+        "summary": "Governance guardrail found no blocking or caution-level governance concerns."
+      },
+      "id": "governance_guardrail",
+      "label": "Governance guardrail",
+      "required": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\agent-guardrail.json",
+      "status": "passed"
+    },
+    {
+      "category": "advisory_signal",
+      "command": null,
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "id": "targeted_tests",
+      "label": "Targeted test summary",
+      "required": false,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    {
+      "category": "advisory_signal",
+      "command": "python scripts/ci/run_benchmark.py --benchmark-compare-current <current> --benchmark-compare-baseline <baseline> --benchmark-compare-output <output>",
+      "details": {
+        "comparison_type": "real-repo-benchmark-regression",
+        "improved": 0,
+        "operationally_blocked": 0,
+        "regressed": 0,
+        "release_evidence_ready": true,
+        "repositories": 1
+      },
+      "id": "real_repo_benchmark_comparison",
+      "label": "Real-repo benchmark comparison",
+      "required": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-repo-benchmark-comparison.json",
+      "status": "passed"
+    }
+  ],
+  "evidence_items": [
+    {
+      "category": "required_gate",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "canonical_pre_release",
+      "label": "Canonical pre-release baseline",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    },
+    {
+      "category": "required_gate",
+      "command": "openspec validate --all --strict",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "openspec_strict_validation",
+      "label": "OpenSpec strict validation",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    },
+    {
+      "category": "required_gate",
+      "command": "python scripts/ci/run_benchmark.py",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "offline_benchmark_validation",
+      "label": "Offline benchmark fixture validation",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    },
+    {
+      "category": "advisory_signal",
+      "command": "python scripts/governance/agent_guardrail.py",
+      "details": {
+        "advisory_only": true,
+        "agent_status": "continue",
+        "diff_status": "pass",
+        "drift_status": "clean",
+        "summary": "Governance guardrail found no blocking or caution-level governance concerns."
+      },
+      "id": "governance_guardrail",
+      "label": "Governance guardrail",
+      "required": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\agent-guardrail.json",
+      "status": "passed"
+    },
+    {
+      "category": "advisory_signal",
+      "command": null,
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "id": "targeted_tests",
+      "label": "Targeted test summary",
+      "required": false,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    {
+      "category": "advisory_signal",
+      "command": "python scripts/ci/run_benchmark.py --benchmark-compare-current <current> --benchmark-compare-baseline <baseline> --benchmark-compare-output <output>",
+      "details": {
+        "comparison_type": "real-repo-benchmark-regression",
+        "improved": 0,
+        "operationally_blocked": 0,
+        "regressed": 0,
+        "release_evidence_ready": true,
+        "repositories": 1
+      },
+      "id": "real_repo_benchmark_comparison",
+      "label": "Real-repo benchmark comparison",
+      "required": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-repo-benchmark-comparison.json",
+      "status": "passed"
+    }
+  ],
+  "generated_at": "2026-05-20T03:50:56.164409+00:00",
+  "missing_inputs": [
+    {
+      "id": "targeted_tests",
+      "label": "Targeted test summary",
+      "required": false,
+      "status": "not_provided"
+    }
+  ],
+  "overall_status": "warning",
+  "required_gates": [
+    {
+      "category": "required_gate",
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "canonical_pre_release",
+      "label": "Canonical pre-release baseline",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    },
+    {
+      "category": "required_gate",
+      "command": "openspec validate --all --strict",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "openspec_strict_validation",
+      "label": "OpenSpec strict validation",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    },
+    {
+      "category": "required_gate",
+      "command": "python scripts/ci/run_benchmark.py",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "id": "offline_benchmark_validation",
+      "label": "Offline benchmark fixture validation",
+      "required": true,
+      "source_path": null,
+      "status": "passed"
+    }
+  ],
+  "schema_version": 1,
+  "source_paths": {
+    "governance_guardrail": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\agent-guardrail.json",
+    "real_repo_benchmark_comparison": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-repo-benchmark-comparison.json"
+  },
+  "warnings": []
+}

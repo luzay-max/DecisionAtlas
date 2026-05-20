@@ -1,0 +1,133 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": "benchmark_comparison.json",
+      "markdown": "benchmark_comparison.md",
+      "source_json_path": ".tmp/real-repo-benchmark-comparison.json",
+      "source_markdown_path": ".tmp/real-repo-benchmark-comparison.md"
+    },
+    "hosted_readiness": {
+      "json": "hosted_readiness.json",
+      "markdown": "hosted_readiness.md",
+      "source_json_path": ".tmp/hosted-operator-readiness.json",
+      "source_markdown_path": ".tmp/hosted-operator-readiness.md"
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/release-evidence.json",
+      "source_markdown_path": ".tmp/release-evidence.md"
+    }
+  },
+  "commit": "ab248d9",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 1,
+    "operator_guided": 5,
+    "warnings": 0
+  },
+  "created_at": "2026-05-20T03:51:51.490835+00:00",
+  "entry_id": "2026-05-20-self-hosted-delivery-rehearsal",
+  "families": {
+    "benchmark_comparison": {
+      "comparison_type": "real-repo-benchmark-regression",
+      "generated_at": "2026-05-09T02:55:24.026736+00:00",
+      "improved": 0,
+      "label": "Benchmark comparison",
+      "movements": {
+        "improved": 0,
+        "missing-from-current": 0,
+        "needs-review": 0,
+        "newly-evaluated": 0,
+        "operationally-blocked": 0,
+        "product-limited": 0,
+        "regressed": 0,
+        "unchanged": 1
+      },
+      "operationally_blocked": 0,
+      "regressed": 0,
+      "release_evidence_ready": true,
+      "repositories": 1,
+      "source_markdown_path": ".tmp/real-repo-benchmark-comparison.md",
+      "source_path": ".tmp/real-repo-benchmark-comparison.json",
+      "status": "passed"
+    },
+    "hosted_readiness": {
+      "blocker_count": 0,
+      "blockers": [],
+      "generated_at": "2026-05-20T03:51:19.195534+00:00",
+      "known_limitation_count": 0,
+      "known_limitation_lanes": [],
+      "label": "Hosted readiness",
+      "lane_statuses": {
+        "api_hosted_url": "pass",
+        "engine_hosted_url": "operator_guided",
+        "governance_guardrail": "pass",
+        "hosted_health_check": "operator_guided",
+        "hosted_smoke_check": "operator_guided",
+        "real_repo_evidence": "pass",
+        "recovery_drill": "operator_guided",
+        "release_evidence": "non_blocking",
+        "seeded_demo_readiness": "pass",
+        "web_hosted_url": "operator_guided"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 5,
+      "operator_guided_lanes": [
+        "web_hosted_url",
+        "engine_hosted_url",
+        "hosted_health_check",
+        "hosted_smoke_check",
+        "recovery_drill"
+      ],
+      "public_walkthrough_decision": "operator_review_required",
+      "public_walkthrough_status": "operator_guided",
+      "source_markdown_path": ".tmp/hosted-operator-readiness.md",
+      "source_path": ".tmp/hosted-operator-readiness.json",
+      "status": "operator_guided",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "passed",
+        "real_repo_benchmark_comparison": "passed",
+        "targeted_tests": "not_provided"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-05-20T03:50:56.164409+00:00",
+      "label": "Release evidence",
+      "missing_input_count": 1,
+      "missing_inputs": [
+        {
+          "id": "targeted_tests",
+          "label": "Targeted test summary",
+          "required": false,
+          "status": "not_provided"
+        }
+      ],
+      "not_provided_count": 1,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/release-evidence.md",
+      "source_path": ".tmp/release-evidence.json",
+      "status": "warning",
+      "warning_count": 0,
+      "warnings": []
+    }
+  },
+  "label": "self-hosted-delivery-rehearsal",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "self-hosted-rehearsal-2026-05-20",
+  "warnings": []
+}
