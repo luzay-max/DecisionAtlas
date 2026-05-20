@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.auth import SESSION_HEADER
-from app.db.models import Decision, Workspace
+from app.db.models import Actor, Decision, Workspace
 from app.main import create_app
 from app.repositories.auth import AuthRepository, hash_password
 
@@ -85,6 +85,30 @@ def test_import_requires_admin_role(tmp_path: Path, monkeypatch) -> None:
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Forbidden"
+
+
+def test_disabled_actor_cannot_login_or_recover_existing_session(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "auth-disabled.db"
+    _upgrade(db_path, monkeypatch)
+    disabled_token = _create_actor_session(db_path, username="disabled-user", role="viewer")
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        actor = session.query(Actor).filter_by(username="disabled-user").one()
+        actor.status = "disabled"
+        session.commit()
+
+    client = TestClient(create_app())
+    session_response = client.get("/auth/session", headers={SESSION_HEADER: disabled_token})
+    assert session_response.status_code == 401
+    assert session_response.json()["detail"] == "User account is disabled"
+
+    login_response = client.post(
+        "/auth/login",
+        json={"username": "disabled-user", "password": "password123"},
+    )
+    assert login_response.status_code == 401
+    assert login_response.json()["detail"] == "User account is disabled"
 
 
 def test_reviewer_can_review_but_viewer_cannot(tmp_path: Path, monkeypatch) -> None:

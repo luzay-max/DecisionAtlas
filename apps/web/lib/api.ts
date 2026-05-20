@@ -384,6 +384,21 @@ export type ProductSession = {
   available_scopes: OwnerScopeMembership[];
 };
 
+export type TeamAccount = {
+  id: number;
+  username: string;
+  display_name: string | null;
+  status: "active" | "disabled" | string;
+  bootstrap: boolean;
+  role: ProductRole | null;
+};
+
+export type WorkspaceMember = {
+  workspace_id: number;
+  actor: TeamAccount;
+  role: ProductRole;
+};
+
 export class ApiError extends Error {
   status: number;
 
@@ -755,4 +770,108 @@ export async function updateGovernanceRuleLifecycle(
   }
   const body = await response.json();
   return body.rule;
+}
+
+export async function listTeamAccounts(): Promise<TeamAccount[]> {
+  const response = await apiFetch(`${apiBaseUrl}/team/accounts`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Failed to load team accounts");
+  }
+  const body = await response.json();
+  return body.accounts ?? [];
+}
+
+export async function createTeamAccount(input: {
+  username: string;
+  password: string;
+  display_name?: string;
+  role: "viewer" | "reviewer" | "admin";
+}): Promise<TeamAccount> {
+  const response = await apiFetch(`${apiBaseUrl}/team/accounts`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to create team account");
+  }
+  const body = await response.json();
+  return body.account;
+}
+
+export async function disableTeamAccount(actorId: number): Promise<TeamAccount> {
+  const response = await apiFetch(`${apiBaseUrl}/team/accounts/${actorId}/disable`, { method: "POST" });
+  if (!response.ok) {
+    await readError(response, "Failed to disable team account");
+  }
+  const body = await response.json();
+  return body.account;
+}
+
+export async function resetTeamAccountPassword(actorId: number, password: string): Promise<TeamAccount> {
+  const response = await apiFetch(`${apiBaseUrl}/team/accounts/${actorId}/reset-password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to reset team account password");
+  }
+  const body = await response.json();
+  return body.account;
+}
+
+export async function updateTeamAccountRole(actorId: number, role: "viewer" | "reviewer" | "admin"): Promise<TeamAccount> {
+  const response = await apiFetch(`${apiBaseUrl}/team/accounts/${actorId}/role`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to update team account role");
+  }
+  const body = await response.json();
+  return body.account;
+}
+
+export async function listWorkspaceMembers(workspaceSlug: string): Promise<WorkspaceMember[]> {
+  const response = await apiFetch(
+    `${apiBaseUrl}/team/workspaces/${encodeURIComponent(workspaceSlug)}/members`,
+    { cache: "no-store" }
+  );
+  if (!response.ok) {
+    await readError(response, "Failed to load workspace members");
+  }
+  const body = await response.json();
+  return body.members ?? [];
+}
+
+export async function assignWorkspaceMember(
+  workspaceSlug: string,
+  actorId: number,
+  role: "viewer" | "reviewer" | "admin"
+): Promise<WorkspaceMember> {
+  const response = await apiFetch(
+    `${apiBaseUrl}/team/workspaces/${encodeURIComponent(workspaceSlug)}/members/${actorId}`,
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ role }),
+    }
+  );
+  if (!response.ok) {
+    await readError(response, "Failed to assign workspace member");
+  }
+  const body = await response.json();
+  return body.member;
+}
+
+export async function removeWorkspaceMember(workspaceSlug: string, actorId: number): Promise<void> {
+  const response = await apiFetch(
+    `${apiBaseUrl}/team/workspaces/${encodeURIComponent(workspaceSlug)}/members/${actorId}`,
+    { method: "DELETE" }
+  );
+  if (!response.ok) {
+    await readError(response, "Failed to remove workspace member");
+  }
 }

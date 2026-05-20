@@ -31,6 +31,7 @@ Future optional
 | Deployment | Local machine / Docker-backed real stack | Customer-managed self-hosted stack | Customer-managed private network or assisted deployment |
 | Repository access | Public repos and demo data | Private repos through supported operator/admin setup | Private repos with customer-controlled credentials and deployment review |
 | Workspaces | Demo and bounded evaluation workspaces | Multiple workspaces within the current owner-scope model | Multiple workspaces plus enterprise deployment conventions |
+| Team accounts | Local/bootstrap admin only | Admin-created accounts with admin/reviewer/viewer roles | Team roles plus deployment/support operating procedures |
 | Governance | Local governance reports and guardrail | Governance rule lifecycle and evidence handoff | Governance handoff, support workflow, and enterprise reporting conventions |
 | Evidence | Manual release/readiness evidence | Release evidence history and benchmark trend evidence | Evidence history plus deployment/support handoff |
 | Support | Community/self-guided | Paid support boundary | Assisted deployment, recovery guidance, and custom support scope |
@@ -49,7 +50,6 @@ The self-hosted baseline does not include:
 - hosted secret vault
 - hosted credential custody
 - permanent buyout license workflow
-- multi-user collaborative review workflow beyond the current role-gated product actions
 - managed hosted service operations
 
 These are future optional hosted managed service work, not prerequisites for the current self-hosted product.
@@ -161,6 +161,26 @@ Troubleshooting categories:
 - provider/network failure
 - stale workspace or active import/sync state
 - model provider unavailable or misconfigured
+
+## Team Accounts And Permission Boundary
+
+Team Self-hosted deployments use an administrator-managed account model:
+
+- Bootstrap admin remains the local/private first-run path.
+- Admins can create accounts, disable accounts, reset passwords, and assign roles.
+- Roles are `admin`, `reviewer`, and `viewer`.
+- Workspace membership can override the broader owner-scope role for a specific workspace.
+- Disabled users cannot log in or recover previously issued sessions.
+
+Role boundaries:
+
+| Role | Allowed | Not Allowed |
+| --- | --- | --- |
+| Admin | Manage accounts, workspace members, imports, tokens, reviews, governance, evidence | Hosted SaaS billing or external tenant administration |
+| Reviewer | Review decisions, handle drift/governance review flows, read evidence | Manage accounts, tokens, imports, or workspace membership |
+| Viewer | Read decisions, why-search, timeline, drift status, and evidence | Import, review, mutate governance, manage accounts, or manage credentials |
+
+This is intentionally manual. Self-service signup, invitations, SSO, OAuth app installation, hosted tenant management, SaaS billing, and Marketplace distribution remain out of scope for the current self-hosted baseline.
 
 ## Validation And Evidence
 

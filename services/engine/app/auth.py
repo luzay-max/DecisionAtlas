@@ -53,6 +53,8 @@ def require_actor(
         scope = session.get(OwnerScope, auth_session.current_owner_scope_id)
         if actor is None or scope is None:
             raise HTTPException(status_code=401, detail="Authentication required")
+        if actor.status != "active":
+            raise HTTPException(status_code=401, detail="User account is disabled")
         membership = repo.get_membership(actor_id=actor.id, owner_scope_id=scope.id)
         if membership is None:
             raise HTTPException(status_code=403, detail="Owner scope membership required")
@@ -96,5 +98,16 @@ def require_workspace_role(
     workspace = WorkspaceRepository(session).get_by_slug(workspace_slug)
     if workspace is None:
         raise HTTPException(status_code=404, detail=f"Workspace not found: {workspace_slug}")
-    require_scope_role(auth, owner_scope=workspace.owner_scope, required_role=required_role, hide_not_found=hide_not_found)
+    require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=hide_not_found)
+    effective_role = AuthRepository(session).resolve_workspace_role(
+        actor_id=auth.actor_id,
+        workspace=workspace,
+        owner_scope_id=auth.owner_scope_id,
+    )
+    if effective_role is None:
+        if hide_not_found:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not role_allows(effective_role, required_role):
+        raise HTTPException(status_code=403, detail="Forbidden")
     return workspace

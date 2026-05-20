@@ -31,6 +31,8 @@ def bootstrap_auth() -> dict:
             "actor": {
                 "id": actor.id,
                 "username": actor.username,
+                "bootstrap": actor.is_bootstrap,
+                "status": actor.status,
             },
             "current_owner_scope": scope.scope_key,
             "role": membership.role,
@@ -47,6 +49,8 @@ def login(request: LoginRequest) -> dict:
         actor = repo.get_actor_by_username(request.username)
         if actor is None or not verify_password(request.password, actor.password_hash):
             raise HTTPException(status_code=401, detail="Invalid credentials")
+        if actor.status != "active":
+            raise HTTPException(status_code=401, detail="User account is disabled")
         memberships = repo.list_memberships_for_actor(actor.id)
         if not memberships:
             raise HTTPException(status_code=403, detail="Owner scope membership required")
@@ -55,7 +59,7 @@ def login(request: LoginRequest) -> dict:
         session.commit()
         return {
             "session_token": auth_session.session_token,
-            "actor": {"id": actor.id, "username": actor.username},
+            "actor": {"id": actor.id, "username": actor.username, "bootstrap": actor.is_bootstrap, "status": actor.status},
             "current_owner_scope": scope.scope_key,
             "role": membership.role,
             "available_scopes": [

@@ -203,7 +203,7 @@ def get_import_job(
         workspace = WorkspaceRepository(session).get_by_id(job.workspace_id)
         if workspace is None:
             raise HTTPException(status_code=404, detail=f"Workspace not found for import job: {job_id}")
-        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=True)
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="viewer", hide_not_found=True)
         return get_import_job_status(job_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -295,7 +295,8 @@ body {
   gap: 6px;
 }
 
-.scope-switcher select {
+.scope-switcher select,
+.field select {
   max-width: 100%;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -352,7 +353,9 @@ body {
   background: rgba(255, 255, 255, 0.95);
 }
 
-.search-form button {
+.search-form button,
+.stack button,
+.card button {
   width: fit-content;
   border: 1px solid var(--line);
   border-radius: 999px;

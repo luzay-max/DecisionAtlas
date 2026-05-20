@@ -10,13 +10,14 @@ import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
 import { queryRoute } from "./routes/query";
 import { runtimeRoute } from "./routes/runtime";
+import { teamRoute } from "./routes/team";
 import { timelineRoute } from "./routes/timeline";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
   app.register(cors, {
     origin: true,
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   });
   app.register(authRoute);
@@ -26,6 +27,7 @@ export function buildServer() {
   app.register(decisionsRoute);
   app.register(queryRoute);
   app.register(runtimeRoute);
+  app.register(teamRoute);
   app.register(timelineRoute);
   app.register(dashboardRoute);
   app.register(driftRoute);

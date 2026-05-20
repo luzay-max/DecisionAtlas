@@ -59,6 +59,9 @@ export default function HomePage() {
           <Link href="/drift?workspace=demo-workspace" className="action-link">
             {messages.home.jumpDrift}
           </Link>
+          <Link href="/team" className="action-link">
+            Team admin
+          </Link>
         </div>
         <AdvancedControls id="advanced-controls">
           <div className="action-row home-toolbar">

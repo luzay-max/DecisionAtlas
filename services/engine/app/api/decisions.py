@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
+from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
 from app.db.models import Workspace
 from app.provenance import get_workspace_provenance
@@ -200,7 +200,7 @@ def get_decision(
         workspace = session.scalar(select(Workspace).where(Workspace.id == decision.workspace_id))
         if workspace is None:
             raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
-        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="viewer", hide_not_found=True)
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="viewer", hide_not_found=True)
         provenance = get_workspace_provenance(session=session, workspace=workspace)
         artifacts = ArtifactRepository(session)
         decision_source_refs = source_refs.list_by_decision(decision.id)
@@ -233,7 +233,7 @@ def review_decision(
         workspace = session.scalar(select(Workspace).where(Workspace.id == existing.workspace_id))
         if workspace is None:
             raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
-        require_scope_role(auth, owner_scope=workspace.owner_scope, required_role="reviewer", hide_not_found=True)
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="reviewer", hide_not_found=True)
         decision = decisions.update_review_state(decision_id, request.review_state)
         session.commit()
         return _serialize_decision(decision)

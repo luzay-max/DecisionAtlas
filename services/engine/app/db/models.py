@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -30,7 +30,9 @@ class Actor(Base):
     username: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, default="active")
     is_bootstrap: Mapped[bool] = mapped_column(default=False, nullable=False)
+    disabled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 
@@ -52,6 +54,20 @@ class OwnerScopeMembership(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     actor_id: Mapped[int] = mapped_column(ForeignKey("actors.id"), nullable=False)
     owner_scope_id: Mapped[int] = mapped_column(ForeignKey("owner_scopes.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(50), nullable=False, default="viewer")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
+class WorkspaceMembership(Base):
+    __tablename__ = "workspace_memberships"
+    __table_args__ = (
+        UniqueConstraint("workspace_id", "actor_id", name="uq_workspace_memberships_workspace_actor"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    workspace_id: Mapped[int] = mapped_column(ForeignKey("workspaces.id"), nullable=False)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("actors.id"), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="viewer")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
