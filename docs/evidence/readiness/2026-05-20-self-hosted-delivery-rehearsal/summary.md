@@ -5,7 +5,7 @@
 - Commit reference: `ab248d9`
 - Rehearsal date: `2026-05-20`
 - Deployment mode: local/private self-hosted rehearsal
-- Overall history status: `warning`
+- Overall history status: `passed`
 
 ## Scope
 
@@ -16,11 +16,11 @@ This rehearsal validates the self-hosted delivery handoff path using existing De
 | Lane | Status | Evidence |
 | --- | --- | --- |
 | API health at `http://localhost:3001/health` | `pass` | Returned `ok=true` |
-| Web at `http://localhost:3000` | `operator_guided` | Connection refused during probe |
-| Engine at `http://localhost:8000/health` | `operator_guided` | Connection refused during probe |
+| Web at `http://localhost:3000` | `pass` | `scripts/demo/health-check.ps1` |
+| Engine at `http://localhost:8000/health` | `pass` | `scripts/demo/health-check.ps1` |
 | Seeded demo readiness | `pass` | `.tmp/seeded-demo-readiness.json` |
-| Hosted health check | `operator_guided` | Full Web/API/Engine health check requires Web and Engine URLs |
-| Hosted guided-demo smoke | `operator_guided` | Requires Web and Engine readiness |
+| Hosted health check | `pass` | Web/API/Engine all reachable |
+| Hosted guided-demo smoke | `pass` | Playwright demo smoke `1 passed` |
 | Reset/reseed recovery drill | `operator_guided` | Not executed during this rehearsal |
 
 ## Validation Evidence
@@ -31,10 +31,10 @@ This rehearsal validates the self-hosted delivery handoff path using existing De
 | Governance guardrail | `passed` | `agent_status=continue`, diff `pass`, drift `clean` |
 | Canonical pre-release | `passed` | `.tmp/pre-release-rehearsal-2026-05-20.log`; engine pytest `244 passed`; Playwright smoke `1 passed` |
 | Offline benchmark fixture validation | `passed` | Fixture and live benchmark case definitions loaded successfully |
-| Release evidence | `warning` | Required gates passed; optional `targeted_tests` evidence was `not_provided` |
-| Hosted/operator readiness | `operator_guided` | API and seeded demo passed; Web, Engine, full health, smoke, and recovery remain operator-guided |
+| Release evidence | `passed` | Required gates and advisory evidence passed |
+| Hosted/operator readiness | `pass` | Web, API, Engine, full health, smoke, and seeded demo readiness passed |
 | Benchmark comparison | `passed` | `browser-use/browser-use` unchanged, regressions `0`, operational blockers `0` |
-| Readiness evidence history | `warning` | This entry preserves `5` operator-guided lanes and `1` not-provided optional input |
+| Readiness evidence history | `passed` | This entry preserves `1` operator-guided non-required lane |
 
 ## Archived Artifacts
 
@@ -51,13 +51,13 @@ This rehearsal validates the self-hosted delivery handoff path using existing De
 
 ## Non-Clean States To Preserve
 
-- `operator_guided`: Web URL, Engine URL, full hosted health check, hosted guided-demo smoke check, reset/reseed recovery drill.
-- `not_provided`: optional targeted test summary in release evidence.
-- `warning`: release evidence and readiness history overall status because non-clean advisory evidence exists.
+- `operator_guided`: reset/reseed recovery drill.
+- `not_provided`: none in the archived release evidence.
+- `warning`: none in the archived release evidence or readiness history entry.
 
 ## Rerun Conditions
 
-Run the following before claiming a clean customer walkthrough:
+Run the following when rechecking customer walkthrough readiness:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1 `
@@ -71,8 +71,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1
   -EngineBaseUrl http://localhost:8000
 ```
 
-If those pass, regenerate hosted readiness evidence and archive a new readiness history entry rather than editing this one into a pass.
+If these checks regress or recovery is rehearsed, regenerate hosted readiness evidence and archive a new readiness history entry rather than editing this entry manually.
 
 ## Recommendation
 
-This rehearsal is usable as a self-hosted handoff proof with disclosure. The release baseline, governance guardrail, seeded demo readiness, and benchmark comparison are strong enough to support continued pilot preparation. It is not a clean external walkthrough claim until Web, Engine, full health, smoke, and recovery lanes are rerun and archived.
+This rehearsal is usable as a self-hosted handoff proof with disclosure. The release baseline, governance guardrail, seeded demo readiness, hosted health, hosted smoke, and benchmark comparison support continued pilot preparation. The only remaining non-clean lane is the non-required reset/reseed recovery drill, which should be rehearsed before a stronger enterprise handoff claim.

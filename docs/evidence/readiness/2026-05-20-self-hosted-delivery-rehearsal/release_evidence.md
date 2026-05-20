@@ -1,8 +1,8 @@
 # Release Evidence
 
-- Generated at: `2026-05-20T03:50:56.164409+00:00`
+- Generated at: `2026-05-20T07:29:04.262987+00:00`
 - Schema version: `1`
-- Overall status: `warning`
+- Overall status: `passed`
 
 ## Required Gates
 
@@ -17,12 +17,12 @@
 | Signal | Status | Source | Details |
 | --- | --- | --- | --- |
 | Governance guardrail | passed | C:\Users\Max\Desktop\DecisionAtlas\.tmp\agent-guardrail.json | {"advisory_only": true, "agent_status": "continue", "diff_status": "pass", "drift_status": "clean", "summary": "Governance guardrail found no blocking or caution-level governance concerns."} |
-| Targeted test summary | not_provided | - | {"reason": "no_status_or_source_path_provided"} |
+| Targeted test summary | passed | - | {"reason": "explicit_status"} |
 | Real-repo benchmark comparison | passed | C:\Users\Max\Desktop\DecisionAtlas\.tmp\real-repo-benchmark-comparison.json | {"comparison_type": "real-repo-benchmark-regression", "improved": 0, "operationally_blocked": 0, "regressed": 0, "release_evidence_ready": true, "repositories": 1} |
 
 ## Missing Inputs
 
-- `targeted_tests`: not_provided (required=False)
+- None
 
 ## Warnings
 

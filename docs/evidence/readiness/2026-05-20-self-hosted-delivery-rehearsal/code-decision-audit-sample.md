@@ -35,9 +35,9 @@ Out of scope:
 
 Deployment summary:
 
-- Web URL: `http://localhost:3000`, `operator_guided` because probe returned connection refused.
+- Web URL: `http://localhost:3000`, `pass`.
 - API URL: `http://localhost:3001`, `pass` because `/health` returned `ok=true`.
-- Engine URL: `http://localhost:8000`, `operator_guided` because probe returned connection refused.
+- Engine URL: `http://localhost:8000`, `pass`.
 - Database mode: project environment supports seeded demo readiness.
 - Redis mode: not separately verified in this rehearsal.
 - Provider mode: not provided for this rehearsal.
@@ -50,10 +50,10 @@ Validation evidence:
 | OpenSpec strict validation | `passed` | command output | `42 passed, 0 failed` |
 | Governance guardrail | `passed` | `release_evidence.json`, `hosted_readiness.json` | `agent_status=continue`, diff `pass`, drift `clean` |
 | Canonical pre-release | `passed` | `.tmp/pre-release-rehearsal-2026-05-20.log` | engine pytest `244 passed`; Playwright smoke `1 passed` |
-| Release evidence | `warning` | `release_evidence.json` / `release_evidence.md` | optional targeted test summary `not_provided` |
-| Hosted/operator readiness | `operator_guided` | `hosted_readiness.json` / `hosted_readiness.md` | Web, Engine, health, smoke, recovery need operator rerun |
+| Release evidence | `passed` | `release_evidence.json` / `release_evidence.md` | required gates and advisory evidence passed |
+| Hosted/operator readiness | `pass` | `hosted_readiness.json` / `hosted_readiness.md` | Web, API, Engine, health, smoke, seeded demo readiness passed |
 | Benchmark comparison | `passed` | `benchmark_comparison.json` / `benchmark_comparison.md` | regressions `0`, operational blockers `0` |
-| Readiness evidence history | `warning` | `entry.json`, `index.md`, `trend.md` | non-clean states preserved |
+| Readiness evidence history | `passed` | `entry.json`, `index.md`, `trend.md` | reset/reseed recovery remains operator-guided |
 
 ## 4. Decision Map Summary
 
@@ -115,12 +115,12 @@ Benchmark comparison:
 Readiness evidence history:
 
 - Latest entry: `2026-05-20-self-hosted-delivery-rehearsal`
-- Release status: `warning`
-- Hosted readiness status: `operator_guided`
+- Release status: `passed`
+- Hosted readiness status: `pass`
 - Benchmark regressions: `0`
 - Benchmark blockers: `0`
-- Operator-guided lanes: `5`
-- Not-provided evidence: `1`
+- Operator-guided lanes: `1`
+- Not-provided evidence: `0`
 
 Do not treat `operator_guided` or `not_provided` as pass.
 
@@ -128,11 +128,8 @@ Do not treat `operator_guided` or `not_provided` as pass.
 
 Current limitations observed in this evaluation:
 
-- Web service on `localhost:3000` was not reachable during the probe.
-- Engine service on `localhost:8000` was not reachable during the probe.
-- Full hosted health and hosted guided-demo smoke were not clean because Web and Engine were missing.
 - Reset/reseed recovery drill was not executed.
-- Optional targeted test summary was not provided separately in release evidence.
+- Web, API, Engine, hosted health, hosted smoke, seeded demo readiness, release evidence, and benchmark evidence passed in the updated rehearsal.
 
 Standing product limitations:
 
@@ -146,9 +143,9 @@ Standing product limitations:
 
 Immediate next actions:
 
-1. Start Web and Engine alongside API, then rerun `scripts/demo/health-check.ps1`.
-2. Rerun `scripts/demo/smoke-check.ps1` after Web/API/Engine are reachable.
-3. Rehearse reset/reseed recovery and archive a new readiness history entry.
+1. Use `scripts/dev/start-real-stack.bat` as the one-click Windows startup path for future local/self-hosted rehearsals.
+2. Rehearse reset/reseed recovery and archive a new readiness history entry.
+3. Run the same flow against a representative private/customer repository before a paid pilot.
 
 Suggested pilot path:
 
@@ -172,5 +169,5 @@ Suggested pilot path:
 Recommended tier:
 
 - Team Self-hosted evaluation.
-- Rationale: current evidence supports private-deployable pilot preparation, but Web/Engine/smoke/recovery lanes need a clean rerun before a strong customer walkthrough claim.
+- Rationale: current evidence supports private-deployable pilot preparation; reset/reseed recovery still needs a dedicated rehearsal before a stronger enterprise handoff claim.
 - Open commercial questions: pilot support scope, private repository access path, and handoff cadence.

@@ -19,18 +19,18 @@
       "source_markdown_path": ".tmp/release-evidence.md"
     }
   },
-  "commit": "ab248d9",
+  "commit": "8a3fcc8",
   "counts": {
     "benchmark_improvements": 0,
     "benchmark_operational_blockers": 0,
     "benchmark_regressions": 0,
     "blockers": 0,
     "known_limitations": 0,
-    "not_provided": 1,
-    "operator_guided": 5,
+    "not_provided": 0,
+    "operator_guided": 1,
     "warnings": 0
   },
-  "created_at": "2026-05-20T03:51:51.490835+00:00",
+  "created_at": "2026-05-20T07:29:16.483863+00:00",
   "entry_id": "2026-05-20-self-hosted-delivery-rehearsal",
   "families": {
     "benchmark_comparison": {
@@ -59,36 +59,32 @@
     "hosted_readiness": {
       "blocker_count": 0,
       "blockers": [],
-      "generated_at": "2026-05-20T03:51:19.195534+00:00",
+      "generated_at": "2026-05-20T07:29:04.263530+00:00",
       "known_limitation_count": 0,
       "known_limitation_lanes": [],
       "label": "Hosted readiness",
       "lane_statuses": {
         "api_hosted_url": "pass",
-        "engine_hosted_url": "operator_guided",
+        "engine_hosted_url": "pass",
         "governance_guardrail": "pass",
-        "hosted_health_check": "operator_guided",
-        "hosted_smoke_check": "operator_guided",
+        "hosted_health_check": "pass",
+        "hosted_smoke_check": "pass",
         "real_repo_evidence": "pass",
         "recovery_drill": "operator_guided",
         "release_evidence": "non_blocking",
         "seeded_demo_readiness": "pass",
-        "web_hosted_url": "operator_guided"
+        "web_hosted_url": "pass"
       },
       "not_provided_count": 0,
-      "operator_guided_count": 5,
+      "operator_guided_count": 1,
       "operator_guided_lanes": [
-        "web_hosted_url",
-        "engine_hosted_url",
-        "hosted_health_check",
-        "hosted_smoke_check",
         "recovery_drill"
       ],
-      "public_walkthrough_decision": "operator_review_required",
-      "public_walkthrough_status": "operator_guided",
+      "public_walkthrough_decision": "proceed",
+      "public_walkthrough_status": "pass",
       "source_markdown_path": ".tmp/hosted-operator-readiness.md",
       "source_path": ".tmp/hosted-operator-readiness.json",
-      "status": "operator_guided",
+      "status": "pass",
       "warning_count": 0,
       "warnings": []
     },
@@ -96,21 +92,14 @@
       "advisory_signal_statuses": {
         "governance_guardrail": "passed",
         "real_repo_benchmark_comparison": "passed",
-        "targeted_tests": "not_provided"
+        "targeted_tests": "passed"
       },
       "blocker_count": 0,
-      "generated_at": "2026-05-20T03:50:56.164409+00:00",
+      "generated_at": "2026-05-20T07:29:04.262987+00:00",
       "label": "Release evidence",
-      "missing_input_count": 1,
-      "missing_inputs": [
-        {
-          "id": "targeted_tests",
-          "label": "Targeted test summary",
-          "required": false,
-          "status": "not_provided"
-        }
-      ],
-      "not_provided_count": 1,
+      "missing_input_count": 0,
+      "missing_inputs": [],
+      "not_provided_count": 0,
       "operator_guided_count": 0,
       "required_gate_statuses": {
         "canonical_pre_release": "passed",
@@ -119,7 +108,7 @@
       },
       "source_markdown_path": ".tmp/release-evidence.md",
       "source_path": ".tmp/release-evidence.json",
-      "status": "warning",
+      "status": "passed",
       "warning_count": 0,
       "warnings": []
     }
@@ -127,7 +116,7 @@
   "label": "self-hosted-delivery-rehearsal",
   "schema_version": 1,
   "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
-  "status": "warning",
+  "status": "passed",
   "version_label": "self-hosted-rehearsal-2026-05-20",
   "warnings": []
 }

@@ -111,13 +111,21 @@ Provider keys and repository credentials must stay on backend or customer-contro
 Start the full local/private stack:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.bat
+```
+
+The `.bat` entry is the recommended one-click Windows launcher. It starts Docker PostgreSQL/Redis, runs migrations, seeds demo data, starts Engine/API/Web, opens `http://127.0.0.1:3000`, and keeps the window open with status and troubleshooting output.
+
+The PowerShell entry is available for terminal automation:
+
+```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
 ```
 
 If the seeded demo lane was consumed before startup:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.bat -ResetSeededDemo
 ```
 
 Stop the stack:

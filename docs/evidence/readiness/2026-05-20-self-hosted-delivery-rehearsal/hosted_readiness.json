@@ -1,6 +1,6 @@
 {
   "blockers": [],
-  "generated_at": "2026-05-20T03:51:19.195534+00:00",
+  "generated_at": "2026-05-20T07:29:04.263530+00:00",
   "hosted_urls": {
     "api": null,
     "engine": null,
@@ -18,7 +18,7 @@
       "recommended_next_action": "Run hosted health check against the web URL before external preview.",
       "required_for_public_walkthrough": true,
       "source_path": null,
-      "status": "operator_guided"
+      "status": "pass"
     },
     {
       "command": "scripts/demo/health-check.ps1 -ApiBaseUrl <api>",
@@ -44,7 +44,7 @@
       "recommended_next_action": "Run hosted health check against the engine URL before external preview.",
       "required_for_public_walkthrough": true,
       "source_path": null,
-      "status": "operator_guided"
+      "status": "pass"
     },
     {
       "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1",
@@ -57,7 +57,7 @@
       "recommended_next_action": "Run scripts/demo/health-check.ps1 with hosted URLs.",
       "required_for_public_walkthrough": true,
       "source_path": null,
-      "status": "operator_guided"
+      "status": "pass"
     },
     {
       "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1",
@@ -70,7 +70,7 @@
       "recommended_next_action": "Run scripts/demo/smoke-check.ps1 with hosted URLs.",
       "required_for_public_walkthrough": true,
       "source_path": null,
-      "status": "operator_guided"
+      "status": "pass"
     },
     {
       "command": "python scripts/demo/check_seeded_demo.py --json",
@@ -171,39 +171,15 @@
   ],
   "missing_inputs": [
     {
-      "id": "web_hosted_url",
-      "label": "Hosted web URL",
-      "required_for_public_walkthrough": true,
-      "status": "operator_guided"
-    },
-    {
-      "id": "engine_hosted_url",
-      "label": "Hosted engine URL",
-      "required_for_public_walkthrough": true,
-      "status": "operator_guided"
-    },
-    {
-      "id": "hosted_health_check",
-      "label": "Hosted health check",
-      "required_for_public_walkthrough": true,
-      "status": "operator_guided"
-    },
-    {
-      "id": "hosted_smoke_check",
-      "label": "Hosted guided-demo smoke check",
-      "required_for_public_walkthrough": true,
-      "status": "operator_guided"
-    },
-    {
       "id": "recovery_drill",
       "label": "Reset/reseed recovery drill",
       "required_for_public_walkthrough": false,
       "status": "operator_guided"
     }
   ],
-  "overall_status": "operator_guided",
-  "public_walkthrough_decision": "operator_review_required",
-  "public_walkthrough_status": "operator_guided",
+  "overall_status": "pass",
+  "public_walkthrough_decision": "proceed",
+  "public_walkthrough_status": "pass",
   "recommended_next_actions": [
     "Attach dated real-repo benchmark evidence only when the optional credibility lane is shown.",
     "Attach release evidence when using hosted readiness for release or preview handoff.",

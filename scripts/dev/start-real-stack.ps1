@@ -1,5 +1,6 @@
 param(
-  [switch]$ResetSeededDemo
+  [switch]$ResetSeededDemo,
+  [switch]$OpenBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -123,6 +124,43 @@ function Start-ManagedProcess {
   }
 }
 
+function Show-RecentServiceLogs {
+  param([object[]]$Services)
+
+  foreach ($service in $Services) {
+    if (-not $service) {
+      continue
+    }
+
+    Write-Host ""
+    Write-Host "Recent logs for $($service.name):" -ForegroundColor Yellow
+    foreach ($path in @($service.stderr, $service.stdout)) {
+      if (Test-Path $path) {
+        Write-Host "--- $path" -ForegroundColor DarkYellow
+        Get-Content $path -Tail 30 -ErrorAction SilentlyContinue
+      }
+    }
+  }
+}
+
+function Wait-HttpReadyForService {
+  param(
+    [string]$Name,
+    [string]$Url,
+    [object[]]$Services,
+    [int]$TimeoutSeconds = 120
+  )
+
+  try {
+    Wait-HttpReady -Url $Url -TimeoutSeconds $TimeoutSeconds
+  } catch {
+    Write-Host ""
+    Write-Host "Timed out waiting for $Name at $Url." -ForegroundColor Red
+    Show-RecentServiceLogs -Services $Services
+    throw
+  }
+}
+
 Ensure-Directory $stateDir
 Ensure-Directory $logDir
 
@@ -191,15 +229,15 @@ pnpm --filter @decisionatlas/web exec next dev --hostname 127.0.0.1 --port 3000
 
 Write-Host "Starting engine..." -ForegroundColor Cyan
 $engineProcess = Start-ManagedProcess -Name "engine" -Command $engineCommand -WorkingDirectory (Join-Path $repoRoot "services\engine")
-Wait-HttpReady -Url "$engineBaseUrl/health"
+Wait-HttpReadyForService -Name "engine" -Url "$engineBaseUrl/health" -Services @($engineProcess)
 
 Write-Host "Starting API..." -ForegroundColor Cyan
 $apiProcess = Start-ManagedProcess -Name "api" -Command $apiCommand -WorkingDirectory $repoRoot
-Wait-HttpReady -Url "$apiBaseUrl/health"
+Wait-HttpReadyForService -Name "api" -Url "$apiBaseUrl/health" -Services @($engineProcess, $apiProcess)
 
 Write-Host "Starting web..." -ForegroundColor Cyan
 $webProcess = Start-ManagedProcess -Name "web" -Command $webCommand -WorkingDirectory $repoRoot
-Wait-HttpReady -Url "http://127.0.0.1:3000"
+Wait-HttpReadyForService -Name "web" -Url "http://127.0.0.1:3000" -Services @($engineProcess, $apiProcess, $webProcess)
 
 @{
   started_at = (Get-Date).ToString("o")
@@ -214,6 +252,11 @@ Write-Host "Web:    http://127.0.0.1:3000" -ForegroundColor Green
 Write-Host "API:    http://127.0.0.1:3001/health" -ForegroundColor Green
 Write-Host "Engine: http://127.0.0.1:8000/health" -ForegroundColor Green
 Write-Host ""
+if ($OpenBrowser) {
+  Write-Host "Opening Web in the default browser..." -ForegroundColor Cyan
+  Start-Process "http://127.0.0.1:3000"
+  Write-Host ""
+}
 Write-Host "Stop the stack with:" -ForegroundColor DarkCyan
 Write-Host "powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1"
 Write-Host ""

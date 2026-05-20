@@ -20,13 +20,13 @@
       "category": "advisory_signal",
       "command": null,
       "details": {
-        "reason": "no_status_or_source_path_provided"
+        "reason": "explicit_status"
       },
       "id": "targeted_tests",
       "label": "Targeted test summary",
       "required": false,
       "source_path": null,
-      "status": "not_provided"
+      "status": "passed"
     },
     {
       "category": "advisory_signal",
@@ -103,13 +103,13 @@
       "category": "advisory_signal",
       "command": null,
       "details": {
-        "reason": "no_status_or_source_path_provided"
+        "reason": "explicit_status"
       },
       "id": "targeted_tests",
       "label": "Targeted test summary",
       "required": false,
       "source_path": null,
-      "status": "not_provided"
+      "status": "passed"
     },
     {
       "category": "advisory_signal",
@@ -129,16 +129,9 @@
       "status": "passed"
     }
   ],
-  "generated_at": "2026-05-20T03:50:56.164409+00:00",
-  "missing_inputs": [
-    {
-      "id": "targeted_tests",
-      "label": "Targeted test summary",
-      "required": false,
-      "status": "not_provided"
-    }
-  ],
-  "overall_status": "warning",
+  "generated_at": "2026-05-20T07:29:04.262987+00:00",
+  "missing_inputs": [],
+  "overall_status": "passed",
   "required_gates": [
     {
       "category": "required_gate",

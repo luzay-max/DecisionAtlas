@@ -50,7 +50,7 @@ Classify every lane explicitly:
 ## Execution Flow
 
 1. Confirm the deployment mode and target URLs.
-2. Start or verify the self-hosted stack.
+2. Start or verify the self-hosted stack. On Windows, prefer `scripts\dev\start-real-stack.bat` for one-click local startup.
 3. Probe Web, API, and Engine health.
 4. Run OpenSpec strict validation.
 5. Run governance guardrail summary and JSON output.

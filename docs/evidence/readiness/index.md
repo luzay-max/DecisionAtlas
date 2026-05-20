@@ -1,12 +1,12 @@
 # Readiness Evidence History
 
-- Generated at: `2026-05-20T03:51:51.503997+00:00`
+- Generated at: `2026-05-20T07:29:16.495516+00:00`
 - Entries: `2`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-05-09-release-rehearsal | 2026-05-09T00:00:00+00:00 | warning | warning | operator_guided | passed | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
-| 2026-05-20-self-hosted-delivery-rehearsal | 2026-05-20T03:51:51.490835+00:00 | warning | warning | operator_guided | passed | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-05-20-self-hosted-delivery-rehearsal | 2026-05-20T07:29:16.483863+00:00 | passed | passed | pass | passed | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

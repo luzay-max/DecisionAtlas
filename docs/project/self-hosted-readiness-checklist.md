@@ -33,6 +33,7 @@ This checklist validates the self-hosted product baseline. It does not validate:
 
 ## Startup And Product Flow
 
+- [ ] `powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.bat` starts the real stack as the one-click Windows launcher.
 - [ ] `powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1` starts the real stack.
 - [ ] `powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1` stops the managed local stack.
 - [ ] `demo-workspace` is present.

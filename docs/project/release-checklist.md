@@ -110,9 +110,9 @@ Latest self-hosted delivery rehearsal:
 
 - Entry: `docs/evidence/readiness/2026-05-20-self-hosted-delivery-rehearsal/`
 - Summary: `docs/evidence/readiness/2026-05-20-self-hosted-delivery-rehearsal/summary.md`
-- Status: `warning`
-- Release evidence: required gates passed; optional targeted test summary `not_provided`
-- Hosted readiness: `operator_guided`; API and seeded demo passed, Web/Engine/full health/smoke/recovery need rerun before clean walkthrough claim
+- Status: `passed`
+- Release evidence: required gates and advisory evidence passed
+- Hosted readiness: `pass`; Web/API/Engine/full health/smoke/seeded demo readiness passed, reset/reseed recovery remains operator-guided
 - Benchmark comparison: passed with 0 regressions and 0 operational blockers
 
 Latest v0.3 RC pre-tag validation:

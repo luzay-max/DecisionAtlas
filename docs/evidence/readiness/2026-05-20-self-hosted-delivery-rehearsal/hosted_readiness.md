@@ -1,20 +1,20 @@
 # Hosted Operator Readiness
 
-- Generated at: `2026-05-20T03:51:19.195534+00:00`
+- Generated at: `2026-05-20T07:29:04.263530+00:00`
 - Schema version: `1`
-- Overall status: `operator_guided`
-- Public walkthrough status: `operator_guided`
-- Public walkthrough decision: `operator_review_required`
+- Overall status: `pass`
+- Public walkthrough status: `pass`
+- Public walkthrough decision: `proceed`
 
 ## Lane Status
 
 | Lane | Group | Required public walkthrough | Status | Source | Details |
 | --- | --- | --- | --- | --- | --- |
-| Hosted web URL | core_hosted_services | True | operator_guided | scripts/demo/health-check.ps1 -WebBaseUrl <web> | {"reason": "explicit_status"} |
+| Hosted web URL | core_hosted_services | True | pass | scripts/demo/health-check.ps1 -WebBaseUrl <web> | {"reason": "explicit_status"} |
 | Hosted API URL | core_hosted_services | True | pass | scripts/demo/health-check.ps1 -ApiBaseUrl <api> | {"reason": "explicit_status"} |
-| Hosted engine URL | core_hosted_services | True | operator_guided | scripts/demo/health-check.ps1 -EngineBaseUrl <engine> | {"reason": "explicit_status"} |
-| Hosted health check | core_hosted_services | True | operator_guided | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1 | {"reason": "explicit_status"} |
-| Hosted guided-demo smoke check | public_walkthrough | True | operator_guided | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1 | {"reason": "explicit_status"} |
+| Hosted engine URL | core_hosted_services | True | pass | scripts/demo/health-check.ps1 -EngineBaseUrl <engine> | {"reason": "explicit_status"} |
+| Hosted health check | core_hosted_services | True | pass | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1 | {"reason": "explicit_status"} |
+| Hosted guided-demo smoke check | public_walkthrough | True | pass | powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1 | {"reason": "explicit_status"} |
 | Seeded demo readiness | public_walkthrough | True | pass | C:\Users\Max\Desktop\DecisionAtlas\.tmp\seeded-demo-readiness.json | {"reason": "ready=True", "summary": "Seeded demo lane is walkthrough-ready."} |
 | Reset/reseed recovery drill | recovery | False | operator_guided | scripts/demo/reset-demo.ps1 or scripts/demo/reseed-demo.ps1 | {"reason": "explicit_status"} |
 | Governance guardrail | governance | False | pass | C:\Users\Max\Desktop\DecisionAtlas\.tmp\agent-guardrail.json | {"agent_status": "continue", "handoff_summary": {"advisory_only": true, "agent_status": "continue", "diff_status": "pass", "drift_status": "clean", "human_questions": [], "recommended_next_actions": ["2.2 Run OpenSpec strict validation and governance guardrail summary.", "No governance drift signals detected. Continue normal review."], "required_tests": ["2.2 Run OpenSpec strict validation and governance guardrail summary.", "5.2 Run `openspec validate rehearse-self-hosted-delivery --type change --strict`.", "5.3 Run `openspec validate --all --strict`."]}, "summary": "Governance guardrail found no blocking or caution-level governance concerns."} |
@@ -27,10 +27,6 @@
 
 ## Missing Or Operator-Guided Inputs
 
-- `web_hosted_url`: operator_guided (required_public=True)
-- `engine_hosted_url`: operator_guided (required_public=True)
-- `hosted_health_check`: operator_guided (required_public=True)
-- `hosted_smoke_check`: operator_guided (required_public=True)
 - `recovery_drill`: operator_guided (required_public=False)
 
 ## Recommended Next Actions
