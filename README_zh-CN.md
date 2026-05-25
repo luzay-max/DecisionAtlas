@@ -13,6 +13,8 @@
 - **实时仓库分析**：通过导入的工作区，支持对公共 GitHub 仓库进行一次性实时分析，并支持增量同步。
 - **Owner Scope 产品流程**：支持本地/bootstrap 登录、owner scope 切换、基于角色的工作区操作、GitHub App 安装绑定和私有仓库访问绑定。
 - **治理知识层**：导入 Markdown 形式的开发标准、路线图、复盘、检查清单和人工决策，并转化为可审核的治理规则草稿。
+- **AI Agent 协议级 CLI 接口**：规范化 `scripts/governance/agent_guardrail.py` 命令行工具，支持 `--agent` 参数，返回结构化的 JSON 数据负载和精确的状态码（`0` 继续，`5` 警告，`10` 拦截暂停），以便外部 AI 编程助手（如 Cursor、Antigravity）完美集成。
+- **极致视觉美学与双色主题切换**：支持炫酷的暗黑霓虹与 **"Crystal Aurora"（水晶极光）** 清透毛玻璃浅色模式。全面适配 SVG **决策网络拓扑图 (DecisionTopologyMap)** 与 **AI 治理看板 (GuardrailPauseBanner)** 等核心视觉元素，将主视界扩容至 **`1160px`** 宽屏布局，为大屏幕带来极佳的视觉呼吸感。
 - **AI Agent 治理护栏**：聚合当前 diff 检查和长期治理漂移报告，输出面向 AI 开发流程的 advisory `continue`、`caution` 或 `pause` 结果。
 - **灵活的模型提供商支持**：支持使用伪提供商（Fake Provider）的本地模式，或兼容 OpenAI 的实时 LLM 模式。
 

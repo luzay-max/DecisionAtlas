@@ -13,12 +13,10 @@
 - **Live Repository Analysis**: Supports one-off live analysis runs for public GitHub repositories through imported workspaces with incremental sync.
 - **Owner-Scoped Product Flows**: Provides local/bootstrap login, owner scope switching, role-gated workspace actions, GitHub App installation binding, and private repository access binding.
 - **Governance Knowledge Layer**: Imports Markdown standards, roadmap notes, postmortems, checklists, and human decisions into reviewable governance rule drafts.
+- **AI Agent Protocol-Level CLI**: Standardizes `scripts/governance/agent_guardrail.py` with an `--agent` flag, returning structured JSON payloads and exact status codes (`0` for continue, `5` for caution, `10` for pause/blocking review) for seamless IDE integration (e.g., Cursor, Antigravity).
+- **Premium Aesthetics & Dark/Light Themes**: Supports high-end dark-neon and **"Crystal Aurora"** translucent light mode themes. Fully adapts spatial `DecisionTopologyMap` and `GuardrailPauseBanner` elements with CSS variables, expanding the visual canvas bounds to `1160px` for optimal clarity on wider screens.
 - **AI Agent Governance Guardrails**: Aggregates current diff checks and long-term governance drift reports into advisory `continue`, `caution`, or `pause` results for AI development workflows.
 - **Flexible Provider Support**: Works in local mode with fake providers or live mode with OpenAI-compatible LLMs.
-
-## 🏗 Architecture
-
-The platform consists of three main components:
 
 - `apps/web`: Next.js UI for review, search, timeline, dashboard, and drift.
 - `apps/api`: Fastify edge API, session recovery, and owner-scoped auth boundary.
