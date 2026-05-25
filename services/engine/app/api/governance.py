@@ -161,3 +161,24 @@ def update_governance_rule_lifecycle(
         raise HTTPException(status_code=status_code, detail=message) from exc
     finally:
         session.close()
+
+
+@router.get("/guardrail")
+def get_governance_guardrail(
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    require_scope_role(auth, owner_scope=auth.owner_scope, required_role="viewer")
+    from app.governance.agent_guardrail import run_agent_governance_guardrail
+    from app.config import REPO_ROOT
+    session = get_db_session()
+    try:
+        result = run_agent_governance_guardrail(
+            root=REPO_ROOT,
+            owner_scope=auth.owner_scope,
+            database_url=str(session.bind.url),
+        )
+        return result.to_dict()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        session.close()

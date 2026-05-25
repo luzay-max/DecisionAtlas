@@ -13,6 +13,7 @@ import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
 import { ImportedReadinessCard } from "../imported/imported-readiness-card";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { GuardrailPauseBanner } from "../governance/guardrail-pause-banner";
 import { syncEventLabel, syncOriginLabel, syncSummary } from "../sync/sync-provenance";
 
 export function WorkspaceDashboardContent({
@@ -114,6 +115,7 @@ export function WorkspaceDashboardContent({
           sourceSummary={summary.source_summary}
           context="dashboard"
         />
+        <GuardrailPauseBanner workspaceSlug={summary.workspace_slug} />
         {isGuidedDemoWorkspace ? (
           <GuidedDemoPanel
             step={guidedDemoStep}

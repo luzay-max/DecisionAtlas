@@ -269,6 +269,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Print default local governance development protocol status.",
     )
     parser.add_argument(
+        "--agent",
+        action="store_true",
+        help="Outputs structured JSON and status-specific exit codes (0: continue, 5: caution, 10: pause) for AI agent integration.",
+    )
+    parser.add_argument(
         "--enforcement-preview",
         choices=sorted(ENFORCEMENT_PREVIEW_MODES),
         help="Opt-in governance enforcement preview mode. Default guardrail behavior remains advisory.",
@@ -300,6 +305,46 @@ def main(argv: list[str] | None = None) -> int:
         if args.protocol_status
         else None
     )
+    
+    if args.agent:
+        body = {
+            "agent_status": result.agent_status,
+            "summary": result.summary,
+            "required_tests": result.required_tests,
+            "human_decisions_needed": result.human_decisions_needed,
+            "recommended_next_actions": result.recommended_next_actions,
+            "human_questions": result.human_questions,
+            "allowed_next_actions": result.allowed_next_actions,
+            "disallowed_next_actions": result.disallowed_next_actions,
+            "findings": [
+                {
+                    "id": f.get("id"),
+                    "severity": f.get("severity"),
+                    "title": f.get("title"),
+                    "detail": f.get("detail"),
+                    "source": {
+                        "kind": f.get("source", {}).get("kind") if f.get("source") else None,
+                        "title": f.get("source", {}).get("title") if f.get("source") else None,
+                        "excerpt": f.get("source", {}).get("excerpt") if f.get("source") else None,
+                    } if f.get("source") else None
+                } for f in result.findings
+            ],
+            "signals": [
+                {
+                    "id": s.get("id"),
+                    "type": s.get("type"),
+                    "title": s.get("title"),
+                    "recommended_next_action": s.get("recommended_next_action"),
+                } for s in result.signals
+            ],
+        }
+        print(json.dumps(body, ensure_ascii=False, indent=2 if args.pretty else None))
+        if result.agent_status == "pause":
+            return 10
+        elif result.agent_status == "caution":
+            return 5
+        return 0
+
     if args.summary and protocol_status:
         print(_protocol_human_summary(protocol_status))
     elif args.summary:

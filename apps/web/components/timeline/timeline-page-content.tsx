@@ -6,6 +6,7 @@ import { useI18n } from "../i18n/language-provider";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { TimelineList } from "./timeline-list";
+import { DecisionTopologyMap } from "./decision-topology-map";
 import { TimelineResponse } from "../../lib/api";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
 
@@ -46,6 +47,7 @@ export function TimelinePageContent({
             nextLabel={messages.guidedDemo.timelineNext}
           />
         ) : null}
+        <DecisionTopologyMap items={items} workspaceSlug={workspaceSlug} />
         <TimelineList items={items} workspaceSlug={workspaceSlug} />
       </section>
     </main>

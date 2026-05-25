@@ -1,5 +1,7 @@
 "use client";
 
+"use client";
+
 import Link from "next/link";
 import React from "react";
 
@@ -8,6 +10,7 @@ import { AccountScopeSurface } from "../auth/account-scope-surface";
 import { LanguageToggle } from "../i18n/language-toggle";
 import { useI18n } from "../i18n/language-provider";
 import { ProviderModeToggle } from "../runtime/provider-mode-toggle";
+import { ThemeToggle } from "../theme/theme-toggle";
 
 export function DemoWorkspaceNav({
   workspaceSlug,
@@ -62,7 +65,10 @@ export function DemoWorkspaceNav({
       </div>
       <div className="stack">
         <AccountScopeSurface />
-        <LanguageToggle />
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
         <AdvancedControls>
           <ProviderModeToggle />
         </AdvancedControls>

@@ -875,3 +875,43 @@ export async function removeWorkspaceMember(workspaceSlug: string, actorId: numb
     await readError(response, "Failed to remove workspace member");
   }
 }
+
+export type AgentGuardrailResult = {
+  agent_status: "continue" | "caution" | "pause" | string;
+  summary: string;
+  required_tests: string[];
+  human_decisions_needed: string[];
+  recommended_next_actions: string[];
+  human_questions: Array<{
+    id: string;
+    question: string;
+    evidence_type: string;
+    evidence_id: string;
+    evidence_summary?: string;
+  }>;
+  findings: Array<{
+    id: string;
+    severity: string;
+    title: string;
+    detail: string;
+    source?: {
+      kind: string;
+      title: string;
+      excerpt?: string;
+    } | null;
+  }>;
+  signals: Array<{
+    id: string;
+    type: string;
+    title: string;
+    recommended_next_action?: string;
+  }>;
+};
+
+export async function getGovernanceGuardrail(): Promise<AgentGuardrailResult> {
+  const response = await apiFetch(`${apiBaseUrl}/governance/guardrail`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Failed to load governance guardrail status");
+  }
+  return response.json();
+}

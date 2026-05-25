@@ -99,4 +99,15 @@ export async function governanceRoute(app: FastifyInstance) {
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
+
+  app.get("/governance/guardrail", async (request, reply) => {
+    const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/governance/guardrail`, { headers: authHeaders }),
+      app.log,
+      "GET /governance/guardrail"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
 }
