@@ -52,7 +52,7 @@ def test_provider_factory_allows_live_llm_with_fake_embedder() -> None:
             llm_provider_mode="openai_compatible",
             embedding_provider_mode="fake",
             llm_api_key="test-key",
-            llm_model="deepseek-chat",
+            llm_model="deepseek-v4-pro",
             llm_base_url="https://api.deepseek.com",
         )
     )
