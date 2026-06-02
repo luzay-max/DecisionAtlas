@@ -151,6 +151,23 @@ class ImportJobRepository:
         self.session.flush()
         return job
 
+
+    def mark_paused(self, job_id: str) -> ImportJob:
+        job = self._require(job_id)
+        if job.status not in ("queued", "running"):
+            raise ValueError(f"Cannot pause job in status: {job.status}")
+        job.status = "paused"
+        self.session.flush()
+        return job
+
+    def mark_resumed(self, job_id: str) -> ImportJob:
+        job = self._require(job_id)
+        if job.status != "paused":
+            raise ValueError(f"Cannot resume job in status: {job.status}")
+        job.status = "running"
+        self.session.flush()
+        return job
+
     def _require(self, job_id: str) -> ImportJob:
         job = self.get_by_job_id(job_id)
         if job is None:

@@ -24,6 +24,9 @@ class ArtifactRepository:
         timestamp,
         metadata_json: dict | None = None,
     ) -> Artifact:
+        if title and len(title) > 500:
+            title = title[:497] + "..."
+
         stmt = select(Artifact).where(
             Artifact.workspace_id == workspace_id,
             Artifact.type == artifact_type,
