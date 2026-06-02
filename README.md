@@ -153,6 +153,7 @@ Current post-stage-7 planning is captured in:
 
 ## 📚 Documentation
 
+- [Usage Guide & Progress Update](./docs/project/usage-guide.md)
 - [Quick Start](./docs/project/quick-start.md)
 - [Deployment](./docs/project/deployment.md)
 - [Self-Hosted Commercial Baseline](./docs/project/self-hosted-commercial-baseline.md)
@@ -183,4 +184,4 @@ Current post-stage-7 planning is captured in:
 - Demo review queue state can be consumed by prior runs; the next planned hardening slice is a reliable demo reset/reseed workflow.
 
 ---
-*Current Project Stage: Post Stage 7 - AI-agent governance guardrails are implemented; the next focus is governance workflow hardening, demo reset reliability, and real-repository value measurement.*
+*Current Project Stage: Post Stage 7 - AI-agent governance guardrails and long-running import pause/resume mechanisms are fully implemented; the next focus is governance workflow hardening, demo reset reliability, and real-repository value measurement.*

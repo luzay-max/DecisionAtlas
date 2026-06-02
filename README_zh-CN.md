@@ -157,6 +157,7 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 
 ## 📚 文档
 
+- [使用流程与优化建议 (Usage Guide)](./docs/project/usage-guide.md)
 - [快速开始](./docs/project/quick-start_zh-CN.md)
 - [部署指南](./docs/project/deployment_zh-CN.md)
 - [常见问题 (FAQ)](./docs/project/faq_zh-CN.md)
@@ -182,4 +183,4 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 - Demo review queue 可能被之前的运行消费；下一阶段计划补稳定的 demo reset/reseed 流程。
 
 ---
-*当前项目阶段：Post Stage 7 - AI-agent 治理护栏已实现；下一步聚焦治理流程硬化、demo reset 可靠性和真实仓库价值度量。*
+*当前项目阶段：Post Stage 7 - AI-agent 治理护栏和导入暂停/恢复机制均已完全实现；下一步聚焦治理流程硬化、demo reset 可靠性和真实仓库价值度量。*
