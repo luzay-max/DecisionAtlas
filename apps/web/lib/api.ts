@@ -915,3 +915,20 @@ export async function getGovernanceGuardrail(): Promise<AgentGuardrailResult> {
   }
   return response.json();
 }
+
+
+export async function pauseGithubImport(jobId: string) {
+  const response = await apiFetch(`${apiBaseUrl}/imports/${jobId}/pause`, { method: "POST" });
+  if (!response.ok) {
+    await readError(response, "Failed to pause import");
+  }
+  return response.json();
+}
+
+export async function resumeGithubImport(jobId: string) {
+  const response = await apiFetch(`${apiBaseUrl}/imports/${jobId}/resume`, { method: "POST" });
+  if (!response.ok) {
+    await readError(response, "Failed to resume import");
+  }
+  return response.json();
+}

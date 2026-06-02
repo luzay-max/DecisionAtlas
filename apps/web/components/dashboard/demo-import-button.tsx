@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { DashboardSummary, ImportSummary, getImportJob, startGithubImport } from "../../lib/api";
+import { DashboardSummary, ImportSummary, getImportJob, startGithubImport, pauseGithubImport, resumeGithubImport } from "../../lib/api";
 import { useI18n } from "../i18n/language-provider";
 
 const progressStages = ["queued", "importing_artifacts", "indexing_artifacts", "extracting_decisions", "completed"] as const;
@@ -176,7 +176,7 @@ export function DemoImportButton({
     if (job.status === "failed") {
       setMessage(messages.importButton.failed.replace("{detail}", job.error_message ?? "unknown error"));
       setNextMessage(messages.importButton.failedNext);
-      setProgressMessage(messages.importButton.failedHint);
+      setProgressMessage(`Failure Category: ${job.summary?.failure_category || 'Unknown'} | Detail: ${job.error_message || 'unknown error'}`);
       return;
     }
 
@@ -213,10 +213,31 @@ export function DemoImportButton({
         pollingRef.current = false;
         return job;
       }
+      if (job.status === "paused") {
+        // Continue polling when paused to detect resume
+      }
       await new Promise((resolve) => setTimeout(resolve, importPollIntervalMs));
     }
     pollingRef.current = false;
     return null;
+  }
+
+  async function handlePause() {
+    if (!activeJobId) return;
+    try {
+      await pauseGithubImport(activeJobId);
+      setJobStatus("paused");
+      router.refresh();
+    } catch (err) {}
+  }
+
+  async function handleResume() {
+    if (!activeJobId) return;
+    try {
+      await resumeGithubImport(activeJobId);
+      setJobStatus("running");
+      router.refresh();
+    } catch (err) {}
   }
 
   async function handleClick() {
@@ -309,7 +330,7 @@ export function DemoImportButton({
     if (!activeJobId || pollingRef.current) {
       return;
     }
-    if (jobStatus !== null && jobStatus !== "queued" && jobStatus !== "running") {
+    if (jobStatus !== null && jobStatus !== "queued" && jobStatus !== "running" && jobStatus !== "paused") {
       return;
     }
     void waitForJob(activeJobId).then(() => {
@@ -319,9 +340,21 @@ export function DemoImportButton({
 
   return (
     <div className="stack import-status-shell">
-      <button type="button" onClick={handleClick} disabled={loading}>
-        {loading ? messages.importButton.importing : messages.importButton.runDemoImport}
-      </button>
+      <div className="action-row" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <button type="button" onClick={handleClick} disabled={loading}>
+          {loading ? messages.importButton.importing : messages.importButton.runDemoImport}
+        </button>
+        {activeJobId && jobStatus === "running" && (
+          <button type="button" onClick={handlePause} className="action-button-secondary">
+            暂停 (Pause)
+          </button>
+        )}
+        {activeJobId && jobStatus === "paused" && (
+          <button type="button" onClick={handleResume} className="action-button-primary">
+            恢复 (Resume)
+          </button>
+        )}
+      </div>
       <p>
         {messages.importButton.repoLabel} {repo}
       </p>

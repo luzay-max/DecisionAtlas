@@ -142,13 +142,17 @@ export function DecisionTopologyMap({ items, workspaceSlug }: { items: TimelineI
             <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
               <path d="M 30 0 L 0 0 0 30" fill="none" stroke="var(--topology-grid-stroke, #222f3e)" strokeWidth="0.5" />
             </pattern>
+            <radialGradient id="center-glow">
+              <stop offset="0%" stopColor="rgba(16,172,132,0.06)" />
+              <stop offset="70%" stopColor="rgba(16,172,132,0)" />
+            </radialGradient>
           </defs>
 
           {/* Grid Background */}
           <rect width="100%" height="100%" fill="url(#grid)" />
 
           {/* Grid Subtle Center Glow */}
-          <circle cx="450" cy="190" r="280" fill="radial-gradient(circle, rgba(16,172,132,0.03) 0%, transparent 70%)" pointerEvents="none" />
+          <circle cx="450" cy="190" r="280" fill="url(#center-glow)" pointerEvents="none" />
 
           {/* Scope Anchor Connections (Scopes -> Center Anchor) */}
           {scopes.map((scope, idx) => (
@@ -231,7 +235,12 @@ export function DecisionTopologyMap({ items, workspaceSlug }: { items: TimelineI
                 fontSize="11"
                 fontWeight="600"
                 letterSpacing="0.5px"
-                style={{ textShadow: "0 2px 4px var(--bg)" }}
+                paintOrder="stroke"
+                stroke="var(--topology-canvas-bg, #050b18)"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ textShadow: "0 2px 4px rgba(0,0,0,0.15)" }}
               >
                 {scope.label}
               </text>
@@ -317,8 +326,9 @@ export function DecisionTopologyMap({ items, workspaceSlug }: { items: TimelineI
                       rx="4"
                       fill="var(--topology-panel-bg, #1e293b)"
                       stroke="var(--line, #475569)"
-                      strokeWidth="0.5"
-                      opacity="0.95"
+                      strokeWidth="1"
+                      opacity="1"
+                      filter="url(#soft-shadow)"
                     />
                     <text
                       textAnchor="middle"

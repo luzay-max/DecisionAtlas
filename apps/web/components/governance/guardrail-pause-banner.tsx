@@ -36,6 +36,29 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
 
   const { agent_status, summary, findings = [], signals = [], human_questions = [] } = guardrail;
 
+  const translations: Record<string, string> = {
+    "Governance guardrail requires human review before the agent continues.": "治理守卫要求在智能体继续前进行人工审核。",
+    "Governance guardrail found advisory concerns; the agent may continue only after addressing recommended actions.": "治理守卫发现建议性问题；智能体在处理完推荐操作后方可继续。",
+    "The AI agent has automatically paused code execution because current changes violate established architecture policies or active OpenSpec specifications. Human intervention is required.": "AI 智能体已自动暂停代码执行，因为当前修改违反了既定的架构策略或生效的 OpenSpec 规范。需要人类介入评估。",
+    "Advisory rules or non-blocking drift detected. You may proceed, but addressing the recommendations is highly advised before merge.": "检测到建议性规则或非阻塞性漂移。您可以继续执行，但强烈建议在合并前处理这些建议。",
+    "Code changes need OpenSpec context": "代码变更需要 OpenSpec 上下文",
+    "Validation evidence is missing": "缺失验证证据",
+    "Should this behavior change get OpenSpec context before implementation continues?": "在继续实现之前，此行为变更是否需要 OpenSpec 上下文？",
+    "What validation evidence is required before the agent may continue or claim completion?": "在智能体继续或声明完成之前，需要什么验证证据？",
+  };
+
+  const t = (text: string) => {
+    if (!isZh || !text) return text;
+    if (translations[text]) return translations[text];
+    if (text.startsWith("Current code changes have no active OpenSpec change. Affected paths:")) {
+      return text.replace("Current code changes have no active OpenSpec change. Affected paths:", "当前代码变更没有活跃的 OpenSpec 变更。受影响的路径：");
+    }
+    if (text.startsWith("Code paths changed, but no test, fixture, or spec-test paths were changed in the current diff.")) {
+      return text.replace("Code paths changed, but no test, fixture, or spec-test paths were changed in the current diff.", "代码路径已更改，但在当前 diff 中未更改任何测试、fixture 或 spec-test 路径。");
+    }
+    return text;
+  };
+
   // We only show the blocker/caution banner if it is not "continue"
   if (agent_status === "continue") {
     return null;
@@ -84,12 +107,12 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
         </div>
 
         {/* Core Summary Text */}
-        <h3 style={{ ...styles.title, color: theme.titleColor }}>{summary}</h3>
+        <h3 style={{ ...styles.title, color: theme.titleColor }}>{t(summary)}</h3>
         
         <p style={styles.intro}>
           {isPause
-            ? "The AI agent has automatically paused code execution because current changes violate established architecture policies or active OpenSpec specifications. Human intervention is required."
-            : "Advisory rules or non-blocking drift detected. You may proceed, but addressing the recommendations is highly advised before merge."}
+            ? t("The AI agent has automatically paused code execution because current changes violate established architecture policies or active OpenSpec specifications. Human intervention is required.")
+            : t("Advisory rules or non-blocking drift detected. You may proceed, but addressing the recommendations is highly advised before merge.")}
         </p>
 
         {/* Evidence & Diff Block Section */}
@@ -101,9 +124,9 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
                 <div key={`finding-${idx}`} style={styles.findingItem}>
                   <div style={styles.findingHead}>
                     <span style={styles.findingSeverity}>{finding.severity.toUpperCase()}</span>
-                    <strong style={styles.findingTitle}>{finding.title}</strong>
+                    <strong style={styles.findingTitle}>{t(finding.title)}</strong>
                   </div>
-                  <p style={styles.findingDetail}>{finding.detail}</p>
+                  <p style={styles.findingDetail}>{t(finding.detail)}</p>
                   
                   {finding.source?.excerpt && (
                     <pre style={styles.codeSnippet}>
@@ -130,7 +153,7 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
                 <div key={`signal-${idx}`} style={styles.signalItem}>
                   <div style={styles.signalHead}>
                     <span style={styles.signalType}>{signal.type}</span>
-                    <span style={styles.signalTitle}>{signal.title}</span>
+                    <span style={styles.signalTitle}>{t(signal.title)}</span>
                   </div>
                   {signal.recommended_next_action && (
                     <p style={styles.signalAction}>
@@ -152,9 +175,9 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
                 <li key={question.id} style={styles.questionItem}>
                   <input type="checkbox" id={question.id} style={styles.checkbox} />
                   <label htmlFor={question.id} style={styles.questionLabel}>
-                    {question.question}
+                    {t(question.question)}
                     {question.evidence_summary && (
-                      <span style={styles.questionSub}>{question.evidence_summary}</span>
+                      <span style={styles.questionSub}>{t(question.evidence_summary)}</span>
                     )}
                   </label>
                 </li>
@@ -172,7 +195,7 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
             Review Governance Rules & Decisions / 前往治理审阅页 →
           </Link>
           <div style={styles.cliHelp}>
-            Run preflight locally: <code>python scripts/governance/agent_guardrail.py --agent</code>
+            {isZh ? "本地运行预检：" : "Run preflight locally:"} <code>python scripts/governance/agent_guardrail.py --agent</code>
           </div>
         </div>
       </div>
