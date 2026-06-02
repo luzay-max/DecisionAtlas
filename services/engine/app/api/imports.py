@@ -209,3 +209,50 @@ def get_import_job(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     finally:
         session.close()
+
+
+@router.post("/{job_id}/pause")
+def pause_import_job(
+    job_id: str,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    session = get_db_session()
+    try:
+        job = ImportJobRepository(session).get_by_job_id(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"Import job not found: {job_id}")
+        workspace = WorkspaceRepository(session).get_by_id(job.workspace_id)
+        if workspace is None:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="admin")
+        
+        updated_job = ImportJobRepository(session).mark_paused(job_id)
+        session.commit()
+        return get_import_job_status(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        session.close()
+
+@router.post("/{job_id}/resume")
+def resume_import_job(
+    job_id: str,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    session = get_db_session()
+    try:
+        job = ImportJobRepository(session).get_by_job_id(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail=f"Import job not found: {job_id}")
+        workspace = WorkspaceRepository(session).get_by_id(job.workspace_id)
+        if workspace is None:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="admin")
+        
+        updated_job = ImportJobRepository(session).mark_resumed(job_id)
+        session.commit()
+        return get_import_job_status(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    finally:
+        session.close()

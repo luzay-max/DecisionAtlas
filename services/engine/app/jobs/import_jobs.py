@@ -160,11 +160,36 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             "github import started",
             extra=build_log_context(job_id=job_id, workspace_id=workspace.id),
         )
+        
+        last_progress_time = monotonic()
+        def on_progress(count: int):
+            nonlocal last_progress_time
+            now = monotonic()
+            
+            # Check pause status
+            latest_job = jobs.get_by_job_id(job_id)
+            if latest_job and latest_job.status == "paused":
+                while True:
+                    session.refresh(latest_job)
+                    if latest_job.status != "paused":
+                        break
+                    import time
+                    time.sleep(2.0)
+            if latest_job and latest_job.status == "cancelled":
+                raise Exception("Import cancelled")
+
+            # Update DB at most once per second to avoid flooding
+            if now - last_progress_time > 1.0:
+                jobs.update_stage(job_id, stage=current_stage, summary_json={"imported_count": count})
+                session.commit()
+                last_progress_time = monotonic()
+
         import_result = importer.import_repo(
             workspace_slug=workspace_slug,
             repo=repo,
             mode=mode,
             since=since,
+            progress_callback=on_progress,
         )
         current_stage = "indexing_artifacts"
         jobs.update_stage(
@@ -972,7 +997,21 @@ def _build_extraction_progress_reporter(*, job_id: str):
 
         progress_session = get_db_session()
         try:
-            ImportJobRepository(progress_session).merge_summary(
+            jobs_repo = ImportJobRepository(progress_session)
+            
+            # Check pause status
+            latest_job = jobs_repo.get_by_job_id(job_id)
+            if latest_job and latest_job.status == "paused":
+                while True:
+                    progress_session.refresh(latest_job)
+                    if latest_job.status != "paused":
+                        break
+                    import time
+                    time.sleep(2.0)
+            if latest_job and latest_job.status == "cancelled":
+                raise Exception("Import cancelled")
+
+            jobs_repo.merge_summary(
                 job_id,
                 summary_json={
                     "extraction_summary": stats.to_summary(),
