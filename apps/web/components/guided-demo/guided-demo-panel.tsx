@@ -29,7 +29,7 @@ export function GuidedDemoPanel({
   children,
 }: GuidedDemoPanelProps) {
   return (
-    <section className={`card stack guided-demo-panel guided-demo-panel-${tone}`}>
+    <section className={`glass-panel-heavy stack guided-demo-panel guided-demo-panel-${tone}`} style={{ padding: "32px", marginBottom: "24px" }}>
       <div className="card-head">
         <div>
           <p className="eyebrow">Guided Demo</p>
@@ -57,7 +57,7 @@ export function GuidedDemoPanel({
       {children}
       {nextHref && nextLabel ? (
         <div className="action-row">
-          <Link href={nextHref} className="action-link action-link-primary">
+          <Link href={nextHref} className="action-link action-link-primary shimmer-btn">
             {nextLabel}
           </Link>
         </div>

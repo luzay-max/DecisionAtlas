@@ -14,7 +14,7 @@ export function AdvancedControls({
   const { messages } = useI18n();
 
   return (
-    <details className="card advanced-controls" id={id}>
+    <details className="glass-panel-heavy advanced-controls" id={id} style={{ padding: "24px" }}>
       <summary>{messages.advanced.summary}</summary>
       <div className="stack advanced-controls-body">
         <div>
