@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime
 from pathlib import PurePosixPath
+from typing import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sqlalchemy.orm import Session
 
@@ -27,6 +29,7 @@ class GitHubImporter:
         repo: str,
         mode: str = "full",
         since: datetime | None = None,
+        progress_callback: Callable[[int], None] | None = None,
     ) -> GitHubImportResult:
         workspace = self.workspaces.get_by_slug(workspace_slug)
         if workspace is None:
@@ -61,29 +64,40 @@ class GitHubImporter:
             )
             total += 1
             artifact_counts[payload.artifact_type] += 1
+            if progress_callback:
+                progress_callback(total)
 
-        for repository_file in selected_documents:
+        def fetch_doc(repository_file):
             source_id = repository_file.path
             signal_category = classify_repository_document(source_id)
-            self.artifacts.upsert(
-                workspace_id=workspace.id,
-                artifact_type="doc",
-                source_id=source_id,
-                repo=repo,
-                title=PurePosixPath(source_id).stem,
-                content=self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch),
-                author=None,
-                url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
-                timestamp=None,
-                metadata_json={
-                    "path": source_id,
-                    "ref": default_branch,
-                    "source": "github_repo_doc",
-                    "signal_category": signal_category,
-                },
-            )
-            total += 1
-            artifact_counts["doc"] += 1
+            content = self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch)
+            return source_id, signal_category, content
+
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
+            for future in as_completed(futures):
+                source_id, signal_category, content = future.result()
+                self.artifacts.upsert(
+                    workspace_id=workspace.id,
+                    artifact_type="doc",
+                    source_id=source_id,
+                    repo=repo,
+                    title=PurePosixPath(source_id).stem,
+                    content=content,
+                    author=None,
+                    url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
+                    timestamp=None,
+                    metadata_json={
+                        "path": source_id,
+                        "ref": default_branch,
+                        "source": "github_repo_doc",
+                        "signal_category": signal_category,
+                    },
+                )
+                total += 1
+                artifact_counts["doc"] += 1
+                if progress_callback:
+                    progress_callback(total)
 
         self.session.commit()
         return GitHubImportResult(

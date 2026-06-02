@@ -40,7 +40,6 @@ class OpenAICompatibleProvider:
         content = self._post_chat_completion(
             system_prompt=request.prompt,
             user_content=request.artifact_content,
-            max_tokens=8,
         )
         normalized = content.strip().lower()
         if normalized in {"true", "yes"}:
