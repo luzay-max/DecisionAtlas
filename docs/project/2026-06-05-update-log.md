@@ -19,3 +19,13 @@
 
 - Existing untracked local scratch files were intentionally preserved under ignored `.tmp/` storage and not committed.
 - Browser/Chrome-based UI verification was not required for this configuration-only change; it remains required for the next UI-facing self-hosted/team workflow changes.
+
+## Team Self-Hosted Workflow Rehearsal
+
+- Added OpenSpec change `self-hosted-team-workflow-rehearsal` to make the small-team self-hosted account/permission workflow measurable with browser/operator evidence.
+- Added Playwright rehearsal `apps/web/tests-e2e/team-self-hosted-rehearsal.spec.ts` covering admin team-management visibility, UI account creation for reviewer/viewer, and non-admin permission messaging.
+- Added client-side session token persistence so browser login survives route changes and subsequent API calls use `x-decisionatlas-session-token`.
+- Updated self-hosted readiness and delivery rehearsal docs to require the team workflow browser rehearsal for clean Team Self-hosted account/permission readiness claims.
+- Added `@decisionatlas/web` `e2e` script so browser rehearsal commands use the Node Playwright package consistently.
+- Selected real public GitHub repository `fastapi/fastapi` for optional live benchmark evidence. The generated reports `.tmp/team-rehearsal-fastapi-live-report.json` and `.tmp/team-rehearsal-fastapi-live-report.md` recorded `missing_workspace` / `operator_setup`, meaning the repository exists but had not been imported into the local rehearsal workspace before benchmark validation.
+- Governance protocol after archive returned advisory `pause` because code changes no longer had an active OpenSpec change after `self-hosted-team-workflow-rehearsal` was archived; OpenSpec strict validation passed and the archived change is preserved as the implementation context.

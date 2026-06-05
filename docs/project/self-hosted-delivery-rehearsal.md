@@ -42,6 +42,7 @@ Classify every lane explicitly:
 | Canonical pre-release | Yes, or explicit blocker/substitute | `.tmp/pre-release-rehearsal-YYYY-MM-DD.log` and status |
 | Release evidence | Yes | `.tmp/release-evidence.json` and `.tmp/release-evidence.md` |
 | Hosted/operator readiness | Yes | `.tmp/hosted-operator-readiness.json` and `.tmp/hosted-operator-readiness.md` |
+| Team workflow browser rehearsal | Yes for Team Self-hosted claims | Playwright output for `team-self-hosted-rehearsal.spec.ts` |
 | Benchmark comparison | Optional credibility lane, but must be explicit | `.tmp/real-repo-benchmark-comparison.json` and Markdown, or `not_provided` |
 | Readiness evidence history | Yes for durable claims | `docs/evidence/readiness/<entry>/entry.json` plus copied artifacts |
 | Handoff summary | Yes | `docs/evidence/readiness/<entry>/summary.md` |
@@ -56,11 +57,12 @@ Classify every lane explicitly:
 5. Run governance guardrail summary and JSON output.
 6. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
 7. Run seeded demo readiness using the project Python environment when database dependencies are required.
-8. Generate release evidence.
-9. Generate hosted/operator readiness evidence.
-10. Generate, reuse, or explicitly omit benchmark comparison evidence.
-11. Archive selected artifacts into readiness evidence history.
-12. Prepare the rehearsal summary and Code Decision Audit handoff.
+8. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
+9. Generate release evidence.
+10. Generate hosted/operator readiness evidence.
+11. Generate, reuse, or explicitly omit benchmark comparison evidence.
+12. Archive selected artifacts into readiness evidence history.
+13. Prepare the rehearsal summary and Code Decision Audit handoff.
 
 ## Command Template
 
@@ -73,6 +75,7 @@ python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.jso
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"
 python -m uv run --project services/engine python scripts\demo\check_seeded_demo.py --json --no-fail > .tmp\seeded-demo-readiness.json
+pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts
 
 python scripts\ci\collect_release_evidence.py `
   --pre-release-status passed `
@@ -106,6 +109,24 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.
+
+## Team Self-Hosted Browser Rehearsal
+
+The team browser rehearsal is the product-level proof for the small-team collaboration claim. It uses the local bootstrap admin to open the team management surface, creates reviewer and viewer accounts through the UI, logs in as those non-admin users, and verifies the product explains that admin role is required for account and workspace-permission management.
+
+Use backend role-boundary tests as the authorization proof:
+
+```powershell
+python -m uv run pytest tests/api/test_team_api.py tests/api/test_auth_api.py -q
+```
+
+Use the browser rehearsal as the human-operator proof:
+
+```powershell
+pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts
+```
+
+If this browser rehearsal is skipped, do not claim clean Team Self-hosted account/permission readiness. Mark the lane as `not_provided` or `operator_guided` and explain what was not exercised.
 
 ## Handoff Rules
 

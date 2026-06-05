@@ -410,10 +410,30 @@ export class ApiError extends Error {
 }
 
 const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:3001";
+const SESSION_HEADER = "x-decisionatlas-session-token";
+const SESSION_STORAGE_KEY = "decisionatlas-session-token";
+
+export function saveProductSessionToken(sessionToken: string | null | undefined) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (sessionToken) {
+    window.localStorage.setItem(SESSION_STORAGE_KEY, sessionToken);
+    return;
+  }
+  window.localStorage.removeItem(SESSION_STORAGE_KEY);
+}
 
 async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit | undefined> {
   const headers = new Headers(initHeaders ?? {});
-  if (typeof window !== "undefined" || headers.has("cookie")) {
+  if (typeof window !== "undefined") {
+    const sessionToken = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (sessionToken && !headers.has(SESSION_HEADER)) {
+      headers.set(SESSION_HEADER, sessionToken);
+    }
+    return headers;
+  }
+  if (headers.has("cookie")) {
     return headers;
   }
 

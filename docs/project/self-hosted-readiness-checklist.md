@@ -41,6 +41,17 @@ This checklist validates the self-hosted product baseline. It does not validate:
 - [ ] Why-search returns cited output or an explicit bounded limitation.
 - [ ] Drift page shows expected seeded or imported-workspace drift state.
 - [ ] Repeat repository analysis explains open-existing, sync, and full rerun choices.
+- [ ] Team workflow browser rehearsal passes for admin, reviewer, and viewer role boundaries:
+
+```powershell
+pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts
+```
+
+- [ ] Backend role-boundary tests pass and are recorded as authorization evidence:
+
+```powershell
+python -m uv run pytest tests/api/test_team_api.py tests/api/test_auth_api.py -q
+```
 
 ## Validation Commands
 

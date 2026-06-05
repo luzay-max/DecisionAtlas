@@ -8,6 +8,7 @@ import {
   ProductSession,
   getProductSession,
   loginProductSession,
+  saveProductSessionToken,
   switchProductScope,
 } from "../../lib/api";
 
@@ -44,12 +45,14 @@ export function ProductSessionProvider({ children }: { children: React.ReactNode
     setError(null);
     try {
       const nextSession = await getProductSession();
+      saveProductSessionToken(nextSession.session_token);
       setSession(nextSession);
       setStatus("ready");
       return nextSession;
     } catch (refreshError) {
       setSession(null);
       if (refreshError instanceof ApiError && refreshError.status === 401) {
+        saveProductSessionToken(null);
         setStatus("unauthenticated");
         setError("Authentication required");
         return null;
@@ -62,6 +65,7 @@ export function ProductSessionProvider({ children }: { children: React.ReactNode
 
   async function login(username: string, password: string) {
     const nextSession = await loginProductSession(username, password);
+    saveProductSessionToken(nextSession.session_token);
     setSession(nextSession);
     setStatus("ready");
     setError(null);
@@ -71,6 +75,7 @@ export function ProductSessionProvider({ children }: { children: React.ReactNode
 
   async function switchScope(ownerScope: string) {
     const nextSession = await switchProductScope(ownerScope);
+    saveProductSessionToken(nextSession.session_token);
     setSession(nextSession);
     setStatus("ready");
     setError(null);

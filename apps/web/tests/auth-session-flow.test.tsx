@@ -52,6 +52,7 @@ const multiScopeSession: api.ProductSession = {
 
 describe("auth session product flow", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     vi.mocked(api.getProductSession).mockReset();
     vi.mocked(api.loginProductSession).mockReset();
     vi.mocked(api.switchProductScope).mockReset();
@@ -73,6 +74,7 @@ describe("auth session product flow", () => {
     await waitFor(() => expect(screen.getByText("local-admin")).toBeInTheDocument());
     expect(screen.getByText("local bootstrap")).toBeInTheDocument();
     expect(screen.getByText(/Role: admin · Scope: local-default/)).toBeInTheDocument();
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("boot-token");
   });
 
   it("shows login-required UI when session recovery returns 401", async () => {
@@ -86,6 +88,7 @@ describe("auth session product flow", () => {
 
     await waitFor(() => expect(screen.getByText("Authentication required")).toBeInTheDocument());
     expect(screen.getByRole("link", { name: "Login" })).toHaveAttribute("href", "/login");
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBeNull();
   });
 
   it("switches to an available owner scope and refreshes product state", async () => {
@@ -110,6 +113,7 @@ describe("auth session product flow", () => {
     await waitFor(() => expect(api.switchProductScope).toHaveBeenCalledWith("team-b"));
     expect(refresh).toHaveBeenCalled();
     await waitFor(() => expect(screen.getByText(/Role: reviewer · Scope: team-b/)).toBeInTheDocument());
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("team-token");
   });
 
   it("logs in and returns to the requested page", async () => {
@@ -131,6 +135,7 @@ describe("auth session product flow", () => {
     await waitFor(() =>
       expect(api.loginProductSession).toHaveBeenCalledWith("operator@example.com", "secret")
     );
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("team-token");
     expect(push).toHaveBeenCalledWith("/workspaces/imported-workspace");
   });
 
