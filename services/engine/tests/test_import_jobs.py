@@ -39,7 +39,7 @@ def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Pat
         def __init__(self, session, client) -> None:
             self.session = session
 
-        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None, progress_callback=None):
             workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
             assert workspace is not None
             self.session.add(
@@ -102,7 +102,7 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
         def __init__(self, session, client) -> None:
             self.session = session
 
-        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None, progress_callback=None):
             workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
             assert workspace is not None
             self.session.add(
@@ -185,7 +185,7 @@ def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path:
         def __init__(self, session, client) -> None:
             self.session = session
 
-        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None, progress_callback=None):
             workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
             assert workspace is not None
             self.session.add(
@@ -270,7 +270,7 @@ def test_run_github_import_records_recovery_conversion_counters_in_summary(tmp_p
         def __init__(self, session, client) -> None:
             self.session = session
 
-        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None):
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full", since=None, progress_callback=None):
             workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
             assert workspace is not None
             self.session.add(
