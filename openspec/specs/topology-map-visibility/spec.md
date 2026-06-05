@@ -1,3 +1,9 @@
+## Purpose
+
+Ensure the topology map renders reliably and remains readable across dynamic SVG backgrounds.
+
+## Requirements
+
 ### Requirement: Proper SVG Gradients
 The topology map SHALL use valid SVG gradients (`<linearGradient>` or `<radialGradient>`) rather than CSS gradient functions in shape attributes.
 

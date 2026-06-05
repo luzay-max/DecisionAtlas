@@ -1,3 +1,9 @@
+## Purpose
+
+Define the visual and interaction baseline for the landing page so the public entry experience feels distinctive, responsive, and intentional.
+
+## Requirements
+
 ### Requirement: Hero Section Overhaul
 The landing page SHALL display a visually arresting Hero section featuring a Crystal Aurora (or Obsidian Dark) gradient background, dynamic typography, and high-contrast text.
 

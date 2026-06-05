@@ -1,3 +1,7 @@
+## Purpose
+
+Allow long-running repository imports to be paused and resumed without losing progress or forcing operators to restart completed work.
+
 ## Requirements
 
 ### Requirement: Import job pausing

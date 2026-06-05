@@ -21,6 +21,7 @@ Run individual commands only when debugging a failure from the canonical script.
 - [ ] run `python scripts/governance/agent_guardrail.py --protocol-status --summary` before non-trivial implementation
 - [ ] run `python scripts/governance/agent_guardrail.py --protocol-status --summary` after targeted validation and before claiming completion
 - [ ] record any `caution` or `pause` evidence in the implementation, archive, commit, or readiness handoff
+- [ ] keep temporary debugging scripts, generated local reports, and ad hoc validation artifacts in `.tmp/` or another ignored scratch location, not package roots
 
 The protocol status is local workflow evidence for developers and AI agents. It reports active OpenSpec context, guardrail status, diff status, drift status, required tests, recommended actions, human questions, and handoff guidance.
 
