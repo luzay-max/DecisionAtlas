@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+function accountLabel(username: string): RegExp {
+  const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`#\\d+ ${escaped}$`);
+}
+
 test("self-hosted team workflow rehearsal", async ({ page }) => {
   const suffix = Date.now().toString(36);
   const reviewerUsername = `reviewer-${suffix}`;
@@ -15,13 +20,13 @@ test("self-hosted team workflow rehearsal", async ({ page }) => {
   await page.getByLabel("Initial password").fill(password);
   await page.getByLabel("Scope role").selectOption("reviewer");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText(new RegExp(reviewerUsername))).toBeVisible();
+  await expect(page.getByText(accountLabel(reviewerUsername))).toBeVisible();
 
   await page.getByLabel("Username").fill(viewerUsername);
   await page.getByLabel("Initial password").fill(password);
   await page.getByLabel("Scope role").selectOption("viewer");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText(new RegExp(viewerUsername))).toBeVisible();
+  await expect(page.getByText(accountLabel(viewerUsername))).toBeVisible();
 
   await page.goto("/login?next=/team");
   await page.getByLabel("Username").fill(reviewerUsername);
