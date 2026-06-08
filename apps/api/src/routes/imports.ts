@@ -32,6 +32,16 @@ const privateAccessBindingSchema = z.object({
   workspace_slug: z.string().min(1).optional(),
 });
 
+const gitSourceBindingSchema = z.object({
+  provider: z.enum(["github", "gitlab", "gitee", "local"]),
+  access_mode: z.enum(["public", "token", "local_path"]),
+  repo: z.string().min(3),
+  token: z.string().min(1).optional(),
+  source_ref: z.string().min(1).optional(),
+  source_label: z.string().min(1).optional(),
+  workspace_slug: z.string().min(1).optional(),
+});
+
 const webhookHeadersSchema = z.object({
   "x-github-event": z.string().min(1),
   "x-github-delivery": z.string().min(1).optional(),
@@ -148,6 +158,32 @@ export async function importsRoute(app: FastifyInstance) {
       }),
       app.log,
       "POST /imports/github/private-access/bind"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
+  app.post("/imports/git-sources/bind", async (request, reply) => {
+    const parsed = gitSourceBindingSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid Git source binding payload",
+        issues: parsed.error.issues
+      });
+    }
+
+    const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/git-sources/bind`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          ...authHeaders,
+        },
+        body: JSON.stringify(parsed.data)
+      }),
+      app.log,
+      "POST /imports/git-sources/bind"
     );
     return reply.status(upstream.status).send(upstream.payload);
   });

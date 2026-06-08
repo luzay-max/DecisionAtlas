@@ -9,8 +9,43 @@ import httpx
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from app.auth import SESSION_HEADER
 from app.db.models import GitHubTokenAccessSource, ImportJob, Workspace
 from app.main import create_app
+from app.repositories.auth import AuthRepository, hash_password
+
+
+def _upgrade(db_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+
+def _create_actor_session(
+    db_path: Path,
+    *,
+    username: str,
+    role: str,
+    scope_key: str = "local-default",
+) -> str:
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        repo = AuthRepository(session)
+        scope = repo.get_scope_by_key(scope_key)
+        if scope is None:
+            scope = repo.create_scope(scope_key=scope_key, display_name=scope_key, scope_type="team")
+        actor = repo.get_actor_by_username(username)
+        if actor is None:
+            actor = repo.create_actor(
+                username=username,
+                password_hash=hash_password("password123"),
+                display_name=username,
+            )
+        repo.ensure_membership(actor_id=actor.id, owner_scope_id=scope.id, role=role)
+        auth_session = repo.create_session(actor_id=actor.id, owner_scope_id=scope.id)
+        session.commit()
+        return auth_session.session_token
 
 
 def test_post_imports_github_returns_job_id(tmp_path: Path, monkeypatch) -> None:
@@ -457,6 +492,116 @@ def test_bind_private_access_marks_workspace_as_token_backed(tmp_path: Path, mon
     assert body["access_source_status"] == "authorized"
     assert "Private GitHub source team private repo" == body["access_source_label"]
     assert "ghp-private-token" not in str(body)
+
+
+def test_bind_git_source_github_token_delegates_without_echoing_token(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-git-source-github-token.db"
+    _upgrade(db_path, monkeypatch)
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.get_repository_metadata",
+        lambda self, repo: {"full_name": repo, "private": True, "default_branch": "main"},
+    )
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/git-sources/bind",
+        json={
+            "provider": "github",
+            "access_mode": "token",
+            "repo": "org/private-repo",
+            "token": "ghp-private-token",
+            "source_ref": "org/private-repo",
+            "source_label": "team private repo",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "github"
+    assert body["access_mode"] == "token"
+    assert body["setup_outcome"] == "authorized"
+    assert body["next_action"] == "run_import_or_open_workspace"
+    assert body["access_source_type"] == "github_token"
+    assert body["access_source_status"] == "authorized"
+    assert body["workspace_slug"] == "github-org-private-repo"
+    assert "ghp-private-token" not in str(body)
+
+
+def test_bind_git_source_requires_admin_role(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-git-source-reviewer.db"
+    _upgrade(db_path, monkeypatch)
+    reviewer_token = _create_actor_session(db_path, username="reviewer-user", role="reviewer")
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/git-sources/bind",
+        headers={SESSION_HEADER: reviewer_token},
+        json={
+            "provider": "gitlab",
+            "access_mode": "token",
+            "repo": "group/private-repo",
+            "token": "glpat-private-token",
+        },
+    )
+
+    assert response.status_code == 403
+    assert "glpat-private-token" not in str(response.json())
+
+
+def test_bind_git_source_unsupported_provider_returns_bounded_outcome(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-git-source-unsupported.db"
+    _upgrade(db_path, monkeypatch)
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/git-sources/bind",
+        json={
+            "provider": "gitlab",
+            "access_mode": "token",
+            "repo": "group/private-repo",
+            "token": "glpat-private-token",
+            "source_label": "team gitlab repo",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "gitlab"
+    assert body["access_mode"] == "token"
+    assert body["workspace_exists"] is False
+    assert body["access_source_type"] == "gitlab_token"
+    assert body["access_source_status"] == "not_implemented"
+    assert body["setup_outcome"] == "provider_unsupported"
+    assert body["next_action"] == "plan_provider_importer"
+    assert "glpat-private-token" not in str(body)
+
+
+def test_bind_git_source_local_path_is_operator_guided_without_raw_path(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "bind-git-source-local.db"
+    _upgrade(db_path, monkeypatch)
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/imports/git-sources/bind",
+        json={
+            "provider": "local",
+            "access_mode": "local_path",
+            "repo": r"C:\secret\private-repo",
+            "source_label": "server repo",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "local"
+    assert body["access_mode"] == "local_path"
+    assert body["repo"] == "local_path"
+    assert body["workspace_exists"] is False
+    assert body["access_source_status"] == "operator_guided"
+    assert body["setup_outcome"] == "local_path_unavailable"
+    assert body["next_action"] == "configure_server_local_path_import"
+    assert r"C:\secret\private-repo" not in str(body)
 
 
 def test_bind_private_access_classifies_unauthorized_without_echoing_token(tmp_path: Path, monkeypatch) -> None:

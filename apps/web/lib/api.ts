@@ -274,7 +274,7 @@ export type ImportResult = {
 export type ImportLookup = {
   owner_scope?: string;
   repo: string;
-  repo_url: string;
+  repo_url?: string | null;
   workspace_exists: boolean;
   workspace_slug: string | null;
   has_successful_import: boolean;
@@ -285,6 +285,10 @@ export type ImportLookup = {
   latest_sync_origin?: string | null;
   latest_sync_at?: string | null;
   last_import_summary?: ImportSummary | null;
+  provider?: string;
+  access_mode?: string;
+  setup_outcome?: string;
+  next_action?: string;
   access_source_type?: string;
   access_source_label?: string;
   access_source_status?: string | null;
@@ -304,6 +308,16 @@ export type GitHubInstallationBindingInput = {
 export type GitHubPrivateAccessBindingInput = {
   repo: string;
   token: string;
+  source_ref?: string;
+  source_label?: string;
+  workspace_slug?: string;
+};
+
+export type GitSourceBindingInput = {
+  provider: string;
+  access_mode: string;
+  repo: string;
+  token?: string;
   source_ref?: string;
   source_label?: string;
   workspace_slug?: string;
@@ -675,6 +689,20 @@ export async function bindGithubPrivateAccess(input: GitHubPrivateAccessBindingI
   });
   if (!response.ok) {
     await readError(response, "Failed to bind private repository access");
+  }
+  return response.json();
+}
+
+export async function bindGitSource(input: GitSourceBindingInput): Promise<ImportLookup> {
+  const response = await apiFetch(`${apiBaseUrl}/imports/git-sources/bind`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to bind Git source access");
   }
   return response.json();
 }

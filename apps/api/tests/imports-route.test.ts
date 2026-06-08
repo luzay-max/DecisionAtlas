@@ -280,6 +280,104 @@ describe("POST /imports/github", () => {
     global.fetch = originalFetch;
   });
 
+  it("proxies POST /imports/git-sources/bind", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          owner_scope: "local-default",
+          provider: "gitlab",
+          access_mode: "token",
+          repo: "group/private-repo",
+          repo_url: null,
+          workspace_exists: false,
+          workspace_slug: null,
+          has_successful_import: false,
+          can_incremental_sync: false,
+          has_running_import: false,
+          latest_import: null,
+          setup_outcome: "provider_unsupported",
+          next_action: "plan_provider_importer",
+          access_source_type: "gitlab_token",
+          access_source_status: "not_implemented"
+        }),
+      json: async () => ({
+        owner_scope: "local-default",
+        provider: "gitlab",
+        access_mode: "token",
+        repo: "group/private-repo",
+        repo_url: null,
+        workspace_exists: false,
+        workspace_slug: null,
+        has_successful_import: false,
+        can_incremental_sync: false,
+        has_running_import: false,
+        latest_import: null,
+        setup_outcome: "provider_unsupported",
+        next_action: "plan_provider_importer",
+        access_source_type: "gitlab_token",
+        access_source_status: "not_implemented"
+      })
+    } as Response);
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/imports/git-sources/bind",
+      headers: { cookie: "decisionatlas_session=admin-token" },
+      payload: {
+        provider: "gitlab",
+        access_mode: "token",
+        repo: "group/private-repo",
+        token: "glpat-private-token",
+        source_ref: "group/private-repo",
+        source_label: "team gitlab repo",
+      }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      owner_scope: "local-default",
+      provider: "gitlab",
+      access_mode: "token",
+      repo: "group/private-repo",
+      repo_url: null,
+      workspace_exists: false,
+      workspace_slug: null,
+      has_successful_import: false,
+      can_incremental_sync: false,
+      has_running_import: false,
+      latest_import: null,
+      setup_outcome: "provider_unsupported",
+      next_action: "plan_provider_importer",
+      access_source_type: "gitlab_token",
+      access_source_status: "not_implemented"
+    });
+    expect(JSON.stringify(response.json())).not.toContain("glpat-private-token");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/imports/git-sources/bind",
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-decisionatlas-session-token": "admin-token",
+        },
+        body: JSON.stringify({
+          provider: "gitlab",
+          access_mode: "token",
+          repo: "group/private-repo",
+          token: "glpat-private-token",
+          source_ref: "group/private-repo",
+          source_label: "team gitlab repo",
+        }),
+      }
+    );
+
+    global.fetch = originalFetch;
+  });
+
   it("proxies POST /imports/github/webhook", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockResolvedValue({

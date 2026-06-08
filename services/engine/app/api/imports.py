@@ -5,6 +5,13 @@ from pydantic import BaseModel
 
 from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
 from app.db.session import get_db_session
+from app.git_sources import (
+    decorate_github_result,
+    local_path_guided_result,
+    normalize_access_mode,
+    normalize_provider,
+    provider_unsupported_result,
+)
 from app.jobs.import_jobs import (
     ActiveImportConflict,
     bind_github_app_installation,
@@ -44,6 +51,16 @@ class GitHubPrivateAccessBindingRequest(BaseModel):
     repo: str
     token: str
     owner_scope: str | None = None
+    source_ref: str | None = None
+    source_label: str | None = None
+    workspace_slug: str | None = None
+
+
+class GitSourceBindingRequest(BaseModel):
+    provider: str
+    access_mode: str
+    repo: str
+    token: str | None = None
     source_ref: str | None = None
     source_label: str | None = None
     workspace_slug: str | None = None
@@ -158,6 +175,50 @@ def bind_private_access(
         if "owner/repo" in str(exc) or "public GitHub" in str(exc) or "Repository URL" in str(exc) or "cannot import" in str(exc):
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/git-sources/bind")
+def bind_git_source(
+    request: GitSourceBindingRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    try:
+        require_scope_role(auth, owner_scope=auth.owner_scope, required_role="admin")
+        provider = normalize_provider(request.provider)
+        access_mode = normalize_access_mode(request.access_mode)
+        if provider == "github" and access_mode == "token":
+            if not request.token:
+                raise HTTPException(status_code=400, detail="GitHub token is required for token access.")
+            result = bind_github_private_access_source(
+                repo=request.repo,
+                token=request.token,
+                owner_scope=auth.owner_scope,
+                source_ref=request.source_ref,
+                source_label=request.source_label,
+                workspace_slug=request.workspace_slug,
+            )
+            return decorate_github_result(result=result, access_mode="token", setup_outcome="authorized")
+        if provider == "github" and access_mode == "public":
+            return decorate_github_result(
+                result=lookup_github_workspace(repo=request.repo, owner_scope=auth.owner_scope),
+                access_mode="public",
+                setup_outcome="public_ready",
+            )
+        if provider == "local" or access_mode == "local_path":
+            return local_path_guided_result(owner_scope=auth.owner_scope, source_label=request.source_label)
+        return provider_unsupported_result(
+            provider=provider,
+            access_mode=access_mode,
+            owner_scope=auth.owner_scope,
+            repo=request.repo,
+            source_label=request.source_label,
+        )
+    except HTTPException:
+        raise
+    except RepositoryAccessError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/github/webhook")

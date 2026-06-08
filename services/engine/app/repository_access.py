@@ -3,6 +3,28 @@ from __future__ import annotations
 from app.repositories.github_token_access_sources import GitHubTokenAccessSourceRepository
 
 
+def access_source_provider(access_source_type: str) -> str:
+    if access_source_type in {"github_app_installation", "github_token", "public"}:
+        return "github"
+    if access_source_type == "local_path":
+        return "local"
+    if access_source_type.startswith("gitlab"):
+        return "gitlab"
+    if access_source_type.startswith("gitee"):
+        return "gitee"
+    return "github"
+
+
+def access_source_mode(access_source_type: str) -> str:
+    if access_source_type == "github_token":
+        return "token"
+    if access_source_type == "local_path":
+        return "local_path"
+    if access_source_type == "github_app_installation":
+        return "app_installation"
+    return "public"
+
+
 def access_source_label(
     *,
     access_source_type: str,
@@ -30,6 +52,8 @@ def access_source_summary(
 ) -> dict[str, str | None]:
     if access_source_type != "github_token":
         return {
+            "provider": access_source_provider(access_source_type),
+            "access_mode": access_source_mode(access_source_type),
             "access_source_label": access_source_label(
                 access_source_type=access_source_type,
                 access_source_ref=access_source_ref,
@@ -46,6 +70,8 @@ def access_source_summary(
         )
     display_label = record.display_label if record is not None else None
     return {
+        "provider": access_source_provider(access_source_type),
+        "access_mode": access_source_mode(access_source_type),
         "access_source_label": access_source_label(
             access_source_type=access_source_type,
             access_source_ref=access_source_ref,

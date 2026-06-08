@@ -148,6 +148,18 @@ pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts
 
 If this browser rehearsal is skipped, do not claim clean Team Self-hosted account/permission readiness. Mark the lane as `not_provided` or `operator_guided` and explain what was not exercised.
 
+## Multi Git Source Setup Boundary
+
+The repository access setup surface is provider-aware for self-hosted operators:
+
+- GitHub token setup is implemented and delegates to the existing owner-scoped private access binding path.
+- GitHub public setup can reuse the existing repository lookup path.
+- GitLab and Gitee setup are recognized but currently return a bounded `provider_unsupported` outcome with `plan_provider_importer` as the next action.
+- Local path setup is recognized but currently returns `local_path_unavailable` / `operator_guided`; raw local paths must not be rendered into readiness evidence or non-admin surfaces.
+- Token material remains write-only: setup responses, UI state, release evidence, and logs intended for readiness history must not echo submitted tokens.
+
+Use this boundary when explaining customer readiness. Do not claim full GitLab, Gitee, or local filesystem ingestion until provider-specific importers are implemented and rehearsed.
+
 ## Handoff Rules
 
 - Customer-facing claims must reference the readiness history entry or state that rehearsal evidence is missing.

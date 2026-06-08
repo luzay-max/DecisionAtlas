@@ -20,7 +20,12 @@ from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, Pro
 from app.llm.provider_factory import build_runtime_providers
 from app.observability.logging import build_log_context, get_logger
 from app.outcomes.real_workspaces import summarize_imported_evidence
-from app.repository_access import access_source_label as build_access_source_label, access_source_summary
+from app.repository_access import (
+    access_source_label as build_access_source_label,
+    access_source_mode,
+    access_source_provider,
+    access_source_summary,
+)
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.github_installations import GitHubAppInstallationRepository
@@ -346,6 +351,8 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                     "latest_sync_origin": None,
                     "latest_sync_at": None,
                     "last_import_summary": None,
+                    "provider": access_source_provider("github_token"),
+                    "access_mode": access_source_mode("github_token"),
                     "access_source_type": "github_token",
                     "access_source_label": build_access_source_label(
                         access_source_type="github_token",
@@ -380,6 +387,8 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                     "latest_sync_origin": None,
                     "latest_sync_at": None,
                     "last_import_summary": None,
+                    "provider": access_source_provider("public"),
+                    "access_mode": access_source_mode("public"),
                     "access_source_type": "public",
                     "access_source_label": "Public GitHub access",
                     "access_requirement": exc.failure_category,
@@ -399,6 +408,8 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
                 "latest_sync_origin": None,
                 "latest_sync_at": None,
                 "last_import_summary": None,
+                "provider": access_source_provider("public"),
+                "access_mode": access_source_mode("public"),
                 "access_source_type": "public",
                 "access_source_label": "Public GitHub access",
                 "access_requirement": None,
@@ -431,6 +442,8 @@ def lookup_github_workspace(*, repo: str, owner_scope: str | None = None) -> dic
             "latest_sync_origin": _serialized_sync_origin(latest_import),
             "latest_sync_at": _serialized_sync_timestamp(latest_import),
             "last_import_summary": _serialized_import_summary(latest_import),
+            "provider": source_summary["provider"],
+            "access_mode": source_summary["access_mode"],
             "access_source_type": workspace.access_source_type,
             "access_source_label": source_summary["access_source_label"],
             "access_source_status": source_summary["access_source_status"],
@@ -490,6 +503,8 @@ def bind_github_app_installation(
             "latest_sync_origin": _serialized_sync_origin(latest_import),
             "latest_sync_at": _serialized_sync_timestamp(latest_import),
             "last_import_summary": _serialized_import_summary(latest_import),
+            "provider": access_source_provider(workspace.access_source_type),
+            "access_mode": access_source_mode(workspace.access_source_type),
             "access_source_type": workspace.access_source_type,
             "access_source_label": build_access_source_label(
                 access_source_type=workspace.access_source_type,
@@ -562,6 +577,8 @@ def bind_github_private_access_source(
             "latest_sync_origin": _serialized_sync_origin(latest_import),
             "latest_sync_at": _serialized_sync_timestamp(latest_import),
             "last_import_summary": _serialized_import_summary(latest_import),
+            "provider": access_source_provider(workspace.access_source_type),
+            "access_mode": access_source_mode(workspace.access_source_type),
             "access_source_type": workspace.access_source_type,
             "access_source_label": build_access_source_label(
                 access_source_type=workspace.access_source_type,
