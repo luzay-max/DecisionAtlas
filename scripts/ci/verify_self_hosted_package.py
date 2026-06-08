@@ -45,6 +45,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/dev/start-real-stack.bat",
     "scripts/dev/stop-real-stack.ps1",
     "scripts/ci/pre-release.ps1",
+    "scripts/ci/collect_team_handoff_report.py",
 ]
 
 FORBIDDEN_PACKAGE_PATHS = [
@@ -80,6 +81,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Readiness evidence history",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Archive generated evidence into docs/evidence/readiness separately.",
+    },
+    {
+        "id": "team_handoff_report",
+        "label": "Team handoff report",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Generate JSON/Markdown handoff evidence after release, readiness, benchmark, and package evidence are available.",
     },
 ]
 

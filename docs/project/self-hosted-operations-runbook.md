@@ -74,6 +74,7 @@ Upgrade order:
 6. Start services and run migrations.
 7. Run package verification, OpenSpec validation, pre-release checks, and readiness evidence.
 8. Run browser/operator smoke for team workflow and critical review/drift flows.
+9. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
 
 ## Rollback
 

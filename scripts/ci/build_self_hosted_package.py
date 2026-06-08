@@ -22,6 +22,7 @@ DOC_PATHS = [
     "docs/project/self-hosted-readiness-checklist.md",
     "docs/project/self-hosted-delivery-rehearsal.md",
     "docs/project/self-hosted-commercial-baseline.md",
+    "docs/project/team-handoff-reporting.md",
     "docs/project/release-checklist.md",
     "docs/project/code-decision-audit-template.md",
 ]
@@ -34,6 +35,7 @@ SCRIPT_PATHS = [
     "scripts/ci/pre-release.ps1",
     "scripts/ci/collect_release_evidence.py",
     "scripts/ci/collect_readiness_evidence_history.py",
+    "scripts/ci/collect_team_handoff_report.py",
     "scripts/demo/check_seeded_demo.py",
     "scripts/demo/collect_hosted_readiness.py",
     "scripts/demo/health-check.ps1",
@@ -59,6 +61,7 @@ VALIDATION_COMMANDS = [
     "python scripts\\governance\\agent_guardrail.py --summary",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\ci\\pre-release.ps1",
     "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>",
+    "python scripts\\ci\\collect_team_handoff_report.py --release-evidence-json .tmp\\release-evidence.json --hosted-readiness-json .tmp\\hosted-operator-readiness.json --benchmark-comparison-json .tmp\\real-repo-benchmark-comparison.json --readiness-history-index-json docs\\evidence\\readiness\\index.json --package-verification-json .tmp\\self-hosted-package-verification.json",
     "pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts",
 ]
 
@@ -200,6 +203,7 @@ def build_manifest(
             "secret_custody": "customer_controlled_host_only",
             "runtime_smoke_required_separately": True,
             "readiness_history_required_for_clean_customer_claims": True,
+            "team_handoff_report_required_for_customer_handoff": True,
         },
         "unsupported_capabilities": UNSUPPORTED_CAPABILITIES,
         "readiness_evidence_expectations": [
@@ -213,6 +217,8 @@ def build_manifest(
             "team_workflow_browser_rehearsal_for_team_claims",
             "public_github_import_rehearsal_before_live_benchmark_claims",
             "readiness_evidence_history_entry_for_customer_claims",
+            "team_handoff_report_json",
+            "team_handoff_report_markdown",
         ],
     }
 

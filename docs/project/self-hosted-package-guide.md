@@ -26,6 +26,7 @@ decisionatlas-self-hosted/
       self-hosted-delivery-rehearsal.md
       self-hosted-commercial-baseline.md
       self-hosted-operations-runbook.md
+      team-handoff-reporting.md
       release-checklist.md
   scripts/
     dev/
@@ -37,6 +38,7 @@ decisionatlas-self-hosted/
       pre-release.ps1
       collect_release_evidence.py
       collect_readiness_evidence_history.py
+      collect_team_handoff_report.py
     demo/
       check_seeded_demo.py
       collect_hosted_readiness.py
@@ -95,6 +97,7 @@ The verifier checks package structure and manifest integrity. It does not start 
 - Team workflow browser rehearsal when claiming multi-account readiness.
 - Public GitHub import rehearsal before claiming live public-repo benchmark evidence.
 - Readiness evidence history entry for durable customer claims.
+- Team handoff report JSON/Markdown for customer or operator review.
 
 ## Explicit Non-Goals
 

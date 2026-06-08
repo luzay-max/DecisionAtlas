@@ -145,3 +145,33 @@
   - Opened Engine health at `http://127.0.0.1:8000/health`: 200.
   - Opened package README from `.tmp/self-hosted-package/decisionatlas-self-hosted/README.md`.
   - Confirmed README includes startup command, package verifier command, secret warning, and deferred capability boundary.
+
+## Team Handoff Reporting
+
+- Started OpenSpec change `team-handoff-reporting`.
+- Added `scripts/ci/collect_team_handoff_report.py` to generate bounded JSON and Markdown handoff reports for self-hosted/team delivery.
+- Report inputs now cover release evidence, hosted/operator readiness, benchmark comparison, readiness evidence history, self-hosted package verification, public GitHub import rehearsal, and optional review audit history.
+- Reports preserve non-clean states such as `warning`, `blocking`, `not_provided`, `operator_guided`, and `known_limitation` instead of converting them to pass.
+- Added secret and private-content filtering for raw token-like values, sensitive keys, and local-only paths.
+- Updated self-hosted package docs/runbook and package manifest/verifier expectations to include team handoff report evidence.
+
+## Team Handoff Validation
+
+- `python -m uv run pytest tests/ci/test_team_handoff_report.py tests/ci/test_self_hosted_package.py -q`: `8 passed`
+- `openspec validate team-handoff-reporting --type change --strict`: passed
+- Generated handoff report:
+  - JSON: `.tmp/team-handoff-report.json`
+  - Markdown: `.tmp/team-handoff-report.md`
+  - Overall status: `warning`
+  - Reason: review audit evidence was not provided and the package still preserves operator-guided/not-provided lanes.
+- Random public GitHub rehearsal:
+  - Repository id: `n8n`
+  - Repository: `n8n-io/n8n`
+  - Evidence JSON: `.tmp/team-handoff-random-public-github-import.json`
+  - Setup outcome: `reused`
+  - Benchmark ready: `true`
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/team-handoff-browser-rehearsal.json`
+  - Status: `pass`
+  - Opened Markdown via Chromium `file:///.../.tmp/team-handoff-report.md`
+  - Confirmed title, warning status, `n8n-io/n8n`, public import evidence, and limitations section are visible.

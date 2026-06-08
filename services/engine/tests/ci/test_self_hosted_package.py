@@ -74,6 +74,7 @@ def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> No
         "private_repository_token_validation",
         "live_benchmark",
         "readiness_history",
+        "team_handoff_report",
     }
     assert "Runtime smoke" in markdown
     assert "operator_guided" in markdown
