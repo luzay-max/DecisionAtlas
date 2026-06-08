@@ -106,3 +106,42 @@
   - Drift page was opened on `demo-workspace`.
   - Drift alert for `Use Redis Cache` was resolved through the UI with rationale `Operator rehearsal: confirmed this drift alert is handled.`
   - Drift alert detail showed `Handling history` with `local-admin drift alert disposition resolved`.
+
+## Offline Self-Hosted Release Package
+
+- Started OpenSpec change `offline-self-hosted-release-package`.
+- Added `scripts/ci/build_self_hosted_package.py` to assemble a source-tree self-hosted package directory.
+- Added `scripts/ci/verify_self_hosted_package.py` to verify package structure and emit JSON/Markdown package readiness evidence.
+- Added package documentation:
+  - `docs/project/self-hosted-package-guide.md`
+  - `docs/project/self-hosted-operations-runbook.md`
+  - `templates/self-hosted.env.example`
+- Updated self-hosted readiness, delivery rehearsal, commercial baseline, and deployment docs to reference package manifest and verifier evidence.
+- Package manifest records package label, version label, commit, generated timestamp, included docs/scripts/templates, required services, default URLs, validation commands, support boundary, unsupported capabilities, and readiness evidence expectations.
+- Package verifier preserves explicit non-pass runtime lanes:
+  - `runtime_smoke`: `operator_guided`
+  - `private_repository_token_validation`: `operator_guided`
+  - `live_benchmark`: `not_provided`
+  - `readiness_history`: `not_provided`
+
+## Offline Package Validation
+
+- `python -m uv run pytest tests/ci/test_self_hosted_package.py -q`: `4 passed`
+- `openspec validate offline-self-hosted-release-package --type change --strict`: passed
+- Built package:
+  - Package directory: `.tmp/self-hosted-package/decisionatlas-self-hosted/`
+  - Manifest copy: `.tmp/self-hosted-package-manifest.json`
+  - Version label: `self-hosted-preview-2026-06-08`
+  - Commit: `bd481c85b88adf3cf41d9f9473dae651b3f70780`
+- Verified package:
+  - JSON: `.tmp/self-hosted-package-verification.json`
+  - Markdown: `.tmp/self-hosted-package-verification.md`
+  - Status: `pass`
+  - Checked files: `25`
+  - Blockers: none
+- Browser/operator rehearsal:
+  - Opened Web at `http://127.0.0.1:3000`: loaded.
+  - Opened API health at `http://127.0.0.1:3001/health`: 200.
+  - Opened Engine health at `http://127.0.0.1:8000/health`: 200.
+  - Opened package README from `.tmp/self-hosted-package/decisionatlas-self-hosted/README.md`.
+  - Confirmed README includes startup command, package verifier command, secret warning, and deferred capability boundary.

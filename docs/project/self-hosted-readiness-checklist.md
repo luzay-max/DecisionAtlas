@@ -1,6 +1,6 @@
 # Self-Hosted Readiness Checklist
 
-[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Deployment](deployment.md) | [Release Checklist](release-checklist.md) | [Hosted Preview Readiness](hosted-preview-readiness.md)
+[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Deployment](deployment.md) | [Release Checklist](release-checklist.md) | [Hosted Preview Readiness](hosted-preview-readiness.md)
 
 ---
 
@@ -73,6 +73,19 @@ Record results:
 
 ## Evidence Generation
 
+Build and verify the self-hosted package before claiming package handoff readiness:
+
+```powershell
+python scripts\ci\build_self_hosted_package.py `
+  --label decisionatlas-self-hosted `
+  --version-label self-hosted-readiness
+
+python scripts\ci\verify_self_hosted_package.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --output-json .tmp\self-hosted-package-verification.json `
+  --output-markdown .tmp\self-hosted-package-verification.md
+```
+
 Generate release evidence:
 
 ```powershell
@@ -111,6 +124,9 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
 
 Review:
 
+- [ ] `.tmp/self-hosted-package/decisionatlas-self-hosted/manifest.json` generated.
+- [ ] `.tmp/self-hosted-package-verification.json` and `.tmp/self-hosted-package-verification.md` generated.
+- [ ] Package verification status and non-pass runtime lanes reviewed.
 - [ ] `.tmp/release-evidence.json` and `.tmp/release-evidence.md` generated.
 - [ ] `.tmp/hosted-operator-readiness.json` and `.tmp/hosted-operator-readiness.md` generated.
 - [ ] Benchmark comparison JSON/Markdown generated or explicitly marked not provided.

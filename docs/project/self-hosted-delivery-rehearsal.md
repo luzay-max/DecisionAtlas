@@ -1,6 +1,6 @@
 # Self-Hosted Delivery Rehearsal
 
-[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Readiness Evidence History](../evidence/readiness/index.md)
+[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Readiness Evidence History](../evidence/readiness/index.md)
 
 ---
 
@@ -37,6 +37,8 @@ Classify every lane explicitly:
 
 | Evidence family | Required for rehearsal | Expected output |
 | --- | --- | --- |
+| Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
+| Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
 | Governance guardrail | Yes | `.tmp/agent-guardrail.json` and summary text |
 | Canonical pre-release | Yes, or explicit blocker/substitute | `.tmp/pre-release-rehearsal-YYYY-MM-DD.log` and status |
@@ -54,17 +56,18 @@ Classify every lane explicitly:
 1. Confirm the deployment mode and target URLs.
 2. Start or verify the self-hosted stack. On Windows, prefer `scripts\dev\start-real-stack.bat` for one-click local startup.
 3. Probe Web, API, and Engine health.
-4. Run OpenSpec strict validation.
-5. Run governance guardrail summary and JSON output.
-6. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
-7. Run seeded demo readiness using the project Python environment when database dependencies are required.
-8. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
-9. Generate release evidence.
-10. Generate hosted/operator readiness evidence.
-11. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
-12. Generate, reuse, or explicitly omit benchmark comparison evidence.
-13. Archive selected artifacts into readiness evidence history.
-14. Prepare the rehearsal summary and Code Decision Audit handoff.
+4. Build and verify the self-hosted package when claiming package handoff readiness.
+5. Run OpenSpec strict validation.
+6. Run governance guardrail summary and JSON output.
+7. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
+8. Run seeded demo readiness using the project Python environment when database dependencies are required.
+9. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
+10. Generate release evidence.
+11. Generate hosted/operator readiness evidence.
+12. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
+13. Generate, reuse, or explicitly omit benchmark comparison evidence.
+14. Archive selected artifacts into readiness evidence history.
+15. Prepare the rehearsal summary and Code Decision Audit handoff.
 
 ## Command Template
 
@@ -73,6 +76,11 @@ $Label = "self-hosted-delivery-rehearsal"
 $Date = Get-Date -Format "yyyy-MM-dd"
 
 openspec validate --all --strict
+python scripts\ci\build_self_hosted_package.py --label decisionatlas-self-hosted --version-label "self-hosted-rehearsal-$Date"
+python scripts\ci\verify_self_hosted_package.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --output-json .tmp\self-hosted-package-verification.json `
+  --output-markdown .tmp\self-hosted-package-verification.md
 python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.json
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"

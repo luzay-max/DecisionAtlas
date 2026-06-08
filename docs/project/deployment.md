@@ -1,6 +1,6 @@
 # Deployment
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Self-Hosted Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](deployment_zh-CN.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Self-Hosted Baseline](self-hosted-commercial-baseline.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [FAQ](faq.md) | [Demo Script](demo-script.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Hosted Preview Readiness](hosted-preview-readiness.md) | [中文](deployment_zh-CN.md)
 
 ---
 
@@ -84,6 +84,8 @@ The RC does not include a full SaaS org-management console, secret vault, billin
 The near-term product packaging target is self-hosted / private deployment, not full hosted SaaS. Use [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) for Community, Team Self-hosted, and Enterprise Self-hosted boundaries, and use [Self-Hosted Readiness Checklist](self-hosted-readiness-checklist.md) before customer evaluation or private deployment handoff.
 
 This baseline defines product/support packaging and customer-facing evidence expectations. It does not add runtime license enforcement, billing, hosted multi-tenancy, Marketplace/self-service OAuth, or hosted secret custody.
+
+For offline/private handoff, build and verify the self-hosted source-tree package with [Self-Hosted Package Guide](self-hosted-package-guide.md), then preserve package verification evidence alongside release/readiness evidence.
 
 ### Governance Guardrail Boundary
 

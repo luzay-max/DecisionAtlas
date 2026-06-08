@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Code Decision Audit Template](code-decision-audit-template.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md)
 
 ---
 
@@ -38,6 +38,8 @@ Future optional
 | Runtime license enforcement | Not required by this baseline | Not required by this baseline | Not required by this baseline |
 
 The tier boundaries are product and support packaging boundaries. This baseline does not add runtime license checks.
+
+Customer-facing package claims should reference a generated package `manifest.json`, package verification JSON/Markdown, the self-hosted package guide, the environment template, and backup/restore/upgrade runbook coverage. If those artifacts are missing, the handoff must disclose the gap and avoid claiming clean package readiness.
 
 ## Deferred Capabilities
 
