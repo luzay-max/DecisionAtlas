@@ -10,6 +10,7 @@ from app.db.models import Workspace
 from app.provenance import get_workspace_provenance
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
+from app.repositories.review_audit import ReviewAuditRepository, serialize_review_audit_event
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
 
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/decisions", tags=["decisions"])
 
 class ReviewDecisionRequest(BaseModel):
     review_state: str
+    review_rationale: str | None = None
 
 
 def _serialize_source_ref(source_ref) -> dict:
@@ -157,6 +159,13 @@ def _serialize_decision(
     return payload
 
 
+def _decision_state(decision) -> dict:
+    return {
+        "review_state": decision.review_state,
+        "status": decision.status,
+    }
+
+
 @router.get("")
 def list_decisions(
     workspace_slug: str = Query(...),
@@ -209,6 +218,14 @@ def get_decision(
             "workspace_mode": provenance.workspace_mode,
             "source_summary": provenance.source_summary,
             "source_refs": [_serialize_source_ref(source_ref) for source_ref in decision_source_refs],
+            "review_history": [
+                serialize_review_audit_event(event)
+                for event in ReviewAuditRepository(session).list_for_target(
+                    owner_scope=workspace.owner_scope,
+                    target_type="decision",
+                    target_id=decision.id,
+                )
+            ],
         }
     finally:
         session.close()
@@ -234,8 +251,33 @@ def review_decision(
         if workspace is None:
             raise HTTPException(status_code=404, detail=f"Workspace not found for decision: {decision_id}")
         require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="reviewer", hide_not_found=True)
+        previous_state = _decision_state(existing)
         decision = decisions.update_review_state(decision_id, request.review_state)
+        event = ReviewAuditRepository(session).create_event(
+            owner_scope=workspace.owner_scope,
+            workspace_id=workspace.id,
+            actor_id=auth.actor_id,
+            actor_username=auth.username,
+            actor_role=auth.role,
+            target_type="decision",
+            target_id=decision.id,
+            action=f"decision_review_{request.review_state}",
+            previous_state=previous_state,
+            new_state=_decision_state(decision),
+            rationale=request.review_rationale,
+        )
         session.commit()
-        return _serialize_decision(decision)
+        return {
+            **_serialize_decision(decision),
+            "audit_event": serialize_review_audit_event(event),
+            "review_history": [
+                serialize_review_audit_event(history_event)
+                for history_event in ReviewAuditRepository(session).list_for_target(
+                    owner_scope=workspace.owner_scope,
+                    target_type="decision",
+                    target_id=decision.id,
+                )
+            ],
+        }
     finally:
         session.close()

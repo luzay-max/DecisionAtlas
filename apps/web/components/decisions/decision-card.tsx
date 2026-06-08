@@ -42,6 +42,18 @@ export function DecisionCard({ decision }: { decision: DecisionDetail }) {
       <p>
         <strong>{messages.detail.confidence}:</strong> {decision.confidence}
       </p>
+      {decision.review_history?.length ? (
+        <section className="stack" aria-label="Review audit history">
+          <h2>Review history</h2>
+          {decision.review_history.map((event) => (
+            <p key={event.id}>
+              <strong>{event.actor_username}</strong> {event.action.replaceAll("_", " ")}
+              {event.rationale ? `: ${event.rationale}` : ""}{" "}
+              {event.created_at ? <span className="muted">{event.created_at}</span> : null}
+            </p>
+          ))}
+        </section>
+      ) : null}
     </article>
   );
 }

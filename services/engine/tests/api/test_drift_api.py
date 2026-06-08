@@ -122,6 +122,43 @@ def test_list_drift_alerts_returns_joined_context(tmp_path: Path, monkeypatch) -
     assert body["alerts"][0]["confidence_label"] == "high"
     assert body["alerts"][0]["artifact"]["title"] == "Persist sessions in Redis"
     assert body["alerts"][0]["decision"]["title"] == "Use Redis Cache"
+    assert body["alerts"][0]["audit_history"] == []
+
+
+def test_post_drift_disposition_updates_alert_and_records_audit(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-disposition-api.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    _seed_drift_fixture(db_path)
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/drift/alerts/1/disposition",
+        json={"status": "resolved", "rationale": "Confirmed the newer artifact continues the accepted decision."},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["alert"]["status"] == "resolved"
+    assert body["alert"]["handled_by"] == "local-admin"
+    assert body["alert"]["handled_at"] is not None
+    assert body["alert"]["disposition_rationale"] == "Confirmed the newer artifact continues the accepted decision."
+    assert body["audit_event"]["target_type"] == "drift_alert"
+    assert body["audit_event"]["target_id"] == 1
+    assert body["audit_event"]["action"] == "drift_alert_disposition_resolved"
+    assert body["audit_event"]["previous_state"]["status"] == "open"
+    assert body["audit_event"]["new_state"]["status"] == "resolved"
+    assert body["alert"]["audit_history"][0]["rationale"] == (
+        "Confirmed the newer artifact continues the accepted decision."
+    )
+
+    list_response = client.get("/drift", params={"workspace_slug": "imported-workspace"})
+    assert list_response.status_code == 200
+    listed_alert = list_response.json()["alerts"][0]
+    assert listed_alert["status"] == "resolved"
+    assert listed_alert["audit_history"][0]["action"] == "drift_alert_disposition_resolved"
 
 
 def test_post_drift_evaluate_returns_counts(tmp_path: Path, monkeypatch) -> None:

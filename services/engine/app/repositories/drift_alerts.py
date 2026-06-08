@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import delete
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -54,6 +56,26 @@ class DriftAlertRepository:
 
     def list_recent_by_workspace(self, workspace_id: int, limit: int = 5) -> list[DriftAlert]:
         return self.list_by_workspace(workspace_id, limit=limit)
+
+    def get_by_id(self, alert_id: int) -> DriftAlert | None:
+        stmt = select(DriftAlert).where(DriftAlert.id == alert_id)
+        return self.session.scalar(stmt)
+
+    def update_disposition(
+        self,
+        alert: DriftAlert,
+        *,
+        status: str,
+        handled_by: str,
+        handled_at: datetime,
+        disposition_rationale: str | None,
+    ) -> DriftAlert:
+        alert.status = status
+        alert.handled_by = handled_by
+        alert.handled_at = handled_at
+        alert.disposition_rationale = disposition_rationale
+        self.session.flush()
+        return alert
 
     def delete_by_workspace_and_type(self, workspace_id: int, alert_type: str) -> None:
         stmt = delete(DriftAlert).where(

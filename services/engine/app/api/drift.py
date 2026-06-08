@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
@@ -15,9 +16,17 @@ from app.repositories.artifacts import ArtifactRepository
 from app.repositories.decisions import DecisionRepository
 from app.repositories.drift_alerts import DriftAlertRepository
 from app.repositories.import_jobs import ImportJobRepository
+from app.repositories.review_audit import bounded_rationale, ReviewAuditRepository, serialize_review_audit_event
 from app.repositories.workspaces import WorkspaceRepository
 
 router = APIRouter(prefix="/drift", tags=["drift"])
+
+DRIFT_DISPOSITION_STATUSES = {"open", "acknowledged", "resolved", "false_positive"}
+
+
+class DriftDispositionRequest(BaseModel):
+    status: str
+    rationale: str | None = None
 
 
 @router.get("")
@@ -50,16 +59,13 @@ def list_drift_alerts(
             "source_summary": provenance.source_summary,
             "evaluation": drift_status if provenance.workspace_mode != "demo" else None,
             "alerts": [
-                {
-                    "id": alert.id,
-                    "alert_type": alert.alert_type,
-                    "summary": alert.summary,
-                    "status": alert.status,
-                    "confidence_label": _confidence_label(alert.alert_type),
-                    "created_at": alert.created_at.isoformat() if alert.created_at else None,
-                    "artifact": _serialize_artifact(artifacts.get_by_id(alert.artifact_id) if alert.artifact_id else None),
-                    "decision": _serialize_decision(decisions.get_by_id(alert.decision_id) if alert.decision_id else None),
-                }
+                _serialize_alert(
+                    session=session,
+                    alert=alert,
+                    owner_scope=workspace.owner_scope,
+                    artifacts=artifacts,
+                    decisions=decisions,
+                )
                 for alert in alerts
             ],
         }
@@ -126,6 +132,88 @@ def evaluate_drift(
         }
     finally:
         session.close()
+
+
+@router.post("/alerts/{alert_id}/disposition")
+def update_drift_alert_disposition(
+    alert_id: int,
+    request: DriftDispositionRequest,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    if request.status not in DRIFT_DISPOSITION_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid drift alert disposition status")
+
+    session = get_db_session()
+    try:
+        alerts = DriftAlertRepository(session)
+        alert = alerts.get_by_id(alert_id)
+        if alert is None:
+            raise HTTPException(status_code=404, detail=f"Drift alert not found: {alert_id}")
+        workspace = WorkspaceRepository(session).get_by_id(alert.workspace_id)
+        if workspace is None:
+            raise HTTPException(status_code=404, detail=f"Workspace not found for drift alert: {alert_id}")
+        require_workspace_role(session, auth, workspace_slug=workspace.slug, required_role="reviewer", hide_not_found=True)
+
+        previous_state = {"status": alert.status}
+        updated = alerts.update_disposition(
+            alert,
+            status=request.status,
+            handled_by=auth.username,
+            handled_at=datetime.now(UTC),
+            disposition_rationale=bounded_rationale(request.rationale),
+        )
+        event = ReviewAuditRepository(session).create_event(
+            owner_scope=workspace.owner_scope,
+            workspace_id=workspace.id,
+            actor_id=auth.actor_id,
+            actor_username=auth.username,
+            actor_role=auth.role,
+            target_type="drift_alert",
+            target_id=updated.id,
+            action=f"drift_alert_disposition_{request.status}",
+            previous_state=previous_state,
+            new_state={"status": updated.status},
+            rationale=request.rationale,
+        )
+        artifacts = ArtifactRepository(session)
+        decisions = DecisionRepository(session)
+        session.commit()
+        return {
+            "alert": _serialize_alert(
+                session=session,
+                alert=updated,
+                owner_scope=workspace.owner_scope,
+                artifacts=artifacts,
+                decisions=decisions,
+            ),
+            "audit_event": serialize_review_audit_event(event),
+        }
+    finally:
+        session.close()
+
+
+def _serialize_alert(*, session, alert, owner_scope: str, artifacts: ArtifactRepository, decisions: DecisionRepository) -> dict:
+    return {
+        "id": alert.id,
+        "alert_type": alert.alert_type,
+        "summary": alert.summary,
+        "status": alert.status,
+        "confidence_label": _confidence_label(alert.alert_type),
+        "created_at": alert.created_at.isoformat() if alert.created_at else None,
+        "handled_by": alert.handled_by,
+        "handled_at": alert.handled_at.isoformat() if alert.handled_at else None,
+        "disposition_rationale": alert.disposition_rationale,
+        "artifact": _serialize_artifact(artifacts.get_by_id(alert.artifact_id) if alert.artifact_id else None),
+        "decision": _serialize_decision(decisions.get_by_id(alert.decision_id) if alert.decision_id else None),
+        "audit_history": [
+            serialize_review_audit_event(event)
+            for event in ReviewAuditRepository(session).list_for_target(
+                owner_scope=owner_scope,
+                target_type="drift_alert",
+                target_id=alert.id,
+            )
+        ],
+    }
 
 
 def _serialize_artifact(artifact) -> dict | None:

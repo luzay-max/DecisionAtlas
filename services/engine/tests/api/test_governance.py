@@ -209,14 +209,21 @@ Document known limitations.
     )
 
     assert accept_response.status_code == 200
-    assert accept_response.json()["rule"]["review_state"] == "accepted"
-    assert accept_response.json()["rule"]["status"] == "active"
-    assert accept_response.json()["rule"]["source_title"] == "Postmortem Lessons"
-    assert "ECONNREFUSED" in accept_response.json()["rule"]["source_excerpt"]
-    assert accept_response.json()["rule"]["review_rationale"] == "Critical smoke stability rule."
-    assert accept_response.json()["rule"]["reviewed_by"] == "local-admin"
-    assert accept_response.json()["rule"]["rule_type"] == "postmortem_lesson"
-    assert accept_response.json()["rule"]["lifecycle_status"] == "current"
+    accepted_body = accept_response.json()
+    assert accepted_body["rule"]["review_state"] == "accepted"
+    assert accepted_body["rule"]["status"] == "active"
+    assert accepted_body["rule"]["source_title"] == "Postmortem Lessons"
+    assert "ECONNREFUSED" in accepted_body["rule"]["source_excerpt"]
+    assert accepted_body["rule"]["review_rationale"] == "Critical smoke stability rule."
+    assert accepted_body["rule"]["reviewed_by"] == "local-admin"
+    assert accepted_body["rule"]["rule_type"] == "postmortem_lesson"
+    assert accepted_body["rule"]["lifecycle_status"] == "current"
+    assert accepted_body["audit_event"]["target_type"] == "governance_rule"
+    assert accepted_body["audit_event"]["action"] == "governance_rule_review_accepted"
+    assert accepted_body["audit_event"]["previous_state"]["review_state"] == "pending"
+    assert accepted_body["audit_event"]["new_state"]["review_state"] == "accepted"
+    assert accepted_body["audit_event"]["rationale"] == "Critical smoke stability rule."
+    assert accepted_body["rule"]["audit_history"][0]["action"] == "governance_rule_review_accepted"
     assert reject_response.status_code == 200
     assert reject_response.json()["rule"]["status"] == "rejected"
     assert reject_response.json()["rule"]["review_rationale"] == "Too broad for an authoritative rule."
@@ -262,13 +269,19 @@ Release checklist review must be manual.
     )
 
     assert lifecycle_response.status_code == 200
-    rule = lifecycle_response.json()["rule"]
+    lifecycle_body = lifecycle_response.json()
+    rule = lifecycle_body["rule"]
     assert rule["review_state"] == "accepted"
     assert rule["status"] == "active"
     assert rule["review_rationale"] == "Accepted as release baseline."
     assert rule["lifecycle_status"] == "stale"
     assert rule["lifecycle_rationale"] == "Release checklist moved to protocol status."
     assert rule["superseded_by_rule_id"] is None
+    assert lifecycle_body["audit_event"]["target_type"] == "governance_rule"
+    assert lifecycle_body["audit_event"]["action"] == "governance_rule_lifecycle_stale"
+    assert lifecycle_body["audit_event"]["previous_state"]["lifecycle_status"] == "current"
+    assert lifecycle_body["audit_event"]["new_state"]["lifecycle_status"] == "stale"
+    assert lifecycle_body["audit_event"]["rationale"] == "Release checklist moved to protocol status."
 
 
 def test_governance_rule_lifecycle_supersedes_with_current_accepted_target(tmp_path: Path, monkeypatch) -> None:

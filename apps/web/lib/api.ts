@@ -34,6 +34,8 @@ export type ReviewDecision = {
       url: string | null;
     } | null;
   };
+  audit_event?: ReviewAuditEvent;
+  review_history?: ReviewAuditEvent[];
 };
 
 export type ReviewState = "candidate" | "accepted" | "rejected" | "superseded";
@@ -150,6 +152,23 @@ export type SourceRef = {
   relevance_score: number | null;
 };
 
+export type ReviewAuditEvent = {
+  id: number;
+  owner_scope: string;
+  workspace_id?: number | null;
+  actor_id?: number | null;
+  actor_username: string;
+  actor_role: string;
+  target_type: string;
+  target_id: number;
+  action: string;
+  previous_state?: Record<string, unknown> | null;
+  new_state?: Record<string, unknown> | null;
+  rationale?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+};
+
 export type DecisionDetail = ReviewDecision &
   WorkspaceProvenance & {
   source_refs: SourceRef[];
@@ -242,6 +261,10 @@ export type DriftAlertItem = {
   status: string;
   confidence_label: string;
   created_at: string | null;
+  handled_by?: string | null;
+  handled_at?: string | null;
+  disposition_rationale?: string | null;
+  audit_history?: ReviewAuditEvent[];
   artifact: {
     id: number;
     type: string;
@@ -372,6 +395,7 @@ export type GovernanceRule = {
   lifecycle_rationale?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
+  audit_history?: ReviewAuditEvent[];
 };
 
 export type GovernanceSummary = {
@@ -548,14 +572,19 @@ export async function getDecisionDetail(id: string): Promise<DecisionDetail> {
   return response.json();
 }
 
-export async function reviewDecision(decisionId: number, reviewState: ReviewState): Promise<ReviewDecision> {
+export async function reviewDecision(
+  decisionId: number,
+  reviewState: ReviewState,
+  reviewRationale?: string
+): Promise<ReviewDecision> {
   const response = await apiFetch(`${apiBaseUrl}/decisions/${decisionId}/review`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      review_state: reviewState
+      review_state: reviewState,
+      ...(reviewRationale ? { review_rationale: reviewRationale } : {})
     })
   });
   if (!response.ok) {
@@ -622,6 +651,27 @@ export async function evaluateDrift(workspaceSlug: string): Promise<DriftEvaluat
   });
   if (!response.ok) {
     await readError(response, "Failed to evaluate drift");
+  }
+  return response.json();
+}
+
+export async function updateDriftAlertDisposition(
+  alertId: number,
+  status: "open" | "acknowledged" | "resolved" | "false_positive",
+  rationale?: string
+): Promise<{ alert: DriftAlertItem; audit_event: ReviewAuditEvent }> {
+  const response = await apiFetch(`${apiBaseUrl}/drift/alerts/${alertId}/disposition`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      status,
+      ...(rationale ? { rationale } : {})
+    })
+  });
+  if (!response.ok) {
+    await readError(response, "Failed to update drift alert disposition");
   }
   return response.json();
 }

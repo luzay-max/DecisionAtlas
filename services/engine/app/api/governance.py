@@ -13,6 +13,7 @@ from app.governance.markdown_ingest import (
     update_rule_lifecycle,
 )
 from app.repositories.governance import GovernanceRepository
+from app.repositories.review_audit import ReviewAuditRepository, serialize_review_audit_event
 
 router = APIRouter(prefix="/governance", tags=["governance"])
 
@@ -35,6 +36,15 @@ class GovernanceRuleLifecycleRequest(BaseModel):
     lifecycle_status: str
     lifecycle_rationale: str | None = None
     superseded_by_rule_id: int | None = None
+
+
+def _rule_state(draft) -> dict:
+    return {
+        "review_state": draft.review_state,
+        "status": draft.status,
+        "lifecycle_status": draft.lifecycle_status,
+        "superseded_by_rule_id": draft.superseded_by_rule_id,
+    }
 
 
 @router.post("/documents")
@@ -94,10 +104,20 @@ def list_governance_rules(
         }
         return {
             "rules": [
-                serialize_rule_draft(
-                    draft,
-                    source_title=documents.get(draft.document_id).title if documents.get(draft.document_id) else None,
-                )
+                {
+                    **serialize_rule_draft(
+                        draft,
+                        source_title=documents.get(draft.document_id).title if documents.get(draft.document_id) else None,
+                    ),
+                    "audit_history": [
+                        serialize_review_audit_event(event)
+                        for event in ReviewAuditRepository(session).list_for_target(
+                            owner_scope=auth.owner_scope,
+                            target_type="governance_rule",
+                            target_id=draft.id,
+                        )
+                    ],
+                }
                 for draft in drafts
             ]
         }
@@ -114,6 +134,11 @@ def review_governance_rule(
     require_scope_role(auth, owner_scope=auth.owner_scope, required_role="reviewer")
     session = get_db_session()
     try:
+        repository = GovernanceRepository(session)
+        existing = repository.get_rule_draft(owner_scope=auth.owner_scope, draft_id=draft_id)
+        if existing is None:
+            raise ValueError(f"Governance rule draft not found: {draft_id}")
+        previous_state = _rule_state(existing)
         draft = review_rule_draft(
             session=session,
             owner_scope=auth.owner_scope,
@@ -122,9 +147,35 @@ def review_governance_rule(
             reviewer=auth.username,
             review_rationale=request.review_rationale,
         )
-        document = GovernanceRepository(session).get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
+        event = ReviewAuditRepository(session).create_event(
+            owner_scope=auth.owner_scope,
+            workspace_id=None,
+            actor_id=auth.actor_id,
+            actor_username=auth.username,
+            actor_role=auth.role,
+            target_type="governance_rule",
+            target_id=draft.id,
+            action=f"governance_rule_review_{request.review_state}",
+            previous_state=previous_state,
+            new_state=_rule_state(draft),
+            rationale=request.review_rationale,
+        )
+        document = repository.get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
         session.commit()
-        return {"rule": serialize_rule_draft(draft, source_title=document.title if document else None)}
+        return {
+            "rule": {
+                **serialize_rule_draft(draft, source_title=document.title if document else None),
+                "audit_history": [
+                    serialize_review_audit_event(history_event)
+                    for history_event in ReviewAuditRepository(session).list_for_target(
+                        owner_scope=auth.owner_scope,
+                        target_type="governance_rule",
+                        target_id=draft.id,
+                    )
+                ],
+            },
+            "audit_event": serialize_review_audit_event(event),
+        }
     except ValueError as exc:
         session.rollback()
         message = str(exc)
@@ -143,6 +194,11 @@ def update_governance_rule_lifecycle(
     require_scope_role(auth, owner_scope=auth.owner_scope, required_role="reviewer")
     session = get_db_session()
     try:
+        repository = GovernanceRepository(session)
+        existing = repository.get_rule_draft(owner_scope=auth.owner_scope, draft_id=draft_id)
+        if existing is None:
+            raise ValueError(f"Governance rule draft not found: {draft_id}")
+        previous_state = _rule_state(existing)
         draft = update_rule_lifecycle(
             session=session,
             owner_scope=auth.owner_scope,
@@ -151,9 +207,36 @@ def update_governance_rule_lifecycle(
             lifecycle_rationale=request.lifecycle_rationale,
             superseded_by_rule_id=request.superseded_by_rule_id,
         )
-        document = GovernanceRepository(session).get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
+        event = ReviewAuditRepository(session).create_event(
+            owner_scope=auth.owner_scope,
+            workspace_id=None,
+            actor_id=auth.actor_id,
+            actor_username=auth.username,
+            actor_role=auth.role,
+            target_type="governance_rule",
+            target_id=draft.id,
+            action=f"governance_rule_lifecycle_{request.lifecycle_status}",
+            previous_state=previous_state,
+            new_state=_rule_state(draft),
+            rationale=request.lifecycle_rationale,
+            metadata={"superseded_by_rule_id": request.superseded_by_rule_id},
+        )
+        document = repository.get_document(owner_scope=auth.owner_scope, document_id=draft.document_id)
         session.commit()
-        return {"rule": serialize_rule_draft(draft, source_title=document.title if document else None)}
+        return {
+            "rule": {
+                **serialize_rule_draft(draft, source_title=document.title if document else None),
+                "audit_history": [
+                    serialize_review_audit_event(history_event)
+                    for history_event in ReviewAuditRepository(session).list_for_target(
+                        owner_scope=auth.owner_scope,
+                        target_type="governance_rule",
+                        target_id=draft.id,
+                    )
+                ],
+            },
+            "audit_event": serialize_review_audit_event(event),
+        }
     except ValueError as exc:
         session.rollback()
         message = str(exc)

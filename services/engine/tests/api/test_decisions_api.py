@@ -251,7 +251,23 @@ def test_review_decision_updates_review_state(tmp_path: Path, monkeypatch) -> No
     _seed_review_fixture(db_path)
 
     client = TestClient(create_app())
-    response = client.post("/decisions/1/review", json={"review_state": "accepted"})
+    response = client.post(
+        "/decisions/1/review",
+        json={"review_state": "accepted", "review_rationale": "Source refs support the decision."},
+    )
 
     assert response.status_code == 200
-    assert response.json()["review_state"] == "accepted"
+    body = response.json()
+    assert body["review_state"] == "accepted"
+    assert body["audit_event"]["target_type"] == "decision"
+    assert body["audit_event"]["target_id"] == 1
+    assert body["audit_event"]["action"] == "decision_review_accepted"
+    assert body["audit_event"]["actor_username"] == "local-admin"
+    assert body["audit_event"]["previous_state"]["review_state"] == "candidate"
+    assert body["audit_event"]["new_state"]["review_state"] == "accepted"
+    assert body["audit_event"]["rationale"] == "Source refs support the decision."
+    assert body["review_history"][0]["action"] == "decision_review_accepted"
+
+    detail_response = client.get("/decisions/1")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["review_history"][0]["rationale"] == "Source refs support the decision."

@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { DriftAlertsResponse } from "../../lib/api";
+import { DriftAlertItem, DriftAlertsResponse, updateDriftAlertDisposition } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { DriftEvaluationCard } from "./drift-evaluation-card";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
@@ -18,9 +18,25 @@ export function DriftPageContent({
   workspaceSlug: string;
 }) {
   const { messages } = useI18n();
-  const alerts = Array.isArray(drift) ? drift : drift.alerts;
+  const [alerts, setAlerts] = React.useState<DriftAlertItem[]>(Array.isArray(drift) ? drift : drift.alerts);
+  const [message, setMessage] = React.useState<string | null>(null);
   const provenance = Array.isArray(drift) ? null : drift;
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
+
+  async function handleDisposition(
+    alertId: number,
+    status: "open" | "acknowledged" | "resolved" | "false_positive",
+    rationale?: string
+  ) {
+    setMessage(null);
+    try {
+      const result = await updateDriftAlertDisposition(alertId, status, rationale);
+      setAlerts((current) => current.map((alert) => (alert.id === alertId ? result.alert : alert)));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "unknown error";
+      setMessage(`Failed to update drift alert: ${detail}`);
+    }
+  }
 
   return (
     <main className="page-shell">
@@ -54,9 +70,10 @@ export function DriftPageContent({
         {!isGuidedDemoWorkspace && provenance?.evaluation ? (
           <DriftEvaluationCard evaluation={provenance.evaluation} workspaceSlug={workspaceSlug} />
         ) : null}
+        {message ? <p>{message}</p> : null}
         {alerts.length === 0 ? <p>{isGuidedDemoWorkspace ? messages.drift.none : messages.drift.noneImported}</p> : null}
         {alerts.map((alert) => (
-          <AlertDetail key={alert.id} alert={alert} workspaceSlug={workspaceSlug} />
+          <AlertDetail key={alert.id} alert={alert} workspaceSlug={workspaceSlug} onDisposition={handleDisposition} />
         ))}
       </section>
     </main>

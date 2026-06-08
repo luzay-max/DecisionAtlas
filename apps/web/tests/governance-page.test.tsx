@@ -111,6 +111,23 @@ describe("GovernancePageContent", () => {
       status: "active",
       review_rationale: "Clear validation rule.",
       lifecycle_status: "current",
+      audit_history: [
+        {
+          id: 5,
+          owner_scope: "team-a",
+          workspace_id: null,
+          actor_id: 1,
+          actor_username: "reviewer@example.com",
+          actor_role: "reviewer",
+          target_type: "governance_rule",
+          target_id: 2,
+          action: "governance_rule_review_accepted",
+          previous_state: { review_state: "pending" },
+          new_state: { review_state: "accepted" },
+          rationale: "Clear validation rule.",
+          created_at: "2026-06-08T10:00:00",
+        },
+      ],
     });
 
     render(
@@ -150,7 +167,9 @@ describe("GovernancePageContent", () => {
     });
     expect(screen.getAllByText(/Rule type/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/rule heading marker/i)).toBeInTheDocument();
-    expect(screen.getByText(/Clear validation rule/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Clear validation rule/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Review history")).toBeInTheDocument();
+    expect(screen.getByText(/reviewer@example.com/)).toBeInTheDocument();
     expect(
       screen.getByText((_content, element) => {
         const text = element?.textContent ?? "";

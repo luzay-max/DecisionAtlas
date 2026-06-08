@@ -210,6 +210,13 @@ DecisionAtlas 后续应该从“个人/本地决策分析工具”升级为“�
 
 `collaborative-review-audit-trail`
 
+当前实施边界：
+
+- 审计记录覆盖 decision review、governance rule review/lifecycle、drift alert disposition。
+- 每条记录保留 actor、role、target、action、前后状态、rationale、timestamp。
+- 前端只展示紧凑历史，帮助团队知道“谁在什么时候为什么处理了什么”。
+- 这不是 Git code review、复杂审批流或合规签章系统；第一阶段只做小团队可追溯协作证据。
+
 范围：
 
 - decision review action 记录 actor、role、时间、理由。

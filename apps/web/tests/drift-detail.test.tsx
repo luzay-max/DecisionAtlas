@@ -27,6 +27,23 @@ describe("AlertDetail", () => {
             title: "Evaluate Redis alternatives",
             url: "https://github.com/org/repo/issues/12",
           },
+          audit_history: [
+            {
+              id: 4,
+              owner_scope: "team-a",
+              workspace_id: 1,
+              actor_id: 2,
+              actor_username: "reviewer@example.com",
+              actor_role: "reviewer",
+              target_type: "drift_alert",
+              target_id: 1,
+              action: "drift_alert_disposition_acknowledged",
+              previous_state: { status: "open" },
+              new_state: { status: "acknowledged" },
+              rationale: "Needs release follow-up.",
+              created_at: "2026-06-08T11:00:00",
+            },
+          ],
         }}
       />
     );
@@ -43,6 +60,9 @@ describe("AlertDetail", () => {
       "href",
       "/decisions/7?workspace=demo-workspace"
     );
+    expect(screen.getByText("Handling history")).toBeInTheDocument();
+    expect(screen.getByText(/reviewer@example.com/)).toBeInTheDocument();
+    expect(screen.getByText(/Needs release follow-up/)).toBeInTheDocument();
   });
 
   it("renders grouped follow-up hint for condensed weak alerts", () => {

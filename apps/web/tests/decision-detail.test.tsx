@@ -23,6 +23,23 @@ describe("Decision detail components", () => {
             chosen_option: "Use Redis as cache only",
             tradeoffs: "Extra dependency",
             confidence: 0.88,
+            review_history: [
+              {
+                id: 10,
+                owner_scope: "team-a",
+                workspace_id: 1,
+                actor_id: 1,
+                actor_username: "reviewer@example.com",
+                actor_role: "reviewer",
+                target_type: "decision",
+                target_id: 1,
+                action: "decision_review_accepted",
+                previous_state: { review_state: "candidate" },
+                new_state: { review_state: "accepted" },
+                rationale: "Source refs support this decision.",
+                created_at: "2026-06-08T10:00:00",
+              },
+            ],
             source_refs: [
               {
                 id: 1,
@@ -56,6 +73,9 @@ describe("Decision detail components", () => {
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
     expect(screen.getByText(/Latency too high/)).toBeInTheDocument();
+    expect(screen.getByText("Review history")).toBeInTheDocument();
+    expect(screen.getByText(/reviewer@example.com/)).toBeInTheDocument();
+    expect(screen.getByText(/Source refs support this decision/)).toBeInTheDocument();
     expect(screen.getByText("Source References")).toBeInTheDocument();
     expect(screen.getByText("We decided to use Redis as a cache because latency mattered.")).toBeInTheDocument();
   });

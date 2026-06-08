@@ -74,3 +74,35 @@
   - Initial real GitLab setup submission was blocked by a stale running Engine process returning `404 {"detail":"Not Found"}` from `/imports/git-sources/bind`.
   - After restarting the real stack, GitLab token setup returned `provider_unsupported` with `plan_provider_importer`; the submitted token was cleared and not rendered.
   - Local path setup returned `local_path_unavailable` with `configure_server_local_path_import`; the browser surface showed server-operator-guided status.
+
+## Collaborative Review Audit Trail
+
+- Started and implemented OpenSpec change `collaborative-review-audit-trail`.
+- Added `review_audit_events` persistence and drift alert disposition metadata.
+- Added bounded audit serialization with actor username, role, target type/id, action, previous state, new state, rationale, metadata, and timestamp.
+- Decision review now records audit events and decision detail returns `review_history`.
+- Governance rule review and lifecycle updates now record audit events and return compact `audit_history`.
+- Drift alerts now support reviewer disposition states `open`, `acknowledged`, `resolved`, and `false_positive`, with `handled_by`, `handled_at`, `disposition_rationale`, and audit history.
+- Fastify API gateway now proxies `POST /drift/alerts/:alertId/disposition`.
+- Web surfaces now show compact review/handling history on decision detail, governance rule cards, and drift alert detail.
+- Drift alert detail now exposes reviewer disposition controls with bounded rationale.
+- Synced OpenSpec main specs for `collaborative-review-audit-trail`, `imported-review-decision-quality`, `governance-markdown-ingest`, and `governance-drift-detection`.
+
+## Collaborative Review Validation
+
+- `python -m uv run pytest tests/api/test_decisions_api.py tests/api/test_governance.py tests/api/test_drift_api.py -q`: `21 passed`
+- `pnpm --filter @decisionatlas/api test -- drift-route`: `3 passed`
+- `pnpm --filter @decisionatlas/api typecheck`: passed
+- `pnpm --filter @decisionatlas/web test -- decision-detail governance-page drift-detail drift-page`: `14 passed`
+- `pnpm --filter @decisionatlas/web typecheck`: passed
+- `openspec validate collaborative-review-audit-trail --type change --strict`: passed
+- Real-stack route probe after restart:
+  - Web/API/Engine health probes returned 200.
+  - `POST /drift/alerts/1/disposition` returned business `404 Drift alert not found`, confirming the new route was loaded instead of route-level `404 Not Found`.
+- Browser/operator rehearsal with Playwright:
+  - Review page was opened on `demo-workspace`.
+  - Candidate decision `339` (`Add Decision Diff View`) was accepted through the UI.
+  - Decision detail showed `Review history` with `local-admin decision review accepted`.
+  - Drift page was opened on `demo-workspace`.
+  - Drift alert for `Use Redis Cache` was resolved through the UI with rationale `Operator rehearsal: confirmed this drift alert is handled.`
+  - Drift alert detail showed `Handling history` with `local-admin drift alert disposition resolved`.

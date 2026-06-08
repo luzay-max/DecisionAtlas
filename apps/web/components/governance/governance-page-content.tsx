@@ -331,6 +331,18 @@ function RuleCard({
         <summary>{messages.governance.excerpt}</summary>
         <pre>{rule.source_excerpt}</pre>
       </details>
+      {rule.audit_history?.length ? (
+        <section className="stack" aria-label="Governance rule audit history">
+          <h4>Review history</h4>
+          {rule.audit_history.map((event) => (
+            <p key={event.id}>
+              <strong>{event.actor_username}</strong> {event.action.replaceAll("_", " ")}
+              {event.rationale ? `: ${event.rationale}` : ""}{" "}
+              {event.created_at ? <span className="muted">{event.created_at}</span> : null}
+            </p>
+          ))}
+        </section>
+      ) : null}
       {canReview ? (
         <ReviewOnly>
           <label>
