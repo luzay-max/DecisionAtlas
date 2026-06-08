@@ -43,6 +43,7 @@ Classify every lane explicitly:
 | Release evidence | Yes | `.tmp/release-evidence.json` and `.tmp/release-evidence.md` |
 | Hosted/operator readiness | Yes | `.tmp/hosted-operator-readiness.json` and `.tmp/hosted-operator-readiness.md` |
 | Team workflow browser rehearsal | Yes for Team Self-hosted claims | Playwright output for `team-self-hosted-rehearsal.spec.ts` |
+| Public GitHub import rehearsal | Required before claiming live public-repo benchmark evidence | `.tmp/public-github-import-rehearsal.json` and `.tmp/public-github-import-rehearsal.md` |
 | Benchmark comparison | Optional credibility lane, but must be explicit | `.tmp/real-repo-benchmark-comparison.json` and Markdown, or `not_provided` |
 | Readiness evidence history | Yes for durable claims | `docs/evidence/readiness/<entry>/entry.json` plus copied artifacts |
 | Handoff summary | Yes | `docs/evidence/readiness/<entry>/summary.md` |
@@ -60,9 +61,10 @@ Classify every lane explicitly:
 8. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
 9. Generate release evidence.
 10. Generate hosted/operator readiness evidence.
-11. Generate, reuse, or explicitly omit benchmark comparison evidence.
-12. Archive selected artifacts into readiness evidence history.
-13. Prepare the rehearsal summary and Code Decision Audit handoff.
+11. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
+12. Generate, reuse, or explicitly omit benchmark comparison evidence.
+13. Archive selected artifacts into readiness evidence history.
+14. Prepare the rehearsal summary and Code Decision Audit handoff.
 
 ## Command Template
 
@@ -76,6 +78,7 @@ python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-su
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"
 python -m uv run --project services/engine python scripts\demo\check_seeded_demo.py --json --no-fail > .tmp\seeded-demo-readiness.json
 pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts
+python scripts\ci\rehearse_public_github_import.py --repo-id fastapi --base-url http://127.0.0.1:3001 --wait
 
 python scripts\ci\collect_release_evidence.py `
   --pre-release-status passed `
@@ -109,6 +112,23 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.
+
+## Public GitHub Import Rehearsal
+
+The public GitHub import rehearsal is the setup proof for optional live benchmark claims. It checks whether the curated public repository workspace already exists, imports it through the normal public GitHub import path when missing, and writes JSON/Markdown evidence describing whether the workspace was created, reused, or remains blocked by operator setup, provider/network failure, or local-stack failure.
+
+Use this command before running live benchmark validation for `fastapi/fastapi`:
+
+```powershell
+python scripts\ci\rehearse_public_github_import.py `
+  --repo-id fastapi `
+  --base-url http://127.0.0.1:3001 `
+  --wait `
+  --output-json .tmp\public-github-import-rehearsal.json `
+  --output-markdown .tmp\public-github-import-rehearsal.md
+```
+
+Only treat subsequent live benchmark output as product evidence when the import rehearsal reports `benchmark_ready: true`. If the rehearsal reports `missing_workspace`, `operator_guided`, `provider_failure`, or `local_stack_failure`, keep the benchmark lane non-pass and preserve the limitation in release evidence.
 
 ## Team Self-Hosted Browser Rehearsal
 
