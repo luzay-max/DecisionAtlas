@@ -175,3 +175,46 @@
   - Status: `pass`
   - Opened Markdown via Chromium `file:///.../.tmp/team-handoff-report.md`
   - Confirmed title, warning status, `n8n-io/n8n`, public import evidence, and limitations section are visible.
+
+## Self-Hosted License and Support Boundary
+
+- Started OpenSpec change `self-hosted-license-and-support-boundary`.
+- Added customer/operator documentation:
+  - `docs/project/self-hosted-license-and-support-boundary.md`
+  - `templates/self-hosted-entitlement.example.json`
+- Defined Community, Team Self-hosted, and Enterprise Self-hosted operational boundaries.
+- Kept runtime license enforcement explicitly deferred; evaluation remains non-blocking.
+- Updated self-hosted package, runbook, and team handoff docs to reference entitlement evidence and paid handoff boundaries.
+- Updated package manifest and verifier to include license/support boundary docs and offline entitlement template.
+- Updated team handoff reporting to include `license_support` evidence and disclose missing boundary evidence.
+
+## License Boundary Validation
+
+- `python -m uv run pytest tests/ci/test_self_hosted_package.py tests/ci/test_team_handoff_report.py -q`: `8 passed`
+- `openspec validate self-hosted-license-and-support-boundary --type change --strict`: passed
+- Built package:
+  - Package directory: `.tmp/self-hosted-package/decisionatlas-self-hosted/`
+  - Manifest: `.tmp/self-hosted-license-package-manifest.json`
+  - Version label: `self-hosted-license-boundary-2026-06-09`
+- Verified package:
+  - JSON: `.tmp/self-hosted-license-package-verification.json`
+  - Markdown: `.tmp/self-hosted-license-package-verification.md`
+  - Status: `pass`
+  - Checked files: `29`
+  - License/support boundary lane: `operator_guided`
+- Random public GitHub rehearsal:
+  - Repository id: `browser-use`
+  - Repository: `browser-use/browser-use`
+  - Evidence JSON: `.tmp/license-boundary-random-public-github-import.json`
+  - Outcome: `local_stack_failure`
+  - Reason: local API stack was not available for this rehearsal; the report preserves this non-clean state instead of converting it to pass.
+- Generated handoff report:
+  - JSON: `.tmp/license-boundary-team-handoff-report.json`
+  - Markdown: `.tmp/license-boundary-team-handoff-report.md`
+  - Overall status: `warning`
+  - License/support section: `pass`
+  - Tier: `Team Self-hosted`
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/license-boundary-browser-rehearsal.json`
+  - Status: `pass`
+  - Confirmed report title, warning status, `browser-use/browser-use`, `license_support`, `Team Self-hosted`, and `documented_non_enforced` are visible.

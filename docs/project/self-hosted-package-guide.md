@@ -18,6 +18,7 @@ decisionatlas-self-hosted/
   README.md
   templates/
     self-hosted.env.example
+    self-hosted-entitlement.example.json
   docs/
     project/
       deployment.md
@@ -27,6 +28,7 @@ decisionatlas-self-hosted/
       self-hosted-commercial-baseline.md
       self-hosted-operations-runbook.md
       team-handoff-reporting.md
+      self-hosted-license-and-support-boundary.md
       release-checklist.md
   scripts/
     dev/
@@ -85,6 +87,7 @@ The verifier checks package structure and manifest integrity. It does not start 
 5. Open `http://127.0.0.1:3000` or the configured private URL.
 6. Use the bootstrap/admin flow to initialize the first operator account.
 7. Run readiness checks and archive evidence before claiming customer readiness.
+8. For paid handoff, copy `templates/self-hosted-entitlement.example.json` into a private customer delivery record and fill the support boundary fields without adding secrets.
 
 ## Required Evidence Before Clean Handoff
 
@@ -98,6 +101,7 @@ The verifier checks package structure and manifest integrity. It does not start 
 - Public GitHub import rehearsal before claiming live public-repo benchmark evidence.
 - Readiness evidence history entry for durable customer claims.
 - Team handoff report JSON/Markdown for customer or operator review.
+- License/support boundary documentation and customer-specific entitlement record for paid handoff.
 
 ## Explicit Non-Goals
 

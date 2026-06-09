@@ -23,6 +23,7 @@ DOC_PATHS = [
     "docs/project/self-hosted-delivery-rehearsal.md",
     "docs/project/self-hosted-commercial-baseline.md",
     "docs/project/team-handoff-reporting.md",
+    "docs/project/self-hosted-license-and-support-boundary.md",
     "docs/project/release-checklist.md",
     "docs/project/code-decision-audit-template.md",
 ]
@@ -46,6 +47,7 @@ SCRIPT_PATHS = [
 
 TEMPLATE_PATHS = [
     "templates/self-hosted.env.example",
+    "templates/self-hosted-entitlement.example.json",
 ]
 
 REQUIRED_SERVICES = [
@@ -61,7 +63,7 @@ VALIDATION_COMMANDS = [
     "python scripts\\governance\\agent_guardrail.py --summary",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\ci\\pre-release.ps1",
     "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>",
-    "python scripts\\ci\\collect_team_handoff_report.py --release-evidence-json .tmp\\release-evidence.json --hosted-readiness-json .tmp\\hosted-operator-readiness.json --benchmark-comparison-json .tmp\\real-repo-benchmark-comparison.json --readiness-history-index-json docs\\evidence\\readiness\\index.json --package-verification-json .tmp\\self-hosted-package-verification.json",
+    "python scripts\\ci\\collect_team_handoff_report.py --release-evidence-json .tmp\\release-evidence.json --hosted-readiness-json .tmp\\hosted-operator-readiness.json --benchmark-comparison-json .tmp\\real-repo-benchmark-comparison.json --readiness-history-index-json docs\\evidence\\readiness\\index.json --package-verification-json .tmp\\self-hosted-package-verification.json --license-support-json templates\\self-hosted-entitlement.example.json",
     "pnpm --filter @decisionatlas/web e2e -- team-self-hosted-rehearsal.spec.ts",
 ]
 
@@ -157,6 +159,7 @@ def _write_package_readme(package_dir: Path, manifest: dict[str, Any]) -> None:
             "- `docs/project/self-hosted-operations-runbook.md`",
             "- `docs/project/self-hosted-readiness-checklist.md`",
             "- `docs/project/self-hosted-delivery-rehearsal.md`",
+            "- `docs/project/self-hosted-license-and-support-boundary.md`",
             "",
             "## Explicitly Out Of Scope",
             "",
@@ -204,6 +207,7 @@ def build_manifest(
             "runtime_smoke_required_separately": True,
             "readiness_history_required_for_clean_customer_claims": True,
             "team_handoff_report_required_for_customer_handoff": True,
+            "license_support_boundary_required_for_paid_customer_handoff": True,
         },
         "unsupported_capabilities": UNSUPPORTED_CAPABILITIES,
         "readiness_evidence_expectations": [
@@ -219,6 +223,8 @@ def build_manifest(
             "readiness_evidence_history_entry_for_customer_claims",
             "team_handoff_report_json",
             "team_handoff_report_markdown",
+            "license_support_boundary_doc",
+            "offline_entitlement_template",
         ],
     }
 

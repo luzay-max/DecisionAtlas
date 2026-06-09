@@ -16,6 +16,7 @@ This runbook defines first setup, backup, restore, upgrade, and rollback expecta
 6. Confirm Web, API, and Engine health.
 7. Initialize the first admin account using the bootstrap/admin flow.
 8. Run readiness checks before inviting reviewer or viewer users.
+9. For paid pilots or customer delivery, prepare a private entitlement record from `templates/self-hosted-entitlement.example.json`.
 
 ## First Admin Boundary
 
@@ -75,6 +76,7 @@ Upgrade order:
 7. Run package verification, OpenSpec validation, pre-release checks, and readiness evidence.
 8. Run browser/operator smoke for team workflow and critical review/drift flows.
 9. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
+10. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
 
 ## Rollback
 

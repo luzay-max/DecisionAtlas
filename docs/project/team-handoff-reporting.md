@@ -14,6 +14,7 @@ Use the team handoff report when a DecisionAtlas workspace is ready to be review
 - Real-repo benchmark comparison.
 - Readiness evidence history.
 - Self-hosted package verification.
+- License/support boundary evidence when provided.
 - Public GitHub import rehearsal evidence when available.
 - Compact review/audit history when provided.
 - Limitations and next actions.
@@ -36,6 +37,7 @@ python scripts\ci\collect_team_handoff_report.py `
   --benchmark-comparison-json .tmp\real-repo-benchmark-comparison.json `
   --readiness-history-index-json docs\evidence\readiness\index.json `
   --package-verification-json .tmp\self-hosted-package-verification.json `
+  --license-support-json templates\self-hosted-entitlement.example.json `
   --public-github-import-json .tmp\public-github-import-rehearsal.json `
   --output-json .tmp\team-handoff-report.json `
   --output-markdown .tmp\team-handoff-report.md
@@ -56,5 +58,6 @@ The generator redacts token-like and secret-like values, but operators should st
 - Hosted/operator readiness is generated.
 - Benchmark comparison is generated or explicitly accepted as not provided.
 - Self-hosted package verification is generated.
+- License/support boundary evidence is attached for paid customer handoff or explicitly disclosed as missing/operator-guided.
 - Readiness evidence history has a durable entry when making a customer-ready claim.
 - The Markdown handoff report is readable by a human without a running backend.

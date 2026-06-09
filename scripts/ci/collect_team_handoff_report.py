@@ -249,6 +249,29 @@ def summarize_package(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_license_support(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    support = data.get("support") if isinstance(data.get("support"), dict) else {}
+    deployment = data.get("deployment_scope") if isinstance(data.get("deployment_scope"), dict) else {}
+    upgrade = data.get("upgrade") if isinstance(data.get("upgrade"), dict) else {}
+    runtime = data.get("runtime_enforcement") if isinstance(data.get("runtime_enforcement"), dict) else {}
+    tier = data.get("tier")
+    return {
+        "status": STATUS_PASS if tier else STATUS_WARNING,
+        "schema_version": data.get("schema_version"),
+        "customer_label": data.get("customer_label"),
+        "tier": tier,
+        "deployment_scope": sanitize(deployment),
+        "support_start": support.get("support_start"),
+        "support_end": support.get("support_end"),
+        "support_channel": support.get("support_channel"),
+        "upgrade_channel": upgrade.get("upgrade_channel"),
+        "runtime_enforcement_enabled": runtime.get("enabled"),
+        "boundary": "documented_non_enforced",
+    }
+
+
 def summarize_public_import(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -313,6 +336,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("benchmark_comparison", "Benchmark comparison", args.benchmark_comparison_json, summarize_benchmark),
         ("readiness_history", "Readiness evidence history", args.readiness_history_index_json, summarize_readiness_history),
         ("self_hosted_package", "Self-hosted package verification", args.package_verification_json, summarize_package),
+        ("license_support", "License and support boundary", args.license_support_json, summarize_license_support),
         ("public_github_import", "Public GitHub import rehearsal", args.public_github_import_json, summarize_public_import),
         ("review_audit", "Review audit history", args.audit_history_json, summarize_audit),
     ]
@@ -474,6 +498,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmark-comparison-json")
     parser.add_argument("--readiness-history-index-json")
     parser.add_argument("--package-verification-json")
+    parser.add_argument("--license-support-json")
     parser.add_argument("--public-github-import-json")
     parser.add_argument("--audit-history-json")
     return parser.parse_args(argv)

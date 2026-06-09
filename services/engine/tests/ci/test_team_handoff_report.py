@@ -52,6 +52,22 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             "summary": {"repositories": 1, "improved": 1, "regressed": 0, "operationally_blocked": 0},
         },
     )
+    license_support = _write_json(
+        tmp_path / "entitlement.json",
+        {
+            "schema_version": 1,
+            "customer_label": "Example Customer",
+            "tier": "Team Self-hosted",
+            "deployment_scope": {"environment": "customer-controlled server"},
+            "support": {
+                "support_start": "2026-06-01",
+                "support_end": "2027-06-01",
+                "support_channel": "email",
+            },
+            "upgrade": {"upgrade_channel": "manual self-hosted package update"},
+            "runtime_enforcement": {"enabled": False},
+        },
+    )
     audit = _write_json(
         tmp_path / "audit.json",
         {
@@ -92,6 +108,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             str(hosted),
             "--benchmark-comparison-json",
             str(benchmark),
+            "--license-support-json",
+            str(license_support),
             "--audit-history-json",
             str(audit),
         ]
@@ -103,6 +121,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
     assert bundle["sections"]["release_evidence"]["status"] == "pass"
     assert bundle["sections"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert bundle["sections"]["benchmark_comparison"]["repositories"] == 1
+    assert bundle["sections"]["license_support"]["tier"] == "Team Self-hosted"
+    assert bundle["sections"]["license_support"]["runtime_enforcement_enabled"] is False
     assert bundle["sections"]["review_audit"]["events"][0]["actor"] == "local-admin"
     assert "DecisionAtlas Team Handoff Report" in markdown
     assert "demo-workspace" in markdown
@@ -118,6 +138,7 @@ def test_team_handoff_report_preserves_missing_evidence(tmp_path: Path) -> None:
     assert bundle["overall_status"] == "warning"
     assert bundle["sections"]["release_evidence"]["status"] == "not_provided"
     assert bundle["sections"]["benchmark_comparison"]["status"] == "not_provided"
+    assert bundle["sections"]["license_support"]["status"] == "not_provided"
     assert bundle["sources"]["release_evidence"]["warnings"] == ["source_not_provided"]
 
 
@@ -142,6 +163,14 @@ def test_team_handoff_report_redacts_secret_like_material(tmp_path: Path) -> Non
             "password": "plain-secret",
         },
     )
+    license_support = _write_json(
+        tmp_path / "entitlement.json",
+        {
+            "tier": "Team Self-hosted",
+            "support": {"support_contact": "sk-test-secret-password"},
+            "deployment_scope": {"local_path": r"C:\Users\Max\customer"},
+        },
+    )
     args = report.parse_args(
         [
             "--generated-at",
@@ -150,6 +179,8 @@ def test_team_handoff_report_redacts_secret_like_material(tmp_path: Path) -> Non
             "abc123",
             "--audit-history-json",
             str(audit),
+            "--license-support-json",
+            str(license_support),
         ]
     )
 
@@ -160,6 +191,7 @@ def test_team_handoff_report_redacts_secret_like_material(tmp_path: Path) -> Non
     assert "plain-secret" not in text
     assert "sk-test-secret-password" not in text
     assert r"C:\Users\Max\private-repo" not in text
+    assert r"C:\Users\Max\customer" not in text
     assert "[redacted]" in text
 
 
@@ -175,3 +207,4 @@ def test_package_verifier_tracks_team_handoff_lane(tmp_path: Path) -> None:
     lane_ids = {lane["id"] for lane in verifier.OPTIONAL_RUNTIME_LANES}
 
     assert "team_handoff_report" in lane_ids
+    assert "license_support_boundary" in lane_ids

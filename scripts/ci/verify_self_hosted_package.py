@@ -37,10 +37,12 @@ REQUIRED_PACKAGE_FILES = [
     "manifest.json",
     "README.md",
     "templates/self-hosted.env.example",
+    "templates/self-hosted-entitlement.example.json",
     "docs/project/self-hosted-package-guide.md",
     "docs/project/self-hosted-operations-runbook.md",
     "docs/project/self-hosted-readiness-checklist.md",
     "docs/project/self-hosted-delivery-rehearsal.md",
+    "docs/project/self-hosted-license-and-support-boundary.md",
     "scripts/dev/start-real-stack.ps1",
     "scripts/dev/start-real-stack.bat",
     "scripts/dev/stop-real-stack.ps1",
@@ -87,6 +89,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Team handoff report",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Generate JSON/Markdown handoff evidence after release, readiness, benchmark, and package evidence are available.",
+    },
+    {
+        "id": "license_support_boundary",
+        "label": "License and support boundary",
+        "status": STATUS_OPERATOR_GUIDED,
+        "reason": "Package includes boundary docs and an entitlement template; attach customer-specific entitlement separately for paid handoff.",
     },
 ]
 
@@ -262,7 +270,7 @@ def verify_package(package_dir: Path, *, generated_at: str | None = None) -> dic
         "blockers": [check for check in checks if check["status"] == STATUS_BLOCKING],
         "notes": [
             "Package verification is offline and checks handoff structure only.",
-            "Runtime smoke, private repository token validation, live benchmark, and readiness history must be generated separately before clean customer claims.",
+            "Runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
         ],
     }
 

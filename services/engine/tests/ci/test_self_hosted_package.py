@@ -40,12 +40,15 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets(tmp_
     assert readme_path.exists()
     assert "DecisionAtlas Self-Hosted Package" in readme_path.read_text(encoding="utf-8")
     assert (package_dir / "templates" / "self-hosted.env.example").exists()
+    assert (package_dir / "templates" / "self-hosted-entitlement.example.json").exists()
     assert (package_dir / "docs" / "project" / "self-hosted-package-guide.md").exists()
+    assert (package_dir / "docs" / "project" / "self-hosted-license-and-support-boundary.md").exists()
     assert (package_dir / "scripts" / "dev" / "start-real-stack.ps1").exists()
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["version_label"] == "test-version"
     assert "runtime_license_enforcement" in data["unsupported_capabilities"]
+    assert "offline_entitlement_template" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
 
 
@@ -75,6 +78,7 @@ def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> No
         "live_benchmark",
         "readiness_history",
         "team_handoff_report",
+        "license_support_boundary",
     }
     assert "Runtime smoke" in markdown
     assert "operator_guided" in markdown
