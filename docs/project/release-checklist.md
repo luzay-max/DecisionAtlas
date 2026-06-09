@@ -54,6 +54,15 @@ python scripts/ci/collect_release_evidence.py `
   --benchmark-comparison-report .tmp/real-repo-benchmark-comparison.json
 ```
 
+Generate fixed-pool real-repo benchmark trend evidence after comparison output exists:
+
+```powershell
+python scripts/ci/collect_real_repo_benchmark_trend.py `
+  --comparison-json .tmp/real-repo-benchmark-comparison.json `
+  --output-json .tmp/real-repo-benchmark-trend.json `
+  --output-markdown .tmp/real-repo-benchmark-trend.md
+```
+
 Required gates:
 
 - canonical pre-release baseline: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
@@ -65,8 +74,11 @@ Advisory confidence signals:
 - governance guardrail status or JSON report
 - targeted test summary
 - real-repo benchmark comparison JSON
+- fixed-pool real-repo benchmark trend JSON/Markdown
 
 The evidence bundle is local and non-mutating. It does not create tags, push commits, publish releases, archive OpenSpec changes, or run live/network-heavy benchmark checks by default. Optional evidence must be supplied through explicit paths; missing optional evidence is recorded instead of treated as a hidden pass.
+
+The fixed-pool benchmark trend report is a release-readable layer over the benchmark comparison. It checks whether the expected public repository pool is represented, preserves `regressed`, `operationally-blocked`, `missing-from-current`, `not_provided`, and `operator_guided` states, and recommends follow-up before customer-facing readiness claims.
 
 ## Readiness evidence history
 

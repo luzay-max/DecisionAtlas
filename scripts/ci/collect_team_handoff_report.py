@@ -215,6 +215,27 @@ def summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_benchmark_trend(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "label": data.get("label"),
+        "repositories": int(summary.get("repositories") or 0),
+        "covered_repositories": int(summary.get("covered_repositories") or 0),
+        "missing_repositories": int(summary.get("missing_repositories") or 0),
+        "not_provided_repositories": int(summary.get("not_provided_repositories") or 0),
+        "operator_guided_repositories": int(summary.get("operator_guided_repositories") or 0),
+        "regressed": int(summary.get("regressed") or 0),
+        "improved": int(summary.get("improved") or 0),
+        "operationally_blocked": int(summary.get("operationally_blocked") or 0),
+        "missing_from_current": int(summary.get("missing_from_current") or 0),
+        "recommended_follow_up": sanitize(data.get("recommended_follow_up") or []),
+    }
+
+
 def summarize_readiness_history(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -357,6 +378,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("release_evidence", "Release evidence", args.release_evidence_json, summarize_release),
         ("hosted_readiness", "Hosted/operator readiness", args.hosted_readiness_json, summarize_hosted),
         ("benchmark_comparison", "Benchmark comparison", args.benchmark_comparison_json, summarize_benchmark),
+        ("benchmark_trend", "Benchmark trend evidence", args.benchmark_trend_json, summarize_benchmark_trend),
         ("readiness_history", "Readiness evidence history", args.readiness_history_index_json, summarize_readiness_history),
         ("self_hosted_package", "Self-hosted package verification", args.package_verification_json, summarize_package),
         ("clean_install_rehearsal", "Clean self-hosted install rehearsal", args.clean_install_rehearsal_json, summarize_clean_install),
@@ -520,6 +542,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--release-evidence-json")
     parser.add_argument("--hosted-readiness-json")
     parser.add_argument("--benchmark-comparison-json")
+    parser.add_argument("--benchmark-trend-json")
     parser.add_argument("--readiness-history-index-json")
     parser.add_argument("--package-verification-json")
     parser.add_argument("--clean-install-rehearsal-json")

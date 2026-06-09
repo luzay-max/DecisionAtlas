@@ -123,6 +123,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             str(hosted),
             "--benchmark-comparison-json",
             str(benchmark),
+            "--benchmark-trend-json",
+            str(benchmark),
             "--license-support-json",
             str(license_support),
             "--clean-install-rehearsal-json",
@@ -138,6 +140,7 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
     assert bundle["sections"]["release_evidence"]["status"] == "pass"
     assert bundle["sections"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert bundle["sections"]["benchmark_comparison"]["repositories"] == 1
+    assert bundle["sections"]["benchmark_trend"]["repositories"] == 1
     assert bundle["sections"]["license_support"]["tier"] == "Team Self-hosted"
     assert bundle["sections"]["clean_install_rehearsal"]["status"] == "warning"
     assert bundle["sections"]["clean_install_rehearsal"]["evidence_family_statuses"]["hosted_readiness"] == "operator_guided"
@@ -157,6 +160,7 @@ def test_team_handoff_report_preserves_missing_evidence(tmp_path: Path) -> None:
     assert bundle["overall_status"] == "warning"
     assert bundle["sections"]["release_evidence"]["status"] == "not_provided"
     assert bundle["sections"]["benchmark_comparison"]["status"] == "not_provided"
+    assert bundle["sections"]["benchmark_trend"]["status"] == "not_provided"
     assert bundle["sections"]["clean_install_rehearsal"]["status"] == "not_provided"
     assert bundle["sections"]["license_support"]["status"] == "not_provided"
     assert bundle["sources"]["release_evidence"]["warnings"] == ["source_not_provided"]

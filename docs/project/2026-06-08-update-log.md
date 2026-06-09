@@ -287,3 +287,29 @@
   - Status: `pass`
   - Chromium opened `docs/project/pilot-customer-delivery-kit.md` and `.tmp/pilot-customer-delivery-kit-verification.md`.
   - Confirmed title, self-hosted scope, evidence references, deferred lanes, tier/material sections, and feedback/next-action sections are visible.
+
+## Real-Repo Benchmark Trend Pool
+
+- Started OpenSpec change `real-repo-benchmark-trend-pool`.
+- Added fixed public repository trend pool:
+  - `examples/live-benchmarks/trend-pool.json`
+  - Repositories: `httpx`, `fastapi`, `rich`, `n8n`, `browser-use`
+  - Each entry records release role, benchmark purpose, priority, workspace slug, and operator setup status.
+- Added `scripts/ci/collect_real_repo_benchmark_trend.py` to generate release-readable benchmark trend evidence from the fixed pool and optional comparison JSON.
+- Added optional `--benchmark-trend-json` support to team handoff reporting.
+- Updated release checklist and team handoff docs to reference fixed-pool trend evidence.
+
+## Real-Repo Trend Validation
+
+- Generated trend evidence from existing comparison:
+  - JSON: `.tmp/real-repo-benchmark-trend.json`
+  - Markdown: `.tmp/real-repo-benchmark-trend.md`
+  - Status: `warning`
+  - Reason: fixed pool contains 5 repositories, while current comparison evidence covers only `browser-use/browser-use`; missing fixed-pool coverage is now explicit instead of hidden.
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/real-repo-benchmark-trend-browser-review.json`
+  - Status: `pass`
+  - Chromium rendered the generated Markdown and confirmed title, warning status, covered `browser-use` row, missing coverage, and recommended follow-up are visible.
+- Validation:
+  - `python -m pytest services/engine/tests/ci/test_real_repo_benchmark_trend.py services/engine/tests/ci/test_team_handoff_report.py -q --basetemp .tmp/pytest-benchmark-trend`: `9 passed`
+  - `openspec validate --all --strict`: `57 passed, 0 failed`

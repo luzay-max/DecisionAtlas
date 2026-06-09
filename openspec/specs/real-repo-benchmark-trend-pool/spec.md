@@ -1,0 +1,51 @@
+# real-repo-benchmark-trend-pool Specification
+
+## Purpose
+
+Fixed-pool real repository benchmark trend evidence for release rehearsals and team handoff.
+
+## Requirements
+
+### Requirement: Fixed real repository trend pool
+The system SHALL define a source-controlled fixed real repository trend pool that identifies the public repositories expected in release benchmark trend evidence.
+
+#### Scenario: Pool validates without live services
+- **WHEN** the fixed trend pool is validated during local or CI checks
+- **THEN** validation MUST succeed without requiring GitHub network access, imported workspaces, model providers, or private repository credentials
+
+#### Scenario: Pool records release intent
+- **WHEN** an operator opens the fixed trend pool
+- **THEN** each repository entry MUST include a stable id, repository name, workspace slug, release role, benchmark purpose, priority, and operator setup status
+
+### Requirement: Benchmark trend evidence generation
+The system SHALL generate benchmark trend evidence from the fixed repository pool and an optional benchmark comparison JSON file.
+
+#### Scenario: Comparison is provided
+- **WHEN** a benchmark comparison JSON file is provided
+- **THEN** the trend evidence MUST include repository coverage, movement counts, regressions, operational blockers, missing pool coverage, and recommended follow-up
+
+#### Scenario: Comparison is not provided
+- **WHEN** no benchmark comparison JSON file is provided
+- **THEN** the trend evidence MUST still write JSON and Markdown with warning status and `not_provided` repository rows
+
+#### Scenario: Non-clean movement is preserved
+- **WHEN** a comparison row contains `regressed`, `operationally-blocked`, `missing-from-current`, or `needs-review`
+- **THEN** the trend evidence MUST preserve the movement label and mark the overall report as non-clean
+
+### Requirement: Trend evidence is release-safe
+The system SHALL avoid writing secrets, private repository contents, raw model output, or unbounded local paths into benchmark trend evidence.
+
+#### Scenario: Operator shares the trend report
+- **WHEN** the generated Markdown report is shared as release evidence
+- **THEN** it MUST contain only repo identifiers, coverage state, movement summaries, bounded reasons, and follow-up guidance
+
+### Requirement: Team handoff summarizes benchmark trend evidence
+The system SHALL support optional benchmark trend evidence in the team handoff report.
+
+#### Scenario: Trend evidence is supplied to handoff report
+- **WHEN** a benchmark trend JSON path is provided to the team handoff report collector
+- **THEN** the handoff report MUST include benchmark trend status, covered repositories, missing repositories, regressions, operational blockers, and operator-guided count
+
+#### Scenario: Trend evidence is omitted
+- **WHEN** no benchmark trend JSON path is provided
+- **THEN** the handoff report MUST preserve the section as `not_provided` instead of failing

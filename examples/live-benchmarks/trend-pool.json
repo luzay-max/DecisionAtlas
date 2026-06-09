@@ -1,0 +1,47 @@
+[
+  {
+    "id": "httpx",
+    "repo": "encode/httpx",
+    "workspace_slug": "github-encode-httpx",
+    "release_role": "doc-heavy Python library",
+    "benchmark_purpose": "Track whether documentation-heavy libraries produce grounded, reviewable rationale candidates.",
+    "priority": "core",
+    "operator_setup_status": "operator_guided"
+  },
+  {
+    "id": "fastapi",
+    "repo": "fastapi/fastapi",
+    "workspace_slug": "github-fastapi-fastapi",
+    "release_role": "large Python framework",
+    "benchmark_purpose": "Track large-framework extraction quality across docs, issues, and PR rationale.",
+    "priority": "core",
+    "operator_setup_status": "operator_guided"
+  },
+  {
+    "id": "rich",
+    "repo": "Textualize/rich",
+    "workspace_slug": "github-textualize-rich",
+    "release_role": "smaller Python documentation library",
+    "benchmark_purpose": "Track thinner-evidence repositories and first-baseline acceptance behavior.",
+    "priority": "secondary",
+    "operator_setup_status": "operator_guided"
+  },
+  {
+    "id": "n8n",
+    "repo": "n8n-io/n8n",
+    "workspace_slug": "github-n8n-io-n8n",
+    "release_role": "large TypeScript stress repository",
+    "benchmark_purpose": "Track screened-in artifact volume and conversion-limited behavior on a large repository.",
+    "priority": "stress",
+    "operator_setup_status": "operator_guided"
+  },
+  {
+    "id": "browser-use",
+    "repo": "browser-use/browser-use",
+    "workspace_slug": "github-browser-use-browser-use",
+    "release_role": "decision-rich regression repository",
+    "benchmark_purpose": "Protect known imported why-search and drift-regression examples.",
+    "priority": "core",
+    "operator_setup_status": "ready"
+  }
+]

@@ -12,6 +12,7 @@ Use the team handoff report when a DecisionAtlas workspace is ready to be review
 - Release evidence status.
 - Hosted/operator readiness status.
 - Real-repo benchmark comparison.
+- Fixed-pool real-repo benchmark trend evidence.
 - Readiness evidence history.
 - Self-hosted package verification.
 - Clean self-hosted install rehearsal evidence when provided.
@@ -36,6 +37,7 @@ python scripts\ci\collect_team_handoff_report.py `
   --release-evidence-json .tmp\release-evidence.json `
   --hosted-readiness-json .tmp\hosted-operator-readiness.json `
   --benchmark-comparison-json .tmp\real-repo-benchmark-comparison.json `
+  --benchmark-trend-json .tmp\real-repo-benchmark-trend.json `
   --readiness-history-index-json docs\evidence\readiness\index.json `
   --package-verification-json .tmp\self-hosted-package-verification.json `
   --clean-install-rehearsal-json .tmp\clean-self-hosted-install-rehearsal.json `
@@ -59,6 +61,7 @@ The generator redacts token-like and secret-like values, but operators should st
 - Release evidence is generated.
 - Hosted/operator readiness is generated.
 - Benchmark comparison is generated or explicitly accepted as not provided.
+- Benchmark trend evidence is generated from the fixed repo pool or explicitly accepted as not provided.
 - Self-hosted package verification is generated.
 - Clean self-hosted install rehearsal is generated before claiming external operator trial readiness.
 - License/support boundary evidence is attached for paid customer handoff or explicitly disclosed as missing/operator-guided.
