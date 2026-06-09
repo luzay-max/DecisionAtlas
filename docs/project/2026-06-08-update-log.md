@@ -375,3 +375,22 @@
   - Real Chromium localhost smoke attempted against `http://127.0.0.1:3000` and `http://127.0.0.1:3001`.
   - Result: `warning`; both ports returned connection refused because the real stack was not running.
   - Attempted stack restart was blocked because Docker Desktop was unavailable and Postgres port `5432` was not listening.
+
+## Real Stack Browser Retest After Docker Startup
+
+- Restarted real stack after Docker Desktop became available.
+- Health checks:
+  - API: `http://127.0.0.1:3001/health` returned `200 {"ok":true}`
+  - Engine: `http://127.0.0.1:8000/health` returned `200 {"ok":true}`
+- Real Chromium browser smoke:
+  - Evidence: `.tmp/real-stack-browser-smoke.json`
+  - Screenshots:
+    - `.tmp/real-stack-home-browser.png`
+    - `.tmp/real-stack-review-browser.png`
+    - `.tmp/real-stack-drift-browser.png`
+  - Routes checked:
+    - `http://127.0.0.1:3000/`: `passed`
+    - `http://127.0.0.1:3000/review?workspace=demo-workspace`: `passed`
+    - `http://127.0.0.1:3000/drift?workspace=demo-workspace`: `passed`
+  - Each page had visible body content, DecisionAtlas/product signals, and no Next runtime/internal-server error text.
+- In-app browser localhost control still failed with a native pipe reset during navigation, so Playwright/Chromium remains the reliable local browser validation fallback for this environment.
