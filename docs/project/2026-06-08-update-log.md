@@ -259,3 +259,31 @@
   - Evidence: `.tmp/clean-install-browser-review.json`
   - Status: `pass`
   - Chromium opened `.tmp/clean-self-hosted-install-rehearsal.md` and confirmed title, warning status, clean workspace checks, source evidence, live stack probes, limitations, and recommended next actions are visible.
+
+## Pilot Customer Delivery Kit
+
+- Started OpenSpec change `pilot-customer-delivery-kit`.
+- Added customer-readable pilot materials:
+  - `docs/project/pilot-customer-delivery-kit.md`
+  - `docs/project/pilot-demo-script.md`
+  - `docs/project/pilot-deployment-checklist.md`
+  - `docs/project/pilot-customer-faq.md`
+  - `docs/project/pilot-tier-comparison.md`
+  - `docs/project/pilot-delivery-email-template.md`
+- Added `scripts/ci/verify_pilot_customer_delivery_kit.py` to verify pilot materials and emit JSON/Markdown evidence.
+- Updated self-hosted package builder and verifier to include pilot delivery kit materials and preserve the pilot kit lane.
+- Updated package guide and commercial baseline to reference the pilot delivery kit for external evaluation.
+
+## Pilot Delivery Validation
+
+- `python -m uv run pytest tests/ci/test_pilot_customer_delivery_kit.py tests/ci/test_self_hosted_package.py -q`: `7 passed`
+- Generated pilot delivery kit verification:
+  - JSON: `.tmp/pilot-customer-delivery-kit-verification.json`
+  - Markdown: `.tmp/pilot-customer-delivery-kit-verification.md`
+  - Status: `pass`
+  - Blockers: none
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/pilot-customer-delivery-kit-browser-review.json`
+  - Status: `pass`
+  - Chromium opened `docs/project/pilot-customer-delivery-kit.md` and `.tmp/pilot-customer-delivery-kit-verification.md`.
+  - Confirmed title, self-hosted scope, evidence references, deferred lanes, tier/material sections, and feedback/next-action sections are visible.

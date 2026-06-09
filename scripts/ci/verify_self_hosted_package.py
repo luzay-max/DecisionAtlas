@@ -42,12 +42,19 @@ REQUIRED_PACKAGE_FILES = [
     "docs/project/self-hosted-operations-runbook.md",
     "docs/project/self-hosted-readiness-checklist.md",
     "docs/project/self-hosted-delivery-rehearsal.md",
+    "docs/project/pilot-customer-delivery-kit.md",
+    "docs/project/pilot-demo-script.md",
+    "docs/project/pilot-deployment-checklist.md",
+    "docs/project/pilot-customer-faq.md",
+    "docs/project/pilot-tier-comparison.md",
+    "docs/project/pilot-delivery-email-template.md",
     "docs/project/self-hosted-license-and-support-boundary.md",
     "scripts/dev/start-real-stack.ps1",
     "scripts/dev/start-real-stack.bat",
     "scripts/dev/stop-real-stack.ps1",
     "scripts/ci/pre-release.ps1",
     "scripts/ci/rehearse_clean_self_hosted_install.py",
+    "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/collect_team_handoff_report.py",
 ]
 
@@ -90,6 +97,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Clean self-hosted install rehearsal",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Run rehearse_clean_self_hosted_install.py separately before claiming external operator trial readiness.",
+    },
+    {
+        "id": "pilot_customer_delivery_kit",
+        "label": "Pilot customer delivery kit",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Run verify_pilot_customer_delivery_kit.py and attach customer-readable pilot materials before external evaluation.",
     },
     {
         "id": "team_handoff_report",

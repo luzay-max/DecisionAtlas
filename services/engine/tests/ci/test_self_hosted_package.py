@@ -42,15 +42,20 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets(tmp_
     assert (package_dir / "templates" / "self-hosted.env.example").exists()
     assert (package_dir / "templates" / "self-hosted-entitlement.example.json").exists()
     assert (package_dir / "docs" / "project" / "self-hosted-package-guide.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-customer-delivery-kit.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-delivery-email-template.md").exists()
     assert (package_dir / "docs" / "project" / "self-hosted-license-and-support-boundary.md").exists()
+    assert (package_dir / "scripts" / "ci" / "verify_pilot_customer_delivery_kit.py").exists()
     assert (package_dir / "scripts" / "dev" / "start-real-stack.ps1").exists()
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["version_label"] == "test-version"
     assert "runtime_license_enforcement" in data["unsupported_capabilities"]
     assert "offline_entitlement_template" in data["readiness_evidence_expectations"]
+    assert "pilot_customer_delivery_kit_verification_json" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
     assert any("rehearse_clean_self_hosted_install.py" in command for command in data["validation_commands"])
+    assert any("verify_pilot_customer_delivery_kit.py" in command for command in data["validation_commands"])
 
 
 def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> None:
@@ -79,6 +84,7 @@ def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> No
         "live_benchmark",
         "readiness_history",
         "clean_self_hosted_install_rehearsal",
+        "pilot_customer_delivery_kit",
         "team_handoff_report",
         "license_support_boundary",
     }

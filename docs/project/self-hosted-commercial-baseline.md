@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md)
 
 ---
 
@@ -40,6 +40,8 @@ Future optional
 The tier boundaries are product and support packaging boundaries. This baseline does not add runtime license checks.
 
 Customer-facing package claims should reference a generated package `manifest.json`, package verification JSON/Markdown, the self-hosted package guide, the environment template, and backup/restore/upgrade runbook coverage. If those artifacts are missing, the handoff must disclose the gap and avoid claiming clean package readiness.
+
+Customer-facing pilot claims should also reference [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), clean install rehearsal evidence, team handoff report evidence, and the license/support boundary. Pricing, support, extension, or tiering discussions must distinguish Community, Team Self-hosted, and Enterprise Self-hosted without implying billing, Marketplace, enterprise SSO, online license server, or runtime license enforcement.
 
 ## Deferred Capabilities
 
@@ -264,6 +266,8 @@ Rollback expectation:
 ## Commercial Handoff
 
 For first paid pilots, use [Code Decision Audit Template](code-decision-audit-template.md). It lets an operator deliver a bounded report without adding runtime license enforcement.
+
+For first external evaluations, attach [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), [Pilot Deployment Checklist](pilot-deployment-checklist.md), [Pilot Demo Script](pilot-demo-script.md), [Pilot Customer FAQ](pilot-customer-faq.md), [Pilot Tier Comparison](pilot-tier-comparison.md), and [Pilot Delivery Email Template](pilot-delivery-email-template.md). These materials explain what is included, what is deferred, what evidence must be reviewed, and how a pilot can be extended.
 
 For a complete handoff, attach the latest self-hosted delivery rehearsal summary and readiness evidence history entry. Non-clean states such as `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` must remain visible in customer-facing material.
 

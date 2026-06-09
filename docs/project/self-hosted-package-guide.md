@@ -8,6 +8,8 @@ Use this guide when preparing a DecisionAtlas package for a private server, paid
 
 The package is a source-tree handoff bundle, not a binary installer. It contains selected docs, startup and validation scripts, an environment template, and a machine-readable manifest. It does not include customer secrets, databases, imported repositories, node modules, virtual environments, or local scratch output.
 
+For external evaluation, start with [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md). It provides the one-page product explanation, demo script, deployment checklist, FAQ, tier comparison, and delivery email template that should accompany the technical package.
+
 ## Package Layout
 
 Expected layout:
@@ -26,6 +28,12 @@ decisionatlas-self-hosted/
       self-hosted-readiness-checklist.md
       self-hosted-delivery-rehearsal.md
       self-hosted-commercial-baseline.md
+      pilot-customer-delivery-kit.md
+      pilot-demo-script.md
+      pilot-deployment-checklist.md
+      pilot-customer-faq.md
+      pilot-tier-comparison.md
+      pilot-delivery-email-template.md
       self-hosted-operations-runbook.md
       team-handoff-reporting.md
       self-hosted-license-and-support-boundary.md
@@ -41,6 +49,7 @@ decisionatlas-self-hosted/
       collect_release_evidence.py
       collect_readiness_evidence_history.py
       collect_team_handoff_report.py
+      verify_pilot_customer_delivery_kit.py
       rehearse_clean_self_hosted_install.py
     demo/
       check_seeded_demo.py
@@ -79,6 +88,14 @@ python scripts\ci\verify_self_hosted_package.py `
 
 The verifier checks package structure and manifest integrity. It does not start Docker, validate live credentials, import private repositories, or run a live benchmark. Those remain separate rehearsal evidence.
 
+Verify the pilot customer materials:
+
+```powershell
+python scripts\ci\verify_pilot_customer_delivery_kit.py `
+  --output-json .tmp\pilot-customer-delivery-kit-verification.json `
+  --output-markdown .tmp\pilot-customer-delivery-kit-verification.md
+```
+
 ## Rehearse Clean Install
 
 Run the clean install rehearsal after package verification and before claiming that an external operator can trial the package:
@@ -114,6 +131,7 @@ The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<lab
 ## Required Evidence Before Clean Handoff
 
 - Package verifier JSON/Markdown.
+- Pilot customer delivery kit verification JSON/Markdown.
 - Clean self-hosted install rehearsal JSON/Markdown.
 - OpenSpec strict validation.
 - Governance guardrail summary.
