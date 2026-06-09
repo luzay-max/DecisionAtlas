@@ -76,7 +76,8 @@ Upgrade order:
 7. Run package verification, OpenSpec validation, pre-release checks, and readiness evidence.
 8. Run browser/operator smoke for team workflow and critical review/drift flows.
 9. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
-10. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
+10. Run clean self-hosted install rehearsal against the package copy and attach `.tmp/clean-self-hosted-install-rehearsal.json/md`.
+11. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
 
 ## Rollback
 
@@ -91,3 +92,16 @@ If upgrade validation fails:
 7. Record the failed upgrade evidence and follow-up actions.
 
 Rollback is a human operator decision. The package verifier does not perform rollback automatically.
+
+## Clean Install Rehearsal
+
+Use clean install rehearsal when validating that the package can be understood and inspected outside the live development tree:
+
+```powershell
+python scripts\ci\rehearse_clean_self_hosted_install.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --package-verification-json .tmp\self-hosted-package-verification.json `
+  --team-handoff-json .tmp\team-handoff-report.json
+```
+
+If live Web/API/Engine URLs are not provided, the report must keep live stack probing as `operator_guided` or `not_provided`. Do not treat clean package copy checks as proof that a customer server has already started successfully.

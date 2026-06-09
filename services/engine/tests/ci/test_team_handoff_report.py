@@ -85,6 +85,21 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             ]
         },
     )
+    clean_install = _write_json(
+        tmp_path / "clean-install.json",
+        {
+            "status": "warning",
+            "label": "clean-test",
+            "package_path": ".tmp/self-hosted-package/decisionatlas-self-hosted",
+            "clean_workspace_path": ".tmp/clean-self-hosted-install/clean-test",
+            "source_evidence": [
+                {"id": "release_evidence", "status": "pass"},
+                {"id": "hosted_readiness", "status": "operator_guided"},
+            ],
+            "blockers": [],
+            "recommended_next_actions": ["Review operator-guided lanes."],
+        },
+    )
 
     args = report.parse_args(
         [
@@ -110,6 +125,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             str(benchmark),
             "--license-support-json",
             str(license_support),
+            "--clean-install-rehearsal-json",
+            str(clean_install),
             "--audit-history-json",
             str(audit),
         ]
@@ -122,6 +139,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
     assert bundle["sections"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert bundle["sections"]["benchmark_comparison"]["repositories"] == 1
     assert bundle["sections"]["license_support"]["tier"] == "Team Self-hosted"
+    assert bundle["sections"]["clean_install_rehearsal"]["status"] == "warning"
+    assert bundle["sections"]["clean_install_rehearsal"]["evidence_family_statuses"]["hosted_readiness"] == "operator_guided"
     assert bundle["sections"]["license_support"]["runtime_enforcement_enabled"] is False
     assert bundle["sections"]["review_audit"]["events"][0]["actor"] == "local-admin"
     assert "DecisionAtlas Team Handoff Report" in markdown
@@ -138,6 +157,7 @@ def test_team_handoff_report_preserves_missing_evidence(tmp_path: Path) -> None:
     assert bundle["overall_status"] == "warning"
     assert bundle["sections"]["release_evidence"]["status"] == "not_provided"
     assert bundle["sections"]["benchmark_comparison"]["status"] == "not_provided"
+    assert bundle["sections"]["clean_install_rehearsal"]["status"] == "not_provided"
     assert bundle["sections"]["license_support"]["status"] == "not_provided"
     assert bundle["sources"]["release_evidence"]["warnings"] == ["source_not_provided"]
 
@@ -207,4 +227,5 @@ def test_package_verifier_tracks_team_handoff_lane(tmp_path: Path) -> None:
     lane_ids = {lane["id"] for lane in verifier.OPTIONAL_RUNTIME_LANES}
 
     assert "team_handoff_report" in lane_ids
+    assert "clean_self_hosted_install_rehearsal" in lane_ids
     assert "license_support_boundary" in lane_ids

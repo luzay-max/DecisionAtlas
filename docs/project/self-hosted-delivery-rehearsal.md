@@ -39,6 +39,7 @@ Classify every lane explicitly:
 | --- | --- | --- |
 | Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
+| Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
 | Governance guardrail | Yes | `.tmp/agent-guardrail.json` and summary text |
 | Canonical pre-release | Yes, or explicit blocker/substitute | `.tmp/pre-release-rehearsal-YYYY-MM-DD.log` and status |
@@ -81,6 +82,11 @@ python scripts\ci\verify_self_hosted_package.py `
   --package .tmp\self-hosted-package\decisionatlas-self-hosted `
   --output-json .tmp\self-hosted-package-verification.json `
   --output-markdown .tmp\self-hosted-package-verification.md
+python scripts\ci\rehearse_clean_self_hosted_install.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --package-verification-json .tmp\self-hosted-package-verification.json `
+  --output-json .tmp\clean-self-hosted-install-rehearsal.json `
+  --output-markdown .tmp\clean-self-hosted-install-rehearsal.md
 python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.json
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"
@@ -120,6 +126,18 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.
+
+## Clean Install Rehearsal
+
+Clean install rehearsal is the bridge between package structure verification and customer/operator trial readiness. It copies the package into `.tmp/clean-self-hosted-install/<label>/package-copy`, verifies package handoff entry points, ingests available release/readiness/benchmark/history/package/handoff evidence, and emits `.tmp/clean-self-hosted-install-rehearsal.json/md`.
+
+Use the report as a bounded statement:
+
+- `pass` means the supplied package copy and evidence inputs are clean for this rehearsal.
+- `warning` means package structure may be usable but evidence is missing, operator-guided, known-limited, or non-clean.
+- `blocking` means a required package asset, package input, or hard evidence input must be fixed before external operator trial.
+
+Do not claim a clean external operator trial if this evidence is missing.
 
 ## Public GitHub Import Rehearsal
 

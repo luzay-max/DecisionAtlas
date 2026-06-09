@@ -292,6 +292,29 @@ def summarize_public_import(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_clean_install(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    evidence = data.get("source_evidence") if isinstance(data.get("source_evidence"), list) else []
+    blockers = data.get("blockers") if isinstance(data.get("blockers"), list) else []
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "label": data.get("label"),
+        "package_path": sanitize(data.get("package_path")),
+        "clean_workspace_path": sanitize(data.get("clean_workspace_path")),
+        "clean_package_path": sanitize(data.get("clean_package_path")),
+        "warning_count": data.get("warning_count"),
+        "blocker_count": len(blockers),
+        "evidence_family_statuses": {
+            str(item.get("id")): _status(item.get("status"))
+            for item in evidence
+            if isinstance(item, dict) and item.get("id")
+        },
+        "recommended_next_actions": sanitize(data.get("recommended_next_actions") or []),
+    }
+
+
 def summarize_audit(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED, "events": []}
@@ -336,6 +359,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("benchmark_comparison", "Benchmark comparison", args.benchmark_comparison_json, summarize_benchmark),
         ("readiness_history", "Readiness evidence history", args.readiness_history_index_json, summarize_readiness_history),
         ("self_hosted_package", "Self-hosted package verification", args.package_verification_json, summarize_package),
+        ("clean_install_rehearsal", "Clean self-hosted install rehearsal", args.clean_install_rehearsal_json, summarize_clean_install),
         ("license_support", "License and support boundary", args.license_support_json, summarize_license_support),
         ("public_github_import", "Public GitHub import rehearsal", args.public_github_import_json, summarize_public_import),
         ("review_audit", "Review audit history", args.audit_history_json, summarize_audit),
@@ -498,6 +522,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmark-comparison-json")
     parser.add_argument("--readiness-history-index-json")
     parser.add_argument("--package-verification-json")
+    parser.add_argument("--clean-install-rehearsal-json")
     parser.add_argument("--license-support-json")
     parser.add_argument("--public-github-import-json")
     parser.add_argument("--audit-history-json")

@@ -47,6 +47,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/dev/start-real-stack.bat",
     "scripts/dev/stop-real-stack.ps1",
     "scripts/ci/pre-release.ps1",
+    "scripts/ci/rehearse_clean_self_hosted_install.py",
     "scripts/ci/collect_team_handoff_report.py",
 ]
 
@@ -83,6 +84,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Readiness evidence history",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Archive generated evidence into docs/evidence/readiness separately.",
+    },
+    {
+        "id": "clean_self_hosted_install_rehearsal",
+        "label": "Clean self-hosted install rehearsal",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Run rehearse_clean_self_hosted_install.py separately before claiming external operator trial readiness.",
     },
     {
         "id": "team_handoff_report",
@@ -270,7 +277,7 @@ def verify_package(package_dir: Path, *, generated_at: str | None = None) -> dic
         "blockers": [check for check in checks if check["status"] == STATUS_BLOCKING],
         "notes": [
             "Package verification is offline and checks handoff structure only.",
-            "Runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
+            "Clean install rehearsal, runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
         ],
     }
 

@@ -50,6 +50,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets(tmp_
     assert "runtime_license_enforcement" in data["unsupported_capabilities"]
     assert "offline_entitlement_template" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
+    assert any("rehearse_clean_self_hosted_install.py" in command for command in data["validation_commands"])
 
 
 def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> None:
@@ -77,6 +78,7 @@ def test_self_hosted_package_verifier_passes_valid_package(tmp_path: Path) -> No
         "private_repository_token_validation",
         "live_benchmark",
         "readiness_history",
+        "clean_self_hosted_install_rehearsal",
         "team_handoff_report",
         "license_support_boundary",
     }

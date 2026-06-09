@@ -41,6 +41,7 @@ decisionatlas-self-hosted/
       collect_release_evidence.py
       collect_readiness_evidence_history.py
       collect_team_handoff_report.py
+      rehearse_clean_self_hosted_install.py
     demo/
       check_seeded_demo.py
       collect_hosted_readiness.py
@@ -78,6 +79,27 @@ python scripts\ci\verify_self_hosted_package.py `
 
 The verifier checks package structure and manifest integrity. It does not start Docker, validate live credentials, import private repositories, or run a live benchmark. Those remain separate rehearsal evidence.
 
+## Rehearse Clean Install
+
+Run the clean install rehearsal after package verification and before claiming that an external operator can trial the package:
+
+```powershell
+python scripts\ci\rehearse_clean_self_hosted_install.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --release-evidence-json .tmp\release-evidence.json `
+  --hosted-readiness-json .tmp\hosted-operator-readiness.json `
+  --benchmark-comparison-json .tmp\real-repo-benchmark-comparison.json `
+  --readiness-history-json docs\evidence\readiness\index.json `
+  --package-verification-json .tmp\self-hosted-package-verification.json `
+  --public-github-import-json .tmp\public-github-import-rehearsal.json `
+  --license-support-json templates\self-hosted-entitlement.example.json `
+  --team-handoff-json .tmp\team-handoff-report.json `
+  --output-json .tmp\clean-self-hosted-install-rehearsal.json `
+  --output-markdown .tmp\clean-self-hosted-install-rehearsal.md
+```
+
+The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<label>/package-copy`, checks operator handoff entry points, preserves missing or non-pass evidence states, and writes operator-readable Markdown. Package verification is necessary but not sufficient for clean customer handoff.
+
 ## Operator Setup
 
 1. Install Docker Desktop or equivalent PostgreSQL and Redis services.
@@ -92,6 +114,7 @@ The verifier checks package structure and manifest integrity. It does not start 
 ## Required Evidence Before Clean Handoff
 
 - Package verifier JSON/Markdown.
+- Clean self-hosted install rehearsal JSON/Markdown.
 - OpenSpec strict validation.
 - Governance guardrail summary.
 - Canonical pre-release or explicitly accepted substitute.

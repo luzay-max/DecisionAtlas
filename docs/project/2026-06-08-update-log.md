@@ -218,3 +218,44 @@
   - Evidence: `.tmp/license-boundary-browser-rehearsal.json`
   - Status: `pass`
   - Confirmed report title, warning status, `browser-use/browser-use`, `license_support`, `Team Self-hosted`, and `documented_non_enforced` are visible.
+
+## Clean Self-Hosted Install Rehearsal
+
+- Started OpenSpec change `clean-self-hosted-install-rehearsal`.
+- Added `scripts/ci/rehearse_clean_self_hosted_install.py` to copy a self-hosted package into `.tmp/clean-self-hosted-install/<label>/package-copy` and generate clean install JSON/Markdown evidence.
+- Clean rehearsal verifies operator handoff entry points:
+  - package manifest and README
+  - environment and entitlement templates
+  - self-hosted package guide, operations runbook, readiness checklist, delivery rehearsal, license/support boundary, and handoff docs
+  - startup launcher and package verifier scripts
+- Clean rehearsal preserves non-pass evidence states such as `warning`, `blocking`, `operator_guided`, `not_provided`, `known_limitation`, and `local_stack_failure`.
+- Updated package builder, package verifier, self-hosted docs, delivery rehearsal docs, and team handoff reporting to reference clean install rehearsal evidence.
+
+## Clean Install Validation
+
+- `python -m uv run pytest tests/ci/test_clean_self_hosted_install_rehearsal.py tests/ci/test_self_hosted_package.py tests/ci/test_team_handoff_report.py -q`: `12 passed`
+- Built package:
+  - Package directory: `.tmp/self-hosted-package/decisionatlas-self-hosted/`
+  - Manifest: `.tmp/clean-install-package-manifest.json`
+  - Version label: `clean-self-hosted-install-2026-06-09`
+  - Commit: `c00f65e`
+- Verified package:
+  - JSON: `.tmp/clean-install-package-verification.json`
+  - Markdown: `.tmp/clean-install-package-verification.md`
+  - Status: `pass`
+  - Checked files: `31`
+  - Blockers: none
+- Generated clean install rehearsal:
+  - JSON: `.tmp/clean-self-hosted-install-rehearsal.json`
+  - Markdown: `.tmp/clean-self-hosted-install-rehearsal.md`
+  - Status: `warning`
+  - Blockers: none
+  - Reason: live stack probing was not requested and handoff report preserves warning state.
+- Generated clean-install-aware handoff report:
+  - JSON: `.tmp/clean-install-team-handoff-report.json`
+  - Markdown: `.tmp/clean-install-team-handoff-report.md`
+  - Overall status: `warning`
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/clean-install-browser-review.json`
+  - Status: `pass`
+  - Chromium opened `.tmp/clean-self-hosted-install-rehearsal.md` and confirmed title, warning status, clean workspace checks, source evidence, live stack probes, limitations, and recommended next actions are visible.
