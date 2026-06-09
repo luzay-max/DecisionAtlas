@@ -313,3 +313,39 @@
 - Validation:
   - `python -m pytest services/engine/tests/ci/test_real_repo_benchmark_trend.py services/engine/tests/ci/test_team_handoff_report.py -q --basetemp .tmp/pytest-benchmark-trend`: `9 passed`
   - `openspec validate --all --strict`: `57 passed, 0 failed`
+
+## Real-Repo Benchmark Coverage Rehearsal
+
+- Started OpenSpec change `real-repo-benchmark-coverage-rehearsal`.
+- Added `scripts/ci/rehearse_real_repo_benchmark_coverage.py` to orchestrate:
+  - current real-repo report
+  - compact benchmark snapshot
+  - benchmark comparison JSON/Markdown
+  - fixed-pool trend evidence JSON/Markdown
+  - top-level coverage rehearsal JSON/Markdown
+- Added deterministic random selection support with `--random-count` and `--random-seed` for future random real GitHub repo rehearsals.
+- Added artifact-prefix behavior derived from the output JSON name so full-pool and random rehearsals do not overwrite each other's intermediate artifacts.
+- Updated release checklist with offline and explicit live-mode rehearsal commands.
+
+## Coverage Rehearsal Validation
+
+- Generated full fixed-pool rehearsal:
+  - JSON: `.tmp/real-repo-benchmark-coverage-rehearsal.json`
+  - Markdown: `.tmp/real-repo-benchmark-coverage-rehearsal.md`
+  - Status: `warning`
+  - Selected repo ids: `httpx`, `fastapi`, `rich`, `n8n`, `browser-use`
+  - Current comparison coverage: `1/5`, with `browser-use/browser-use` covered and 4 fixed-pool repositories missing from current comparison evidence.
+- Generated random real-repo rehearsal:
+  - JSON: `.tmp/real-repo-benchmark-random-coverage-rehearsal.json`
+  - Markdown: `.tmp/real-repo-benchmark-random-coverage-rehearsal.md`
+  - Random seed: `42`
+  - Selected repo ids: `browser-use`, `httpx`
+  - Status: `warning`, because only `browser-use` has current comparison coverage.
+- Browser/operator rehearsal:
+  - Evidence: `.tmp/real-repo-benchmark-coverage-rehearsal-browser-review.json`
+  - Screenshot: `.tmp/real-repo-benchmark-coverage-rehearsal-browser.png`
+  - Status: `pass`
+  - Chromium rendered `.tmp/real-repo-benchmark-coverage-rehearsal.md` and confirmed title, warning status, selected repos, comparison artifact, trend artifact, and follow-up guidance are visible.
+- Validation:
+  - `python -m pytest services/engine/tests/ci/test_real_repo_benchmark_coverage_rehearsal.py -q --basetemp .tmp/pytest-benchmark-coverage-rehearsal`: `4 passed`
+  - `openspec validate --all --strict`: `58 passed, 0 failed`

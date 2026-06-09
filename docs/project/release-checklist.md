@@ -63,6 +63,26 @@ python scripts/ci/collect_real_repo_benchmark_trend.py `
   --output-markdown .tmp/real-repo-benchmark-trend.md
 ```
 
+Run the fixed-pool coverage rehearsal when you need the full current report -> snapshot -> comparison -> trend chain:
+
+```powershell
+python scripts/ci/rehearse_real_repo_benchmark_coverage.py `
+  --current-report-json .tmp/live-real-repo-validation-report.json `
+  --baseline-snapshot-json examples/live-benchmarks/history-snapshot.example.json `
+  --output-json .tmp/real-repo-benchmark-coverage-rehearsal.json `
+  --output-markdown .tmp/real-repo-benchmark-coverage-rehearsal.md
+```
+
+For a local stack with existing imported workspaces, live mode is explicit:
+
+```powershell
+python scripts/ci/rehearse_real_repo_benchmark_coverage.py `
+  --live `
+  --base-url http://127.0.0.1:3001 `
+  --random-count 2 `
+  --random-seed 42
+```
+
 Required gates:
 
 - canonical pre-release baseline: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/pre-release.ps1`
@@ -75,6 +95,7 @@ Advisory confidence signals:
 - targeted test summary
 - real-repo benchmark comparison JSON
 - fixed-pool real-repo benchmark trend JSON/Markdown
+- fixed-pool real-repo benchmark coverage rehearsal JSON/Markdown
 
 The evidence bundle is local and non-mutating. It does not create tags, push commits, publish releases, archive OpenSpec changes, or run live/network-heavy benchmark checks by default. Optional evidence must be supplied through explicit paths; missing optional evidence is recorded instead of treated as a hidden pass.
 
