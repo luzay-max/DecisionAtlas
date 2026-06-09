@@ -6,6 +6,28 @@
 
 Use this template for a first paid pilot or customer evaluation. It converts DecisionAtlas evidence into a customer-readable handoff without requiring runtime license enforcement.
 
+## Generate From Evidence
+
+Use the report builder when release, hosted readiness, benchmark, and handoff evidence already exists and the customer needs a bounded, readable audit summary:
+
+```powershell
+python scripts/ci/collect_code_decision_audit_report.py `
+  --customer "Sample Team" `
+  --repository "owner/repo" `
+  --workspace "demo-workspace" `
+  --release-evidence-json .tmp/release-evidence.json `
+  --hosted-readiness-json .tmp/hosted-operator-readiness.json `
+  --benchmark-trend-json .tmp/real-repo-benchmark-coverage-trend.json `
+  --coverage-rehearsal-json .tmp/real-repo-benchmark-coverage-rehearsal.json `
+  --team-handoff-json .tmp/team-handoff-report.json `
+  --readiness-history-index-json docs/evidence/readiness/index.json `
+  --license-support-json templates/self-hosted-entitlement.example.json `
+  --output-json .tmp/code-decision-audit-report.json `
+  --output-markdown .tmp/code-decision-audit-report.md
+```
+
+The generated report preserves `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states. It is intentionally bounded: do not attach secrets, raw private repository contents, raw model output, or local-only logs.
+
 ## 1. Engagement Summary
 
 - Customer / team:

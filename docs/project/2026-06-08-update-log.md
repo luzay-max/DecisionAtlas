@@ -349,3 +349,29 @@
 - Validation:
   - `python -m pytest services/engine/tests/ci/test_real_repo_benchmark_coverage_rehearsal.py -q --basetemp .tmp/pytest-benchmark-coverage-rehearsal`: `4 passed`
   - `openspec validate --all --strict`: `58 passed, 0 failed`
+
+## Code Decision Audit Report Builder
+
+- Started OpenSpec change `code-decision-audit-report-builder`.
+- Added `scripts/ci/collect_code_decision_audit_report.py` to generate customer-readable Code Decision Audit JSON/Markdown from explicit evidence inputs.
+- The report builder summarizes release evidence, hosted/operator readiness, benchmark trend, coverage rehearsal, team handoff, readiness history, and license/support boundary evidence.
+- Missing optional evidence is preserved as `not_provided`; warning/operator-guided/known-limitation states remain visible instead of being converted to pass.
+- Added secret-like value and local-path redaction for customer-safe output.
+- Updated `docs/project/code-decision-audit-template.md` and `docs/project/release-checklist.md` with the default generation command.
+
+## Code Decision Audit Validation
+
+- Generated audit report:
+  - JSON: `.tmp/code-decision-audit-report.json`
+  - Markdown: `.tmp/code-decision-audit-report.md`
+  - Status: `warning`
+  - Reason: current source evidence intentionally preserves non-clean readiness and benchmark states.
+- Validation:
+  - `python -m pytest services/engine/tests/ci/test_code_decision_audit_report.py -q --basetemp .tmp/pytest-code-decision-audit-report`: `3 passed`
+  - `python -m py_compile scripts/ci/collect_code_decision_audit_report.py`: passed
+  - `openspec validate --all --strict`: `59 passed, 0 failed`
+- Browser/operator evidence:
+  - In-app browser connected successfully but blocked direct `file://` access to the generated Markdown by URL policy.
+  - Real Chromium localhost smoke attempted against `http://127.0.0.1:3000` and `http://127.0.0.1:3001`.
+  - Result: `warning`; both ports returned connection refused because the real stack was not running.
+  - Attempted stack restart was blocked because Docker Desktop was unavailable and Postgres port `5432` was not listening.

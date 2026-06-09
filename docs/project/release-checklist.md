@@ -136,9 +136,26 @@ python scripts/ci/collect_readiness_evidence_history.py summarize
 - [ ] run [Self-Hosted Readiness Checklist](self-hosted-readiness-checklist.md) for Community, Team Self-hosted, or Enterprise Self-hosted packaging
 - [ ] run or reference [Self-Hosted Delivery Rehearsal](self-hosted-delivery-rehearsal.md) before customer-facing self-hosted readiness claims
 - [ ] prepare [Code Decision Audit Template](code-decision-audit-template.md) when the release or evaluation is used as a paid pilot/customer handoff
+- [ ] generate `.tmp/code-decision-audit-report.json` and `.tmp/code-decision-audit-report.md` when customer-readable decision audit evidence is needed
 - [ ] disclose deferred capabilities: billing, full SaaS org management, hosted multi-tenancy, Marketplace/self-service OAuth, hosted secret vault, permanent buyout licensing, and hosted managed service operations
 - [ ] disclose that product/support tier boundaries do not imply runtime license enforcement in the current baseline
 - [ ] preserve `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states in customer-facing evidence
+
+Default Code Decision Audit report command:
+
+```powershell
+python scripts/ci/collect_code_decision_audit_report.py `
+  --customer "Sample Team" `
+  --repository "owner/repo" `
+  --workspace "demo-workspace" `
+  --release-evidence-json .tmp/release-evidence.json `
+  --hosted-readiness-json .tmp/hosted-operator-readiness.json `
+  --benchmark-trend-json .tmp/real-repo-benchmark-coverage-trend.json `
+  --coverage-rehearsal-json .tmp/real-repo-benchmark-coverage-rehearsal.json `
+  --team-handoff-json .tmp/team-handoff-report.json `
+  --readiness-history-index-json docs/evidence/readiness/index.json `
+  --license-support-json templates/self-hosted-entitlement.example.json
+```
 
 Latest self-hosted delivery rehearsal:
 
