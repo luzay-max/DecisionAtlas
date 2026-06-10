@@ -9,7 +9,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine, delete, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Decision, Workspace
+from app.db.models import Decision, ReviewAuditEvent, Workspace
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -52,6 +52,22 @@ def test_seeded_demo_readiness_detects_consumed_queue_and_reset_restores_it(monk
             assert workspace is not None
             session.execute(
                 delete(Decision).where(Decision.workspace_id == workspace.id, Decision.review_state == "candidate")
+            )
+            session.add(
+                ReviewAuditEvent(
+                    owner_scope="local-default",
+                    workspace_id=workspace.id,
+                    actor_id=None,
+                    actor_username="local-admin",
+                    actor_role="admin",
+                    target_type="decision",
+                    target_id=1,
+                    action="accept",
+                    previous_state_json={"review_state": "candidate"},
+                    new_state_json={"review_state": "accepted"},
+                    rationale="seeded demo reset regression coverage",
+                    metadata_json={"source": "test"},
+                )
             )
             session.commit()
     finally:

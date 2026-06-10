@@ -83,3 +83,43 @@
   - Browser review: `.tmp/final-post-commercialization-roadmap-browser-review.json`
   - Screenshot: `.tmp/final-post-commercialization-roadmap-browser.png`
   - Browser status: `passed`
+
+## Real Stack AI And Browser Rehearsal
+
+- Verified the running real stack after Docker startup:
+  - Engine health: `http://127.0.0.1:8000/health` returned `{"ok":true}`
+  - API health: `http://127.0.0.1:3001/health` returned `{"ok":true}`
+  - Web: `http://127.0.0.1:3000` returned HTTP `200`
+- Verified live model provider usage:
+  - Evidence: `.tmp/model-provider-smoke.json`
+  - Provider mode: `openai_compatible`
+  - Embedding mode: `fake`
+  - Result: `passed`
+  - Note: the smoke output records only provider mode, model label, boolean result, and latency; it does not store credentials or raw model output.
+- Verified real browser routes with in-app Browser and Chromium:
+  - Evidence: `.tmp/real-stack-browser-smoke.json`
+  - Screenshot: `.tmp/real-stack-browser-smoke.png`
+  - Routes: home, review, why search, drift, team admin
+  - Result: `passed`
+- Generated release/readiness evidence:
+  - Guardrail summary: `.tmp/guardrail-summary.json`, `.tmp/guardrail-summary.txt`
+  - Enforcement preview: `.tmp/guardrail-enforcement-preview.json`
+  - Benchmark snapshot: `.tmp/current-real-repo-benchmark-snapshot.json`
+  - Benchmark comparison: `.tmp/real-repo-benchmark-comparison.json`, `.tmp/real-repo-benchmark-comparison.md`
+  - Release evidence: `.tmp/release-evidence.json`, `.tmp/release-evidence.md`, status `passed`
+  - Hosted/operator readiness: `.tmp/hosted-operator-readiness.json`, `.tmp/hosted-operator-readiness.md`, public walkthrough status `operator_guided`
+- Archived readiness history:
+  - Entry: `docs/evidence/readiness/2026-06-10-2026-06-10-real-stack-ai-browser-rehearsal/`
+  - Index: `docs/evidence/readiness/index.json`, `docs/evidence/readiness/index.md`
+  - Trend: `docs/evidence/readiness/trend.md`
+  - Status: `warning`
+  - Reason: local `127.0.0.1` URLs are valid for local rehearsal but still operator-guided for external hosted preview claims.
+
+## Seeded Demo Reset Fix
+
+- Real rehearsal found that `scripts/demo/reset_seeded_demo.py` failed against Postgres when `review_audit_events` referenced the demo workspace.
+- Fixed reset cleanup so demo workspace review audit events are deleted before deleting the workspace.
+- Added regression coverage in `services/engine/tests/test_seeded_demo_recovery.py`.
+- Validation:
+  - `python -m uv run pytest tests\test_seeded_demo_recovery.py -q`: `2 passed`
+  - Real Postgres reset/check completed and regenerated `.tmp/seeded-demo-readiness.json` with `ready: true`

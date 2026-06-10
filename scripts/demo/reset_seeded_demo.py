@@ -11,7 +11,17 @@ if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
 from app.config import get_settings
-from app.db.models import Artifact, ArtifactChunk, Decision, DriftAlert, ImportJob, Relation, SourceRef, Workspace
+from app.db.models import (
+    Artifact,
+    ArtifactChunk,
+    Decision,
+    DriftAlert,
+    ImportJob,
+    Relation,
+    ReviewAuditEvent,
+    SourceRef,
+    Workspace,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -41,6 +51,7 @@ def reset_seeded_demo() -> None:
 
                 session.execute(delete(ImportJob).where(ImportJob.workspace_id == workspace_id))
                 session.execute(delete(DriftAlert).where(DriftAlert.workspace_id == workspace_id))
+                session.execute(delete(ReviewAuditEvent).where(ReviewAuditEvent.workspace_id == workspace_id))
 
                 if decision_ids:
                     session.execute(delete(SourceRef).where(SourceRef.decision_id.in_(decision_ids)))
