@@ -57,3 +57,14 @@ The system SHALL provide machine-readable and Markdown verification evidence for
 #### Scenario: Optional customer-specific evidence is absent
 - **WHEN** customer-specific entitlement, signed agreement, or private repository evidence is absent
 - **THEN** the verifier SHALL preserve that lane as `operator_guided` or `not_provided` rather than treating it as pass
+
+### Requirement: Pilot kit references sales enablement materials
+The pilot customer delivery kit SHALL include or reference sales enablement materials for external evaluation.
+
+#### Scenario: Pilot kit verification runs
+- **WHEN** pilot customer delivery kit verification is executed
+- **THEN** it MUST require the sales page draft, one-page brief, and use-case materials
+
+#### Scenario: Customer-facing material is incomplete
+- **WHEN** a required sales enablement material is missing or omits key boundaries
+- **THEN** verification MUST return a blocking status

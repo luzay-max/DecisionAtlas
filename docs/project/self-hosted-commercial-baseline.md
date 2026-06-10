@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -267,7 +267,7 @@ Rollback expectation:
 
 For first paid pilots, use [Code Decision Audit Template](code-decision-audit-template.md). It lets an operator deliver a bounded report without adding runtime license enforcement.
 
-For first external evaluations, attach [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), [Pilot Deployment Checklist](pilot-deployment-checklist.md), [Pilot Demo Script](pilot-demo-script.md), [Pilot Customer FAQ](pilot-customer-faq.md), [Pilot Tier Comparison](pilot-tier-comparison.md), and [Pilot Delivery Email Template](pilot-delivery-email-template.md). These materials explain what is included, what is deferred, what evidence must be reviewed, and how a pilot can be extended.
+For first external evaluations, attach [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), [Pilot Deployment Checklist](pilot-deployment-checklist.md), [Pilot Demo Script](pilot-demo-script.md), [Pilot Customer FAQ](pilot-customer-faq.md), [Pilot Tier Comparison](pilot-tier-comparison.md), [Pilot Delivery Email Template](pilot-delivery-email-template.md), [Sales Page Draft](commercial-sales-page-draft.md), [One-Page Product Brief](commercial-one-page-brief.md), and [Commercial Use Cases](commercial-use-cases.md). These materials explain what is included, what is deferred, what evidence must be reviewed, and how a pilot can be extended.
 
 For a complete handoff, attach the latest self-hosted delivery rehearsal summary and readiness evidence history entry. Non-clean states such as `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` must remain visible in customer-facing material.
 

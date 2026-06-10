@@ -48,6 +48,9 @@ REQUIRED_PACKAGE_FILES = [
     "docs/project/pilot-customer-faq.md",
     "docs/project/pilot-tier-comparison.md",
     "docs/project/pilot-delivery-email-template.md",
+    "docs/project/commercial-sales-page-draft.md",
+    "docs/project/commercial-one-page-brief.md",
+    "docs/project/commercial-use-cases.md",
     "docs/project/self-hosted-license-and-support-boundary.md",
     "scripts/dev/start-real-stack.ps1",
     "scripts/dev/start-real-stack.bat",
@@ -103,6 +106,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Pilot customer delivery kit",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Run verify_pilot_customer_delivery_kit.py and attach customer-readable pilot materials before external evaluation.",
+    },
+    {
+        "id": "commercial_sales_enablement_kit",
+        "label": "Commercial sales enablement kit",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Package includes sales page, one-page brief, and use-case materials; attach reviewed buyer-facing versions before paid outreach.",
     },
     {
         "id": "team_handoff_report",

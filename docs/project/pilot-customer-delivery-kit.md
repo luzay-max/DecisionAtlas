@@ -1,6 +1,6 @@
 # Pilot Customer Delivery Kit
 
-[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [License Boundary](self-hosted-license-and-support-boundary.md)
+[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [License Boundary](self-hosted-license-and-support-boundary.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -38,6 +38,9 @@ A successful pilot should prove:
 | FAQ | `docs/project/pilot-customer-faq.md` | Answer customer adoption and risk questions. |
 | Tier comparison | `docs/project/pilot-tier-comparison.md` | Explain Community, Team, and Enterprise boundaries. |
 | Delivery email template | `docs/project/pilot-delivery-email-template.md` | Send a bounded handoff note with evidence links. |
+| Sales page draft | `docs/project/commercial-sales-page-draft.md` | Explain the buyer-facing self-hosted route. |
+| One-page product brief | `docs/project/commercial-one-page-brief.md` | Summarize problem, product, evidence, deployment, and commercial fit. |
+| Commercial use cases | `docs/project/commercial-use-cases.md` | Describe Code Decision Audit, Team Self-hosted Governance Workflow, and Release Evidence Handoff. |
 
 ## Evidence To Attach
 

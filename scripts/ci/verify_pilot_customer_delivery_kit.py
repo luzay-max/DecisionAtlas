@@ -20,6 +20,9 @@ REQUIRED_DOCS = {
     "faq": "docs/project/pilot-customer-faq.md",
     "tier_comparison": "docs/project/pilot-tier-comparison.md",
     "delivery_email": "docs/project/pilot-delivery-email-template.md",
+    "sales_page": "docs/project/commercial-sales-page-draft.md",
+    "one_page_brief": "docs/project/commercial-one-page-brief.md",
+    "use_cases": "docs/project/commercial-use-cases.md",
 }
 
 REQUIRED_REFERENCES = {
@@ -28,6 +31,9 @@ REQUIRED_REFERENCES = {
         "clean install rehearsal",
         "team handoff report",
         "license/support boundary",
+        "commercial-sales-page-draft.md",
+        "commercial-one-page-brief.md",
+        "commercial-use-cases.md",
         "billing",
         "hosted multi-tenancy",
         "runtime license enforcement",
@@ -66,6 +72,29 @@ REQUIRED_REFERENCES = {
         "Evidence To Review",
         "Not Included In This Pilot",
         "Feedback Requested",
+    ],
+    "docs/project/commercial-sales-page-draft.md": [
+        "self-hosted",
+        "Code Decision Audit",
+        "Team Self-hosted",
+        "Enterprise Self-hosted",
+        "billing",
+        "hosted multi-tenancy",
+        "runtime license enforcement",
+    ],
+    "docs/project/commercial-one-page-brief.md": [
+        "Problem",
+        "What DecisionAtlas Does",
+        "Evidence",
+        "Deployment",
+        "Commercial Fit",
+    ],
+    "docs/project/commercial-use-cases.md": [
+        "Code Decision Audit",
+        "Team Self-hosted Governance Workflow",
+        "Release Evidence Handoff",
+        "private repositories",
+        "readiness evidence",
     ],
 }
 
