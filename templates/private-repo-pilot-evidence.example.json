@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-10T00:00:00+00:00",
+  "status": "operator_guided",
+  "evidence_type": "private_repo_pilot_evidence",
+  "repository": {
+    "identity_status": "redacted",
+    "provider": "github",
+    "access_mode": "token",
+    "visibility": "private",
+    "repository_label": "redacted-private-repository",
+    "customer_environment": "customer_controlled_host"
+  },
+  "credential_custody": {
+    "token_material_retained": false,
+    "token_echoed_to_output": false,
+    "provider_key_retained": false,
+    "custody_statement": "Repository tokens and provider keys remain on the customer-controlled host and are not included in this evidence."
+  },
+  "redaction": {
+    "raw_source_content_included": false,
+    "raw_issue_or_pr_text_included": false,
+    "raw_model_output_included": false,
+    "customer_identifiers_included": false,
+    "local_paths_included": false,
+    "redaction_statement": "This evidence contains only redacted labels, status values, counts, limitation categories, and operator notes approved for sharing."
+  },
+  "workflow_lanes": [
+    {
+      "id": "token_setup",
+      "label": "Token or installation setup",
+      "status": "operator_guided",
+      "summary": "Operator configures least-privilege repository access locally."
+    },
+    {
+      "id": "access_validation",
+      "label": "Repository access validation",
+      "status": "operator_guided",
+      "summary": "Operator validates access without exporting token material."
+    },
+    {
+      "id": "import_run",
+      "label": "Private repository import",
+      "status": "operator_guided",
+      "summary": "Run import in the customer-controlled environment and record count-only results."
+    },
+    {
+      "id": "decision_review",
+      "label": "Decision review",
+      "status": "operator_guided",
+      "summary": "Record candidate and accepted decision counts only."
+    },
+    {
+      "id": "why_search",
+      "label": "Why-search validation",
+      "status": "operator_guided",
+      "summary": "Record grounded/insufficient-evidence outcomes without raw answers."
+    },
+    {
+      "id": "drift_review",
+      "label": "Drift review",
+      "status": "operator_guided",
+      "summary": "Record drift state and false-positive notes without raw private artifacts."
+    },
+    {
+      "id": "handoff_evidence",
+      "label": "Release and handoff evidence",
+      "status": "operator_guided",
+      "summary": "Attach sanitized release/readiness/handoff/audit evidence when approved."
+    }
+  ],
+  "metrics": {
+    "imported_artifact_count": null,
+    "candidate_decision_count": null,
+    "accepted_decision_count": null,
+    "review_action_count": null,
+    "why_search_case_count": null,
+    "drift_case_count": null
+  },
+  "limitations": [
+    "This committed sample is not private-repository proof.",
+    "Actual private-repository evidence must be generated locally or in the customer-controlled environment.",
+    "Raw private source content, issue text, pull-request text, token material, and provider keys are intentionally excluded."
+  ],
+  "recommended_next_actions": [
+    "Run the private-repository pilot in the customer-controlled environment.",
+    "Fill count-only outcomes after operator review.",
+    "Run verify_private_repo_pilot_evidence.py before sharing sanitized evidence."
+  ],
+  "operator_review": {
+    "approved_for_external_sharing": false,
+    "review_required_before_sharing": true,
+    "review_statement": "A human operator must confirm redaction and customer approval before this evidence is used in a customer handoff."
+  }
+}

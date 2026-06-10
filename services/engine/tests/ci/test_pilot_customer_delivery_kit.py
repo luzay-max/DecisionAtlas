@@ -39,9 +39,12 @@ def test_pilot_customer_delivery_kit_verifier_passes_current_docs() -> None:
     assert bundle["materials"]["sales_page"] == "docs/project/commercial-sales-page-draft.md"
     assert bundle["materials"]["one_page_brief"] == "docs/project/commercial-one-page-brief.md"
     assert bundle["materials"]["use_cases"] == "docs/project/commercial-use-cases.md"
+    assert bundle["materials"]["private_repo_evidence_template"] == "docs/project/private-repo-pilot-evidence-template.md"
+    assert bundle["materials"]["private_repo_evidence_example"] == "docs/project/private-repo-pilot-evidence-example.md"
     assert "Pilot Customer Delivery Kit Verification" in markdown
     assert "customer-specific entitlement" in markdown.lower()
     assert "commercial-use-cases.md" in markdown
+    assert "Private repository pilot evidence" in markdown
 
 
 def test_pilot_customer_delivery_kit_verifier_blocks_missing_reference() -> None:

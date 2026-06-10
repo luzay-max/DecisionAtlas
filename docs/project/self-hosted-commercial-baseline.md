@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -42,6 +42,8 @@ The tier boundaries are product and support packaging boundaries. This baseline 
 Customer-facing package claims should reference a generated package `manifest.json`, package verification JSON/Markdown, the self-hosted package guide, the environment template, and backup/restore/upgrade runbook coverage. If those artifacts are missing, the handoff must disclose the gap and avoid claiming clean package readiness.
 
 Customer-facing pilot claims should also reference [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), clean install rehearsal evidence, team handoff report evidence, and the license/support boundary. Pricing, support, extension, or tiering discussions must distinguish Community, Team Self-hosted, and Enterprise Self-hosted without implying billing, Marketplace, enterprise SSO, online license server, or runtime license enforcement.
+
+Private-repo commercial claims should reference [Private Repo Pilot Evidence Template](private-repo-pilot-evidence-template.md) and sanitized verification evidence. The committed template and example prove evidence readiness only. Actual private-repo proof must be generated on the customer-controlled host and must not commit raw private source content, issue/PR text, token material, provider keys, customer identifiers, or screenshots containing private code.
 
 ## Deferred Capabilities
 
@@ -155,6 +157,18 @@ Recommended minimum approach:
 - Validate repository lookup before starting a live import.
 - Rotate or revoke credentials in the customer's environment when access fails or a token is no longer needed.
 - Do not commit tokens, provider keys, raw private repository content, or generated `.tmp` reports that contain sensitive details.
+
+For customer-facing proof, use the private-repo pilot evidence template and verifier:
+
+```powershell
+python scripts\ci\verify_private_repo_pilot_evidence.py `
+  --evidence-json templates\private-repo-pilot-evidence.example.json `
+  --evidence-markdown docs\project\private-repo-pilot-evidence-example.md `
+  --output-json .tmp\private-repo-pilot-evidence-verification.json `
+  --output-markdown .tmp\private-repo-pilot-evidence-verification.md
+```
+
+Treat the committed example as `operator_guided`. Do not describe it as proof that a real private repository was evaluated.
 
 Troubleshooting categories:
 

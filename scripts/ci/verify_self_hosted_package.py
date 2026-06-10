@@ -38,6 +38,7 @@ REQUIRED_PACKAGE_FILES = [
     "README.md",
     "templates/self-hosted.env.example",
     "templates/self-hosted-entitlement.example.json",
+    "templates/private-repo-pilot-evidence.example.json",
     "docs/project/self-hosted-package-guide.md",
     "docs/project/self-hosted-operations-runbook.md",
     "docs/project/self-hosted-readiness-checklist.md",
@@ -51,6 +52,8 @@ REQUIRED_PACKAGE_FILES = [
     "docs/project/commercial-sales-page-draft.md",
     "docs/project/commercial-one-page-brief.md",
     "docs/project/commercial-use-cases.md",
+    "docs/project/private-repo-pilot-evidence-template.md",
+    "docs/project/private-repo-pilot-evidence-example.md",
     "docs/project/self-hosted-license-and-support-boundary.md",
     "scripts/dev/start-real-stack.ps1",
     "scripts/dev/start-real-stack.bat",
@@ -58,6 +61,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/ci/pre-release.ps1",
     "scripts/ci/rehearse_clean_self_hosted_install.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
+    "scripts/ci/verify_private_repo_pilot_evidence.py",
     "scripts/ci/collect_team_handoff_report.py",
 ]
 
@@ -82,6 +86,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Private repository token validation",
         "status": STATUS_OPERATOR_GUIDED,
         "reason": "Customer token must remain on operator-controlled host and is not included in the package.",
+    },
+    {
+        "id": "private_repo_pilot_evidence",
+        "label": "Private repo pilot evidence",
+        "status": STATUS_OPERATOR_GUIDED,
+        "reason": "Package includes the sanitized template and verifier; actual private-repo proof must be generated on the customer-controlled host.",
     },
     {
         "id": "live_benchmark",

@@ -123,3 +123,51 @@
 - Validation:
   - `python -m uv run pytest tests\test_seeded_demo_recovery.py -q`: `2 passed`
   - Real Postgres reset/check completed and regenerated `.tmp/seeded-demo-readiness.json` with `ready: true`
+
+## Private Repo Pilot Evidence Template
+
+- Started and completed OpenSpec change `private-repo-pilot-evidence-template`.
+- Added customer-safe private repository pilot evidence materials:
+  - `docs/project/private-repo-pilot-evidence-template.md`
+  - `docs/project/private-repo-pilot-evidence-example.md`
+  - `templates/private-repo-pilot-evidence.example.json`
+- Added verifier and regression coverage:
+  - `scripts/ci/verify_private_repo_pilot_evidence.py`
+  - `services/engine/tests/ci/test_private_repo_pilot_evidence.py`
+- Updated pilot and self-hosted package materials so private-repo pilot claims require sanitized evidence and preserve `operator_guided` when real customer-host proof is absent:
+  - `docs/project/pilot-customer-delivery-kit.md`
+  - `docs/project/self-hosted-commercial-baseline.md`
+  - `scripts/ci/verify_pilot_customer_delivery_kit.py`
+  - `scripts/ci/build_self_hosted_package.py`
+  - `scripts/ci/verify_self_hosted_package.py`
+- Generated current evidence:
+  - Private-repo evidence verifier: `.tmp/private-repo-pilot-evidence-verification.json`, `.tmp/private-repo-pilot-evidence-verification.md`, status `operator_guided`, blockers `[]`
+  - Pilot kit verifier: `.tmp/pilot-customer-delivery-kit-verification.json`, `.tmp/pilot-customer-delivery-kit-verification.md`, status `pass`
+  - Self-hosted package manifest: `.tmp/private-repo-pilot-package-manifest.json`
+  - Self-hosted package verifier: `.tmp/private-repo-package-verification.json`, `.tmp/private-repo-package-verification.md`, status `pass`
+  - Browser readability evidence: `.tmp/private-repo-pilot-evidence-browser-review.json`
+  - Chromium screenshot: `.tmp/private-repo-pilot-evidence-browser-review.png`
+- Real stack check after Docker startup:
+  - `scripts/dev/start-real-stack.ps1 -ResetSeededDemo` completed successfully.
+  - Engine health: `http://127.0.0.1:8000/health` returned `{"ok":true}`
+  - API health: `http://127.0.0.1:3001/health` returned `{"ok":true}`
+  - Web: `http://127.0.0.1:3000` returned HTTP `200`
+  - Browser evidence: `.tmp/private-repo-pilot-real-stack-browser.json`
+- Public GitHub stand-in validation:
+  - Repository: `encode/httpx`
+  - Evidence: `.tmp/private-repo-pilot-public-github-standin.json`, `.tmp/private-repo-pilot-public-github-standin.md`
+  - Outcome: `reused`
+  - Benchmark ready: `true`
+  - Latest successful import: `1025` artifacts, `34` reviewable decisions
+  - Limitation: this is only a non-sensitive public-repo live validation habit check; it is not proof that any real private repository was evaluated.
+- Validation:
+  - `python scripts\ci\verify_private_repo_pilot_evidence.py --evidence-json templates\private-repo-pilot-evidence.example.json --evidence-markdown docs\project\private-repo-pilot-evidence-example.md --output-json .tmp\private-repo-pilot-evidence-verification.json --output-markdown .tmp\private-repo-pilot-evidence-verification.md --generated-at 2026-06-10T00:00:00+00:00`: `operator_guided`, blockers `[]`
+  - `python -m uv run pytest tests\ci\test_private_repo_pilot_evidence.py tests\ci\test_pilot_customer_delivery_kit.py tests\ci\test_self_hosted_package.py -q`: `10 passed`
+  - `openspec validate private-repo-pilot-evidence-template --type change --strict`: valid
+  - `openspec validate --all --strict`: `62 passed, 0 failed`
+  - `python scripts\governance\agent_guardrail.py --summary`: `caution`
+- Guardrail handoff:
+  - Evidence: `.tmp/private-repo-pilot-guardrail.json`, `.tmp/private-repo-pilot-guardrail-summary.txt`
+  - Diff check: `pass`
+  - Drift report: `drift_detected`
+  - Action taken: disclosed the advisory caution, kept `.tmp` generated artifacts uncommitted, and recorded that private-repo proof must be generated only on the customer-controlled host.

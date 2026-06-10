@@ -23,6 +23,8 @@ REQUIRED_DOCS = {
     "sales_page": "docs/project/commercial-sales-page-draft.md",
     "one_page_brief": "docs/project/commercial-one-page-brief.md",
     "use_cases": "docs/project/commercial-use-cases.md",
+    "private_repo_evidence_template": "docs/project/private-repo-pilot-evidence-template.md",
+    "private_repo_evidence_example": "docs/project/private-repo-pilot-evidence-example.md",
 }
 
 REQUIRED_REFERENCES = {
@@ -34,9 +36,26 @@ REQUIRED_REFERENCES = {
         "commercial-sales-page-draft.md",
         "commercial-one-page-brief.md",
         "commercial-use-cases.md",
+        "private-repo-pilot-evidence-template.md",
+        "private repository",
+        "operator_guided",
         "billing",
         "hosted multi-tenancy",
         "runtime license enforcement",
+    ],
+    "docs/project/private-repo-pilot-evidence-template.md": [
+        "token values",
+        "raw private source content",
+        "customer-controlled host",
+        "operator_guided",
+        "verify_private_repo_pilot_evidence.py",
+    ],
+    "docs/project/private-repo-pilot-evidence-example.md": [
+        "operator_guided",
+        "not proof that a real private repository has been evaluated",
+        "Repository tokens and provider keys remain on the customer-controlled host",
+        "raw private source content",
+        "human operator must confirm redaction",
     ],
     "docs/project/pilot-demo-script.md": [
         "Repository Setup",
@@ -115,7 +134,7 @@ OPTIONAL_CUSTOMER_LANES = [
         "id": "private_repository_evidence",
         "label": "Private repository pilot evidence",
         "status": STATUS_OPERATOR_GUIDED,
-        "reason": "Private repository evidence must be generated on the customer-controlled host.",
+        "reason": "Private repository evidence must be generated on the customer-controlled host and verified through the sanitized evidence template.",
     },
 ]
 

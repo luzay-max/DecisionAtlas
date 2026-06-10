@@ -1,6 +1,6 @@
 # Pilot Customer Delivery Kit
 
-[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [License Boundary](self-hosted-license-and-support-boundary.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
+[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [License Boundary](self-hosted-license-and-support-boundary.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -41,6 +41,7 @@ A successful pilot should prove:
 | Sales page draft | `docs/project/commercial-sales-page-draft.md` | Explain the buyer-facing self-hosted route. |
 | One-page product brief | `docs/project/commercial-one-page-brief.md` | Summarize problem, product, evidence, deployment, and commercial fit. |
 | Commercial use cases | `docs/project/commercial-use-cases.md` | Describe Code Decision Audit, Team Self-hosted Governance Workflow, and Release Evidence Handoff. |
+| Private repo pilot evidence template | `docs/project/private-repo-pilot-evidence-template.md` | Capture sanitized private-repo proof without committing tokens, source content, issue text, or customer identifiers. |
 
 ## Evidence To Attach
 
@@ -54,6 +55,13 @@ Before claiming pilot readiness, attach or explicitly disclose missing evidence:
 - Benchmark comparison: `.tmp/real-repo-benchmark-comparison.json` and Markdown
 - Team handoff report: `.tmp/team-handoff-report.json` and Markdown
 - License/support boundary: `docs/project/self-hosted-license-and-support-boundary.md`
+- Private repo pilot evidence verification: `.tmp/private-repo-pilot-evidence-verification.json` and Markdown when private-repo validation is part of the claim
+
+## Private Repository Pilot Evidence
+
+Private-repo proof must be handled through [Private Repo Pilot Evidence Template](private-repo-pilot-evidence-template.md). Do not attach raw repository exports, raw issue/PR text, provider output, screenshots containing private code, token values, or customer identifiers.
+
+If a pilot claim says a private repository has been evaluated, attach sanitized evidence generated in the customer-controlled environment or explicitly state that the lane remains `operator_guided` or `not_provided`. The committed example `docs/project/private-repo-pilot-evidence-example.md` demonstrates the safe shape only; it is not private-repo proof.
 
 ## Deferred Lanes
 
