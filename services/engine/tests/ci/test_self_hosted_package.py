@@ -55,6 +55,10 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "docs" / "project" / "self-hosted-package-guide.md").exists()
     assert (package_dir / "docs" / "project" / "pilot-customer-delivery-kit.md").exists()
     assert (package_dir / "docs" / "project" / "pilot-delivery-email-template.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-commercial-proposal-kit.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-paid-quote-template.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-acceptance-checklist.md").exists()
+    assert (package_dir / "docs" / "project" / "pilot-support-renewal-upgrade-boundary.md").exists()
     assert (package_dir / "docs" / "project" / "commercial-sales-page-draft.md").exists()
     assert (package_dir / "docs" / "project" / "commercial-one-page-brief.md").exists()
     assert (package_dir / "docs" / "project" / "commercial-use-cases.md").exists()
@@ -63,6 +67,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "docs" / "project" / "backup-restore-upgrade-rehearsal.md").exists()
     assert (package_dir / "docs" / "project" / "self-hosted-license-and-support-boundary.md").exists()
     assert (package_dir / "scripts" / "ci" / "verify_pilot_customer_delivery_kit.py").exists()
+    assert (package_dir / "scripts" / "ci" / "verify_pilot_commercial_proposal_kit.py").exists()
     assert (package_dir / "scripts" / "ci" / "verify_private_repo_pilot_evidence.py").exists()
     assert (package_dir / "scripts" / "ci" / "rehearse_backup_restore_upgrade.py").exists()
     assert (package_dir / "scripts" / "dev" / "start-real-stack.ps1").exists()
@@ -74,6 +79,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert "runtime_license_enforcement" in data["unsupported_capabilities"]
     assert "offline_entitlement_template" in data["readiness_evidence_expectations"]
     assert "pilot_customer_delivery_kit_verification_json" in data["readiness_evidence_expectations"]
+    assert "pilot_commercial_proposal_kit_verification_json" in data["readiness_evidence_expectations"]
     assert "private_repo_pilot_evidence_template" in data["readiness_evidence_expectations"]
     assert "private_repo_pilot_evidence_verification_json" in data["readiness_evidence_expectations"]
     assert "backup_restore_upgrade_rehearsal_json" in data["readiness_evidence_expectations"]
@@ -82,6 +88,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert any("rehearse_clean_self_hosted_install.py" in command for command in data["validation_commands"])
     assert any("rehearse_backup_restore_upgrade.py" in command for command in data["validation_commands"])
     assert any("verify_pilot_customer_delivery_kit.py" in command for command in data["validation_commands"])
+    assert any("verify_pilot_commercial_proposal_kit.py" in command for command in data["validation_commands"])
 
 
 def test_self_hosted_package_verifier_passes_valid_package() -> None:
@@ -114,6 +121,7 @@ def test_self_hosted_package_verifier_passes_valid_package() -> None:
         "clean_self_hosted_install_rehearsal",
         "backup_restore_upgrade_rehearsal",
         "pilot_customer_delivery_kit",
+        "pilot_commercial_proposal_kit",
         "commercial_sales_enablement_kit",
         "team_handoff_report",
         "license_support_boundary",

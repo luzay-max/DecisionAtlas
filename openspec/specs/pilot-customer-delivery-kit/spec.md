@@ -80,3 +80,14 @@ The pilot customer delivery kit SHALL reference the private-repository pilot evi
 - **WHEN** the pilot kit verifier runs
 - **THEN** it SHALL require the private-repo pilot evidence template to exist
 - **AND** it SHALL preserve customer-specific private-repo evidence as `operator_guided` or `not_provided` unless a sanitized evidence file is explicitly supplied.
+
+### Requirement: Pilot delivery distinguishes evaluation from paid proposal
+The pilot customer delivery kit SHALL distinguish technical evaluation handoff from paid pilot proposal handoff.
+
+#### Scenario: Evaluation becomes a paid pilot discussion
+- **WHEN** a customer moves from evaluation to paid pilot discussion
+- **THEN** the delivery kit SHALL point to the pilot commercial proposal kit for quote assumptions, acceptance criteria, support boundary, renewal path, and upgrade path.
+
+#### Scenario: Customer-specific terms are needed
+- **WHEN** customer-specific pricing, dates, contacts, legal terms, or payment details are required
+- **THEN** the delivery kit SHALL instruct the operator to create those filled materials outside the public repository or in a private customer-controlled delivery folder.

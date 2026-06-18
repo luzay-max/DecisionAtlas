@@ -34,6 +34,10 @@ decisionatlas-self-hosted/
       pilot-customer-faq.md
       pilot-tier-comparison.md
       pilot-delivery-email-template.md
+      pilot-commercial-proposal-kit.md
+      pilot-paid-quote-template.md
+      pilot-acceptance-checklist.md
+      pilot-support-renewal-upgrade-boundary.md
       self-hosted-operations-runbook.md
       team-handoff-reporting.md
       self-hosted-license-and-support-boundary.md
@@ -50,6 +54,7 @@ decisionatlas-self-hosted/
       collect_readiness_evidence_history.py
       collect_team_handoff_report.py
       verify_pilot_customer_delivery_kit.py
+      verify_pilot_commercial_proposal_kit.py
       rehearse_clean_self_hosted_install.py
     demo/
       check_seeded_demo.py
@@ -96,6 +101,14 @@ python scripts\ci\verify_pilot_customer_delivery_kit.py `
   --output-markdown .tmp\pilot-customer-delivery-kit-verification.md
 ```
 
+Verify the paid pilot commercial proposal materials:
+
+```powershell
+python scripts\ci\verify_pilot_commercial_proposal_kit.py `
+  --output-json .tmp\pilot-commercial-proposal-kit-verification.json `
+  --output-markdown .tmp\pilot-commercial-proposal-kit-verification.md
+```
+
 ## Rehearse Clean Install
 
 Run the clean install rehearsal after package verification and before claiming that an external operator can trial the package:
@@ -132,6 +145,7 @@ The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<lab
 
 - Package verifier JSON/Markdown.
 - Pilot customer delivery kit verification JSON/Markdown.
+- Pilot commercial proposal kit verification JSON/Markdown when paid pilot outreach is part of the handoff.
 - Clean self-hosted install rehearsal JSON/Markdown.
 - OpenSpec strict validation.
 - Governance guardrail summary.

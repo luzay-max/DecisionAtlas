@@ -1,6 +1,6 @@
 # Pilot Customer Delivery Kit
 
-[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [License Boundary](self-hosted-license-and-support-boundary.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
+[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Clean Install Rehearsal](self-hosted-delivery-rehearsal.md) | [Team Handoff](team-handoff-reporting.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [License Boundary](self-hosted-license-and-support-boundary.md) | [Commercial Proposal](pilot-commercial-proposal-kit.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -38,6 +38,7 @@ A successful pilot should prove:
 | FAQ | `docs/project/pilot-customer-faq.md` | Answer customer adoption and risk questions. |
 | Tier comparison | `docs/project/pilot-tier-comparison.md` | Explain Community, Team, and Enterprise boundaries. |
 | Delivery email template | `docs/project/pilot-delivery-email-template.md` | Send a bounded handoff note with evidence links. |
+| Commercial proposal kit | `docs/project/pilot-commercial-proposal-kit.md` | Prepare paid pilot proposal, quote assumptions, acceptance, support, renewal, and upgrade material. |
 | Sales page draft | `docs/project/commercial-sales-page-draft.md` | Explain the buyer-facing self-hosted route. |
 | One-page product brief | `docs/project/commercial-one-page-brief.md` | Summarize problem, product, evidence, deployment, and commercial fit. |
 | Commercial use cases | `docs/project/commercial-use-cases.md` | Describe Code Decision Audit, Team Self-hosted Governance Workflow, and Release Evidence Handoff. |
@@ -55,7 +56,14 @@ Before claiming pilot readiness, attach or explicitly disclose missing evidence:
 - Benchmark comparison: `.tmp/real-repo-benchmark-comparison.json` and Markdown
 - Team handoff report: `.tmp/team-handoff-report.json` and Markdown
 - License/support boundary: `docs/project/self-hosted-license-and-support-boundary.md`
+- Commercial proposal kit verification: `.tmp/pilot-commercial-proposal-kit-verification.json` and Markdown when paid pilot outreach is part of the claim
 - Private repo pilot evidence verification: `.tmp/private-repo-pilot-evidence-verification.json` and Markdown when private-repo validation is part of the claim
+
+## Paid Pilot Proposal Handoff
+
+Use [Pilot Commercial Proposal Kit](pilot-commercial-proposal-kit.md) when a pilot moves from technical evaluation into paid pilot discussion. The kit links the buyer-facing proposal, quote assumptions, acceptance checklist, support response boundary, renewal path, and upgrade path back to package verification, release evidence, hosted/operator readiness, readiness evidence history, real-repo benchmark, private-repo evidence, and backup/restore/upgrade evidence.
+
+Filled customer-specific quote values, legal terms, payment instructions, customer identifiers, repository names, and private evidence must stay outside the public repository. If proposal evidence is not ready, preserve the relevant `operator_guided` or `not_provided` state instead of implying paid pilot readiness.
 
 ## Private Repository Pilot Evidence
 

@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Commercial Proposal](pilot-commercial-proposal-kit.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -42,6 +42,8 @@ The tier boundaries are product and support packaging boundaries. This baseline 
 Customer-facing package claims should reference a generated package `manifest.json`, package verification JSON/Markdown, the self-hosted package guide, the environment template, and backup/restore/upgrade runbook coverage. If those artifacts are missing, the handoff must disclose the gap and avoid claiming clean package readiness.
 
 Customer-facing pilot claims should also reference [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), clean install rehearsal evidence, team handoff report evidence, and the license/support boundary. Pricing, support, extension, or tiering discussions must distinguish Community, Team Self-hosted, and Enterprise Self-hosted without implying billing, Marketplace, enterprise SSO, online license server, or runtime license enforcement.
+
+Paid pilot, quote, support, renewal, and upgrade discussions should reference [Pilot Commercial Proposal Kit](pilot-commercial-proposal-kit.md). The proposal and quote templates are editable commercial planning material, not implemented billing, payment processing, hosted multi-tenancy, hosted secret vault, online license server, runtime license enforcement, legal contracting, or invoice automation.
 
 Private-repo commercial claims should reference [Private Repo Pilot Evidence Template](private-repo-pilot-evidence-template.md) and sanitized verification evidence. The committed template and example prove evidence readiness only. Actual private-repo proof must be generated on the customer-controlled host and must not commit raw private source content, issue/PR text, token material, provider keys, customer identifiers, or screenshots containing private code.
 
@@ -284,6 +286,8 @@ Rollback expectation:
 For first paid pilots, use [Code Decision Audit Template](code-decision-audit-template.md). It lets an operator deliver a bounded report without adding runtime license enforcement.
 
 For first external evaluations, attach [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), [Pilot Deployment Checklist](pilot-deployment-checklist.md), [Pilot Demo Script](pilot-demo-script.md), [Pilot Customer FAQ](pilot-customer-faq.md), [Pilot Tier Comparison](pilot-tier-comparison.md), [Pilot Delivery Email Template](pilot-delivery-email-template.md), [Sales Page Draft](commercial-sales-page-draft.md), [One-Page Product Brief](commercial-one-page-brief.md), and [Commercial Use Cases](commercial-use-cases.md). These materials explain what is included, what is deferred, what evidence must be reviewed, and how a pilot can be extended.
+
+For paid pilot proposal handoff, attach [Pilot Commercial Proposal Kit](pilot-commercial-proposal-kit.md), [Paid Pilot Quote Template](pilot-paid-quote-template.md), [Pilot Acceptance Checklist](pilot-acceptance-checklist.md), and [Pilot Support/Renewal/Upgrade Boundary](pilot-support-renewal-upgrade-boundary.md). Filled customer-specific quotes, signed agreements, payment data, and customer identifiers belong in private delivery records, not committed project artifacts.
 
 For a complete handoff, attach the latest self-hosted delivery rehearsal summary and readiness evidence history entry. Non-clean states such as `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` must remain visible in customer-facing material.
 

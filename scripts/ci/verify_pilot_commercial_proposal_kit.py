@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -14,139 +15,97 @@ STATUS_OPERATOR_GUIDED = "operator_guided"
 STATUS_NOT_PROVIDED = "not_provided"
 
 REQUIRED_DOCS = {
-    "entry": "docs/project/pilot-customer-delivery-kit.md",
-    "demo_script": "docs/project/pilot-demo-script.md",
-    "deployment_checklist": "docs/project/pilot-deployment-checklist.md",
-    "faq": "docs/project/pilot-customer-faq.md",
-    "tier_comparison": "docs/project/pilot-tier-comparison.md",
-    "delivery_email": "docs/project/pilot-delivery-email-template.md",
-    "sales_page": "docs/project/commercial-sales-page-draft.md",
-    "one_page_brief": "docs/project/commercial-one-page-brief.md",
-    "use_cases": "docs/project/commercial-use-cases.md",
-    "private_repo_evidence_template": "docs/project/private-repo-pilot-evidence-template.md",
-    "private_repo_evidence_example": "docs/project/private-repo-pilot-evidence-example.md",
+    "entry": "docs/project/pilot-commercial-proposal-kit.md",
+    "quote_template": "docs/project/pilot-paid-quote-template.md",
+    "acceptance_checklist": "docs/project/pilot-acceptance-checklist.md",
+    "support_renewal_upgrade": "docs/project/pilot-support-renewal-upgrade-boundary.md",
 }
 
 REQUIRED_REFERENCES = {
-    "docs/project/pilot-customer-delivery-kit.md": [
-        "self-hosted package",
-        "clean install rehearsal",
-        "team handoff report",
-        "license/support boundary",
-        "commercial-sales-page-draft.md",
-        "commercial-one-page-brief.md",
-        "commercial-use-cases.md",
-        "pilot-commercial-proposal-kit.md",
+    "docs/project/pilot-commercial-proposal-kit.md": [
         "paid pilot",
         "quote assumptions",
-        "private-repo-pilot-evidence-template.md",
-        "private repository",
-        "operator_guided",
+        "acceptance checklist",
+        "support boundary",
+        "renewal",
+        "upgrade",
+        "package verification",
+        "release evidence",
+        "hosted/operator readiness",
+        "readiness evidence history",
+        "real-repo benchmark",
+        "private-repo evidence",
+        "backup/restore/upgrade",
         "billing",
         "hosted multi-tenancy",
         "runtime license enforcement",
+        "not legal contracts",
     ],
-    "docs/project/private-repo-pilot-evidence-template.md": [
-        "token values",
-        "raw private source content",
-        "customer-controlled host",
+    "docs/project/pilot-paid-quote-template.md": [
+        "editable draft assumptions",
+        "not a legal contract",
+        "not_provided",
         "operator_guided",
-        "verify_private_repo_pilot_evidence.py",
-    ],
-    "docs/project/private-repo-pilot-evidence-example.md": [
-        "operator_guided",
-        "not proof that a real private repository has been evaluated",
-        "Repository tokens and provider keys remain on the customer-controlled host",
-        "raw private source content",
-        "human operator must confirm redaction",
-    ],
-    "docs/project/pilot-demo-script.md": [
-        "Repository Setup",
-        "Decision Review",
-        "Why-Search",
-        "Drift And Governance",
-        "Evidence And Handoff",
-    ],
-    "docs/project/pilot-deployment-checklist.md": [
-        "DATABASE_URL",
-        "REDIS_URL",
-        "admin",
-        "repository import",
-        "clean install rehearsal",
-        "team handoff report",
-    ],
-    "docs/project/pilot-customer-faq.md": [
-        "credentials",
-        "private repositories",
-        "roles",
-        "backups",
+        "billing implementation",
         "runtime license enforcement",
+        "payment processing",
+        "customer-controlled",
     ],
-    "docs/project/pilot-tier-comparison.md": [
-        "Community",
-        "Team Self-hosted",
-        "Enterprise Self-hosted",
-        "Pilot Extension Path",
-        "Runtime license enforcement",
-    ],
-    "docs/project/pilot-delivery-email-template.md": [
-        "What This Pilot Covers",
-        "Evidence To Review",
-        "Not Included In This Pilot",
-        "Feedback Requested",
-    ],
-    "docs/project/commercial-sales-page-draft.md": [
-        "self-hosted",
+    "docs/project/pilot-acceptance-checklist.md": [
+        "Package verification",
+        "Clean self-hosted install rehearsal",
+        "Release evidence",
+        "Hosted/operator readiness",
+        "Readiness evidence history",
+        "Real-repo benchmark",
+        "Private-repo pilot evidence",
+        "Backup/restore/upgrade",
         "Code Decision Audit",
-        "Team Self-hosted",
-        "Enterprise Self-hosted",
+        "Governance guardrail",
+    ],
+    "docs/project/pilot-support-renewal-upgrade-boundary.md": [
+        "support response boundary",
+        "renewal path",
+        "upgrade path",
+        "not a service-level agreement",
+        "managed hosted operations",
         "billing",
-        "hosted multi-tenancy",
+        "hosted secret vault",
         "runtime license enforcement",
-    ],
-    "docs/project/commercial-one-page-brief.md": [
-        "Problem",
-        "What DecisionAtlas Does",
-        "Evidence",
-        "Deployment",
-        "Commercial Fit",
-    ],
-    "docs/project/commercial-use-cases.md": [
-        "Code Decision Audit",
-        "Team Self-hosted Governance Workflow",
-        "Release Evidence Handoff",
-        "private repositories",
-        "readiness evidence",
     ],
 }
 
+FORBIDDEN_PATTERNS = [
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}", re.IGNORECASE),
+    re.compile(r"ghp_[A-Za-z0-9]{20,}", re.IGNORECASE),
+    re.compile(r"sk-[A-Za-z0-9_-]{20,}", re.IGNORECASE),
+    re.compile(r"BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY", re.IGNORECASE),
+    re.compile(r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b"),
+    re.compile(r"\b(?:wire transfer account|bank account number|routing number)\b", re.IGNORECASE),
+    re.compile(r"\b(?:signed customer agreement attached|fully executed agreement attached|customer legal name:)", re.IGNORECASE),
+    re.compile(r"\b(?:private issue text|private pull request text|raw private source content included)\b", re.IGNORECASE),
+]
+
 OPTIONAL_CUSTOMER_LANES = [
+    {
+        "id": "filled_customer_quote",
+        "label": "Filled customer quote",
+        "status": STATUS_OPERATOR_GUIDED,
+        "reason": "Filled pricing, payment, and customer-specific terms must remain outside the public repository.",
+    },
     {
         "id": "signed_customer_agreement",
         "label": "Signed customer agreement",
-        "status": STATUS_OPERATOR_GUIDED,
-        "reason": "Commercial agreement is customer-specific and is not stored in the repository.",
-    },
-    {
-        "id": "customer_specific_entitlement",
-        "label": "Customer-specific entitlement",
         "status": STATUS_NOT_PROVIDED,
-        "reason": "Use templates/self-hosted-entitlement.example.json as a private customer record when applicable.",
+        "reason": "Signed legal terms are customer-specific and are not committed with template materials.",
     },
     {
-        "id": "private_repository_evidence",
-        "label": "Private repository pilot evidence",
-        "status": STATUS_OPERATOR_GUIDED,
-        "reason": "Private repository evidence must be generated on the customer-controlled host and verified through the sanitized evidence template.",
+        "id": "billing_implementation",
+        "label": "Billing implementation",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "The proposal kit is template material and does not implement checkout, invoicing, or payment processing.",
     },
 ]
-
-
-def _display_path(path: Path, root: Path) -> str:
-    try:
-        return path.resolve().relative_to(root.resolve()).as_posix()
-    except ValueError:
-        return path.as_posix()
 
 
 def _check_required_docs(root: Path) -> list[dict[str, Any]]:
@@ -156,7 +115,7 @@ def _check_required_docs(root: Path) -> list[dict[str, Any]]:
         checks.append(
             {
                 "id": f"doc:{doc_id}",
-                "label": f"Required pilot material {relative}",
+                "label": f"Required proposal material {relative}",
                 "status": STATUS_PASS if path.is_file() else STATUS_BLOCKING,
                 "details": {"path": relative},
             }
@@ -181,25 +140,47 @@ def _check_required_references(root: Path) -> list[dict[str, Any]]:
     return checks
 
 
+def _check_forbidden_material(root: Path) -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for relative in REQUIRED_DOCS.values():
+        path = root / relative
+        text = path.read_text(encoding="utf-8", errors="ignore") if path.is_file() else ""
+        matched = any(pattern.search(text) for pattern in FORBIDDEN_PATTERNS)
+        checks.append(
+            {
+                "id": f"forbidden:{relative}",
+                "label": f"{relative} contains no obvious secret, payment, signed-contract, or raw private material",
+                "status": STATUS_BLOCKING if matched else STATUS_PASS,
+                "details": {"path": relative, "matched": matched},
+            }
+        )
+    return checks
+
+
 def calculate_status(checks: list[dict[str, Any]]) -> str:
     return STATUS_BLOCKING if any(check["status"] == STATUS_BLOCKING for check in checks) else STATUS_PASS
 
 
-def verify_delivery_kit(root: Path, *, generated_at: str | None = None) -> dict[str, Any]:
-    checks = [*_check_required_docs(root), *_check_required_references(root)]
+def verify_proposal_kit(root: Path, *, generated_at: str | None = None) -> dict[str, Any]:
+    checks = [
+        *_check_required_docs(root),
+        *_check_required_references(root),
+        *_check_forbidden_material(root),
+    ]
     status = calculate_status(checks)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at or datetime.now(UTC).isoformat(),
+        "evidence_type": "pilot_commercial_proposal_kit_verification",
         "status": status,
-        "entrypoint": "docs/project/pilot-customer-delivery-kit.md",
+        "entrypoint": REQUIRED_DOCS["entry"],
         "materials": {doc_id: relative for doc_id, relative in REQUIRED_DOCS.items()},
         "checks": checks,
         "blockers": [check for check in checks if check["status"] == STATUS_BLOCKING],
         "optional_customer_lanes": OPTIONAL_CUSTOMER_LANES,
         "recommended_next_actions": [
-            "Attach package verification, clean install rehearsal, release evidence, hosted readiness, benchmark comparison, handoff report, and license/support boundary before a pilot claim.",
-            "Keep customer-specific agreements, entitlements, credentials, and private repository evidence outside the repository unless explicitly sanitized.",
+            "Attach proposal kit verification, package verification, release evidence, readiness history, benchmark evidence, private-repo evidence when applicable, and backup/restore/upgrade evidence before paid pilot claims.",
+            "Keep filled quotes, payment data, signed agreements, customer contact details, private repository names, tokens, provider keys, and raw source content outside committed artifacts.",
         ],
     }
 
@@ -216,7 +197,7 @@ def _markdown_cell(value: Any) -> str:
 
 def render_markdown(bundle: dict[str, Any]) -> str:
     lines = [
-        "# Pilot Customer Delivery Kit Verification",
+        "# Pilot Commercial Proposal Kit Verification",
         "",
         f"- Generated at: `{bundle.get('generated_at')}`",
         f"- Entrypoint: `{bundle.get('entrypoint')}`",
@@ -247,9 +228,9 @@ def render_markdown(bundle: dict[str, Any]) -> str:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Verify DecisionAtlas pilot customer delivery kit materials.")
-    parser.add_argument("--output-json", type=Path, default=Path(".tmp/pilot-customer-delivery-kit-verification.json"))
-    parser.add_argument("--output-markdown", type=Path, default=Path(".tmp/pilot-customer-delivery-kit-verification.md"))
+    parser = argparse.ArgumentParser(description="Verify DecisionAtlas pilot commercial proposal kit materials.")
+    parser.add_argument("--output-json", type=Path, default=Path(".tmp/pilot-commercial-proposal-kit-verification.json"))
+    parser.add_argument("--output-markdown", type=Path, default=Path(".tmp/pilot-commercial-proposal-kit-verification.md"))
     parser.add_argument("--generated-at")
     return parser.parse_args(argv)
 
@@ -257,7 +238,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = Path(__file__).resolve().parents[2]
-    bundle = verify_delivery_kit(root, generated_at=args.generated_at)
+    bundle = verify_proposal_kit(root, generated_at=args.generated_at)
     output_json = args.output_json if args.output_json.is_absolute() else root / args.output_json
     output_markdown = args.output_markdown if args.output_markdown.is_absolute() else root / args.output_markdown
     output_json.parent.mkdir(parents=True, exist_ok=True)

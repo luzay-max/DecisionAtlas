@@ -50,6 +50,10 @@ REQUIRED_PACKAGE_FILES = [
     "docs/project/pilot-customer-faq.md",
     "docs/project/pilot-tier-comparison.md",
     "docs/project/pilot-delivery-email-template.md",
+    "docs/project/pilot-commercial-proposal-kit.md",
+    "docs/project/pilot-paid-quote-template.md",
+    "docs/project/pilot-acceptance-checklist.md",
+    "docs/project/pilot-support-renewal-upgrade-boundary.md",
     "docs/project/commercial-sales-page-draft.md",
     "docs/project/commercial-one-page-brief.md",
     "docs/project/commercial-use-cases.md",
@@ -64,6 +68,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/ci/rehearse_clean_self_hosted_install.py",
     "scripts/ci/rehearse_backup_restore_upgrade.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
+    "scripts/ci/verify_pilot_commercial_proposal_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
     "scripts/ci/collect_team_handoff_report.py",
 ]
@@ -125,6 +130,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Pilot customer delivery kit",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Run verify_pilot_customer_delivery_kit.py and attach customer-readable pilot materials before external evaluation.",
+    },
+    {
+        "id": "pilot_commercial_proposal_kit",
+        "label": "Pilot commercial proposal kit",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Run verify_pilot_commercial_proposal_kit.py and attach proposal, quote assumptions, acceptance, support, renewal, and upgrade materials before paid pilot outreach.",
     },
     {
         "id": "commercial_sales_enablement_kit",
