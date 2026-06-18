@@ -34,7 +34,7 @@ test("self-hosted team workflow rehearsal", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/team$/);
-  await expect(page.getByText(/Role: reviewer/)).toBeVisible();
+  await expect(page.getByLabel("Current account and owner scope").getByText(/Role: reviewer/)).toBeVisible();
   await expect(page.getByText("Admin role required for team account and workspace permission management.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create account" })).toHaveCount(0);
 
@@ -44,7 +44,7 @@ test("self-hosted team workflow rehearsal", async ({ page }) => {
   await page.getByRole("button", { name: "Sign in" }).click();
 
   await expect(page).toHaveURL(/\/team$/);
-  await expect(page.getByText(/Role: viewer/)).toBeVisible();
+  await expect(page.getByLabel("Current account and owner scope").getByText(/Role: viewer/)).toBeVisible();
   await expect(page.getByText("Admin role required for team account and workspace permission management.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create account" })).toHaveCount(0);
 });
