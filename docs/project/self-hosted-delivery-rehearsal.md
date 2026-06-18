@@ -1,6 +1,6 @@
 # Self-Hosted Delivery Rehearsal
 
-[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Readiness Evidence History](../evidence/readiness/index.md)
+[Home](../../README.md) | [Self-Hosted Commercial Baseline](self-hosted-commercial-baseline.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Package Guide](self-hosted-package-guide.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Readiness Evidence History](../evidence/readiness/index.md)
 
 ---
 
@@ -51,6 +51,7 @@ Classify every lane explicitly:
 | Readiness evidence history | Yes for durable claims | `docs/evidence/readiness/<entry>/entry.json` plus copied artifacts |
 | Handoff summary | Yes | `docs/evidence/readiness/<entry>/summary.md` |
 | Code Decision Audit sample | Required for paid pilot/customer evaluation | `docs/evidence/readiness/<entry>/code-decision-audit-sample.md` |
+| Backup/restore/upgrade rehearsal | Required before clean long-term self-hosted continuity claims | `.tmp/backup-restore-upgrade-rehearsal.json` and Markdown |
 
 ## Execution Flow
 
@@ -69,6 +70,7 @@ Classify every lane explicitly:
 13. Generate, reuse, or explicitly omit benchmark comparison evidence.
 14. Archive selected artifacts into readiness evidence history.
 15. Prepare the rehearsal summary and Code Decision Audit handoff.
+16. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
 
 ## Command Template
 
@@ -87,6 +89,10 @@ python scripts\ci\rehearse_clean_self_hosted_install.py `
   --package-verification-json .tmp\self-hosted-package-verification.json `
   --output-json .tmp\clean-self-hosted-install-rehearsal.json `
   --output-markdown .tmp\clean-self-hosted-install-rehearsal.md
+python scripts\ci\rehearse_backup_restore_upgrade.py `
+  --input-json templates\backup-restore-upgrade-rehearsal.example.json `
+  --output-json .tmp\backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
 python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.json
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"

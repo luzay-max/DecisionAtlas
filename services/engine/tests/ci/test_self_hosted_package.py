@@ -60,11 +60,14 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "docs" / "project" / "commercial-use-cases.md").exists()
     assert (package_dir / "docs" / "project" / "private-repo-pilot-evidence-template.md").exists()
     assert (package_dir / "docs" / "project" / "private-repo-pilot-evidence-example.md").exists()
+    assert (package_dir / "docs" / "project" / "backup-restore-upgrade-rehearsal.md").exists()
     assert (package_dir / "docs" / "project" / "self-hosted-license-and-support-boundary.md").exists()
     assert (package_dir / "scripts" / "ci" / "verify_pilot_customer_delivery_kit.py").exists()
     assert (package_dir / "scripts" / "ci" / "verify_private_repo_pilot_evidence.py").exists()
+    assert (package_dir / "scripts" / "ci" / "rehearse_backup_restore_upgrade.py").exists()
     assert (package_dir / "scripts" / "dev" / "start-real-stack.ps1").exists()
     assert (package_dir / "templates" / "private-repo-pilot-evidence.example.json").exists()
+    assert (package_dir / "templates" / "backup-restore-upgrade-rehearsal.example.json").exists()
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["version_label"] == "test-version"
@@ -73,9 +76,11 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert "pilot_customer_delivery_kit_verification_json" in data["readiness_evidence_expectations"]
     assert "private_repo_pilot_evidence_template" in data["readiness_evidence_expectations"]
     assert "private_repo_pilot_evidence_verification_json" in data["readiness_evidence_expectations"]
+    assert "backup_restore_upgrade_rehearsal_json" in data["readiness_evidence_expectations"]
     assert "commercial_sales_enablement_kit" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
     assert any("rehearse_clean_self_hosted_install.py" in command for command in data["validation_commands"])
+    assert any("rehearse_backup_restore_upgrade.py" in command for command in data["validation_commands"])
     assert any("verify_pilot_customer_delivery_kit.py" in command for command in data["validation_commands"])
 
 
@@ -107,6 +112,7 @@ def test_self_hosted_package_verifier_passes_valid_package() -> None:
         "live_benchmark",
         "readiness_history",
         "clean_self_hosted_install_rehearsal",
+        "backup_restore_upgrade_rehearsal",
         "pilot_customer_delivery_kit",
         "commercial_sales_enablement_kit",
         "team_handoff_report",

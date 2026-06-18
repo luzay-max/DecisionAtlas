@@ -1,6 +1,6 @@
 # Self-Hosted Commercial Baseline
 
-[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Delivery Rehearsal](self-hosted-delivery-rehearsal.md) | [Package Guide](self-hosted-package-guide.md) | [Pilot Delivery Kit](pilot-customer-delivery-kit.md) | [Private Repo Evidence](private-repo-pilot-evidence-template.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md) | [Operations Runbook](self-hosted-operations-runbook.md) | [Code Decision Audit Template](code-decision-audit-template.md) | [Sales Page](commercial-sales-page-draft.md) | [One-Page Brief](commercial-one-page-brief.md) | [Use Cases](commercial-use-cases.md)
 
 ---
 
@@ -44,6 +44,8 @@ Customer-facing package claims should reference a generated package `manifest.js
 Customer-facing pilot claims should also reference [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md), clean install rehearsal evidence, team handoff report evidence, and the license/support boundary. Pricing, support, extension, or tiering discussions must distinguish Community, Team Self-hosted, and Enterprise Self-hosted without implying billing, Marketplace, enterprise SSO, online license server, or runtime license enforcement.
 
 Private-repo commercial claims should reference [Private Repo Pilot Evidence Template](private-repo-pilot-evidence-template.md) and sanitized verification evidence. The committed template and example prove evidence readiness only. Actual private-repo proof must be generated on the customer-controlled host and must not commit raw private source content, issue/PR text, token material, provider keys, customer identifiers, or screenshots containing private code.
+
+Backup/restore/upgrade commercial claims should reference [Backup Restore Upgrade Rehearsal](backup-restore-upgrade-rehearsal.md). A self-hosted package being verifiable is not the same as proving long-term continuity readiness. Clean continuity claims require reviewed rehearsal evidence, or the handoff must preserve `operator_guided`, `known_limitation`, or `not_provided`.
 
 ## Deferred Capabilities
 

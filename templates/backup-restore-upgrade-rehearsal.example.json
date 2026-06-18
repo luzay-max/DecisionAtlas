@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-06-10T00:00:00+00:00",
+  "status": "operator_guided",
+  "evidence_type": "backup_restore_upgrade_rehearsal",
+  "target": {
+    "deployment_label": "redacted-self-hosted-environment",
+    "environment": "customer_controlled_host",
+    "package_version": "operator_supplied",
+    "commit": "operator_supplied"
+  },
+  "custody": {
+    "database_backup_retained_by_operator": true,
+    "env_backup_retained_by_operator": true,
+    "credential_material_included": false,
+    "raw_backup_content_included": false,
+    "custody_statement": "Database backups, .env files, provider keys, repository tokens, and customer-specific artifacts remain under operator or customer control and are not included in this evidence."
+  },
+  "continuity_lanes": [
+    {
+      "id": "database_backup",
+      "label": "Database backup",
+      "status": "operator_guided",
+      "summary": "Operator must run customer-approved PostgreSQL backup tooling before upgrade or restore rehearsal.",
+      "evidence_refs": []
+    },
+    {
+      "id": "environment_backup",
+      "label": "Environment and credential backup",
+      "status": "operator_guided",
+      "summary": "Operator must back up .env and credential records outside source control.",
+      "evidence_refs": []
+    },
+    {
+      "id": "restore_plan",
+      "label": "Restore plan",
+      "status": "operator_guided",
+      "summary": "Restore order is documented; real restore execution evidence is not attached in the committed sample.",
+      "evidence_refs": [
+        "docs/project/self-hosted-operations-runbook.md"
+      ]
+    },
+    {
+      "id": "restore_validation",
+      "label": "Restore validation",
+      "status": "not_provided",
+      "summary": "No customer-controlled restore validation was executed for this safe sample.",
+      "evidence_refs": []
+    },
+    {
+      "id": "upgrade_plan",
+      "label": "Upgrade plan",
+      "status": "operator_guided",
+      "summary": "Upgrade order and validation commands are documented for operator execution.",
+      "evidence_refs": [
+        "docs/project/self-hosted-operations-runbook.md"
+      ]
+    },
+    {
+      "id": "post_upgrade_validation",
+      "label": "Post-upgrade validation",
+      "status": "not_provided",
+      "summary": "No real post-upgrade validation bundle is attached in this committed sample.",
+      "evidence_refs": []
+    },
+    {
+      "id": "rollback_plan",
+      "label": "Rollback plan",
+      "status": "operator_guided",
+      "summary": "Rollback is a human operator decision and must preserve failed upgrade evidence.",
+      "evidence_refs": [
+        "docs/project/self-hosted-operations-runbook.md"
+      ]
+    },
+    {
+      "id": "handoff_evidence",
+      "label": "Handoff evidence",
+      "status": "operator_guided",
+      "summary": "Continuity evidence should be attached to readiness history only after operator review.",
+      "evidence_refs": [
+        "docs/project/self-hosted-delivery-rehearsal.md"
+      ]
+    }
+  ],
+  "limitations": [
+    "This committed sample is not proof that a real database backup, restore, upgrade, or rollback was performed.",
+    "Real continuity proof must be generated on the operator-controlled or customer-controlled host."
+  ],
+  "recommended_next_actions": [
+    "Run backup and restore rehearsal in a customer-controlled environment before clean continuity claims.",
+    "Attach post-upgrade release evidence, hosted readiness, package verification, and readiness history when available.",
+    "Keep database dumps, .env files, provider keys, repository tokens, and customer identifiers out of committed artifacts."
+  ],
+  "operator_review": {
+    "review_required_before_sharing": true,
+    "review_statement": "A human operator must confirm that no raw backups, credentials, customer identifiers, private source content, or local-only secrets are present before sharing."
+  }
+}

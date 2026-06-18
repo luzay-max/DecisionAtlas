@@ -33,6 +33,7 @@ DOC_PATHS = [
     "docs/project/commercial-use-cases.md",
     "docs/project/private-repo-pilot-evidence-template.md",
     "docs/project/private-repo-pilot-evidence-example.md",
+    "docs/project/backup-restore-upgrade-rehearsal.md",
     "docs/project/team-handoff-reporting.md",
     "docs/project/self-hosted-license-and-support-boundary.md",
     "docs/project/release-checklist.md",
@@ -49,6 +50,7 @@ SCRIPT_PATHS = [
     "scripts/ci/collect_readiness_evidence_history.py",
     "scripts/ci/collect_team_handoff_report.py",
     "scripts/ci/rehearse_clean_self_hosted_install.py",
+    "scripts/ci/rehearse_backup_restore_upgrade.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
     "scripts/ci/verify_self_hosted_package.py",
@@ -64,6 +66,7 @@ TEMPLATE_PATHS = [
     "templates/self-hosted.env.example",
     "templates/self-hosted-entitlement.example.json",
     "templates/private-repo-pilot-evidence.example.json",
+    "templates/backup-restore-upgrade-rehearsal.example.json",
 ]
 
 REQUIRED_SERVICES = [
@@ -80,6 +83,7 @@ VALIDATION_COMMANDS = [
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\ci\\pre-release.ps1",
     "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>",
     "python scripts\\ci\\rehearse_clean_self_hosted_install.py --package <package-path> --output-json .tmp\\clean-self-hosted-install-rehearsal.json --output-markdown .tmp\\clean-self-hosted-install-rehearsal.md",
+    "python scripts\\ci\\rehearse_backup_restore_upgrade.py --input-json templates\\backup-restore-upgrade-rehearsal.example.json --output-json .tmp\\backup-restore-upgrade-rehearsal.json --output-markdown .tmp\\backup-restore-upgrade-rehearsal.md",
     "python scripts\\ci\\verify_pilot_customer_delivery_kit.py --output-json .tmp\\pilot-customer-delivery-kit-verification.json --output-markdown .tmp\\pilot-customer-delivery-kit-verification.md",
     "python scripts\\ci\\verify_private_repo_pilot_evidence.py --evidence-json templates\\private-repo-pilot-evidence.example.json --evidence-markdown docs\\project\\private-repo-pilot-evidence-example.md --output-json .tmp\\private-repo-pilot-evidence-verification.json --output-markdown .tmp\\private-repo-pilot-evidence-verification.md",
     "python scripts\\ci\\collect_team_handoff_report.py --release-evidence-json .tmp\\release-evidence.json --hosted-readiness-json .tmp\\hosted-operator-readiness.json --benchmark-comparison-json .tmp\\real-repo-benchmark-comparison.json --readiness-history-index-json docs\\evidence\\readiness\\index.json --package-verification-json .tmp\\self-hosted-package-verification.json --license-support-json templates\\self-hosted-entitlement.example.json",
@@ -249,6 +253,8 @@ def build_manifest(
             "private_repo_pilot_evidence_template",
             "private_repo_pilot_evidence_verification_json",
             "private_repo_pilot_evidence_verification_markdown",
+            "backup_restore_upgrade_rehearsal_json",
+            "backup_restore_upgrade_rehearsal_markdown",
             "commercial_sales_enablement_kit",
             "license_support_boundary_doc",
             "offline_entitlement_template",

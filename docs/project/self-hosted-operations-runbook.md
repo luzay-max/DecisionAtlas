@@ -1,6 +1,6 @@
 # Self-Hosted Operations Runbook
 
-[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md)
+[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md)
 
 ---
 
@@ -47,6 +47,17 @@ pg_dump $env:DATABASE_URL > decisionatlas-backup.sql
 ```
 
 Use customer-approved backup tooling for production or private deployments.
+
+Before customer handoff, generate bounded continuity evidence:
+
+```powershell
+python scripts\ci\rehearse_backup_restore_upgrade.py `
+  --input-json templates\backup-restore-upgrade-rehearsal.example.json `
+  --output-json .tmp\backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
+```
+
+The rehearsal is non-destructive. It checks that backup, restore, upgrade, rollback, custody, and post-upgrade validation evidence is explicit; it does not prove a real restore unless operator-supplied restore evidence is attached.
 
 ## Restore
 
