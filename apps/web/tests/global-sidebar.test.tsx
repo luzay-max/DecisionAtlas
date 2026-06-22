@@ -21,6 +21,7 @@ vi.mock("../components/i18n/language-provider", () => ({
         team: "Team",
         settings: "Settings",
         evidence: "Evidence",
+        dashboard: "Dashboard",
       },
       governance: { title: "Governance" },
     },
@@ -40,20 +41,26 @@ vi.mock("../components/theme/theme-toggle", () => ({
 }));
 
 describe("GlobalSidebar", () => {
-  it("renders all navigation links", () => {
+  it("renders global navigation links without workspace", () => {
     render(<GlobalSidebar />);
     expect(screen.getByText("DecisionAtlas")).toBeTruthy();
     expect(screen.getByText("Home")).toBeTruthy();
-    expect(screen.getByText("Review")).toBeTruthy();
-    expect(screen.getByText("Why Search")).toBeTruthy();
-    expect(screen.getByText("Timeline")).toBeTruthy();
-    expect(screen.getByText("Drift")).toBeTruthy();
+    expect(screen.getByText("Governance")).toBeTruthy();
     expect(screen.getByText("Settings")).toBeTruthy();
     expect(screen.getByText("Evidence")).toBeTruthy();
   });
 
+  it("renders workspace navigation links when workspaceSlug is provided", () => {
+    render(<GlobalSidebar workspaceSlug="demo-workspace" />);
+    expect(screen.getByText("Review")).toBeTruthy();
+    expect(screen.getByText("Why Search")).toBeTruthy();
+    expect(screen.getByText("Timeline")).toBeTruthy();
+    expect(screen.getByText("Drift")).toBeTruthy();
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+  });
+
   it("highlights the active navigation link", () => {
-    render(<GlobalSidebar />);
+    render(<GlobalSidebar workspaceSlug="demo-workspace" />);
     const reviewLink = screen.getByText("Review").closest("a");
     expect(reviewLink?.className).toContain("active");
   });

@@ -9,19 +9,23 @@ import { LanguageToggle } from "../i18n/language-toggle";
 import { useI18n } from "../i18n/language-provider";
 import { ThemeToggle } from "../theme/theme-toggle";
 
-const NAV_ITEMS = [
+const GLOBAL_NAV_ITEMS = [
   { href: "/", labelKey: "home", icon: "◈" },
-  { href: "/review", labelKey: "review", icon: "◉" },
-  { href: "/search", labelKey: "search", icon: "◎" },
-  { href: "/timeline", labelKey: "timeline", icon: "◇" },
-  { href: "/drift", labelKey: "drift", icon: "◆" },
   { href: "/governance", labelKey: "governance", icon: "◇" },
   { href: "/team", labelKey: "team", icon: "◈" },
   { href: "/settings", labelKey: "settings", icon: "⚙" },
   { href: "/evidence", labelKey: "evidence", icon: "📊" },
 ] as const;
 
-export function GlobalSidebar() {
+const WORKSPACE_NAV_ITEMS = [
+  { path: "/workspaces", labelKey: "dashboard", icon: "□" },
+  { path: "/review", labelKey: "review", icon: "◉" },
+  { path: "/search", labelKey: "search", icon: "◎" },
+  { path: "/timeline", labelKey: "timeline", icon: "◇" },
+  { path: "/drift", labelKey: "drift", icon: "◆" },
+] as const;
+
+export function GlobalSidebar({ workspaceSlug }: { workspaceSlug?: string }) {
   const pathname = usePathname();
   const { messages } = useI18n();
 
@@ -35,11 +39,23 @@ export function GlobalSidebar() {
     team: "Team",
     settings: "Settings",
     evidence: "Evidence",
+    dashboard: messages.nav.dashboard,
   };
 
-  function isActive(href: string): boolean {
+  function isGlobalActive(href: string): boolean {
     if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
+  }
+
+  function isWorkspaceActive(path: string): boolean {
+    if (path === "/workspaces") return pathname.startsWith("/workspaces/");
+    return pathname.startsWith(path);
+  }
+
+  function workspaceHref(path: string): string {
+    if (!workspaceSlug) return path;
+    if (path === "/workspaces") return `/workspaces/${workspaceSlug}`;
+    return `${path}?workspace=${encodeURIComponent(workspaceSlug)}`;
   }
 
   return (
@@ -51,18 +67,39 @@ export function GlobalSidebar() {
         </Link>
       </div>
 
-      <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`sidebar-nav-link${isActive(item.href) ? " active" : ""}`}
-          >
-            <span className="sidebar-nav-icon">{item.icon}</span>
-            <span className="sidebar-nav-label">{navLabelMap[item.labelKey]}</span>
-          </Link>
-        ))}
-      </nav>
+      {workspaceSlug ? (
+        <div className="sidebar-section">
+          <p className="sidebar-section-label">{workspaceSlug}</p>
+          <nav className="sidebar-nav">
+            {WORKSPACE_NAV_ITEMS.map((item) => (
+              <Link
+                key={item.path}
+                href={workspaceHref(item.path)}
+                className={`sidebar-nav-link${isWorkspaceActive(item.path) ? " active" : ""}`}
+              >
+                <span className="sidebar-nav-icon">{item.icon}</span>
+                <span className="sidebar-nav-label">{navLabelMap[item.labelKey]}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      ) : null}
+
+      <div className="sidebar-section">
+        <p className="sidebar-section-label">Navigation</p>
+        <nav className="sidebar-nav">
+          {GLOBAL_NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`sidebar-nav-link${isGlobalActive(item.href) ? " active" : ""}`}
+            >
+              <span className="sidebar-nav-icon">{item.icon}</span>
+              <span className="sidebar-nav-label">{navLabelMap[item.labelKey]}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
 
       <div className="sidebar-footer">
         <AccountScopeSurface />

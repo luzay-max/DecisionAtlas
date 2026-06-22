@@ -8,7 +8,7 @@ import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { AdminOnly } from "../auth/role-gate";
 import { DemoImportButton } from "./demo-import-button";
 import { KpiStrip } from "./kpi-strip";
-import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
+import { GlobalSidebar } from "../navigation/global-sidebar";
 import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
 import { ImportedReadinessCard } from "../imported/imported-readiness-card";
@@ -100,9 +100,10 @@ export function WorkspaceDashboardContent({
   }
 
   return (
-    <main className="page-shell">
-      <section className="panel stack">
-        <DemoWorkspaceNav workspaceSlug={summary.workspace_slug} currentPath={`/workspaces/${summary.workspace_slug}`} />
+    <>
+      <GlobalSidebar workspaceSlug={summary.workspace_slug} />
+      <main className="page-with-sidebar">
+        <section className="panel stack">
         <div>
           <p className="eyebrow">{messages.dashboard.eyebrow}</p>
           <h1>{summary.workspace_slug}</h1>
@@ -232,6 +233,7 @@ export function WorkspaceDashboardContent({
         <KpiStrip summary={summary} />
         <RecentAlerts summary={summary} />
       </section>
-    </main>
+      </main>
+    </>
   );
 }

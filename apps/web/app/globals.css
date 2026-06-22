@@ -1046,6 +1046,21 @@ html[data-theme="light"] .shimmer-btn::after {
   text-overflow: ellipsis;
 }
 
+.sidebar-section {
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.sidebar-section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 8px 12px 4px;
+  margin: 0;
+}
+
 .sidebar-footer {
   padding: 16px 20px 0;
   border-top: 1px solid var(--line);
