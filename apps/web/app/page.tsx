@@ -4,12 +4,11 @@ import Link from "next/link";
 import React from "react";
 
 import { AdvancedControls } from "../components/guided-demo/advanced-controls";
-import { AccountScopeSurface } from "../components/auth/account-scope-surface";
 import { AdminOnly } from "../components/auth/role-gate";
 import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
 import { GitHubAppInstallationPanel } from "../components/github-app/github-app-installation-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
-import { LanguageToggle } from "../components/i18n/language-toggle";
+import { GlobalSidebar } from "../components/navigation/global-sidebar";
 import { PrivateRepoAccessPanel } from "../components/private-access/private-repo-access-panel";
 import { useI18n } from "../components/i18n/language-provider";
 import { ProviderModeToggle } from "../components/runtime/provider-mode-toggle";
@@ -19,12 +18,10 @@ export default function HomePage() {
   const guidedDemoSteps = messages.guidedDemo.steps;
 
   return (
-    <main className="home">
-      <div className="panel" style={{ background: "transparent", backdropFilter: "none", WebkitBackdropFilter: "none", boxShadow: "none", border: "none", maxWidth: "1280px" }}>
-        <div className="action-row home-toolbar" style={{ justifyContent: "flex-end", marginBottom: "40px" }}>
-          <AccountScopeSurface />
-          <LanguageToggle />
-        </div>
+    <>
+      <GlobalSidebar />
+      <main className="page-with-sidebar">
+        <div className="panel" style={{ background: "transparent", backdropFilter: "none", WebkitBackdropFilter: "none", boxShadow: "none", border: "none", maxWidth: "960px" }}>
         
         {/* Hero Section */}
         <div style={{ textAlign: "center", marginBottom: "80px", position: "relative" }}>
@@ -161,6 +158,7 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
