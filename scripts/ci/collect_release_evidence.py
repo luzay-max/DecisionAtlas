@@ -157,6 +157,19 @@ def build_evidence_item(source: SourceInput, root: Path) -> tuple[dict[str, Any]
         if source.id == "real_repo_benchmark_comparison":
             item["status"], item["details"] = _status_from_benchmark_comparison(data or {})
             return item, warnings
+        if source.id == "trend_comparison":
+            trend_status = normalize_status(data.get("status"))
+            comparisons = data.get("comparisons", [])
+            improved = sum(1 for c in comparisons if c.get("movement") == "improved")
+            regressed = sum(1 for c in comparisons if c.get("movement") == "regressed")
+            item["status"] = trend_status
+            item["details"] = {
+                "has_previous_baseline": data.get("has_previous_baseline"),
+                "improved": improved,
+                "regressed": regressed,
+                "total_comparisons": len(comparisons),
+            }
+            return item, warnings
 
         status, reason = _status_from_generic_report(data or {})
         item["status"] = status
@@ -375,6 +388,14 @@ def _build_sources(args: argparse.Namespace) -> list[SourceInput]:
                 "--benchmark-compare-baseline <baseline> --benchmark-compare-output <output>"
             ),
         ),
+        SourceInput(
+            id="trend_comparison",
+            label="Release trend comparison",
+            category="advisory_signal",
+            required=False,
+            path=Path(args.trend_comparison_report) if args.trend_comparison_report else None,
+            command="python scripts/ci/compare_release_trends.py",
+        ),
     ]
 
 
@@ -394,6 +415,7 @@ def main() -> int:
     parser.add_argument("--targeted-tests-status", help="Explicit targeted test status when no JSON report is supplied.")
     parser.add_argument("--targeted-tests-report", help="Explicit JSON report for targeted tests.")
     parser.add_argument("--benchmark-comparison-report", help="Explicit JSON real-repo benchmark comparison report.")
+    parser.add_argument("--trend-comparison-report", help="Explicit JSON release trend comparison report.")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[2]

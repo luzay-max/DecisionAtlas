@@ -236,6 +236,23 @@ def summarize_benchmark_trend(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_trend_comparison(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    comparisons = data.get("comparisons", [])
+    improved = sum(1 for c in comparisons if c.get("movement") == "improved")
+    regressed = sum(1 for c in comparisons if c.get("movement") == "regressed")
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "guardrail_status": data.get("guardrail_status"),
+        "has_previous_baseline": data.get("has_previous_baseline"),
+        "total_comparisons": len(comparisons),
+        "improved": improved,
+        "regressed": regressed,
+    }
+
+
 def summarize_readiness_history(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -385,6 +402,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("license_support", "License and support boundary", args.license_support_json, summarize_license_support),
         ("public_github_import", "Public GitHub import rehearsal", args.public_github_import_json, summarize_public_import),
         ("review_audit", "Review audit history", args.audit_history_json, summarize_audit),
+        ("trend_comparison", "Release trend comparison", args.trend_comparison_json, summarize_trend_comparison),
     ]
     sources: dict[str, dict[str, Any]] = {}
     sections: dict[str, dict[str, Any]] = {}
@@ -549,6 +567,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--license-support-json")
     parser.add_argument("--public-github-import-json")
     parser.add_argument("--audit-history-json")
+    parser.add_argument("--trend-comparison-json")
     return parser.parse_args(argv)
 
 

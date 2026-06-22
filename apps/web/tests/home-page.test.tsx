@@ -31,7 +31,7 @@ describe("HomePage", () => {
     render(<HomePage />);
 
     expect(screen.getByText("DecisionAtlas")).toBeInTheDocument();
-    expect(screen.getByText(/engineering decision memory/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/engineering decision memory/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Import")).toBeInTheDocument();
     expect(screen.getByText("Decisions")).toBeInTheDocument();
     expect(screen.getByText("Why")).toBeInTheDocument();

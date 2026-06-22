@@ -15,8 +15,16 @@ export default function ReviewError({
         <p className="eyebrow" style={{ color: "var(--danger)" }}>Review error</p>
         <h2 style={{ marginTop: "12px", marginBottom: "16px" }}>Failed to load review queue</h2>
         <p style={{ color: "var(--muted)", marginBottom: "24px", lineHeight: 1.6 }}>
-          {error.message || "The review queue could not be loaded. Check the engine and API services."}
+          {error.message || "The review queue could not be loaded."}
         </p>
+        <div className="card" style={{ textAlign: "left", marginBottom: "24px", padding: "20px" }}>
+          <p style={{ fontWeight: 600, marginBottom: "8px" }}>Try these steps:</p>
+          <ol style={{ margin: 0, paddingLeft: "20px", color: "var(--muted)", lineHeight: 1.8 }}>
+            <li>Ensure the workspace has imported data (run an import first)</li>
+            <li>Check that the Engine service is running on port 8000</li>
+            <li>Verify the workspace slug in the URL is correct</li>
+          </ol>
+        </div>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
           <button
             onClick={reset}

@@ -156,6 +156,12 @@ export function WorkspaceDashboardContent({
           <Link href={`/timeline?workspace=${encodeURIComponent(summary.workspace_slug)}`} className="action-link">
             {messages.dashboard.openTimeline}
           </Link>
+          <Link href="/governance" className="action-link">
+            {messages.nav.governance}
+          </Link>
+          <Link href="/evidence" className="action-link">
+            {messages.nav.evidence}
+          </Link>
         </div>
         {summary.latest_import ? (
           <div className="stack">

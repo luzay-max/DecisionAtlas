@@ -47,6 +47,25 @@ export default function HomePage() {
 
         {/* Bento Grid for Concepts & Steps */}
         <div className="bento-grid" style={{ marginBottom: "48px" }}>
+          {/* Getting Started Box */}
+          <div className="bento-item" style={{ animationDelay: "0ms", gridColumn: "span 2" }}>
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{messages.home.gettingStarted}</h3>
+            <p className="muted" style={{ marginBottom: "20px", lineHeight: 1.6 }}>{messages.home.gettingStartedDescription}</p>
+            <div style={{ display: "grid", gap: "16px" }}>
+              {[
+                { title: messages.home.step1Title, desc: messages.home.step1Description },
+                { title: messages.home.step2Title, desc: messages.home.step2Description },
+                { title: messages.home.step3Title, desc: messages.home.step3Description },
+                { title: messages.home.step4Title, desc: messages.home.step4Description },
+              ].map((step) => (
+                <div key={step.title} style={{ padding: "12px 16px", background: "var(--card-bg)", borderRadius: "12px", border: "1px solid var(--line)" }}>
+                  <p style={{ fontWeight: 600, marginBottom: "4px" }}>{step.title}</p>
+                  <p className="muted" style={{ fontSize: "0.9rem", margin: 0 }}>{step.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Concepts Box */}
           <div className="bento-item" style={{ animationDelay: "0ms" }}>
             <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{messages.home.conceptsLabel}</h3>
@@ -121,6 +140,25 @@ export default function HomePage() {
               <PrivateRepoAccessPanel />
             </section>
           </AdvancedControls>
+        </div>
+
+        {/* Next Steps Section */}
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "500ms", marginTop: "48px" }}>
+          <div className="card" style={{ textAlign: "center", padding: "32px" }}>
+            <h3 style={{ fontSize: "1.3rem", marginBottom: "8px" }}>{messages.home.nextSteps}</h3>
+            <p className="muted" style={{ marginBottom: "20px" }}>{messages.home.nextStepsDescription}</p>
+            <div className="action-row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "12px" }}>
+              <Link href="/#advanced-controls" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.analyzeRepo}
+              </Link>
+              <Link href="/settings" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.viewSettings}
+              </Link>
+              <Link href="/evidence" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.viewEvidence}
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </main>

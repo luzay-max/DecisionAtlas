@@ -17,6 +17,13 @@ export default function TeamError({
         <p style={{ color: "var(--muted)", marginBottom: "24px", lineHeight: 1.6 }}>
           {error.message || "Team administration could not be loaded. Check the API service."}
         </p>
+        <div className="card" style={{ textAlign: "left", marginBottom: "24px", padding: "20px" }}>
+          <p style={{ fontWeight: 600, marginBottom: "8px" }}>Try these steps:</p>
+          <ol style={{ margin: 0, paddingLeft: "20px", color: "var(--muted)", lineHeight: 1.8 }}>
+            <li>Ensure the API service is running on port 3001</li>
+            <li>Verify the current user has an admin role</li>
+          </ol>
+        </div>
         <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
           <button
             onClick={reset}
