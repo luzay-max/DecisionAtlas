@@ -1,7 +1,7 @@
 # readiness-evidence-history Specification
 
 ## Purpose
-TBD - created by archiving change readiness-evidence-history. Update Purpose after archive.
+Provides local archiving and indexing of readiness evidence artifacts into a durable history with trend summaries and team handoff reports.
 ## Requirements
 ### Requirement: Readiness evidence can be archived into durable history
 The system SHALL provide a local way to promote selected readiness evidence artifacts from scratch output into a durable dated or versioned history entry.

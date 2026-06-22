@@ -1,7 +1,7 @@
 # self-hosted-delivery-rehearsal Specification
 
 ## Purpose
-TBD - created by archiving change rehearse-self-hosted-delivery. Update Purpose after archive.
+Defines a repeatable self-hosted delivery rehearsal workflow that produces customer-readable handoff evidence covering package verification, clean install, and continuity readiness before claiming operator trial readiness.
 ## Requirements
 ### Requirement: Self-hosted delivery rehearsal is repeatable
 The system SHALL define a repeatable self-hosted delivery rehearsal that an operator can run before claiming customer handoff readiness.

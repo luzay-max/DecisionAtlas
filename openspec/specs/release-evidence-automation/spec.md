@@ -1,7 +1,7 @@
 # release-evidence-automation Specification
 
 ## Purpose
-TBD - created by archiving change release-evidence-automation. Update Purpose after archive.
+Generates machine-readable release evidence bundles and operator-readable Markdown handoffs that separate required release gates from advisory confidence signals.
 ## Requirements
 ### Requirement: Release evidence bundle generation
 The system SHALL provide a local way to generate a release evidence bundle that summarizes release readiness signals in a machine-readable format.

@@ -32,6 +32,10 @@ export const messages = {
       search: "Why Search",
       timeline: "Timeline",
       drift: "Drift",
+      governance: "Governance",
+      team: "Team",
+      settings: "Settings",
+      evidence: "Evidence",
     },
     guidedDemo: {
       title: "Start the guided demo",
@@ -607,6 +611,10 @@ export const messages = {
       search: "原因检索",
       timeline: "时间线",
       drift: "漂移",
+      governance: "治理",
+      team: "团队",
+      settings: "设置",
+      evidence: "证据",
     },
     guidedDemo: {
       title: "开始 guided demo",
