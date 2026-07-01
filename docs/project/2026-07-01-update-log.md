@@ -65,5 +65,6 @@
   - `actions/setup-node@v6`
   - `pnpm/action-setup@v6`
   - `actions/setup-python@v6`
-  - `astral-sh/setup-uv@v8`
+  - `astral-sh/setup-uv@v8.2.0`
+- Follow-up CI check showed `astral-sh/setup-uv` does not expose a moving `v8` tag, so the workflow pins the current concrete `v8.2.0` release instead.
 - Kept the runner pinned to `windows-2025`; the workflow does not rely on `windows-latest` alias migration behavior.
