@@ -55,3 +55,15 @@
 - Reliable local browser smoke required clearing `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `GIT_HTTP_PROXY`, and `GIT_HTTPS_PROXY` for the command process while preserving `NO_PROXY=localhost,127.0.0.1,::1`.
 - `apps/web` and `apps/api` package links were incomplete before running e2e; `@playwright/test` and `tsx` were not resolvable until pnpm workspace links were restored.
 - Governance guardrail remained `caution`; its concrete recommendation to add navigation/pathname mocks was addressed by the passing Vitest suite, while historical-repeat signals remain advisory.
+
+## GitHub Actions Node 24 Readiness
+
+- OpenSpec change: `upgrade-github-actions-node24-readiness`.
+- Purpose: remove CI release-readiness risk from GitHub Actions Node.js 20 action deprecation warnings while preserving the current validation scope.
+- Updated `.github/workflows/ci.yml` action majors after checking current GitHub releases:
+  - `actions/checkout@v7`
+  - `actions/setup-node@v6`
+  - `pnpm/action-setup@v6`
+  - `actions/setup-python@v6`
+  - `astral-sh/setup-uv@v8`
+- Kept the runner pinned to `windows-2025`; the workflow does not rely on `windows-latest` alias migration behavior.
