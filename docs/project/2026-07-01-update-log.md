@@ -68,3 +68,7 @@
   - `astral-sh/setup-uv@v8.2.0`
 - Follow-up CI check showed `astral-sh/setup-uv` does not expose a moving `v8` tag, so the workflow pins the current concrete `v8.2.0` release instead.
 - Kept the runner pinned to `windows-2025`; the workflow does not rely on `windows-latest` alias migration behavior.
+- GitHub Actions verification:
+  - Failed run `28500541409`: `astral-sh/setup-uv@v8` could not be resolved.
+  - Passing run `28500706278`: all validation steps passed after pinning `astral-sh/setup-uv@v8.2.0`.
+  - The passing run no longer showed the previous Node.js 20 deprecation annotation in `gh run view`.

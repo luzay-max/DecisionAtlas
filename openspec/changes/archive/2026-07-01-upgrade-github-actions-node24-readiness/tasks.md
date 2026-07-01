@@ -8,10 +8,10 @@
 
 - [x] 2.1 Run OpenSpec validation for the change and all specs.
 - [x] 2.2 Run local workflow syntax-oriented checks for the changed YAML.
-- [ ] 2.3 Commit and push the branch, then verify the GitHub Actions run completes successfully.
-- [ ] 2.4 Confirm whether Node.js 20 deprecation warnings are resolved or document any remaining upstream warning.
+- [x] 2.3 Commit and push the branch, then verify the GitHub Actions run completes successfully.
+- [x] 2.4 Confirm whether Node.js 20 deprecation warnings are resolved or document any remaining upstream warning.
 
 ## 3. Archive
 
 - [x] 3.1 Sync the new `ci-runtime-readiness` spec into `openspec/specs`.
-- [ ] 3.2 Archive the OpenSpec change after implementation is complete.
+- [x] 3.2 Archive the OpenSpec change after implementation is complete.
