@@ -6,6 +6,14 @@ import { vi } from "vitest";
 import { ReviewPageContent } from "../components/review/review-page-content";
 import * as api from "../lib/api";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/review",
+}));
+
+vi.mock("../components/navigation/global-sidebar", () => ({
+  GlobalSidebar: () => <nav data-testid="global-sidebar" />,
+}));
+
 vi.mock("../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../lib/api")>("../lib/api");
   return {
