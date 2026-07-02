@@ -71,3 +71,26 @@
 
 - This proves backup/restore mechanics only for explicit scratch state. It is not production customer data continuity proof.
 - Customer-facing continuity claims should distinguish non-destructive verifier evidence, real scratch rehearsal evidence, and external/customer-host evidence.
+
+## full-delivery-evidence-rehearsal
+
+### Implemented
+
+- Extended `scripts/ci/collect_readiness_evidence_history.py` so readiness history can archive seven delivery evidence families in one entry: release evidence, hosted readiness, benchmark comparison, external install evidence, real continuity rehearsal, team handoff, and Code Decision Audit.
+- Added compact summaries for external install, real continuity, team handoff, and Code Decision Audit without embedding raw private content or secrets in index/trend Markdown.
+- Added CLI archive arguments for the new evidence JSON/Markdown paths.
+- Updated readiness index and trend Markdown to expose external install status, real continuity status, handoff status, audit status, warning counts, blocker counts, operator-guided counts, and not-provided counts.
+- Updated self-hosted rehearsal and handoff docs with a complete delivery archive command.
+- Added OpenSpec requirements for full delivery evidence rehearsal and synchronized readiness history/self-hosted rehearsal specs.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_readiness_evidence_history.py -q`: 5 tests passed.
+- Full archive smoke wrote `.tmp/full-delivery-readiness-history/2026-07-02-full-delivery-smoke/entry.json` with seven evidence families and expected aggregate `warning` status.
+- `openspec validate full-delivery-evidence-rehearsal --type change --strict`: passed.
+- `openspec validate --all --strict`: 70 items passed, 0 failed.
+
+### Notes
+
+- The full delivery smoke is intentionally `warning` because hosted readiness remains `operator_guided` and the provided handoff/audit/external install evidence still contains non-clean states.
+- This change turns the previous one-off release rehearsal outputs into a reusable delivery evidence package suitable for release review and customer/operator handoff.

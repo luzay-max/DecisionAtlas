@@ -16,15 +16,26 @@ DEFAULT_HISTORY_ROOT = Path("docs/evidence/readiness")
 FAMILY_RELEASE = "release_evidence"
 FAMILY_HOSTED = "hosted_readiness"
 FAMILY_BENCHMARK = "benchmark_comparison"
+FAMILY_EXTERNAL_INSTALL = "external_install_evidence"
+FAMILY_REAL_CONTINUITY = "real_continuity_rehearsal"
+FAMILY_TEAM_HANDOFF = "team_handoff"
+FAMILY_CODE_DECISION_AUDIT = "code_decision_audit"
 FAMILY_LABELS = {
     FAMILY_RELEASE: "Release evidence",
     FAMILY_HOSTED: "Hosted readiness",
     FAMILY_BENCHMARK: "Benchmark comparison",
+    FAMILY_EXTERNAL_INSTALL: "External install evidence",
+    FAMILY_REAL_CONTINUITY: "Real continuity rehearsal",
+    FAMILY_TEAM_HANDOFF: "Team handoff",
+    FAMILY_CODE_DECISION_AUDIT: "Code Decision Audit",
 }
 NON_CLEAN_STATUSES = {
+    "blocked",
     "blocking",
     "caution",
+    "error",
     "failed",
+    "failure",
     "incomplete",
     "known_limitation",
     "missing",
@@ -175,6 +186,86 @@ def _summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _summarize_external_install(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    host = data.get("external_host") if isinstance(data.get("external_host"), dict) else {}
+    findings = data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "host_class": host.get("host_class"),
+        "customer_controlled": host.get("is_customer_controlled"),
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": _count_status(lanes, {"warning"}),
+        "blocker_count": len(findings) + _count_status(lanes, {"blocked", "blocking", "failed", "failure", "error"}),
+        "operator_guided_count": _count_status(lanes, {"operator_guided"}),
+        "not_provided_count": _count_status(lanes, {"not_provided"}),
+        "redaction_finding_count": len(findings),
+    }
+
+
+def _summarize_real_continuity(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    lanes = data.get("continuity_lanes") if isinstance(data.get("continuity_lanes"), list) else []
+    integrity = data.get("integrity") if isinstance(data.get("integrity"), dict) else {}
+    findings = data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "restore_matches_source": integrity.get("restore_matches_source"),
+        "source_record_count": integrity.get("source_record_count"),
+        "restored_record_count": integrity.get("restored_record_count"),
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": _count_status(lanes, {"warning"}),
+        "blocker_count": len(data.get("blockers") if isinstance(data.get("blockers"), list) else []) + len(findings),
+        "operator_guided_count": _count_status(lanes, {"operator_guided"}),
+        "not_provided_count": _count_status(lanes, {"not_provided"}),
+        "redaction_finding_count": len(findings),
+    }
+
+
+def _summarize_team_handoff(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    sections = data.get("sections") if isinstance(data.get("sections"), dict) else {}
+    return {
+        "status": data.get("overall_status") or data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "section_statuses": {
+            str(key): value.get("status")
+            for key, value in sections.items()
+            if isinstance(value, dict)
+        },
+        "warning_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in NON_CLEAN_STATUSES),
+        "blocker_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in {"blocking", "blocked", "failed", "failure", "error"}),
+        "operator_guided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "operator_guided"),
+        "not_provided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "not_provided"),
+    }
+
+
+def _summarize_code_decision_audit(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    sections = data.get("sections") if isinstance(data.get("sections"), dict) else {}
+    return {
+        "status": data.get("overall_status") or data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "recommended_tier": data.get("recommended_tier"),
+        "section_statuses": {
+            str(key): value.get("status")
+            for key, value in sections.items()
+            if isinstance(value, dict)
+        },
+        "warning_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in NON_CLEAN_STATUSES),
+        "blocker_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in {"blocking", "blocked", "failed", "failure", "error"}),
+        "operator_guided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "operator_guided"),
+        "not_provided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "not_provided"),
+    }
+
+
 def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
     if family == FAMILY_RELEASE:
         return _summarize_release(data)
@@ -182,6 +273,14 @@ def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
         return _summarize_hosted(data)
     if family == FAMILY_BENCHMARK:
         return _summarize_benchmark(data)
+    if family == FAMILY_EXTERNAL_INSTALL:
+        return _summarize_external_install(data)
+    if family == FAMILY_REAL_CONTINUITY:
+        return _summarize_real_continuity(data)
+    if family == FAMILY_TEAM_HANDOFF:
+        return _summarize_team_handoff(data)
+    if family == FAMILY_CODE_DECISION_AUDIT:
+        return _summarize_code_decision_audit(data)
     raise ValueError(f"Unsupported evidence family: {family}")
 
 
@@ -208,6 +307,8 @@ def _entry_counts(families: dict[str, dict[str, Any]]) -> dict[str, int]:
         "benchmark_regressions": int(families.get(FAMILY_BENCHMARK, {}).get("regressed") or 0),
         "benchmark_operational_blockers": int(families.get(FAMILY_BENCHMARK, {}).get("operationally_blocked") or 0),
         "benchmark_improvements": int(families.get(FAMILY_BENCHMARK, {}).get("improved") or 0),
+        "external_install_blockers": int(families.get(FAMILY_EXTERNAL_INSTALL, {}).get("blocker_count") or 0),
+        "real_continuity_blockers": int(families.get(FAMILY_REAL_CONTINUITY, {}).get("blocker_count") or 0),
     }
 
 
@@ -332,8 +433,8 @@ def render_index_markdown(index: dict[str, Any]) -> str:
         f"- Generated at: `{index.get('generated_at')}`",
         f"- Entries: `{len(index.get('entries') or [])}`",
         "",
-        "| Entry | Created | Status | Release | Hosted | Benchmark | Warnings | Blockers | Benchmark movement |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in index.get("entries") or []:
         statuses = entry.get("family_statuses") or {}
@@ -354,6 +455,10 @@ def render_index_markdown(index: dict[str, Any]) -> str:
                     statuses.get(FAMILY_RELEASE),
                     statuses.get(FAMILY_HOSTED),
                     statuses.get(FAMILY_BENCHMARK),
+                    statuses.get(FAMILY_EXTERNAL_INSTALL),
+                    statuses.get(FAMILY_REAL_CONTINUITY),
+                    statuses.get(FAMILY_TEAM_HANDOFF),
+                    statuses.get(FAMILY_CODE_DECISION_AUDIT),
                     counts.get("warnings", 0),
                     counts.get("blockers", 0),
                     movement,
@@ -389,8 +494,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
 
     lines.extend(
         [
-            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | Warnings | Operator-guided | Not provided |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Real continuity | Handoff | Audit | Warnings | Operator-guided | Not provided |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for entry in selected:
@@ -398,6 +503,10 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         counts = entry.get("counts") or {}
         release = (families.get(FAMILY_RELEASE) or {}).get("status")
         hosted = (families.get(FAMILY_HOSTED) or {}).get("public_walkthrough_status") or (families.get(FAMILY_HOSTED) or {}).get("status")
+        external = (families.get(FAMILY_EXTERNAL_INSTALL) or {}).get("status")
+        continuity = (families.get(FAMILY_REAL_CONTINUITY) or {}).get("status")
+        handoff = (families.get(FAMILY_TEAM_HANDOFF) or {}).get("status")
+        audit = (families.get(FAMILY_CODE_DECISION_AUDIT) or {}).get("status")
         lines.append(
             "| "
             + " | ".join(
@@ -409,6 +518,10 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
                     hosted,
                     counts.get("benchmark_regressions", 0),
                     counts.get("benchmark_operational_blockers", 0),
+                    external,
+                    continuity,
+                    handoff,
+                    audit,
                     counts.get("warnings", 0),
                     counts.get("operator_guided", 0),
                     counts.get("not_provided", 0),
@@ -424,6 +537,10 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         follow_up.append("Investigate benchmark regressions before claiming product-quality improvement.")
     if counts.get("benchmark_operational_blockers"):
         follow_up.append("Resolve benchmark operational blockers and rerun comparison.")
+    if counts.get("external_install_blockers"):
+        follow_up.append("Resolve external install evidence blockers before customer-host install claims.")
+    if counts.get("real_continuity_blockers"):
+        follow_up.append("Resolve real continuity rehearsal blockers before backup/restore/upgrade claims.")
     if counts.get("operator_guided"):
         follow_up.append("Complete operator-guided hosted readiness lanes before external preview.")
     if counts.get("not_provided"):
@@ -456,6 +573,10 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         EvidenceSource(FAMILY_RELEASE, Path(args.release_evidence_json) if args.release_evidence_json else None, Path(args.release_evidence_markdown) if args.release_evidence_markdown else None),
         EvidenceSource(FAMILY_HOSTED, Path(args.hosted_readiness_json) if args.hosted_readiness_json else None, Path(args.hosted_readiness_markdown) if args.hosted_readiness_markdown else None),
         EvidenceSource(FAMILY_BENCHMARK, Path(args.benchmark_comparison_json) if args.benchmark_comparison_json else None, Path(args.benchmark_comparison_markdown) if args.benchmark_comparison_markdown else None),
+        EvidenceSource(FAMILY_EXTERNAL_INSTALL, Path(args.external_install_evidence_json) if args.external_install_evidence_json else None, Path(args.external_install_evidence_markdown) if args.external_install_evidence_markdown else None),
+        EvidenceSource(FAMILY_REAL_CONTINUITY, Path(args.real_continuity_rehearsal_json) if args.real_continuity_rehearsal_json else None, Path(args.real_continuity_rehearsal_markdown) if args.real_continuity_rehearsal_markdown else None),
+        EvidenceSource(FAMILY_TEAM_HANDOFF, Path(args.team_handoff_json) if args.team_handoff_json else None, Path(args.team_handoff_markdown) if args.team_handoff_markdown else None),
+        EvidenceSource(FAMILY_CODE_DECISION_AUDIT, Path(args.code_decision_audit_json) if args.code_decision_audit_json else None, Path(args.code_decision_audit_markdown) if args.code_decision_audit_markdown else None),
     ]
     entry = build_entry(
         sources=sources,
@@ -506,6 +627,14 @@ def _build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--hosted-readiness-markdown", help="Explicit hosted readiness Markdown path.")
     archive.add_argument("--benchmark-comparison-json", help="Explicit real-repo benchmark comparison JSON path.")
     archive.add_argument("--benchmark-comparison-markdown", help="Explicit real-repo benchmark comparison Markdown path.")
+    archive.add_argument("--external-install-evidence-json", help="Explicit external install evidence JSON path.")
+    archive.add_argument("--external-install-evidence-markdown", help="Explicit external install evidence Markdown path.")
+    archive.add_argument("--real-continuity-rehearsal-json", help="Explicit real backup/restore/upgrade rehearsal JSON path.")
+    archive.add_argument("--real-continuity-rehearsal-markdown", help="Explicit real backup/restore/upgrade rehearsal Markdown path.")
+    archive.add_argument("--team-handoff-json", help="Explicit team handoff JSON path.")
+    archive.add_argument("--team-handoff-markdown", help="Explicit team handoff Markdown path.")
+    archive.add_argument("--code-decision-audit-json", help="Explicit Code Decision Audit JSON path.")
+    archive.add_argument("--code-decision-audit-markdown", help="Explicit Code Decision Audit Markdown path.")
 
     summarize = subparsers.add_parser("summarize", help="Regenerate index and trend summary from archived entries.")
     summarize.add_argument("--trend-output", help="Optional path for trend Markdown output.")

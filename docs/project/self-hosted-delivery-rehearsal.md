@@ -141,7 +141,15 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
   --hosted-readiness-json .tmp/hosted-operator-readiness.json `
   --hosted-readiness-markdown .tmp/hosted-operator-readiness.md `
   --benchmark-comparison-json .tmp/real-repo-benchmark-comparison.json `
-  --benchmark-comparison-markdown .tmp/real-repo-benchmark-comparison.md
+  --benchmark-comparison-markdown .tmp/real-repo-benchmark-comparison.md `
+  --external-install-evidence-json .tmp/external-self-hosted-install-evidence.json `
+  --external-install-evidence-markdown .tmp/external-self-hosted-install-evidence.md `
+  --real-continuity-rehearsal-json .tmp/real-backup-restore-upgrade-rehearsal.json `
+  --real-continuity-rehearsal-markdown .tmp/real-backup-restore-upgrade-rehearsal.md `
+  --team-handoff-json .tmp/team-handoff-report.json `
+  --team-handoff-markdown .tmp/team-handoff-report.md `
+  --code-decision-audit-json .tmp/code-decision-audit-report.json `
+  --code-decision-audit-markdown .tmp/code-decision-audit-report.md
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.
@@ -240,5 +248,6 @@ Use this boundary when explaining customer readiness. Do not claim full GitLab, 
 - Customer-facing claims must reference the readiness history entry or state that rehearsal evidence is missing.
 - `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states must remain visible in the summary.
 - `.tmp` output remains scratch evidence unless explicitly copied into readiness evidence history.
+- Complete delivery rehearsal history should include release, hosted, benchmark, external install, real continuity, handoff, and audit evidence when those claims are part of the handoff.
 - Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.
 - For paid pilots, prepare a Code Decision Audit report from the generated evidence.

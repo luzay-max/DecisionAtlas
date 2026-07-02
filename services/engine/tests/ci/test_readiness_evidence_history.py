@@ -90,6 +90,75 @@ def test_readiness_history_extracts_release_hosted_and_benchmark_summaries(tmp_p
     assert (tmp_path / "history" / "2026-05-09-release-rc-1" / "entry.json").exists()
 
 
+def test_readiness_history_archives_full_delivery_evidence_families(tmp_path: Path) -> None:
+    history = _load_history_module()
+    release_path = _write_json(tmp_path / "release.json", {"overall_status": "passed", "required_gates": [], "advisory_signals": []})
+    hosted_path = _write_json(tmp_path / "hosted.json", {"overall_status": "pass", "public_walkthrough_status": "pass", "lanes": []})
+    benchmark_path = _write_json(tmp_path / "benchmark.json", {"summary": {"repositories": 1, "improved": 1, "regressed": 0, "operationally_blocked": 0}})
+    external_path = _write_json(
+        tmp_path / "external.json",
+        {
+            "status": "warning",
+            "external_host": {"host_class": "clean-vm", "is_customer_controlled": True},
+            "lanes": [{"id": "browser_smoke", "status": "operator_guided"}],
+            "redaction_findings": [],
+        },
+    )
+    continuity_path = _write_json(
+        tmp_path / "continuity.json",
+        {
+            "status": "pass",
+            "integrity": {"restore_matches_source": True, "source_record_count": 2, "restored_record_count": 2},
+            "continuity_lanes": [{"id": "restore_validation", "status": "pass"}],
+            "blockers": [],
+            "redaction_findings": [],
+        },
+    )
+    handoff_path = _write_json(
+        tmp_path / "handoff.json",
+        {"overall_status": "warning", "sections": {"external_install_evidence": {"status": "warning"}}},
+    )
+    audit_path = _write_json(
+        tmp_path / "audit.json",
+        {"overall_status": "warning", "recommended_tier": "Team Self-hosted", "sections": {"team_handoff": {"status": "warning"}}},
+    )
+    external_md = tmp_path / "external.md"
+    external_md.write_text("# External\n", encoding="utf-8")
+    continuity_md = tmp_path / "continuity.md"
+    continuity_md.write_text("# Continuity\n", encoding="utf-8")
+
+    entry = history.build_entry(
+        sources=[
+            history.EvidenceSource(history.FAMILY_RELEASE, release_path, None),
+            history.EvidenceSource(history.FAMILY_HOSTED, hosted_path, None),
+            history.EvidenceSource(history.FAMILY_BENCHMARK, benchmark_path, None),
+            history.EvidenceSource(history.FAMILY_EXTERNAL_INSTALL, external_path, external_md),
+            history.EvidenceSource(history.FAMILY_REAL_CONTINUITY, continuity_path, continuity_md),
+            history.EvidenceSource(history.FAMILY_TEAM_HANDOFF, handoff_path, None),
+            history.EvidenceSource(history.FAMILY_CODE_DECISION_AUDIT, audit_path, None),
+        ],
+        root=tmp_path,
+        history_root=tmp_path / "history",
+        label="full delivery",
+        created_at="2026-07-02T12:00:00+00:00",
+    )
+    index = history.build_index(tmp_path / "history")
+    index_markdown = history.render_index_markdown(index)
+    trend_markdown = history.render_trend_markdown([entry], limit=5)
+
+    assert entry["families"]["external_install_evidence"]["status"] == "warning"
+    assert entry["families"]["external_install_evidence"]["operator_guided_count"] == 1
+    assert entry["families"]["real_continuity_rehearsal"]["restore_matches_source"] is True
+    assert entry["families"]["team_handoff"]["section_statuses"]["external_install_evidence"] == "warning"
+    assert entry["families"]["code_decision_audit"]["recommended_tier"] == "Team Self-hosted"
+    assert (tmp_path / "history" / "2026-07-02-full-delivery" / "external_install_evidence.json").exists()
+    assert (tmp_path / "history" / "2026-07-02-full-delivery" / "real_continuity_rehearsal.md").exists()
+    assert "External install" in index_markdown
+    assert "Real continuity" in index_markdown
+    assert "Team Self-hosted" not in index_markdown
+    assert "warning" in trend_markdown
+
+
 def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scanning(tmp_path: Path) -> None:
     history = _load_history_module()
     entry = history.build_entry(
@@ -97,6 +166,10 @@ def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scann
             history.EvidenceSource(history.FAMILY_RELEASE, None, None),
             history.EvidenceSource(history.FAMILY_HOSTED, Path(".tmp/does-not-exist.json"), None),
             history.EvidenceSource(history.FAMILY_BENCHMARK, None, None),
+            history.EvidenceSource(history.FAMILY_EXTERNAL_INSTALL, None, None),
+            history.EvidenceSource(history.FAMILY_REAL_CONTINUITY, None, None),
+            history.EvidenceSource(history.FAMILY_TEAM_HANDOFF, None, None),
+            history.EvidenceSource(history.FAMILY_CODE_DECISION_AUDIT, None, None),
         ],
         root=tmp_path,
         history_root=tmp_path / "history",
@@ -106,6 +179,10 @@ def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scann
 
     assert entry["families"]["release_evidence"]["status"] == "not_provided"
     assert entry["families"]["benchmark_comparison"]["status"] == "not_provided"
+    assert entry["families"]["external_install_evidence"]["status"] == "not_provided"
+    assert entry["families"]["real_continuity_rehearsal"]["status"] == "not_provided"
+    assert entry["families"]["team_handoff"]["status"] == "not_provided"
+    assert entry["families"]["code_decision_audit"]["status"] == "not_provided"
     assert entry["families"]["hosted_readiness"]["status"] == "not_provided"
     assert "does not exist" in entry["warnings"][0]
     assert entry["counts"]["not_provided"] >= 3
@@ -168,6 +245,10 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
             "release_evidence": {"status": "passed"},
             "hosted_readiness": {"status": "pass", "public_walkthrough_status": "pass"},
             "benchmark_comparison": {"status": "passed"},
+            "external_install_evidence": {"status": "pass"},
+            "real_continuity_rehearsal": {"status": "pass"},
+            "team_handoff": {"status": "pass"},
+            "code_decision_audit": {"status": "pass"},
         },
         "counts": {},
     }
@@ -178,10 +259,15 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
             "release_evidence": {"status": "warning"},
             "hosted_readiness": {"status": "operator_guided", "public_walkthrough_status": "operator_guided"},
             "benchmark_comparison": {"status": "warning"},
+            "external_install_evidence": {"status": "warning"},
+            "real_continuity_rehearsal": {"status": "blocking"},
+            "team_handoff": {"status": "warning"},
+            "code_decision_audit": {"status": "warning"},
         },
         "counts": {
             "benchmark_regressions": 1,
             "benchmark_operational_blockers": 1,
+            "real_continuity_blockers": 1,
             "warnings": 2,
             "operator_guided": 1,
             "not_provided": 1,
@@ -192,4 +278,6 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
 
     assert "operator_guided" in markdown
     assert "benchmark regressions" in markdown.lower()
+    assert "Real continuity" in markdown
+    assert "Resolve real continuity rehearsal blockers" in markdown
     assert "Attach missing optional evidence" in markdown

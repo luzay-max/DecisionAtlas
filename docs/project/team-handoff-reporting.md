@@ -59,6 +59,19 @@ Do not provide raw tokens, `.env` files, database dumps, private repository arch
 
 The generator redacts token-like and secret-like values, but operators should still pass curated evidence JSON rather than raw private artifacts.
 
+## Readiness History Integration
+
+When using the handoff report as part of a complete delivery rehearsal, pass both JSON and Markdown outputs to readiness evidence history:
+
+```powershell
+python scripts\ci\collect_readiness_evidence_history.py archive `
+  --label full-delivery-rehearsal `
+  --team-handoff-json .tmp\team-handoff-report.json `
+  --team-handoff-markdown .tmp\team-handoff-report.md
+```
+
+The archive keeps the handoff status and section statuses compact. It does not turn missing release, hosted, benchmark, external install, real continuity, or audit evidence into pass.
+
 ## Clean Handoff Checklist
 
 - OpenSpec strict validation is green.
