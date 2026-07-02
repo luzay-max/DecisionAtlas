@@ -7,6 +7,7 @@ import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { GlobalSidebar } from "../navigation/global-sidebar";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
 import { ReviewList } from "./review-list";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 import { useI18n } from "../i18n/language-provider";
 
 export function ReviewPageContent({
@@ -25,6 +26,11 @@ export function ReviewPageContent({
       <GlobalSidebar workspaceSlug={workspaceSlug} />
       <main className="page-with-sidebar">
         <section className="panel">
+          <WorkspaceContextBanner
+            workspaceSlug={workspaceSlug}
+            current="Review queue"
+            description="Candidate decisions that need human acceptance, rejection, or supersession."
+          />
           <p className="eyebrow">{messages.review.eyebrow}</p>
           <h1>{messages.review.title}</h1>
           <p>{messages.review.lede}</p>

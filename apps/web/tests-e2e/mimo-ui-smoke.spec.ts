@@ -11,6 +11,8 @@ test.describe("Homepage onboarding and navigation", () => {
     await expect(page.getByText("3. Ask why")).toBeVisible();
     await expect(page.getByText("4. Check drift")).toBeVisible();
     await expect(page.getByText("Next Steps")).toBeVisible();
+    await expect(page.getByText("Role-aware workbench")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Evidence Center/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /View settings/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /View evidence/i })).toBeVisible();
   });
@@ -21,6 +23,16 @@ test.describe("Homepage onboarding and navigation", () => {
     await expect(page.getByRole("link", { name: /Jump to why search/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Jump to drift/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /Start guided demo/i })).toBeVisible();
+  });
+
+  test("homepage surfaces guided repository import flow", async ({ page }) => {
+    await page.goto("/");
+    const importFlow = page.getByRole("main").locator("#repository-import-flow");
+    await expect(importFlow.getByText("Repository import flow")).toBeVisible();
+    await expect(importFlow.getByText("Connect source", { exact: true })).toBeVisible();
+    await expect(importFlow.getByText("Validate access", { exact: true })).toBeVisible();
+    await expect(importFlow.getByText("Import or reuse", { exact: true })).toBeVisible();
+    await expect(importFlow.getByText("Open workspace", { exact: true })).toBeVisible();
   });
 });
 
@@ -47,6 +59,10 @@ test.describe("Evidence page", () => {
   test("evidence page renders with report commands", async ({ page }) => {
     await page.goto("/evidence");
     await expect(page.getByRole("heading", { name: "Evidence Dashboard" })).toBeVisible();
+    await expect(page.getByText("Operator readiness")).toBeVisible();
+    await expect(page.getByText("Release evidence checklist")).toBeVisible();
+    await expect(page.getByText("Benchmark comparison")).toBeVisible();
+    await expect(page.getByText("Hosted readiness")).toBeVisible();
     await expect(page.getByText("Available Reports")).toBeVisible();
     await expect(page.getByText("Self-Hosted Package")).toBeVisible();
     await expect(page.getByText("agent_guardrail.py")).toBeVisible();
@@ -90,6 +106,8 @@ test.describe("Demo workspace flow", () => {
 
     await page.goto("/workspaces/demo-workspace");
     await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
+    await expect(page.getByText("Active workspace")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to dashboard" })).toBeVisible();
 
     const sidebar = page.locator(".global-sidebar");
     await expect(sidebar).toBeVisible();

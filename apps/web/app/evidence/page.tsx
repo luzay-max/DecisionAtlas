@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 
 import { GlobalSidebar } from "../../components/navigation/global-sidebar";
-import { useI18n } from "../../components/i18n/language-provider";
+import { getGovernanceGuardrail } from "../../lib/api";
 
 interface EvidenceEntry {
   id: string;
@@ -14,26 +14,22 @@ interface EvidenceEntry {
 }
 
 export default function EvidencePage() {
-  const { messages } = useI18n();
   const [evidence, setEvidence] = useState<EvidenceEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadEvidence() {
       try {
-        const res = await fetch("http://localhost:8000/api/v1/runtime/guardrail?summary=true");
-        if (res.ok) {
-          const data = await res.json();
-          setEvidence([
-            {
-              id: "guardrail",
-              label: "Governance Guardrail Status",
-              status: data.status || "unknown",
-              generatedAt: new Date().toISOString(),
-              type: "guardrail",
-            },
-          ]);
-        }
+        const data = await getGovernanceGuardrail();
+        setEvidence([
+          {
+            id: "guardrail",
+            label: "Governance Guardrail Status",
+            status: data.agent_status || "unknown",
+            generatedAt: new Date().toISOString(),
+            type: "guardrail",
+          },
+        ]);
       } catch {
         setEvidence([]);
       } finally {
@@ -51,19 +47,56 @@ export default function EvidencePage() {
           <p className="eyebrow">Evidence &amp; Reports</p>
           <h1>Evidence Dashboard</h1>
           <p className="lede">
-            View release evidence, governance guardrail status, and audit reports.
+            Answer the operator question: can this build be released, demonstrated, or handed off with enough evidence?
           </p>
 
           <section className="stack">
+            <div className="card">
+              <p className="eyebrow">Operator readiness</p>
+              <h2>Release evidence checklist</h2>
+              <div className="flow-grid">
+                <div className="card flow-card">
+                  <h3>Guardrail summary</h3>
+                  <p className="muted">Governance status and required human decisions.</p>
+                  <span className="badge">{evidence.find((entry) => entry.type === "guardrail")?.status ?? "missing"}</span>
+                </div>
+                <div className="card flow-card">
+                  <h3>Benchmark comparison</h3>
+                  <p className="muted">Trend evidence for real repository quality across releases.</p>
+                  <span className="badge">collect evidence</span>
+                </div>
+                <div className="card flow-card">
+                  <h3>Hosted readiness</h3>
+                  <p className="muted">Operator-guided deployment, recovery, and demo evidence.</p>
+                  <span className="badge">collect evidence</span>
+                </div>
+                <div className="card flow-card">
+                  <h3>Release evidence</h3>
+                  <p className="muted">JSON/Markdown evidence package for release notes and handoff.</p>
+                  <span className="badge">collect evidence</span>
+                </div>
+              </div>
+            </div>
+
             {loading ? (
               <div className="card">
                 <p className="muted">Loading evidence...</p>
               </div>
             ) : evidence.length === 0 ? (
               <div className="card">
+                <p className="eyebrow">Missing evidence</p>
+                <h3>Generate readiness evidence before release</h3>
                 <p className="muted">
-                  No evidence entries found. Start the real stack and run governance checks to generate evidence.
+                  No evidence entries found. Start the real stack, run governance checks, benchmark comparison, and hosted readiness collection.
                 </p>
+                <div className="action-row">
+                  <a href="#evidence-commands" className="action-link action-link-primary">
+                    Show evidence commands
+                  </a>
+                  <a href="/settings" className="action-link">
+                    Check system settings
+                  </a>
+                </div>
               </div>
             ) : (
               evidence.map((entry) => (
@@ -81,7 +114,7 @@ export default function EvidencePage() {
               ))
             )}
 
-            <div className="card">
+            <div id="evidence-commands" className="card">
               <h3>Available Reports</h3>
               <p className="muted" style={{ marginBottom: "16px" }}>
                 Generate detailed reports using the CLI scripts:

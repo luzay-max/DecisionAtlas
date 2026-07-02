@@ -56,7 +56,7 @@ describe("WorkspaceDashboardContent", () => {
       />
     );
 
-    expect(screen.getByText("demo-workspace")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "demo-workspace" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Run import" })).not.toBeInTheDocument();
     expect(screen.getByText("Demo repo: encode/httpx")).toBeInTheDocument();
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();

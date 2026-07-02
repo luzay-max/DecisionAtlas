@@ -8,6 +8,7 @@ import { AccountScopeSurface } from "../auth/account-scope-surface";
 import { LanguageToggle } from "../i18n/language-toggle";
 import { useI18n } from "../i18n/language-provider";
 import { ThemeToggle } from "../theme/theme-toggle";
+import { useProductSession } from "../auth/session-provider";
 
 const GLOBAL_NAV_ITEMS = [
   { href: "/", labelKey: "home", icon: "◈" },
@@ -28,6 +29,7 @@ const WORKSPACE_NAV_ITEMS = [
 export function GlobalSidebar({ workspaceSlug }: { workspaceSlug?: string }) {
   const pathname = usePathname();
   const { messages } = useI18n();
+  const { session, canManageWorkspace } = useProductSession();
 
   const navLabelMap: Record<string, string> = {
     home: messages.nav.home,
@@ -58,6 +60,14 @@ export function GlobalSidebar({ workspaceSlug }: { workspaceSlug?: string }) {
     return `${path}?workspace=${encodeURIComponent(workspaceSlug)}`;
   }
 
+  const visibleGlobalNavItems = GLOBAL_NAV_ITEMS.filter((item) => {
+    if (!session) return true;
+    if (item.labelKey === "team" || item.labelKey === "settings") {
+      return canManageWorkspace;
+    }
+    return true;
+  });
+
   return (
     <aside className="global-sidebar" aria-label="Global navigation">
       <div className="sidebar-header">
@@ -69,7 +79,7 @@ export function GlobalSidebar({ workspaceSlug }: { workspaceSlug?: string }) {
 
       {workspaceSlug ? (
         <div className="sidebar-section">
-          <p className="sidebar-section-label">{workspaceSlug}</p>
+          <p className="sidebar-section-label">{workspaceSlug} workflow</p>
           <nav className="sidebar-nav">
             {WORKSPACE_NAV_ITEMS.map((item) => (
               <Link
@@ -86,9 +96,9 @@ export function GlobalSidebar({ workspaceSlug }: { workspaceSlug?: string }) {
       ) : null}
 
       <div className="sidebar-section">
-        <p className="sidebar-section-label">Navigation</p>
+        <p className="sidebar-section-label">Global operations</p>
         <nav className="sidebar-nav">
-          {GLOBAL_NAV_ITEMS.map((item) => (
+          {visibleGlobalNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

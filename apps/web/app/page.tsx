@@ -8,6 +8,8 @@ import { AdminOnly } from "../components/auth/role-gate";
 import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
 import { GitHubAppInstallationPanel } from "../components/github-app/github-app-installation-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
+import { RepositoryImportFlowGuide } from "../components/home/repository-import-flow-guide";
+import { RoleAwareWorkbench } from "../components/home/role-aware-workbench";
 import { GlobalSidebar } from "../components/navigation/global-sidebar";
 import { PrivateRepoAccessPanel } from "../components/private-access/private-repo-access-panel";
 import { useI18n } from "../components/i18n/language-provider";
@@ -101,11 +103,19 @@ export default function HomePage() {
               <Link href="/drift?workspace=demo-workspace" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
                 {messages.home.jumpDrift}
               </Link>
-              <Link href="/team" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
-                Team admin
+              <Link href="/evidence" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
+                Evidence Center
               </Link>
             </div>
           </div>
+        </div>
+
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "250ms", marginBottom: "48px" }}>
+          <RoleAwareWorkbench />
+        </div>
+
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "275ms", marginBottom: "48px" }}>
+          <RepositoryImportFlowGuide />
         </div>
 
         {/* Guided Demo Panel - Takes full width below bento grid */}
@@ -132,9 +142,9 @@ export default function HomePage() {
               <h2>{messages.liveAnalysis.title}</h2>
               <AdminOnly>
                 <LiveAnalysisForm />
+                <GitHubAppInstallationPanel />
+                <PrivateRepoAccessPanel />
               </AdminOnly>
-              <GitHubAppInstallationPanel />
-              <PrivateRepoAccessPanel />
             </section>
           </AdvancedControls>
         </div>

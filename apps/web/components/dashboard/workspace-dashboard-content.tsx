@@ -9,6 +9,7 @@ import { AdminOnly } from "../auth/role-gate";
 import { DemoImportButton } from "./demo-import-button";
 import { KpiStrip } from "./kpi-strip";
 import { GlobalSidebar } from "../navigation/global-sidebar";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 import { RecentAlerts } from "./recent-alerts";
 import { useI18n } from "../i18n/language-provider";
 import { ImportedReadinessCard } from "../imported/imported-readiness-card";
@@ -104,6 +105,11 @@ export function WorkspaceDashboardContent({
       <GlobalSidebar workspaceSlug={summary.workspace_slug} />
       <main className="page-with-sidebar">
         <section className="panel stack">
+        <WorkspaceContextBanner
+          workspaceSlug={summary.workspace_slug}
+          current="Workspace dashboard"
+          description="Start review, ask why, inspect timeline, or check drift from one workspace context."
+        />
         <div>
           <p className="eyebrow">{messages.dashboard.eyebrow}</p>
           <h1>{summary.workspace_slug}</h1>

@@ -71,7 +71,7 @@ describe("DriftPageContent", () => {
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
     expect(screen.getByText(/The guided demo is complete/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to dashboard" })).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "Back to dashboard" })[0]).toHaveAttribute(
       "href",
       "/workspaces/demo-workspace"
     );

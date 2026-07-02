@@ -9,6 +9,7 @@ import { GlobalSidebar } from "../navigation/global-sidebar";
 import { useI18n } from "../i18n/language-provider";
 import { AlertDetail } from "./alert-detail";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 
 export function DriftPageContent({
   drift,
@@ -43,6 +44,11 @@ export function DriftPageContent({
       <GlobalSidebar workspaceSlug={workspaceSlug} />
       <main className="page-with-sidebar">
         <section className="panel stack">
+          <WorkspaceContextBanner
+            workspaceSlug={workspaceSlug}
+            current="Drift monitoring"
+            description="Inspect alerts and return to review, search, timeline, or dashboard."
+          />
           <div>
             <p className="eyebrow">{messages.drift.eyebrow}</p>
             <h1>{messages.drift.title}</h1>

@@ -584,6 +584,82 @@ h2 {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.workspace-context-banner {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(124, 77, 255, 0.2);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(124, 77, 255, 0.08), rgba(59, 130, 246, 0.04)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.workspace-context-title {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.workspace-context-banner h2 {
+  margin-bottom: 4px;
+}
+
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.flow-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.role-workbench {
+  display: grid;
+  gap: 20px;
+}
+
+.repository-import-flow {
+  scroll-margin-top: 24px;
+}
+
+.import-flow-guide {
+  border-color: rgba(59, 130, 246, 0.18);
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(124, 77, 255, 0.04)),
+    var(--card-bg);
+}
+
+.flow-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flow-steps li {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.flow-steps li.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: rgba(124, 77, 255, 0.18);
+}
+
 .import-status-shell {
   gap: 12px;
 }

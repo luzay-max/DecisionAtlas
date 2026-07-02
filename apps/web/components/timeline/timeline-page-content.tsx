@@ -9,6 +9,7 @@ import { TimelineList } from "./timeline-list";
 import { DecisionTopologyMap } from "./decision-topology-map";
 import { TimelineResponse } from "../../lib/api";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 
 export function TimelinePageContent({
   timeline,
@@ -27,6 +28,11 @@ export function TimelinePageContent({
       <GlobalSidebar workspaceSlug={workspaceSlug} />
       <main className="page-with-sidebar">
         <section className="panel">
+          <WorkspaceContextBanner
+            workspaceSlug={workspaceSlug}
+            current="Decision timeline"
+            description="Review how decisions evolved and open any decision detail without losing workspace context."
+          />
           <p className="eyebrow">{messages.timeline.eyebrow}</p>
           <h1>{messages.timeline.title}</h1>
           <p className="lede">{messages.timeline.lede}</p>
