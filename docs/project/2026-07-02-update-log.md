@@ -47,3 +47,27 @@
 
 - Template collector output is intentionally `warning` until actual external startup, health, browser smoke, repository import, and readiness evidence are filled by an operator.
 - Customer-facing material must not claim external/customer-host install proof from package verification or local clean install rehearsal alone.
+
+## real-backup-restore-upgrade-rehearsal
+
+### Implemented
+
+- Added `scripts/ci/rehearse_real_backup_restore_upgrade.py` for scratch-only backup/restore/upgrade rehearsal evidence.
+- The real rehearsal creates scratch source state, writes a backup artifact, restores into a separate scratch target, and compares bounded SHA256/count summaries.
+- Added path-safety checks so source, backup, restore, and working paths must stay inside the owned scratch root.
+- Added redaction blocking for token-like values, `.env` secret assignments, credentialed database URLs, private keys, raw backup markers, and private repository snippets.
+- Integrated optional real continuity evidence into team handoff reports and Code Decision Audit reports.
+- Added the real continuity rehearsal script and evidence expectations to the self-hosted package builder/verifier.
+- Updated self-hosted continuity docs to distinguish non-destructive verifier evidence from real scratch rehearsal evidence.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_real_backup_restore_upgrade_rehearsal.py services/engine/tests/ci/test_team_handoff_report.py services/engine/tests/ci/test_code_decision_audit_report.py services/engine/tests/ci/test_self_hosted_package.py services/engine/tests/ci/test_backup_restore_upgrade_rehearsal.py -q`: 23 tests passed.
+- `python scripts\ci\rehearse_real_backup_restore_upgrade.py --label real-continuity-smoke --previous-version before --target-version after --post-upgrade-status pass --rollback-plan-status pass --output-json .tmp\real-backup-restore-upgrade-rehearsal.json --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md`: generated JSON/Markdown with `pass` status.
+- `openspec validate real-backup-restore-upgrade-rehearsal --type change --strict`: passed.
+- `openspec validate --all --strict`: 69 items passed, 0 failed.
+
+### Notes
+
+- This proves backup/restore mechanics only for explicit scratch state. It is not production customer data continuity proof.
+- Customer-facing continuity claims should distinguish non-destructive verifier evidence, real scratch rehearsal evidence, and external/customer-host evidence.

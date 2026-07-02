@@ -70,6 +70,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "scripts" / "ci" / "verify_pilot_commercial_proposal_kit.py").exists()
     assert (package_dir / "scripts" / "ci" / "verify_private_repo_pilot_evidence.py").exists()
     assert (package_dir / "scripts" / "ci" / "rehearse_backup_restore_upgrade.py").exists()
+    assert (package_dir / "scripts" / "ci" / "rehearse_real_backup_restore_upgrade.py").exists()
     assert (package_dir / "scripts" / "dev" / "start-real-stack.ps1").exists()
     assert (package_dir / "templates" / "private-repo-pilot-evidence.example.json").exists()
     assert (package_dir / "templates" / "backup-restore-upgrade-rehearsal.example.json").exists()
@@ -86,6 +87,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert "private_repo_pilot_evidence_template" in data["readiness_evidence_expectations"]
     assert "private_repo_pilot_evidence_verification_json" in data["readiness_evidence_expectations"]
     assert "backup_restore_upgrade_rehearsal_json" in data["readiness_evidence_expectations"]
+    assert "real_backup_restore_upgrade_rehearsal_json" in data["readiness_evidence_expectations"]
     assert "external_self_hosted_install_evidence_json" in data["readiness_evidence_expectations"]
     assert "commercial_sales_enablement_kit" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
@@ -124,6 +126,7 @@ def test_self_hosted_package_verifier_passes_valid_package() -> None:
         "readiness_history",
         "clean_self_hosted_install_rehearsal",
         "backup_restore_upgrade_rehearsal",
+        "real_backup_restore_upgrade_rehearsal",
         "external_self_hosted_install_evidence",
         "pilot_customer_delivery_kit",
         "pilot_commercial_proposal_kit",

@@ -208,6 +208,29 @@ def summarize_external_install(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_real_continuity(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    lanes = data.get("continuity_lanes") if isinstance(data.get("continuity_lanes"), list) else []
+    scope = data.get("scratch_scope") if isinstance(data.get("scratch_scope"), dict) else {}
+    integrity = data.get("integrity") if isinstance(data.get("integrity"), dict) else {}
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "scratch_only": scope.get("scratch_only"),
+        "restore_matches_source": integrity.get("restore_matches_source"),
+        "source_record_count": integrity.get("source_record_count"),
+        "restored_record_count": integrity.get("restored_record_count"),
+        "lane_statuses": {
+            str(lane.get("id")): _status(lane.get("status"))
+            for lane in lanes
+            if isinstance(lane, dict) and lane.get("id")
+        },
+        "blocker_count": len(data.get("blockers") if isinstance(data.get("blockers"), list) else []),
+        "redaction_finding_count": len(data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []),
+    }
+
+
 def summarize_license(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -239,6 +262,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("coverage_rehearsal", "Benchmark coverage rehearsal", args.coverage_rehearsal_json, summarize_benchmark_trend),
         ("team_handoff", "Team handoff", args.team_handoff_json, summarize_handoff),
         ("external_install_evidence", "External self-hosted install evidence", args.external_install_evidence_json, summarize_external_install),
+        ("real_continuity_rehearsal", "Real backup/restore/upgrade rehearsal", args.real_continuity_rehearsal_json, summarize_real_continuity),
         ("readiness_history", "Readiness history", args.readiness_history_index_json, lambda data: {"status": _status((data.get("entries") or [{}])[-1].get("status"), STATUS_NOT_PROVIDED), "entry_count": len(data.get("entries") or [])} if data else {"status": STATUS_NOT_PROVIDED}),
         ("license_support", "License/support boundary", args.license_support_json, summarize_license),
     ]
@@ -270,6 +294,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
             "This report summarizes bounded DecisionAtlas evidence; it is not a general security audit.",
             "Warnings, operator-guided lanes, known limitations, and omitted optional evidence are preserved.",
             "External/customer-host readiness is only claimed when sanitized external install evidence is supplied.",
+            "Tested backup/restore/upgrade readiness is only claimed when real scratch continuity rehearsal evidence is supplied.",
             "Do not attach secrets, raw private repository contents, raw model output, or unbounded local logs.",
         ],
     }
@@ -318,6 +343,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"- Benchmark regressions: `{trend.get('regressed', 0)}` trend regressions, `{coverage.get('regressed', 0)}` coverage rehearsal regressions.",
             f"- Operational blockers: `{trend.get('operationally_blocked', 0)}` trend blockers, `{coverage.get('operationally_blocked', 0)}` coverage blockers.",
             f"- External install evidence: `{(sections.get('external_install_evidence') if isinstance(sections.get('external_install_evidence'), dict) else {}).get('status', STATUS_NOT_PROVIDED)}`.",
+            f"- Real continuity evidence: `{(sections.get('real_continuity_rehearsal') if isinstance(sections.get('real_continuity_rehearsal'), dict) else {}).get('status', STATUS_NOT_PROVIDED)}`.",
             "- Non-clean states are disclosure items, not hidden passes.",
         ]
     )
@@ -387,6 +413,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--coverage-rehearsal-json")
     parser.add_argument("--team-handoff-json")
     parser.add_argument("--external-install-evidence-json")
+    parser.add_argument("--real-continuity-rehearsal-json")
     parser.add_argument("--readiness-history-index-json")
     parser.add_argument("--license-support-json")
     return parser.parse_args(argv)

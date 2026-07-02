@@ -69,6 +69,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/ci/pre-release.ps1",
     "scripts/ci/rehearse_clean_self_hosted_install.py",
     "scripts/ci/rehearse_backup_restore_upgrade.py",
+    "scripts/ci/rehearse_real_backup_restore_upgrade.py",
     "scripts/ci/collect_external_self_hosted_install_evidence.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/verify_pilot_commercial_proposal_kit.py",
@@ -127,6 +128,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Backup restore upgrade rehearsal",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Run rehearse_backup_restore_upgrade.py and attach continuity evidence before clean long-term self-hosted operation claims.",
+    },
+    {
+        "id": "real_backup_restore_upgrade_rehearsal",
+        "label": "Real backup restore upgrade rehearsal",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Run rehearse_real_backup_restore_upgrade.py in scratch mode before claiming tested backup/restore/upgrade mechanics.",
     },
     {
         "id": "external_self_hosted_install_evidence",
@@ -340,6 +347,7 @@ def verify_package(package_dir: Path, *, generated_at: str | None = None) -> dic
             "Package verification is offline and checks handoff structure only.",
             "Clean install rehearsal, runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
             "Package verification and local clean install rehearsal are not proof of installation on a customer-controlled host; attach external self-hosted install evidence for that claim.",
+            "Non-destructive continuity verifier evidence is not proof that backup/restore/upgrade mechanics were exercised; attach real scratch continuity rehearsal evidence for that claim.",
         ],
     }
 

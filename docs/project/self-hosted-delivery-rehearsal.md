@@ -53,6 +53,7 @@ Classify every lane explicitly:
 | Handoff summary | Yes | `docs/evidence/readiness/<entry>/summary.md` |
 | Code Decision Audit sample | Required for paid pilot/customer evaluation | `docs/evidence/readiness/<entry>/code-decision-audit-sample.md` |
 | Backup/restore/upgrade rehearsal | Required before clean long-term self-hosted continuity claims | `.tmp/backup-restore-upgrade-rehearsal.json` and Markdown |
+| Real backup/restore/upgrade rehearsal | Required before claiming tested backup/restore/upgrade mechanics | `.tmp/real-backup-restore-upgrade-rehearsal.json` and Markdown, or `not_provided` / `operator_guided` |
 
 ## Execution Flow
 
@@ -95,6 +96,12 @@ python scripts\ci\rehearse_backup_restore_upgrade.py `
   --input-json templates\backup-restore-upgrade-rehearsal.example.json `
   --output-json .tmp\backup-restore-upgrade-rehearsal.json `
   --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
+python scripts\ci\rehearse_real_backup_restore_upgrade.py `
+  --label real-continuity-rehearsal `
+  --previous-version "self-hosted-rehearsal-before-$Date" `
+  --target-version "self-hosted-rehearsal-$Date" `
+  --output-json .tmp\real-backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md
 python scripts\ci\collect_external_self_hosted_install_evidence.py `
   --input-json templates\external-self-hosted-install-evidence.example.json `
   --output-json .tmp\external-self-hosted-install-evidence.json `
@@ -165,6 +172,21 @@ python scripts\ci\collect_external_self_hosted_install_evidence.py `
 ```
 
 Attach the resulting JSON to clean install rehearsal, team handoff, and Code Decision Audit reports. If it is absent, preserve `not_provided` or `operator_guided` instead of describing local clean rehearsal as external proof.
+
+## Real Continuity Rehearsal
+
+The non-destructive backup/restore/upgrade verifier checks operator-submitted evidence. The real continuity rehearsal checks mechanics against isolated scratch state:
+
+```powershell
+python scripts\ci\rehearse_real_backup_restore_upgrade.py `
+  --label real-continuity-rehearsal `
+  --previous-version <previous> `
+  --target-version <target> `
+  --output-json .tmp\real-backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md
+```
+
+Use its JSON in handoff and audit reports before claiming tested backup/restore/upgrade readiness. If it is absent, keep continuity mechanics as `not_provided` or `operator_guided`.
 
 ## Public GitHub Import Rehearsal
 

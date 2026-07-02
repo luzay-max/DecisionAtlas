@@ -377,6 +377,31 @@ def summarize_external_install(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_real_continuity(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    lanes = data.get("continuity_lanes") if isinstance(data.get("continuity_lanes"), list) else []
+    scope = data.get("scratch_scope") if isinstance(data.get("scratch_scope"), dict) else {}
+    integrity = data.get("integrity") if isinstance(data.get("integrity"), dict) else {}
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "label": data.get("label"),
+        "scratch_only": scope.get("scratch_only"),
+        "restore_matches_source": integrity.get("restore_matches_source"),
+        "source_record_count": integrity.get("source_record_count"),
+        "restored_record_count": integrity.get("restored_record_count"),
+        "lane_statuses": {
+            str(lane.get("id")): _status(lane.get("status"))
+            for lane in lanes
+            if isinstance(lane, dict) and lane.get("id")
+        },
+        "blocker_count": len(data.get("blockers") if isinstance(data.get("blockers"), list) else []),
+        "redaction_finding_count": len(data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []),
+        "recommended_next_actions": sanitize(data.get("recommended_next_actions") or []),
+    }
+
+
 def summarize_audit(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED, "events": []}
@@ -424,6 +449,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("self_hosted_package", "Self-hosted package verification", args.package_verification_json, summarize_package),
         ("clean_install_rehearsal", "Clean self-hosted install rehearsal", args.clean_install_rehearsal_json, summarize_clean_install),
         ("external_install_evidence", "External self-hosted install evidence", args.external_install_evidence_json, summarize_external_install),
+        ("real_continuity_rehearsal", "Real backup/restore/upgrade rehearsal", args.real_continuity_rehearsal_json, summarize_real_continuity),
         ("license_support", "License and support boundary", args.license_support_json, summarize_license_support),
         ("public_github_import", "Public GitHub import rehearsal", args.public_github_import_json, summarize_public_import),
         ("review_audit", "Review audit history", args.audit_history_json, summarize_audit),
@@ -461,6 +487,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
             "This report is a bounded handoff snapshot, not a live dashboard.",
             "Missing, operator-guided, known-limitation, warning, and blocking states are preserved.",
             "Local clean install rehearsal is not customer-host proof unless external install evidence is supplied.",
+            "Non-destructive continuity verifier evidence is not real backup/restore/upgrade proof unless real continuity rehearsal evidence is supplied.",
             "Secrets, raw tokens, private repository dumps, and unbounded local-only paths are excluded.",
         ],
     }
@@ -591,6 +618,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--package-verification-json")
     parser.add_argument("--clean-install-rehearsal-json")
     parser.add_argument("--external-install-evidence-json")
+    parser.add_argument("--real-continuity-rehearsal-json")
     parser.add_argument("--license-support-json")
     parser.add_argument("--public-github-import-json")
     parser.add_argument("--audit-history-json")

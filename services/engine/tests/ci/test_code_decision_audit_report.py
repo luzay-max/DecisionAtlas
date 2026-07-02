@@ -54,6 +54,15 @@ def test_audit_report_summarizes_supplied_evidence_and_preserves_warning(tmp_pat
             "lanes": [{"id": "browser_smoke", "status": "operator_guided"}],
         },
     )
+    real_continuity = _write_json(
+        tmp_path / "real-continuity.json",
+        {
+            "status": "warning",
+            "scratch_scope": {"scratch_only": True},
+            "integrity": {"restore_matches_source": True, "source_record_count": 2, "restored_record_count": 2},
+            "continuity_lanes": [{"id": "post_upgrade_validation", "status": "operator_guided"}],
+        },
+    )
 
     args = audit.parse_args(
         [
@@ -73,6 +82,8 @@ def test_audit_report_summarizes_supplied_evidence_and_preserves_warning(tmp_pat
             str(handoff),
             "--external-install-evidence-json",
             str(external_install),
+            "--real-continuity-rehearsal-json",
+            str(real_continuity),
         ]
     )
     report = audit.build_report(args, tmp_path)
@@ -82,7 +93,9 @@ def test_audit_report_summarizes_supplied_evidence_and_preserves_warning(tmp_pat
     assert report["sections"]["benchmark_trend"]["covered_repositories"] == 1
     assert report["sections"]["team_handoff"]["repository_scope"]["repository"] == "browser-use/browser-use"
     assert report["sections"]["external_install_evidence"]["lane_statuses"]["browser_smoke"] == "operator_guided"
+    assert report["sections"]["real_continuity_rehearsal"]["restore_matches_source"] is True
     assert "External install evidence" in markdown
+    assert "Real continuity evidence" in markdown
     assert "Run or attach benchmark comparison rows." in markdown
     assert "Code Decision Audit Report" in markdown
 
@@ -98,6 +111,7 @@ def test_audit_report_records_omitted_evidence_as_not_provided(tmp_path: Path) -
     assert report["sources"]["release_evidence"]["warnings"] == ["source_not_provided"]
     assert report["sections"]["team_handoff"]["status"] == "not_provided"
     assert report["sections"]["external_install_evidence"]["status"] == "not_provided"
+    assert report["sections"]["real_continuity_rehearsal"]["status"] == "not_provided"
 
 
 def test_audit_report_redacts_secret_like_and_local_path_material(tmp_path: Path) -> None:
@@ -154,4 +168,27 @@ def test_audit_report_summarizes_blocked_external_evidence_without_secret_copy(t
     assert report["overall_status"] == "blocking"
     assert report["sections"]["external_install_evidence"]["status"] == "blocking"
     assert report["sections"]["external_install_evidence"]["redaction_finding_count"] == 1
+    assert "ghp_secret_token" not in text
+
+
+def test_audit_report_summarizes_blocked_real_continuity_without_secret_copy(tmp_path: Path) -> None:
+    audit = _load_module()
+    real_continuity = _write_json(
+        tmp_path / "real-continuity.json",
+        {
+            "status": "blocking",
+            "scratch_scope": {"scratch_only": True},
+            "integrity": {"restore_matches_source": False},
+            "continuity_lanes": [{"id": "redaction", "status": "blocking", "details": {"secret": "GITHUB_TOKEN=ghp_secret_token"}}],
+            "redaction_findings": [{"id": "token_like_value", "status": "blocking"}],
+        },
+    )
+    args = audit.parse_args(["--real-continuity-rehearsal-json", str(real_continuity)])
+
+    report = audit.build_report(args, tmp_path)
+    text = json.dumps(report, sort_keys=True)
+
+    assert report["overall_status"] == "blocking"
+    assert report["sections"]["real_continuity_rehearsal"]["status"] == "blocking"
+    assert report["sections"]["real_continuity_rehearsal"]["redaction_finding_count"] == 1
     assert "ghp_secret_token" not in text

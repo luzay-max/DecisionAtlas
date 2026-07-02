@@ -115,6 +115,22 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             "recommended_next_actions": ["Disclose operator-guided import."],
         },
     )
+    real_continuity = _write_json(
+        tmp_path / "real-continuity.json",
+        {
+            "status": "warning",
+            "label": "real-continuity",
+            "scratch_scope": {"scratch_only": True},
+            "integrity": {"restore_matches_source": True, "source_record_count": 2, "restored_record_count": 2},
+            "continuity_lanes": [
+                {"id": "restore_validation", "status": "pass"},
+                {"id": "post_upgrade_validation", "status": "operator_guided"},
+            ],
+            "blockers": [],
+            "redaction_findings": [],
+            "recommended_next_actions": ["Attach post-upgrade smoke."],
+        },
+    )
 
     args = report.parse_args(
         [
@@ -146,6 +162,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
             str(clean_install),
             "--external-install-evidence-json",
             str(external_install),
+            "--real-continuity-rehearsal-json",
+            str(real_continuity),
             "--audit-history-json",
             str(audit),
         ]
@@ -162,6 +180,8 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
     assert bundle["sections"]["clean_install_rehearsal"]["status"] == "warning"
     assert bundle["sections"]["external_install_evidence"]["status"] == "warning"
     assert bundle["sections"]["external_install_evidence"]["lane_statuses"]["repository_import"] == "operator_guided"
+    assert bundle["sections"]["real_continuity_rehearsal"]["restore_matches_source"] is True
+    assert bundle["sections"]["real_continuity_rehearsal"]["lane_statuses"]["post_upgrade_validation"] == "operator_guided"
     assert bundle["sections"]["clean_install_rehearsal"]["evidence_family_statuses"]["hosted_readiness"] == "operator_guided"
     assert bundle["sections"]["license_support"]["runtime_enforcement_enabled"] is False
     assert bundle["sections"]["review_audit"]["events"][0]["actor"] == "local-admin"
@@ -182,6 +202,7 @@ def test_team_handoff_report_preserves_missing_evidence(tmp_path: Path) -> None:
     assert bundle["sections"]["benchmark_trend"]["status"] == "not_provided"
     assert bundle["sections"]["clean_install_rehearsal"]["status"] == "not_provided"
     assert bundle["sections"]["external_install_evidence"]["status"] == "not_provided"
+    assert bundle["sections"]["real_continuity_rehearsal"]["status"] == "not_provided"
     assert bundle["sections"]["license_support"]["status"] == "not_provided"
     assert bundle["sources"]["release_evidence"]["warnings"] == ["source_not_provided"]
 
@@ -259,6 +280,30 @@ def test_team_handoff_report_summarizes_unsafe_external_evidence_without_copying
     assert bundle["overall_status"] == "blocking"
     assert bundle["sections"]["external_install_evidence"]["status"] == "blocking"
     assert bundle["sections"]["external_install_evidence"]["redaction_finding_count"] == 1
+    assert "sk-test-secret-password" not in text
+
+
+def test_team_handoff_report_summarizes_unsafe_real_continuity_without_copying_secret(tmp_path: Path) -> None:
+    report = _load_report_module()
+    real_continuity = _write_json(
+        tmp_path / "real-continuity.json",
+        {
+            "status": "blocking",
+            "scratch_scope": {"scratch_only": True},
+            "integrity": {"restore_matches_source": False},
+            "continuity_lanes": [{"id": "redaction", "status": "blocking", "details": {"secret": "sk-test-secret-password"}}],
+            "blockers": [{"id": "redaction", "status": "blocking"}],
+            "redaction_findings": [{"id": "token_like_value", "status": "blocking"}],
+        },
+    )
+    args = report.parse_args(["--real-continuity-rehearsal-json", str(real_continuity)])
+
+    bundle = report.build_report(args, tmp_path)
+    text = json.dumps(bundle, sort_keys=True)
+
+    assert bundle["overall_status"] == "blocking"
+    assert bundle["sections"]["real_continuity_rehearsal"]["status"] == "blocking"
+    assert bundle["sections"]["real_continuity_rehearsal"]["redaction_finding_count"] == 1
     assert "sk-test-secret-password" not in text
 
 
