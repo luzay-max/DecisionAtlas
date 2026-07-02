@@ -16,6 +16,7 @@ Use the team handoff report when a DecisionAtlas workspace is ready to be review
 - Readiness evidence history.
 - Self-hosted package verification.
 - Clean self-hosted install rehearsal evidence when provided.
+- External self-hosted install evidence when customer-host proof is claimed.
 - License/support boundary evidence when provided.
 - Public GitHub import rehearsal evidence when available.
 - Compact review/audit history when provided.
@@ -41,6 +42,7 @@ python scripts\ci\collect_team_handoff_report.py `
   --readiness-history-index-json docs\evidence\readiness\index.json `
   --package-verification-json .tmp\self-hosted-package-verification.json `
   --clean-install-rehearsal-json .tmp\clean-self-hosted-install-rehearsal.json `
+  --external-install-evidence-json .tmp\external-self-hosted-install-evidence.json `
   --license-support-json templates\self-hosted-entitlement.example.json `
   --public-github-import-json .tmp\public-github-import-rehearsal.json `
   --output-json .tmp\team-handoff-report.json `
@@ -64,6 +66,7 @@ The generator redacts token-like and secret-like values, but operators should st
 - Benchmark trend evidence is generated from the fixed repo pool or explicitly accepted as not provided.
 - Self-hosted package verification is generated.
 - Clean self-hosted install rehearsal is generated before claiming external operator trial readiness.
+- External self-hosted install evidence is generated before claiming a clean VM, another machine, or customer-controlled host validated the package.
 - License/support boundary evidence is attached for paid customer handoff or explicitly disclosed as missing/operator-guided.
 - Readiness evidence history has a durable entry when making a customer-ready claim.
 - The Markdown handoff report is readable by a human without a running backend.

@@ -186,6 +186,28 @@ def summarize_handoff(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def summarize_external_install(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": STATUS_NOT_PROVIDED}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    host = data.get("external_host") if isinstance(data.get("external_host"), dict) else {}
+    package = data.get("package_identity") if isinstance(data.get("package_identity"), dict) else {}
+    return {
+        "status": _status(data.get("status")),
+        "generated_at": data.get("generated_at"),
+        "host_class": sanitize(host.get("host_class")),
+        "customer_controlled": host.get("is_customer_controlled"),
+        "package_label": package.get("package_label"),
+        "version_label": package.get("version_label"),
+        "lane_statuses": {
+            str(lane.get("id")): _status(lane.get("status"))
+            for lane in lanes
+            if isinstance(lane, dict) and lane.get("id")
+        },
+        "redaction_finding_count": len(data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []),
+    }
+
+
 def summarize_license(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -216,6 +238,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         ("benchmark_trend", "Benchmark trend", args.benchmark_trend_json, summarize_benchmark_trend),
         ("coverage_rehearsal", "Benchmark coverage rehearsal", args.coverage_rehearsal_json, summarize_benchmark_trend),
         ("team_handoff", "Team handoff", args.team_handoff_json, summarize_handoff),
+        ("external_install_evidence", "External self-hosted install evidence", args.external_install_evidence_json, summarize_external_install),
         ("readiness_history", "Readiness history", args.readiness_history_index_json, lambda data: {"status": _status((data.get("entries") or [{}])[-1].get("status"), STATUS_NOT_PROVIDED), "entry_count": len(data.get("entries") or [])} if data else {"status": STATUS_NOT_PROVIDED}),
         ("license_support", "License/support boundary", args.license_support_json, summarize_license),
     ]
@@ -246,6 +269,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         "limitations": [
             "This report summarizes bounded DecisionAtlas evidence; it is not a general security audit.",
             "Warnings, operator-guided lanes, known limitations, and omitted optional evidence are preserved.",
+            "External/customer-host readiness is only claimed when sanitized external install evidence is supplied.",
             "Do not attach secrets, raw private repository contents, raw model output, or unbounded local logs.",
         ],
     }
@@ -293,6 +317,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"- Benchmark coverage: `{coverage.get('covered_repositories', 0)}/{coverage.get('repositories', 0)}` repositories covered.",
             f"- Benchmark regressions: `{trend.get('regressed', 0)}` trend regressions, `{coverage.get('regressed', 0)}` coverage rehearsal regressions.",
             f"- Operational blockers: `{trend.get('operationally_blocked', 0)}` trend blockers, `{coverage.get('operationally_blocked', 0)}` coverage blockers.",
+            f"- External install evidence: `{(sections.get('external_install_evidence') if isinstance(sections.get('external_install_evidence'), dict) else {}).get('status', STATUS_NOT_PROVIDED)}`.",
             "- Non-clean states are disclosure items, not hidden passes.",
         ]
     )
@@ -361,6 +386,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmark-trend-json")
     parser.add_argument("--coverage-rehearsal-json")
     parser.add_argument("--team-handoff-json")
+    parser.add_argument("--external-install-evidence-json")
     parser.add_argument("--readiness-history-index-json")
     parser.add_argument("--license-support-json")
     return parser.parse_args(argv)

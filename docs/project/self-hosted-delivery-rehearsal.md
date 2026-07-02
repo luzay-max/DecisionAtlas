@@ -40,6 +40,7 @@ Classify every lane explicitly:
 | Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
 | Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
+| External self-hosted install evidence | Required before customer-host install claims | `.tmp/external-self-hosted-install-evidence.json` and Markdown, or `not_provided` / `operator_guided` |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
 | Governance guardrail | Yes | `.tmp/agent-guardrail.json` and summary text |
 | Canonical pre-release | Yes, or explicit blocker/substitute | `.tmp/pre-release-rehearsal-YYYY-MM-DD.log` and status |
@@ -71,6 +72,7 @@ Classify every lane explicitly:
 14. Archive selected artifacts into readiness evidence history.
 15. Prepare the rehearsal summary and Code Decision Audit handoff.
 16. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
+17. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
 
 ## Command Template
 
@@ -93,6 +95,10 @@ python scripts\ci\rehearse_backup_restore_upgrade.py `
   --input-json templates\backup-restore-upgrade-rehearsal.example.json `
   --output-json .tmp\backup-restore-upgrade-rehearsal.json `
   --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
+python scripts\ci\collect_external_self_hosted_install_evidence.py `
+  --input-json templates\external-self-hosted-install-evidence.example.json `
+  --output-json .tmp\external-self-hosted-install-evidence.json `
+  --output-markdown .tmp\external-self-hosted-install-evidence.md
 python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.json
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"
@@ -143,7 +149,22 @@ Use the report as a bounded statement:
 - `warning` means package structure may be usable but evidence is missing, operator-guided, known-limited, or non-clean.
 - `blocking` means a required package asset, package input, or hard evidence input must be fixed before external operator trial.
 
-Do not claim a clean external operator trial if this evidence is missing.
+Do not claim a clean external operator trial if this evidence is missing. Do not claim customer-host install proof unless external self-hosted install evidence is supplied and blocking lanes are clear.
+
+## External Install Evidence
+
+External install evidence records what happened on a clean VM, another machine, or customer-controlled host. It is generated from an explicit operator-filled JSON file and does not synthesize pass evidence from the local developer machine.
+
+Use it when customer-facing material needs to say the package was tried outside the development workstation:
+
+```powershell
+python scripts\ci\collect_external_self_hosted_install_evidence.py `
+  --input-json templates\external-self-hosted-install-evidence.example.json `
+  --output-json .tmp\external-self-hosted-install-evidence.json `
+  --output-markdown .tmp\external-self-hosted-install-evidence.md
+```
+
+Attach the resulting JSON to clean install rehearsal, team handoff, and Code Decision Audit reports. If it is absent, preserve `not_provided` or `operator_guided` instead of describing local clean rehearsal as external proof.
 
 ## Public GitHub Import Rehearsal
 

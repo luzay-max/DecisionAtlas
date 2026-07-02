@@ -40,6 +40,7 @@ REQUIRED_PACKAGE_FILES = [
     "templates/self-hosted-entitlement.example.json",
     "templates/private-repo-pilot-evidence.example.json",
     "templates/backup-restore-upgrade-rehearsal.example.json",
+    "templates/external-self-hosted-install-evidence.example.json",
     "docs/project/self-hosted-package-guide.md",
     "docs/project/self-hosted-operations-runbook.md",
     "docs/project/self-hosted-readiness-checklist.md",
@@ -60,6 +61,7 @@ REQUIRED_PACKAGE_FILES = [
     "docs/project/private-repo-pilot-evidence-template.md",
     "docs/project/private-repo-pilot-evidence-example.md",
     "docs/project/backup-restore-upgrade-rehearsal.md",
+    "docs/project/external-self-hosted-install-evidence.md",
     "docs/project/self-hosted-license-and-support-boundary.md",
     "scripts/dev/start-real-stack.ps1",
     "scripts/dev/start-real-stack.bat",
@@ -67,6 +69,7 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/ci/pre-release.ps1",
     "scripts/ci/rehearse_clean_self_hosted_install.py",
     "scripts/ci/rehearse_backup_restore_upgrade.py",
+    "scripts/ci/collect_external_self_hosted_install_evidence.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/verify_pilot_commercial_proposal_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
@@ -124,6 +127,12 @@ OPTIONAL_RUNTIME_LANES = [
         "label": "Backup restore upgrade rehearsal",
         "status": STATUS_NOT_PROVIDED,
         "reason": "Run rehearse_backup_restore_upgrade.py and attach continuity evidence before clean long-term self-hosted operation claims.",
+    },
+    {
+        "id": "external_self_hosted_install_evidence",
+        "label": "External self-hosted install evidence",
+        "status": STATUS_NOT_PROVIDED,
+        "reason": "Run collect_external_self_hosted_install_evidence.py with operator-filled evidence from a clean VM or customer-controlled host before claiming customer-host proof.",
     },
     {
         "id": "pilot_customer_delivery_kit",
@@ -330,6 +339,7 @@ def verify_package(package_dir: Path, *, generated_at: str | None = None) -> dic
         "notes": [
             "Package verification is offline and checks handoff structure only.",
             "Clean install rehearsal, runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
+            "Package verification and local clean install rehearsal are not proof of installation on a customer-controlled host; attach external self-hosted install evidence for that claim.",
         ],
     }
 
