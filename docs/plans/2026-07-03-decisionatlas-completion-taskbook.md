@@ -29,12 +29,12 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断 | 需要把多仓库诊断纳入一键 release rehearsal，并持续积累多轮趋势 | `release-rehearsal-one-command-evidence` |
 | 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用 release rehearsal 固化证据入口 | `release-rehearsal-one-command-evidence` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
-| readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档 | 需要每次 release 自动使用，不再只手动 | `release-rehearsal-one-command-evidence` |
+| readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | `review-audit-ux-hardening` |
 | self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs | 外部客户机器证据仍应继续积累 | `external-customer-host-rehearsal-v2` |
 | 备份/恢复/升级 | complete | backup/restore/upgrade rehearsal、real scratch rehearsal | 还没有真实生产数据迁移承诺；应保持边界 | 后续按客户需求扩展 |
 | 团队账号和权限 | partial | team self-hosted rehearsal、browser role checks、workspace member specs | 细粒度审阅权限和审计 UI 可继续增强 | `review-audit-ux-hardening` |
 | 登录/主账号/子账号路线 | partial | login、team account、role separation | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | `review-audit-ux-hardening` |
-| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history | 需要一键 release rehearsal 汇总入口 | `release-rehearsal-one-command-evidence` |
+| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence` | 后续需要把 warning lane 逐步降噪，并增强审阅审计 UI | `review-audit-ux-hardening` |
 | Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier | 还需更多外部机器和失败恢复证据 | `external-customer-host-rehearsal-v2` |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
@@ -77,7 +77,7 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 - `.tmp/multi-repo-live-diagnosis.json/md` smoke evidence。
 - `docs/project/multi-repo-live-diagnosis-rotation.md`。
 
-### P2：一键 release rehearsal 汇总入口
+### P2：一键 release rehearsal 汇总入口（本轮完成）
 
 建议 change：`release-rehearsal-one-command-evidence`
 
@@ -85,12 +85,15 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 
 - 把 guardrail、release evidence、hosted readiness、benchmark comparison、external install、continuity、handoff、audit、browser rehearsal 收进一个 operator 命令。
 - 输出 `.tmp` 证据和可归档 readiness history。
+- 支持默认发现已有证据、显式路径输入、可选 live multi-repo diagnosis。
+- 保留 warning/operator-guided/not-provided，不伪装成 clean pass。
 
 验收证据：
 
-- 一个命令生成完整 evidence bundle。
-- 缺失项显示 `not_provided/operator_guided/warning`。
-- readiness history 可归档。
+- `scripts/ci/collect_release_rehearsal_evidence.py`。
+- `services/engine/tests/ci/test_release_rehearsal_evidence.py`。
+- `.tmp/release-rehearsal-evidence.json/md` smoke evidence。
+- `docs/evidence/readiness/*release-rehearsal-one-command/` durable archive。
 
 ### P3：审阅与审计 UX 加固
 
@@ -147,8 +150,7 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 
 ## 近期执行顺序
 
-1. `release-rehearsal-one-command-evidence`
-2. `review-audit-ux-hardening`
-3. `external-customer-host-rehearsal-v2`
+1. `review-audit-ux-hardening`
+2. `external-customer-host-rehearsal-v2`
 
-做到下一项后，项目就更接近“完整链路”：不是只有功能，而是有持续的真实仓库、浏览器、治理、发布、交付证据的一键入口。
+下一步重点从“证据能生成”转向“人能顺畅审阅”：让 reviewer/viewer/admin 的权限、审阅历史、下一步动作更清楚。

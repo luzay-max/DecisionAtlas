@@ -109,3 +109,14 @@ Readiness evidence history trend output SHALL include compact full delivery read
 #### Scenario: Trend is rendered
 - **WHEN** trend Markdown is generated from entries containing full delivery evidence families
 - **THEN** the trend SHALL expose release, hosted walkthrough, benchmark regressions, external install status, real continuity status, handoff status, audit status, warnings, operator-guided count, and not-provided count.
+
+### Requirement: Readiness history can archive one-command rehearsal bundles
+Readiness evidence history SHALL support release rehearsal bundle outputs as dated/versioned evidence.
+
+#### Scenario: Rehearsal bundle is supplied
+- **WHEN** a release rehearsal JSON path is supplied to readiness history archival
+- **THEN** the archive SHALL preserve the bundle status, generated paths, and lane summaries.
+
+#### Scenario: History archival is skipped
+- **WHEN** the operator does not request archival
+- **THEN** the rehearsal SHALL still write `.tmp` JSON and Markdown and mark history as `operator_guided`.

@@ -82,3 +82,27 @@
 
 - This is diagnosis rotation evidence, not benchmark trend evidence. It answers whether selected real repositories can move through setup and core-loop diagnosis.
 - Non-clean states such as `provider_failure`, `local_stack_failure`, `operator_guided`, `warning`, and `not_provided` are preserved instead of being hidden.
+
+## release-rehearsal-one-command-evidence
+
+### Implemented
+
+- Added `scripts/ci/collect_release_rehearsal_evidence.py` as the one-command release rehearsal bundle collector.
+- The collector discovers existing `.tmp` evidence by default and supports explicit paths for release evidence, hosted readiness, benchmark trend/comparison, multi-repo diagnosis, guardrail, and readiness history.
+- Added opt-in `--run-multi-repo-diagnosis` to refresh real public repository diagnosis before bundling.
+- Added `--archive-history` to copy the generated bundle into durable readiness history under `docs/evidence/readiness/`.
+- Added `services/engine/tests/ci/test_release_rehearsal_evidence.py`.
+- Added `docs/project/release-rehearsal-one-command-evidence.md` and synchronized OpenSpec specs.
+- Updated the completion taskbook so the next priority is `review-audit-ux-hardening`.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_release_rehearsal_evidence.py -q`: targeted tests pass.
+- `python scripts\ci\collect_release_rehearsal_evidence.py --archive-history --output-json .tmp\release-rehearsal-evidence.json --output-markdown .tmp\release-rehearsal-evidence.md`: smoke rehearsal generates `.tmp` JSON/Markdown and readiness-history archive.
+- `openspec validate release-rehearsal-one-command-evidence --type change --strict`: passed.
+- `openspec validate --all --strict`: passed after synchronization.
+
+### Notes
+
+- The one-command bundle does not replace individual lane collectors. It makes the release handoff repeatable and shows missing or non-clean lanes in one place.
+- Current smoke is expected to stay `warning` while optional lanes are missing or non-clean.

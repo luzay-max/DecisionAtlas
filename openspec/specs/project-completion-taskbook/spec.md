@@ -54,3 +54,14 @@ The completion taskbook SHALL update real GitHub repository validation status wh
 #### Scenario: Multi-repo diagnosis remains warning
 - **WHEN** selected repositories produce warning or operator-guided results
 - **THEN** the taskbook SHALL keep full product completion open and list the next quality or release-evidence step.
+
+### Requirement: Completion taskbook reflects one-command release rehearsal
+The completion taskbook SHALL update release evidence status when the one-command release rehearsal exists.
+
+#### Scenario: One-command rehearsal is implemented
+- **WHEN** the release rehearsal change is archived
+- **THEN** the taskbook SHALL cite the script, tests, smoke output, and remaining evidence boundary.
+
+#### Scenario: Release rehearsal remains warning
+- **WHEN** the rehearsal produces warning because optional lanes are missing or non-clean
+- **THEN** the taskbook SHALL keep full product completion open and list the next hardening item.
