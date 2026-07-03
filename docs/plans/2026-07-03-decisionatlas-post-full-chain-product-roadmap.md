@@ -34,7 +34,7 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 
 建议 OpenSpec：
 
-- `real-external-host-trial-evidence`
+- `real-external-host-trial-evidence`（已完成证据门槛；真实外部机器 proof 仍需外部环境执行）
 
 要做：
 
@@ -49,6 +49,7 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 - customer-host v2 不再只是 example template。
 - full-chain 仍可 warning，但必须明确 warning 来源。
 - readiness history 有真实外部环境条目。
+- real external host trial evidence 不再是 `template_or_placeholder`。
 
 ## 第二阶段：warning lane 降噪
 
@@ -137,10 +138,10 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 
 ## 近期执行顺序
 
-1. `real-external-host-trial-evidence`
-2. `reduce-random-repo-import-warning-lanes`
-3. `improve-real-repo-core-loop-quality`
-4. `pilot-customer-trial-package`
+1. `real-external-host-trial-evidence`（已完成门槛）
+2. `pilot-customer-trial-package`
+3. `reduce-random-repo-import-warning-lanes`
+4. `improve-real-repo-core-loop-quality`
 5. 按真实客户反馈决定是否做协作深化或 hosted 路线
 
 ## 当前不应声明完成的事项

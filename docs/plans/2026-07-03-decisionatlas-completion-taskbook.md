@@ -37,7 +37,8 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening、customer-host v2 evidence、full-chain random repo release evidence | 后续需要把 warning lane 逐步降噪，并用真实外部主机替换示例模板 | 客户试用时持续归档 |
 | Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier、customer-host v2 template/evidence | 还需更多外部机器和失败恢复证据；当前 smoke 仍是示例模板 + 本机证据 | 客户试用时持续归档 |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
-| 后续产品路线 | complete | `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md` | 路线执行仍依赖真实外部试用证据 | `real-external-host-trial-evidence` |
+| 后续产品路线 | complete | `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md` | 路线执行仍依赖真实外部试用证据 | `pilot-customer-trial-package` |
+| 真实外部主机试用证据门槛 | complete | `real-external-host-trial-evidence` collector、readiness history family、smoke archive | 当前 smoke 仍是示例模板 warning；真实客户/外部机器 proof 需要外部环境填写模板 | `pilot-customer-trial-package` |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
 
 ## 当前最重要的下一批任务
@@ -173,6 +174,29 @@ change：`post-full-chain-product-roadmap`
 - `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md`。
 - 下一批候选 OpenSpec：`real-external-host-trial-evidence`、`reduce-random-repo-import-warning-lanes`、`improve-real-repo-core-loop-quality`、`pilot-customer-trial-package`。
 
+### P7：真实外部主机试用证据门槛（本轮完成）
+
+change：`real-external-host-trial-evidence`
+
+目标：
+
+- 防止示例模板、本机 smoke、placeholder 值被误认为真实客户控制主机 clean pass。
+- 把 customer-host v2、full-chain random repo release、sanitized host input 汇总成一个更严格的 external trial gate。
+- 支持 readiness history 归档和趋势对比。
+
+验收证据：
+
+- `scripts/ci/collect_real_external_host_trial_evidence.py`。
+- `.tmp/real-external-host-trial-evidence.json/md`。
+- `docs/evidence/readiness/2026-07-03-real-external-host-trial-evidence-smoke/`。
+- `services/engine/tests/ci/test_real_external_host_trial_evidence.py` 与 readiness history 测试。
+- 当前 smoke 状态：`warning`，host proof level：`template_or_placeholder`，0 blocking。
+
+边界：
+
+- 该 change 完成的是“真实外部主机证据验收门槛”，不是“真实客户机器已经 clean pass”。
+- 下一次需要在非本人机器、客户 VM、朋友机器或独立服务器上填写 sanitized host input，再重新归档。
+
 ## 当前不应该优先做
 
 - billing。
@@ -201,9 +225,12 @@ change：`post-full-chain-product-roadmap`
 
 1. `review-audit-ux-hardening`
 2. `external-customer-host-rehearsal-v2`
+3. `full-chain-random-repo-release-rehearsal`
+4. `post-full-chain-product-roadmap`
+5. `real-external-host-trial-evidence`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal` 与 `post-full-chain-product-roadmap` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap` 与 `real-external-host-trial-evidence` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
 
-- 用真实非本人机器替换示例 customer-host 模板并归档。
+- 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。

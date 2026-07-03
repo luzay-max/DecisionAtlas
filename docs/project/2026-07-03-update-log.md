@@ -194,3 +194,28 @@
 
 - The recommended next change is `real-external-host-trial-evidence`.
 - Billing, Marketplace, hosted multi-tenancy, and self-service OAuth remain explicitly deferred.
+
+## real-external-host-trial-evidence
+
+### Implemented
+
+- Added `scripts/ci/collect_real_external_host_trial_evidence.py`.
+- Added a stricter external/customer-host evidence gate that composes sanitized host input, customer-host v2 evidence, and full-chain random repo release evidence.
+- Added placeholder/template detection for values such as `fill-me`, `customer-or-operator-name`, `optional`, sample/template markers, and missing real host facts.
+- Added redaction blocking for obvious tokens, secret assignments, private keys, raw private repository snippets, and raw backup markers.
+- Extended readiness history with `real_external_host_trial_evidence` as a durable family in archive, index, trend, counts, and CLI inputs.
+- Added `services/engine/tests/ci/test_real_external_host_trial_evidence.py` and expanded readiness history tests.
+- Added `docs/project/real-external-host-trial-evidence.md`.
+- Generated `.tmp/real-external-host-trial-evidence.json` and `.tmp/real-external-host-trial-evidence.md`.
+- Archived smoke evidence to `docs/evidence/readiness/2026-07-03-real-external-host-trial-evidence-smoke/`.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_real_external_host_trial_evidence.py services/engine/tests/ci/test_readiness_evidence_history.py -q`: 10 tests passed.
+- `python scripts\ci\collect_real_external_host_trial_evidence.py ... --archive-history`: generated JSON/Markdown and readiness-history archive with status `warning`.
+
+### Notes
+
+- Current smoke intentionally uses `templates/external-customer-host-rehearsal-v2.example.json`, so status remains `warning` and host proof level is `template_or_placeholder`.
+- This is a quality gate, not a fake pass. It prevents example/local evidence from being mistaken for real customer-controlled host validation.
+- The remaining proof requires a real non-developer or customer-controlled machine to fill sanitized host observations and rerun this collector.
