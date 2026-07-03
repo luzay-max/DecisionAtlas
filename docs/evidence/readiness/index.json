@@ -107,9 +107,35 @@
       "status": "warning",
       "version_label": "v2-smoke",
       "warnings": []
+    },
+    {
+      "commit": "850af2d",
+      "counts": {
+        "benchmark_improvements": 0,
+        "benchmark_operational_blockers": 0,
+        "benchmark_regressions": 0,
+        "blockers": 0,
+        "external_customer_host_v2_blockers": 0,
+        "external_install_blockers": 0,
+        "full_chain_random_repo_release_blockers": 0,
+        "known_limitations": 0,
+        "not_provided": 0,
+        "operator_guided": 0,
+        "real_continuity_blockers": 0,
+        "warnings": 4
+      },
+      "created_at": "2026-07-03T06:35:28.000989+00:00",
+      "entry_id": "2026-07-03-full-chain-random-repo-release-rehearsal-smoke",
+      "family_statuses": {
+        "full_chain_random_repo_release_rehearsal": "warning"
+      },
+      "label": "full-chain-random-repo-release-rehearsal-smoke",
+      "status": "warning",
+      "version_label": "full-chain-smoke",
+      "warnings": []
     }
   ],
-  "generated_at": "2026-07-03T06:27:54.450965+00:00",
+  "generated_at": "2026-07-03T06:35:28.011740+00:00",
   "history_root": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\docs\\evidence\\readiness",
   "schema_version": 1
 }

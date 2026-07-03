@@ -151,3 +151,28 @@
 
 - Current smoke uses the example template and existing local evidence, so it is evidence that the v2 customer-host rehearsal pipeline works.
 - It is not a claim that a real customer-controlled production host has passed clean validation. Real customer-host proof requires replacing the template with observations from an actual external machine.
+
+## full-chain-random-repo-release-rehearsal
+
+### Implemented
+
+- Added `scripts/ci/collect_full_chain_random_repo_release_rehearsal.py`.
+- Extended readiness history with `full_chain_random_repo_release_rehearsal` as a durable evidence family.
+- Added `services/engine/tests/ci/test_full_chain_random_repo_release_rehearsal.py` and expanded readiness history tests.
+- Added `docs/project/full-chain-random-repo-release-rehearsal.md`.
+- Ran random real public GitHub repository diagnosis through release rehearsal with seed `7303`.
+- Generated `.tmp/full-chain-random-repo-release-rehearsal.json` and `.tmp/full-chain-random-repo-release-rehearsal.md`.
+- Archived full-chain evidence to `docs/evidence/readiness/2026-07-03-full-chain-random-repo-release-rehearsal-smoke/`.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_full_chain_random_repo_release_rehearsal.py services/engine/tests/ci/test_readiness_evidence_history.py -q`: 8 tests passed.
+- `python scripts\ci\collect_release_rehearsal_evidence.py --run-multi-repo-diagnosis --random-count 2 --random-seed 7303 ...`: selected `n8n` and `rich`, generated warning evidence with no blocking lanes.
+- `PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm --filter @decisionatlas/web exec playwright test team-self-hosted-rehearsal.spec.ts --config playwright.config.ts --reporter=line`: 1 browser test passed.
+- `python scripts\ci\collect_full_chain_random_repo_release_rehearsal.py ... --archive-history`: generated JSON/Markdown and readiness-history archive with status `warning`.
+
+### Notes
+
+- Current random real repositories were `n8n-io/n8n` and `Textualize/rich`.
+- The top-level bundle has 5 lanes: random repo diagnosis, release rehearsal, customer-host v2, browser rehearsal, and readiness history.
+- Current state is `warning` with 0 blocking lanes. This is appropriate because live repo and customer-host lanes still preserve non-clean evidence instead of being treated as clean pass.

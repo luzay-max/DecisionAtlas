@@ -131,6 +131,15 @@ def test_readiness_history_archives_full_delivery_evidence_families(tmp_path: Pa
             "lanes": [{"id": "release_rehearsal", "status": "warning"}],
         },
     )
+    full_chain_path = _write_json(
+        tmp_path / "full-chain.json",
+        {
+            "status": "warning",
+            "selected_repo_ids": ["httpx", "fastapi"],
+            "summary": {"pass": 2, "warning": 3, "blocking": 0, "operator_guided": 1, "not_provided": 0},
+            "lanes": [{"id": "multi_repo_diagnosis", "status": "warning"}],
+        },
+    )
     external_md = tmp_path / "external.md"
     external_md.write_text("# External\n", encoding="utf-8")
     continuity_md = tmp_path / "continuity.md"
@@ -143,6 +152,7 @@ def test_readiness_history_archives_full_delivery_evidence_families(tmp_path: Pa
             history.EvidenceSource(history.FAMILY_BENCHMARK, benchmark_path, None),
             history.EvidenceSource(history.FAMILY_EXTERNAL_INSTALL, external_path, external_md),
             history.EvidenceSource(history.FAMILY_EXTERNAL_CUSTOMER_HOST_V2, customer_host_path, None),
+            history.EvidenceSource(history.FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, full_chain_path, None),
             history.EvidenceSource(history.FAMILY_REAL_CONTINUITY, continuity_path, continuity_md),
             history.EvidenceSource(history.FAMILY_TEAM_HANDOFF, handoff_path, None),
             history.EvidenceSource(history.FAMILY_CODE_DECISION_AUDIT, audit_path, None),
@@ -160,14 +170,18 @@ def test_readiness_history_archives_full_delivery_evidence_families(tmp_path: Pa
     assert entry["families"]["external_install_evidence"]["operator_guided_count"] == 1
     assert entry["families"]["external_customer_host_rehearsal_v2"]["host_proof_level"] == "customer_controlled_with_browser_smoke"
     assert entry["families"]["external_customer_host_rehearsal_v2"]["operator_guided_count"] == 1
+    assert entry["families"]["full_chain_random_repo_release_rehearsal"]["selected_repo_ids"] == ["httpx", "fastapi"]
+    assert entry["families"]["full_chain_random_repo_release_rehearsal"]["operator_guided_count"] == 1
     assert entry["families"]["real_continuity_rehearsal"]["restore_matches_source"] is True
     assert entry["families"]["team_handoff"]["section_statuses"]["external_install_evidence"] == "warning"
     assert entry["families"]["code_decision_audit"]["recommended_tier"] == "Team Self-hosted"
     assert (tmp_path / "history" / "2026-07-02-full-delivery" / "external_install_evidence.json").exists()
     assert (tmp_path / "history" / "2026-07-02-full-delivery" / "external_customer_host_rehearsal_v2.json").exists()
+    assert (tmp_path / "history" / "2026-07-02-full-delivery" / "full_chain_random_repo_release_rehearsal.json").exists()
     assert (tmp_path / "history" / "2026-07-02-full-delivery" / "real_continuity_rehearsal.md").exists()
     assert "External install" in index_markdown
     assert "Customer host v2" in index_markdown
+    assert "Full chain" in index_markdown
     assert "Real continuity" in index_markdown
     assert "Team Self-hosted" not in index_markdown
     assert "warning" in trend_markdown
@@ -182,6 +196,7 @@ def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scann
             history.EvidenceSource(history.FAMILY_BENCHMARK, None, None),
             history.EvidenceSource(history.FAMILY_EXTERNAL_INSTALL, None, None),
             history.EvidenceSource(history.FAMILY_EXTERNAL_CUSTOMER_HOST_V2, None, None),
+            history.EvidenceSource(history.FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, None, None),
             history.EvidenceSource(history.FAMILY_REAL_CONTINUITY, None, None),
             history.EvidenceSource(history.FAMILY_TEAM_HANDOFF, None, None),
             history.EvidenceSource(history.FAMILY_CODE_DECISION_AUDIT, None, None),
@@ -196,6 +211,7 @@ def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scann
     assert entry["families"]["benchmark_comparison"]["status"] == "not_provided"
     assert entry["families"]["external_install_evidence"]["status"] == "not_provided"
     assert entry["families"]["external_customer_host_rehearsal_v2"]["status"] == "not_provided"
+    assert entry["families"]["full_chain_random_repo_release_rehearsal"]["status"] == "not_provided"
     assert entry["families"]["real_continuity_rehearsal"]["status"] == "not_provided"
     assert entry["families"]["team_handoff"]["status"] == "not_provided"
     assert entry["families"]["code_decision_audit"]["status"] == "not_provided"
@@ -263,6 +279,7 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
             "benchmark_comparison": {"status": "passed"},
             "external_install_evidence": {"status": "pass"},
             "external_customer_host_rehearsal_v2": {"status": "pass"},
+            "full_chain_random_repo_release_rehearsal": {"status": "pass"},
             "real_continuity_rehearsal": {"status": "pass"},
             "team_handoff": {"status": "pass"},
             "code_decision_audit": {"status": "pass"},
@@ -278,6 +295,7 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
             "benchmark_comparison": {"status": "warning"},
             "external_install_evidence": {"status": "warning"},
             "external_customer_host_rehearsal_v2": {"status": "blocking"},
+            "full_chain_random_repo_release_rehearsal": {"status": "blocking"},
             "real_continuity_rehearsal": {"status": "blocking"},
             "team_handoff": {"status": "warning"},
             "code_decision_audit": {"status": "warning"},
@@ -286,6 +304,7 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
             "benchmark_regressions": 1,
             "benchmark_operational_blockers": 1,
             "external_customer_host_v2_blockers": 1,
+            "full_chain_random_repo_release_blockers": 1,
             "real_continuity_blockers": 1,
             "warnings": 2,
             "operator_guided": 1,
@@ -300,5 +319,7 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
     assert "Real continuity" in markdown
     assert "Customer host v2" in markdown
     assert "Resolve customer-host v2 blockers" in markdown
+    assert "Full chain" in markdown
+    assert "Resolve full-chain random repo release rehearsal blockers" in markdown
     assert "Resolve real continuity rehearsal blockers" in markdown
     assert "Attach missing optional evidence" in markdown

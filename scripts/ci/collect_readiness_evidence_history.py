@@ -18,6 +18,7 @@ FAMILY_HOSTED = "hosted_readiness"
 FAMILY_BENCHMARK = "benchmark_comparison"
 FAMILY_EXTERNAL_INSTALL = "external_install_evidence"
 FAMILY_EXTERNAL_CUSTOMER_HOST_V2 = "external_customer_host_rehearsal_v2"
+FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE = "full_chain_random_repo_release_rehearsal"
 FAMILY_REAL_CONTINUITY = "real_continuity_rehearsal"
 FAMILY_TEAM_HANDOFF = "team_handoff"
 FAMILY_CODE_DECISION_AUDIT = "code_decision_audit"
@@ -27,6 +28,7 @@ FAMILY_LABELS = {
     FAMILY_BENCHMARK: "Benchmark comparison",
     FAMILY_EXTERNAL_INSTALL: "External install evidence",
     FAMILY_EXTERNAL_CUSTOMER_HOST_V2: "External customer-host rehearsal v2",
+    FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE: "Full-chain random repo release rehearsal",
     FAMILY_REAL_CONTINUITY: "Real continuity rehearsal",
     FAMILY_TEAM_HANDOFF: "Team handoff",
     FAMILY_CODE_DECISION_AUDIT: "Code Decision Audit",
@@ -226,6 +228,23 @@ def _summarize_external_customer_host_v2(data: dict[str, Any] | None) -> dict[st
     }
 
 
+def _summarize_full_chain_random_repo_release(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "selected_repo_ids": []}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "selected_repo_ids": data.get("selected_repo_ids") or [],
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": int(summary.get("warning") or 0),
+        "blocker_count": int(summary.get("blocking") or 0),
+        "operator_guided_count": int(summary.get("operator_guided") or 0),
+        "not_provided_count": int(summary.get("not_provided") or 0),
+    }
+
+
 def _summarize_real_continuity(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": "not_provided"}
@@ -297,6 +316,8 @@ def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
         return _summarize_external_install(data)
     if family == FAMILY_EXTERNAL_CUSTOMER_HOST_V2:
         return _summarize_external_customer_host_v2(data)
+    if family == FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE:
+        return _summarize_full_chain_random_repo_release(data)
     if family == FAMILY_REAL_CONTINUITY:
         return _summarize_real_continuity(data)
     if family == FAMILY_TEAM_HANDOFF:
@@ -331,6 +352,7 @@ def _entry_counts(families: dict[str, dict[str, Any]]) -> dict[str, int]:
         "benchmark_improvements": int(families.get(FAMILY_BENCHMARK, {}).get("improved") or 0),
         "external_install_blockers": int(families.get(FAMILY_EXTERNAL_INSTALL, {}).get("blocker_count") or 0),
         "external_customer_host_v2_blockers": int(families.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2, {}).get("blocker_count") or 0),
+        "full_chain_random_repo_release_blockers": int(families.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, {}).get("blocker_count") or 0),
         "real_continuity_blockers": int(families.get(FAMILY_REAL_CONTINUITY, {}).get("blocker_count") or 0),
     }
 
@@ -456,8 +478,8 @@ def render_index_markdown(index: dict[str, Any]) -> str:
         f"- Generated at: `{index.get('generated_at')}`",
         f"- Entries: `{len(index.get('entries') or [])}`",
         "",
-        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in index.get("entries") or []:
         statuses = entry.get("family_statuses") or {}
@@ -480,6 +502,7 @@ def render_index_markdown(index: dict[str, Any]) -> str:
                     statuses.get(FAMILY_BENCHMARK),
                     statuses.get(FAMILY_EXTERNAL_INSTALL),
                     statuses.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2),
+                    statuses.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE),
                     statuses.get(FAMILY_REAL_CONTINUITY),
                     statuses.get(FAMILY_TEAM_HANDOFF),
                     statuses.get(FAMILY_CODE_DECISION_AUDIT),
@@ -518,8 +541,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
 
     lines.extend(
         [
-            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Real continuity | Handoff | Audit | Warnings | Operator-guided | Not provided |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Real continuity | Handoff | Audit | Warnings | Operator-guided | Not provided |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for entry in selected:
@@ -529,6 +552,7 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         hosted = (families.get(FAMILY_HOSTED) or {}).get("public_walkthrough_status") or (families.get(FAMILY_HOSTED) or {}).get("status")
         external = (families.get(FAMILY_EXTERNAL_INSTALL) or {}).get("status")
         customer_host = (families.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2) or {}).get("status")
+        full_chain = (families.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE) or {}).get("status")
         continuity = (families.get(FAMILY_REAL_CONTINUITY) or {}).get("status")
         handoff = (families.get(FAMILY_TEAM_HANDOFF) or {}).get("status")
         audit = (families.get(FAMILY_CODE_DECISION_AUDIT) or {}).get("status")
@@ -545,6 +569,7 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
                     counts.get("benchmark_operational_blockers", 0),
                     external,
                     customer_host,
+                    full_chain,
                     continuity,
                     handoff,
                     audit,
@@ -567,6 +592,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         follow_up.append("Resolve external install evidence blockers before customer-host install claims.")
     if counts.get("external_customer_host_v2_blockers"):
         follow_up.append("Resolve customer-host v2 blockers before external customer-host readiness claims.")
+    if counts.get("full_chain_random_repo_release_blockers"):
+        follow_up.append("Resolve full-chain random repo release rehearsal blockers before final handoff claims.")
     if counts.get("real_continuity_blockers"):
         follow_up.append("Resolve real continuity rehearsal blockers before backup/restore/upgrade claims.")
     if counts.get("operator_guided"):
@@ -603,6 +630,7 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         EvidenceSource(FAMILY_BENCHMARK, Path(args.benchmark_comparison_json) if args.benchmark_comparison_json else None, Path(args.benchmark_comparison_markdown) if args.benchmark_comparison_markdown else None),
         EvidenceSource(FAMILY_EXTERNAL_INSTALL, Path(args.external_install_evidence_json) if args.external_install_evidence_json else None, Path(args.external_install_evidence_markdown) if args.external_install_evidence_markdown else None),
         EvidenceSource(FAMILY_EXTERNAL_CUSTOMER_HOST_V2, Path(args.external_customer_host_v2_json) if args.external_customer_host_v2_json else None, Path(args.external_customer_host_v2_markdown) if args.external_customer_host_v2_markdown else None),
+        EvidenceSource(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, Path(args.full_chain_random_repo_release_json) if args.full_chain_random_repo_release_json else None, Path(args.full_chain_random_repo_release_markdown) if args.full_chain_random_repo_release_markdown else None),
         EvidenceSource(FAMILY_REAL_CONTINUITY, Path(args.real_continuity_rehearsal_json) if args.real_continuity_rehearsal_json else None, Path(args.real_continuity_rehearsal_markdown) if args.real_continuity_rehearsal_markdown else None),
         EvidenceSource(FAMILY_TEAM_HANDOFF, Path(args.team_handoff_json) if args.team_handoff_json else None, Path(args.team_handoff_markdown) if args.team_handoff_markdown else None),
         EvidenceSource(FAMILY_CODE_DECISION_AUDIT, Path(args.code_decision_audit_json) if args.code_decision_audit_json else None, Path(args.code_decision_audit_markdown) if args.code_decision_audit_markdown else None),
@@ -660,6 +688,8 @@ def _build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--external-install-evidence-markdown", help="Explicit external install evidence Markdown path.")
     archive.add_argument("--external-customer-host-v2-json", help="Explicit external/customer-host rehearsal v2 JSON path.")
     archive.add_argument("--external-customer-host-v2-markdown", help="Explicit external/customer-host rehearsal v2 Markdown path.")
+    archive.add_argument("--full-chain-random-repo-release-json", help="Explicit full-chain random repo release rehearsal JSON path.")
+    archive.add_argument("--full-chain-random-repo-release-markdown", help="Explicit full-chain random repo release rehearsal Markdown path.")
     archive.add_argument("--real-continuity-rehearsal-json", help="Explicit real backup/restore/upgrade rehearsal JSON path.")
     archive.add_argument("--real-continuity-rehearsal-markdown", help="Explicit real backup/restore/upgrade rehearsal Markdown path.")
     archive.add_argument("--team-handoff-json", help="Explicit team handoff JSON path.")
