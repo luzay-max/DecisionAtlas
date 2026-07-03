@@ -29,12 +29,12 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断 | 需要把多仓库诊断纳入一键 release rehearsal，并持续积累多轮趋势 | `release-rehearsal-one-command-evidence` |
 | 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用 release rehearsal 固化证据入口 | `release-rehearsal-one-command-evidence` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
-| readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | `review-audit-ux-hardening` |
+| readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | `external-customer-host-rehearsal-v2` |
 | self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs | 外部客户机器证据仍应继续积累 | `external-customer-host-rehearsal-v2` |
 | 备份/恢复/升级 | complete | backup/restore/upgrade rehearsal、real scratch rehearsal | 还没有真实生产数据迁移承诺；应保持边界 | 后续按客户需求扩展 |
-| 团队账号和权限 | partial | team self-hosted rehearsal、browser role checks、workspace member specs | 细粒度审阅权限和审计 UI 可继续增强 | `review-audit-ux-hardening` |
-| 登录/主账号/子账号路线 | partial | login、team account、role separation | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | `review-audit-ux-hardening` |
-| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence` | 后续需要把 warning lane 逐步降噪，并增强审阅审计 UI | `review-audit-ux-hardening` |
+| 团队账号和权限 | complete | team self-hosted rehearsal、browser role checks、workspace member specs、review audit UX panel、viewer read-only browser rehearsal | 后续只有客户需要时再扩展更复杂组织管理 | 按客户反馈开新 change |
+| 登录/主账号/子账号路线 | partial | login、team account、role separation、workspace member assignment、review read-only boundary | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | `external-customer-host-rehearsal-v2` |
+| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening | 后续需要把 warning lane 逐步降噪，并积累外部客户主机证据 | `external-customer-host-rehearsal-v2` |
 | Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier | 还需更多外部机器和失败恢复证据 | `external-customer-host-rehearsal-v2` |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
@@ -95,9 +95,9 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 - `.tmp/release-rehearsal-evidence.json/md` smoke evidence。
 - `docs/evidence/readiness/*release-rehearsal-one-command/` durable archive。
 
-### P3：审阅与审计 UX 加固
+### P3：审阅与审计 UX 加固（本轮完成）
 
-建议 change：`review-audit-ux-hardening`
+change：`review-audit-ux-hardening`
 
 目标：
 
@@ -106,9 +106,10 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 
 验收证据：
 
-- 浏览器测试覆盖 reviewer/viewer/admin。
-- 审阅历史可见。
-- viewer 不暴露管理/审阅动作。
+- `ReviewAuditPanel` 显示角色、权限边界、近期审阅上下文和空状态下一步。
+- `apps/web/tests/review-audit-panel.test.tsx` 覆盖 reviewer/viewer/empty state。
+- `apps/web/tests-e2e/team-self-hosted-rehearsal.spec.ts` 覆盖 viewer workspace 成员进入 review 后只读。
+- 后端权限允许 viewer 读取候选队列，但继续禁止 viewer 提交 review mutation。
 
 ### P4：外部客户主机演练 v2
 
@@ -153,4 +154,4 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 1. `review-audit-ux-hardening`
 2. `external-customer-host-rehearsal-v2`
 
-下一步重点从“证据能生成”转向“人能顺畅审阅”：让 reviewer/viewer/admin 的权限、审阅历史、下一步动作更清楚。
+`review-audit-ux-hardening` 已完成。下一步重点从“本人机器可跑”转向“外部客户机器也能按文档交付”：继续做 `external-customer-host-rehearsal-v2`，积累非本人环境、自托管包、Docker、本地启动和恢复路径证据。

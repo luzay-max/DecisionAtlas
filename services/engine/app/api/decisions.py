@@ -174,8 +174,7 @@ def list_decisions(
 ) -> list[dict]:
     session = get_db_session()
     try:
-        required_role = "reviewer" if review_state in {None, "candidate"} else "viewer"
-        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role=required_role)
+        workspace = require_workspace_role(session, auth, workspace_slug=workspace_slug, required_role="viewer")
         decisions = DecisionRepository(session).list_by_review_state(workspace.id, review_state)
         source_refs = SourceRefRepository(session)
         artifacts = ArtifactRepository(session)

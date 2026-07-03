@@ -73,3 +73,14 @@ The workspace interaction flow SHALL be verifiable through a real browser workfl
 #### Scenario: Next action remains clear after cross-page navigation
 - **WHEN** a browser rehearsal completes or pauses a review, search, drift, or evidence step
 - **THEN** the page SHALL expose a clear next action back to the workspace workflow or related evidence.
+
+### Requirement: Review flow includes next-step guidance
+Workspace interaction flow SHALL include review-specific next-step guidance.
+
+#### Scenario: Pending candidates exist
+- **WHEN** pending review candidates exist
+- **THEN** the review page SHALL show the next action for reviewers and the expected handoff for viewers.
+
+#### Scenario: No candidates exist
+- **WHEN** no review candidates are available
+- **THEN** the review page SHALL show how to generate or import more evidence.

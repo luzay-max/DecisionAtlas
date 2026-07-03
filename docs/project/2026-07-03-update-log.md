@@ -106,3 +106,25 @@
 
 - The one-command bundle does not replace individual lane collectors. It makes the release handoff repeatable and shows missing or non-clean lanes in one place.
 - Current smoke is expected to stay `warning` while optional lanes are missing or non-clean.
+
+## review-audit-ux-hardening
+
+### Implemented
+
+- Added a review audit panel to show current review role, permission boundary, next action, and compact recent decision context.
+- Made viewer review access explicitly read-only while still allowing authorized workspace evidence to be visible.
+- Updated the self-hosted team browser rehearsal so a viewer account is assigned to `demo-workspace`, opens the review page, sees read-only guidance, and does not see review action controls.
+- Relaxed candidate queue reads to viewer permission while keeping decision review mutation behind reviewer permission.
+- Added `docs/project/review-audit-ux-hardening.md` and synchronized OpenSpec specs.
+- Updated the completion taskbook so the next priority is external customer host rehearsal rather than more review UI hardening.
+
+### Validation
+
+- `pnpm --filter @decisionatlas/web test -- --run tests/review-page.test.tsx tests/review-audit-panel.test.tsx`: 2 files passed, 10 tests passed.
+- `python -m pytest tests/api/test_team_api.py tests/api/test_decisions_api.py -q` from `services/engine`: 6 tests passed.
+- `PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm --filter @decisionatlas/web exec playwright test team-self-hosted-rehearsal.spec.ts --config playwright.config.ts --reporter=line`: 1 browser test passed.
+
+### Notes
+
+- This completes the current small-team review/audit UX hardening target.
+- It does not claim complete GitLab-style organization management. Richer organization administration, billing, marketplace, and hosted multi-tenant work remain out of current self-hosted scope.

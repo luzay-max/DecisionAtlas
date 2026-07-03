@@ -6,6 +6,7 @@ import { ReviewDecision } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { GlobalSidebar } from "../navigation/global-sidebar";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { ReviewAuditPanel } from "./review-audit-panel";
 import { ReviewList } from "./review-list";
 import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 import { useI18n } from "../i18n/language-provider";
@@ -35,6 +36,7 @@ export function ReviewPageContent({
           <h1>{messages.review.title}</h1>
           <p>{messages.review.lede}</p>
           <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} />
+          <ReviewAuditPanel decisions={decisions} />
           {isGuidedDemoWorkspace ? (
             <GuidedDemoPanel
               step={2}
