@@ -26,8 +26,8 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | OpenSpec 开发流程 | complete | 多个 archived changes；`openspec validate --all --strict` 最近通过 71 项 | 每次后续迭代继续维护任务书 | 每个新功能独立 change |
 | CodeGraph 辅助开发 | partial | 已在实现前用于前端流程和结构定位 | 不是所有历史 change 都有 CodeGraph 记录 | 后续结构性代码任务继续强制先查 CodeGraph |
 | 真实浏览器人类流程 | complete | `2026-07-03-real-browser-workflow-rehearsal`；Playwright 1 passed；Mimo/team browser 9 passed | 还不是 live GitHub import 成功证明 | `live-public-repo-browser-import-rehearsal` |
-| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal | 需要更多随机真实仓库、多轮趋势、失败分类 | `multi-repo-live-diagnosis-rotation` |
-| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence | `pallets/flask` 真实 workspace 当前 review/why/drift 仍是 warning/evidence_limited，需要更多仓库和更强候选质量 | `multi-repo-live-diagnosis-rotation` |
+| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断 | 需要把多仓库诊断纳入一键 release rehearsal，并持续积累多轮趋势 | `release-rehearsal-one-command-evidence` |
+| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用 release rehearsal 固化证据入口 | `release-rehearsal-one-command-evidence` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
 | readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档 | 需要每次 release 自动使用，不再只手动 | `release-rehearsal-one-command-evidence` |
 | self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs | 外部客户机器证据仍应继续积累 | `external-customer-host-rehearsal-v2` |
@@ -59,21 +59,23 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 - 浏览器或 Playwright 能打开对应 workspace 并走 review/search/drift。
 - OpenSpec 全量通过。
 
-### P1：多仓库轮换诊断
+### P1：多仓库轮换诊断（本轮完成）
 
 建议 change：`multi-repo-live-diagnosis-rotation`
 
 目标：
 
 - 固定或随机选择多个 public GitHub repo。
-- 记录 import success、artifact density、candidate density、why-search 状态、drift 状态。
-- 允许 provider/network 失败被分类，不把失败伪装成产品通过。
+- 记录 import setup、dashboard、review、why-search、drift、guardrail 状态。
+- 允许 provider/network/local-stack 失败被分类，不把失败伪装成产品通过。
+- 输出客户可读 JSON/Markdown，用于 release rehearsal 和 readiness history。
 
 验收证据：
 
-- 至少 3 个真实仓库诊断记录。
-- 生成趋势 Markdown/JSON。
-- 能和 benchmark comparison evidence 区分但互相引用。
+- `scripts/ci/collect_multi_repo_live_diagnosis.py`。
+- `services/engine/tests/ci/test_multi_repo_live_diagnosis.py`。
+- `.tmp/multi-repo-live-diagnosis.json/md` smoke evidence。
+- `docs/project/multi-repo-live-diagnosis-rotation.md`。
 
 ### P2：一键 release rehearsal 汇总入口
 
@@ -145,9 +147,8 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 
 ## 近期执行顺序
 
-1. `multi-repo-live-diagnosis-rotation`
-2. `release-rehearsal-one-command-evidence`
-3. `review-audit-ux-hardening`
-4. `external-customer-host-rehearsal-v2`
+1. `release-rehearsal-one-command-evidence`
+2. `review-audit-ux-hardening`
+3. `external-customer-host-rehearsal-v2`
 
-做到前两项后，项目就更接近“完整链路”：不是只有功能，而是有持续的真实仓库、浏览器、治理、发布、交付证据。
+做到下一项后，项目就更接近“完整链路”：不是只有功能，而是有持续的真实仓库、浏览器、治理、发布、交付证据的一键入口。

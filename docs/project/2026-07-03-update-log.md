@@ -59,3 +59,26 @@
 - The `pallets/flask` imported workspace browser path is real, but why-search is mocked in the browser test for deterministic UI validation.
 - The collector smoke intentionally preserved warnings: review queue was empty, why-search was `evidence_limited`, drift was warning, and guardrail was `not_provided`.
 - This improves core-loop evidence but does not replace the next `multi-repo-live-diagnosis-rotation` work.
+
+## multi-repo-live-diagnosis-rotation
+
+### Implemented
+
+- Added `scripts/ci/collect_multi_repo_live_diagnosis.py` to select explicit or deterministic-random real public repositories from `examples/live-benchmarks/trend-pool.json`.
+- Composed public GitHub import rehearsal with imported workspace core-loop evidence per repository.
+- Added compact JSON/Markdown output with per-repo setup, review, why-search, drift, guardrail, aggregate counts, and recommended follow-up.
+- Added `services/engine/tests/ci/test_multi_repo_live_diagnosis.py` for deterministic selection, unknown repo handling, mixed outcomes, and Markdown rendering.
+- Added `docs/project/multi-repo-live-diagnosis-rotation.md` with operator commands and evidence boundaries.
+- Updated the completion taskbook and OpenSpec main specs so the next priority moves to `release-rehearsal-one-command-evidence`.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_multi_repo_live_diagnosis.py -q`: targeted tests pass.
+- `python scripts\ci\collect_multi_repo_live_diagnosis.py --repo-id httpx --repo-id fastapi --output-json .tmp\multi-repo-live-diagnosis.json --output-markdown .tmp\multi-repo-live-diagnosis.md`: smoke diagnosis generates JSON/Markdown against real public repository metadata.
+- `openspec validate multi-repo-live-diagnosis-rotation --type change --strict`: passed.
+- `openspec validate --all --strict`: passed after synchronization.
+
+### Notes
+
+- This is diagnosis rotation evidence, not benchmark trend evidence. It answers whether selected real repositories can move through setup and core-loop diagnosis.
+- Non-clean states such as `provider_failure`, `local_stack_failure`, `operator_guided`, `warning`, and `not_provided` are preserved instead of being hidden.
