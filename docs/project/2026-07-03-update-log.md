@@ -176,3 +176,21 @@
 - Current random real repositories were `n8n-io/n8n` and `Textualize/rich`.
 - The top-level bundle has 5 lanes: random repo diagnosis, release rehearsal, customer-host v2, browser rehearsal, and readiness history.
 - Current state is `warning` with 0 blocking lanes. This is appropriate because live repo and customer-host lanes still preserve non-clean evidence instead of being treated as clean pass.
+
+## post-full-chain-product-roadmap
+
+### Implemented
+
+- Added `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md`.
+- Updated the completion taskbook with post-full-chain roadmap status and next candidate OpenSpec changes.
+- Preserved the boundary that full-chain evidence is warning and customer-host proof still needs a real external/non-developer host.
+
+### Validation
+
+- OpenSpec strict validation covers the roadmap change and main specs.
+- Browser self-hosted rehearsal remains the runtime flow check for this planning update.
+
+### Notes
+
+- The recommended next change is `real-external-host-trial-evidence`.
+- Billing, Marketplace, hosted multi-tenancy, and self-service OAuth remain explicitly deferred.

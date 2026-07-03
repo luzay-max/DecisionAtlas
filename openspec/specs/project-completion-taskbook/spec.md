@@ -98,3 +98,14 @@ The completion taskbook SHALL update full-chain project status after full-chain 
 #### Scenario: Full-chain evidence is warning
 - **WHEN** the rehearsal remains warning due to template, local-stack, provider, or operator-guided lanes
 - **THEN** the taskbook SHALL keep final completion open and list the next real external trial action.
+
+### Requirement: Completion taskbook references post-full-chain roadmap
+The completion taskbook SHALL reference the post-full-chain product roadmap after it exists.
+
+#### Scenario: Taskbook is updated
+- **WHEN** the post-full-chain roadmap is created
+- **THEN** the taskbook SHALL cite it and list the next evidence-gated actions.
+
+#### Scenario: Full-chain evidence is warning
+- **WHEN** the current full-chain evidence remains warning
+- **THEN** the taskbook SHALL keep final completion open and SHALL NOT claim a clean customer-ready release.

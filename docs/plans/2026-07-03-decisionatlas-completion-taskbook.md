@@ -37,6 +37,7 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening、customer-host v2 evidence、full-chain random repo release evidence | 后续需要把 warning lane 逐步降噪，并用真实外部主机替换示例模板 | 客户试用时持续归档 |
 | Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier、customer-host v2 template/evidence | 还需更多外部机器和失败恢复证据；当前 smoke 仍是示例模板 + 本机证据 | 客户试用时持续归档 |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
+| 后续产品路线 | complete | `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md` | 路线执行仍依赖真实外部试用证据 | `real-external-host-trial-evidence` |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
 
 ## 当前最重要的下一批任务
@@ -157,6 +158,21 @@ change：`full-chain-random-repo-release-rehearsal`
 - 当前 full-chain 状态是 `warning`，0 blocking。
 - 这证明完整链路 evidence 入口可用，但真实仓库导入质量、release warning lane、customer-host template-only 仍需后续真实试用持续改进。
 
+### P6：post-full-chain 后续产品路线（本轮完成）
+
+change：`post-full-chain-product-roadmap`
+
+目标：
+
+- 把 full-chain 之后的项目推进路线写清楚。
+- 明确当前 warning 边界和下一阶段真实外部试用优先级。
+- 避免在没有客户证据前提前投入 billing、Marketplace、多租户、hosted SaaS。
+
+验收证据：
+
+- `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md`。
+- 下一批候选 OpenSpec：`real-external-host-trial-evidence`、`reduce-random-repo-import-warning-lanes`、`improve-real-repo-core-loop-quality`、`pilot-customer-trial-package`。
+
 ## 当前不应该优先做
 
 - billing。
@@ -186,7 +202,7 @@ change：`full-chain-random-repo-release-rehearsal`
 1. `review-audit-ux-hardening`
 2. `external-customer-host-rehearsal-v2`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2` 与 `full-chain-random-repo-release-rehearsal` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal` 与 `post-full-chain-product-roadmap` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
 
 - 用真实非本人机器替换示例 customer-host 模板并归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
