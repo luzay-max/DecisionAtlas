@@ -19,3 +19,21 @@
 
 - The real GitHub repository reference is asserted in the browser flow, but import lookup is mocked for deterministic UI testing. Live import quality remains covered by benchmark/readiness evidence.
 - Local proxy variables must be cleared or bypass localhost before Playwright starts smoke servers.
+
+## project-completion-taskbook
+
+### Implemented
+
+- Added `docs/plans/2026-07-03-decisionatlas-completion-taskbook.md` as the current execution taskbook.
+- Mapped 2026-05-08 and 2026-05-09 plan lines to `complete`, `partial`, `missing`, and `not-now` states.
+- Listed next OpenSpec candidates in priority order: `imported-workspace-core-loop-rehearsal`, `multi-repo-live-diagnosis-rotation`, `release-rehearsal-one-command-evidence`, `review-audit-ux-hardening`, and `external-customer-host-rehearsal-v2`.
+- Added OpenSpec requirements for maintaining the completion taskbook and making final roadmap updates reference it.
+
+### Validation
+
+- `openspec validate project-completion-taskbook --type change --strict`: passed.
+- `openspec validate --all --strict`: passed after synchronization.
+
+### Notes
+
+- The taskbook does not claim final completion. It explicitly keeps real imported workspace core-loop proof and multi-repo live diagnosis as remaining high-priority work.
