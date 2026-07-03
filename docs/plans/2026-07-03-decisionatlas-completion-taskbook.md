@@ -29,13 +29,13 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断 | 需要把多仓库诊断纳入一键 release rehearsal，并持续积累多轮趋势 | `release-rehearsal-one-command-evidence` |
 | 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用 release rehearsal 固化证据入口 | `release-rehearsal-one-command-evidence` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
-| readiness evidence history | complete | release/hosted/benchmark/external install/continuity/handoff/audit 七类证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | `external-customer-host-rehearsal-v2` |
-| self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs | 外部客户机器证据仍应继续积累 | `external-customer-host-rehearsal-v2` |
+| readiness evidence history | complete | release/hosted/benchmark/external install/customer-host v2/continuity/handoff/audit 证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | 按 release 节奏持续运行 |
+| self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs、customer-host v2 rehearsal 管线 | 真实客户机器模板仍需由外部环境填写 | 客户试用时归档真实模板 |
 | 备份/恢复/升级 | complete | backup/restore/upgrade rehearsal、real scratch rehearsal | 还没有真实生产数据迁移承诺；应保持边界 | 后续按客户需求扩展 |
 | 团队账号和权限 | complete | team self-hosted rehearsal、browser role checks、workspace member specs、review audit UX panel、viewer read-only browser rehearsal | 后续只有客户需要时再扩展更复杂组织管理 | 按客户反馈开新 change |
-| 登录/主账号/子账号路线 | partial | login、team account、role separation、workspace member assignment、review read-only boundary | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | `external-customer-host-rehearsal-v2` |
-| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening | 后续需要把 warning lane 逐步降噪，并积累外部客户主机证据 | `external-customer-host-rehearsal-v2` |
-| Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier | 还需更多外部机器和失败恢复证据 | `external-customer-host-rehearsal-v2` |
+| 登录/主账号/子账号路线 | partial | login、team account、role separation、workspace member assignment、review read-only boundary | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | 客户反馈后再开组织管理 change |
+| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening、customer-host v2 evidence | 后续需要把 warning lane 逐步降噪，并用真实外部主机替换示例模板 | 客户试用时持续归档 |
+| Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier、customer-host v2 template/evidence | 还需更多外部机器和失败恢复证据；当前 smoke 仍是示例模板 + 本机证据 | 客户试用时持续归档 |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
 
@@ -111,9 +111,9 @@ change：`review-audit-ux-hardening`
 - `apps/web/tests-e2e/team-self-hosted-rehearsal.spec.ts` 覆盖 viewer workspace 成员进入 review 后只读。
 - 后端权限允许 viewer 读取候选队列，但继续禁止 viewer 提交 review mutation。
 
-### P4：外部客户主机演练 v2
+### P4：外部客户主机演练 v2（本轮完成）
 
-建议 change：`external-customer-host-rehearsal-v2`
+change：`external-customer-host-rehearsal-v2`
 
 目标：
 
@@ -122,8 +122,17 @@ change：`review-audit-ux-hardening`
 
 验收证据：
 
-- 外部主机模板或真实 evidence。
-- package verify、clean install、browser smoke、readiness history 关联。
+- `scripts/ci/collect_external_customer_host_rehearsal_v2.py`。
+- `templates/external-customer-host-rehearsal-v2.example.json`。
+- `.tmp/external-customer-host-rehearsal-v2.json/md`。
+- `docs/evidence/readiness/2026-07-03-external-customer-host-rehearsal-v2-smoke/`。
+- `services/engine/tests/ci/test_external_customer_host_rehearsal_v2.py` 与 readiness history 测试。
+- `team-self-hosted-rehearsal.spec.ts` 浏览器流程通过。
+
+边界：
+
+- 当前 smoke 使用示例模板和本机已有证据，证明 v2 证据管线可用。
+- 真实客户控制机器 proof 仍需要客户/外部环境填写模板并再次归档。
 
 ## 当前不应该优先做
 
@@ -154,4 +163,8 @@ change：`review-audit-ux-hardening`
 1. `review-audit-ux-hardening`
 2. `external-customer-host-rehearsal-v2`
 
-`review-audit-ux-hardening` 已完成。下一步重点从“本人机器可跑”转向“外部客户机器也能按文档交付”：继续做 `external-customer-host-rehearsal-v2`，积累非本人环境、自托管包、Docker、本地启动和恢复路径证据。
+`review-audit-ux-hardening` 与 `external-customer-host-rehearsal-v2` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
+
+- 用真实非本人机器替换示例 customer-host 模板并归档。
+- 跑一次 release rehearsal + customer-host v2 + browser flow 的组合证据。
+- 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。

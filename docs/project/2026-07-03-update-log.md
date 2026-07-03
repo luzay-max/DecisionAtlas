@@ -128,3 +128,26 @@
 
 - This completes the current small-team review/audit UX hardening target.
 - It does not claim complete GitLab-style organization management. Richer organization administration, billing, marketplace, and hosted multi-tenant work remain out of current self-hosted scope.
+
+## external-customer-host-rehearsal-v2
+
+### Implemented
+
+- Added `scripts/ci/collect_external_customer_host_rehearsal_v2.py`.
+- Added sanitized operator/customer host template at `templates/external-customer-host-rehearsal-v2.example.json`.
+- Extended readiness history with `external_customer_host_rehearsal_v2` as a durable evidence family.
+- Added `services/engine/tests/ci/test_external_customer_host_rehearsal_v2.py` and expanded readiness history tests.
+- Added `docs/project/external-customer-host-rehearsal-v2.md`.
+- Generated `.tmp/external-customer-host-rehearsal-v2.json` and `.tmp/external-customer-host-rehearsal-v2.md`.
+- Archived smoke evidence to `docs/evidence/readiness/2026-07-03-external-customer-host-rehearsal-v2-smoke/`.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_external_customer_host_rehearsal_v2.py services/engine/tests/ci/test_readiness_evidence_history.py -q`: 9 tests passed.
+- `python scripts\ci\collect_external_customer_host_rehearsal_v2.py ... --archive-history`: generated JSON/Markdown and readiness-history archive with status `warning`.
+- `PLAYWRIGHT_SKIP_WEBSERVER=1 pnpm --filter @decisionatlas/web exec playwright test team-self-hosted-rehearsal.spec.ts --config playwright.config.ts --reporter=line`: 1 browser test passed.
+
+### Notes
+
+- Current smoke uses the example template and existing local evidence, so it is evidence that the v2 customer-host rehearsal pipeline works.
+- It is not a claim that a real customer-controlled production host has passed clean validation. Real customer-host proof requires replacing the template with observations from an actual external machine.
