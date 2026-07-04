@@ -1,0 +1,29 @@
+# 2026-07-04 Update Log
+
+## pilot-customer-trial-package
+
+### Implemented
+
+- Added `scripts/ci/collect_pilot_customer_trial_package.py`.
+- Added a generated pilot customer trial package that composes customer-facing pilot materials with selected evidence lanes.
+- The collector writes `.tmp/pilot-customer-trial-package.json`, `.tmp/pilot-customer-trial-package.md`, and a bundle directory under `.tmp/pilot-customer-trial-package/pilot-customer-trial-package/`.
+- Bundle output includes `README.md`, `operator-checklist.md`, `evidence-manifest.json`, and `evidence-manifest.md`.
+- Added required material checks for pilot delivery, demo, deployment checklist, FAQ, tier comparison, delivery email, commercial proposal, sales materials, private-repo template, package guide, support boundary, and real external host trial guide.
+- Added evidence lanes for pilot delivery verification, commercial proposal verification, package verification, clean install rehearsal, release rehearsal, customer-host v2, real external host trial, full-chain random repo release, readiness history, private-repo evidence, and team handoff.
+- Added redaction blocking for obvious token, secret assignment, private key, raw backup, or raw private repository snippet markers in operator notes.
+- Added `services/engine/tests/ci/test_pilot_customer_trial_package.py`.
+- Added `docs/project/pilot-customer-trial-package.md`.
+- Updated completion taskbook and post-full-chain roadmap.
+
+### Validation
+
+- `python -m pytest services/engine/tests/ci/test_pilot_customer_trial_package.py -q`: 5 tests passed.
+- `python scripts\ci\verify_pilot_customer_delivery_kit.py ...`: generated pilot delivery verification with status `pass`.
+- `python scripts\ci\verify_pilot_commercial_proposal_kit.py ...`: generated commercial proposal verification with status `pass`.
+- `python scripts\ci\collect_pilot_customer_trial_package.py ...`: generated JSON/Markdown and bundle directory with status `warning`.
+
+### Notes
+
+- Current trial package status is `warning` with 0 blocking lanes.
+- This is expected because real external host trial evidence still reports template/sample boundary rather than clean customer-controlled host proof.
+- The package is now ready as an operator assembly point; the next proof step is running the stack on a real external/customer-controlled machine and regenerating the evidence chain.

@@ -39,6 +39,7 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
 | 后续产品路线 | complete | `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md` | 路线执行仍依赖真实外部试用证据 | `pilot-customer-trial-package` |
 | 真实外部主机试用证据门槛 | complete | `real-external-host-trial-evidence` collector、readiness history family、smoke archive | 当前 smoke 仍是示例模板 warning；真实客户/外部机器 proof 需要外部环境填写模板 | `pilot-customer-trial-package` |
+| 试用客户交付包 | complete | `pilot-customer-trial-package` collector、`.tmp` bundle、pytest | 当前 bundle 是 warning；需要真实外部主机证据替换模板后再生成 | `reduce-random-repo-import-warning-lanes` |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
 
 ## 当前最重要的下一批任务
@@ -197,6 +198,29 @@ change：`real-external-host-trial-evidence`
 - 该 change 完成的是“真实外部主机证据验收门槛”，不是“真实客户机器已经 clean pass”。
 - 下一次需要在非本人机器、客户 VM、朋友机器或独立服务器上填写 sanitized host input，再重新归档。
 
+### P8：试用客户交付包（本轮完成）
+
+change：`pilot-customer-trial-package`
+
+目标：
+
+- 把 pilot delivery kit、commercial proposal kit、real external host trial evidence、full-chain evidence 和 readiness history 汇总成一个 operator-facing 试用交付包。
+- 输出 `.tmp` JSON/Markdown 和 bundle 目录，方便真实外部试用前检查材料和证据缺口。
+- 保留 warning/operator-guided/not-provided，不伪装为 clean pass。
+
+验收证据：
+
+- `scripts/ci/collect_pilot_customer_trial_package.py`。
+- `.tmp/pilot-customer-trial-package.json/md`。
+- `.tmp/pilot-customer-trial-package/pilot-customer-trial-package/README.md`。
+- `.tmp/pilot-customer-trial-package/pilot-customer-trial-package/operator-checklist.md`。
+- `services/engine/tests/ci/test_pilot_customer_trial_package.py`。
+
+边界：
+
+- 当前 bundle 状态是 `warning`，0 blocking。
+- 这证明试用包装配链路可用，但真实客户机器 proof 仍必须由真实外部环境替换模板证据。
+
 ## 当前不应该优先做
 
 - billing。
@@ -228,9 +252,11 @@ change：`real-external-host-trial-evidence`
 3. `full-chain-random-repo-release-rehearsal`
 4. `post-full-chain-product-roadmap`
 5. `real-external-host-trial-evidence`
+6. `pilot-customer-trial-package`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap` 与 `real-external-host-trial-evidence` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用准备：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence` 与 `pilot-customer-trial-package` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或 warning 降噪：
 
 - 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
+- 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。

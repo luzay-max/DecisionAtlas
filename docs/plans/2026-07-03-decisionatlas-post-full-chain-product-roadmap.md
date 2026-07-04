@@ -139,7 +139,7 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 ## 近期执行顺序
 
 1. `real-external-host-trial-evidence`（已完成门槛）
-2. `pilot-customer-trial-package`
+2. `pilot-customer-trial-package`（已完成试用包装配入口）
 3. `reduce-random-repo-import-warning-lanes`
 4. `improve-real-repo-core-loop-quality`
 5. 按真实客户反馈决定是否做协作深化或 hosted 路线
