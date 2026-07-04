@@ -72,6 +72,7 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 
 - 至少一轮 full-chain 里 warning 数下降。
 - 真实仓库 selected repo、lane status、recommended next actions 可对比。
+- `reduce-random-repo-import-warning-lanes` 已完成归因层：当前 `n8n`、`rich` 证据为 `warning`，0 blocking，3 条 product-controlled，11 条 operator-guided。下一步才是实际减少 product-controlled warning。
 
 ## 第三阶段：小团队协作产品化
 
@@ -140,7 +141,7 @@ DecisionAtlas 已经具备完整链路 rehearsal 能力：
 
 1. `real-external-host-trial-evidence`（已完成门槛）
 2. `pilot-customer-trial-package`（已完成试用包装配入口）
-3. `reduce-random-repo-import-warning-lanes`
+3. `reduce-random-repo-import-warning-lanes`（已完成 warning 归因与 readiness history 归档）
 4. `improve-real-repo-core-loop-quality`
 5. 按真实客户反馈决定是否做协作深化或 hosted 路线
 

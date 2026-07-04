@@ -27,3 +27,28 @@
 - Current trial package status is `warning` with 0 blocking lanes.
 - This is expected because real external host trial evidence still reports template/sample boundary rather than clean customer-controlled host proof.
 - The package is now ready as an operator assembly point; the next proof step is running the stack on a real external/customer-controlled machine and regenerating the evidence chain.
+
+## reduce-random-repo-import-warning-lanes
+
+### Implemented
+
+- Added `scripts/ci/collect_random_repo_warning_lane_reduction.py`.
+- Added deterministic classification for random repository release warning lanes: product-controlled, external dependency, operator-guided, not-provided, and blocking.
+- Added JSON/Markdown output at `.tmp/random-repo-warning-lane-reduction.json` and `.tmp/random-repo-warning-lane-reduction.md`.
+- Extended readiness evidence history with `random_repo_warning_lane_reduction` family.
+- Archived smoke evidence at `docs/evidence/readiness/2026-07-04-random-repo-warning-lane-reduction-smoke/`.
+- Added `services/engine/tests/ci/test_random_repo_warning_lane_reduction.py`.
+- Added `docs/project/random-repo-warning-lane-reduction.md`.
+
+### Validation
+
+- `python -m pytest services\engine\tests\ci\test_random_repo_warning_lane_reduction.py -q`: 4 tests passed.
+- `python scripts\ci\collect_random_repo_warning_lane_reduction.py ...`: generated warning-lane reduction evidence with status `warning`.
+- `python scripts\ci\collect_readiness_evidence_history.py archive ...`: archived the new evidence family into readiness history.
+
+### Notes
+
+- Current warning-lane reduction status is `warning` with 0 blocking lanes.
+- Real random repositories remain `n8n` and `rich`.
+- Classification found 3 product-controlled lanes and 11 operator-guided/customer-host proof lanes.
+- This change does not claim clean pass; it makes the remaining warning work explainable and prioritizable.

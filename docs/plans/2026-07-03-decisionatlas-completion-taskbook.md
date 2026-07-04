@@ -26,7 +26,7 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | OpenSpec 开发流程 | complete | 多个 archived changes；`openspec validate --all --strict` 最近通过 71 项 | 每次后续迭代继续维护任务书 | 每个新功能独立 change |
 | CodeGraph 辅助开发 | partial | 已在实现前用于前端流程和结构定位 | 不是所有历史 change 都有 CodeGraph 记录 | 后续结构性代码任务继续强制先查 CodeGraph |
 | 真实浏览器人类流程 | complete | `2026-07-03-real-browser-workflow-rehearsal`；Playwright 1 passed；Mimo/team browser 9 passed | 还不是 live GitHub import 成功证明 | `live-public-repo-browser-import-rehearsal` |
-| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`） | 随机真实仓库仍有 warning，需要持续积累多轮趋势和改进导入质量 | 真实试用/下一次 release 继续归档 |
+| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`）、warning lane reduction 归因 | 随机真实仓库仍有 warning，但已拆分为产品可修/人工证明/外部依赖类别 | `improve-real-repo-core-loop-quality` |
 | 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown、full-chain release rehearsal | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用真实试用反馈降噪 | 真实试用后按问题开 change |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
 | readiness evidence history | complete | release/hosted/benchmark/external install/customer-host v2/full-chain/continuity/handoff/audit 证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | 按 release 节奏持续运行 |
@@ -34,12 +34,12 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | 备份/恢复/升级 | complete | backup/restore/upgrade rehearsal、real scratch rehearsal | 还没有真实生产数据迁移承诺；应保持边界 | 后续按客户需求扩展 |
 | 团队账号和权限 | complete | team self-hosted rehearsal、browser role checks、workspace member specs、review audit UX panel、viewer read-only browser rehearsal | 后续只有客户需要时再扩展更复杂组织管理 | 按客户反馈开新 change |
 | 登录/主账号/子账号路线 | partial | login、team account、role separation、workspace member assignment、review read-only boundary | 还不是完整 GitLab 式组织管理平台；近期够 self-hosted 小团队 | 客户反馈后再开组织管理 change |
-| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening、customer-host v2 evidence、full-chain random repo release evidence | 后续需要把 warning lane 逐步降噪，并用真实外部主机替换示例模板 | 客户试用时持续归档 |
+| 发布证据和客户报告 | complete | release evidence、Code Decision Audit、team handoff、readiness history、`release-rehearsal-one-command-evidence`、review audit UX hardening、customer-host v2 evidence、full-chain random repo release evidence、random repo warning lane reduction | 后续需要把 product-controlled warning lane 逐步降噪，并用真实外部主机替换示例模板 | 客户试用时持续归档 |
 | Docker / 本地一键启动 | partial | `start-real-stack.bat/.ps1`、clean install rehearsal、package verifier、customer-host v2 template/evidence | 还需更多外部机器和失败恢复证据；当前 smoke 仍是示例模板 + 本机证据 | 客户试用时持续归档 |
 | 商业化/产品化计划 | complete | 2026-05-09 商业化计划、sales enablement kit、proposal kit | 后续按客户反馈更新价格/交付包 | 客户反馈后再开 change |
 | 后续产品路线 | complete | `docs/plans/2026-07-03-decisionatlas-post-full-chain-product-roadmap.md` | 路线执行仍依赖真实外部试用证据 | `pilot-customer-trial-package` |
 | 真实外部主机试用证据门槛 | complete | `real-external-host-trial-evidence` collector、readiness history family、smoke archive | 当前 smoke 仍是示例模板 warning；真实客户/外部机器 proof 需要外部环境填写模板 | `pilot-customer-trial-package` |
-| 试用客户交付包 | complete | `pilot-customer-trial-package` collector、`.tmp` bundle、pytest | 当前 bundle 是 warning；需要真实外部主机证据替换模板后再生成 | `reduce-random-repo-import-warning-lanes` |
+| 试用客户交付包 | complete | `pilot-customer-trial-package` collector、`.tmp` bundle、pytest | 当前 bundle 是 warning；需要真实外部主机证据替换模板后再生成 | `improve-real-repo-core-loop-quality` |
 | SaaS billing / Marketplace / 多租户 | not-now | 计划明确暂缓 | 不作为近期完整 self-hosted 产品要求 | 暂不做 |
 
 ## 当前最重要的下一批任务
@@ -253,10 +253,12 @@ change：`pilot-customer-trial-package`
 4. `post-full-chain-product-roadmap`
 5. `real-external-host-trial-evidence`
 6. `pilot-customer-trial-package`
+7. `reduce-random-repo-import-warning-lanes`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence` 与 `pilot-customer-trial-package` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或 warning 降噪：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package` 与 `reduce-random-repo-import-warning-lanes` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或产品可控 warning 降噪：
 
 - 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
+- 重新生成 `random-repo-warning-lane-reduction`，优先处理 `product_controlled` warning。
 - 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。

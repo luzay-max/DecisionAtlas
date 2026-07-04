@@ -1,9 +1,7 @@
 ## Purpose
 
 Define full-chain release rehearsal evidence across random real public GitHub repositories, release rehearsal, customer-host v2, browser self-hosted flow, and readiness history.
-
 ## Requirements
-
 ### Requirement: Full-chain random repo release rehearsal bundle is generated
 The system SHALL generate a full-chain rehearsal bundle that combines random real repository diagnosis, release rehearsal, customer-host v2, and browser rehearsal evidence.
 
@@ -47,3 +45,15 @@ Full-chain random repo release rehearsal evidence SHALL be usable as a source fo
 #### Scenario: Full-chain evidence is non-clean
 - **WHEN** full-chain random repo release evidence has warning, blocking, operator-guided, or not-provided lanes
 - **THEN** the real external host trial gate SHALL keep those states visible and SHALL NOT summarize the source as clean pass.
+
+### Requirement: Full-chain evidence can feed warning-lane reduction
+Full-chain random repository release rehearsal evidence SHALL be usable as an input source for warning-lane reduction.
+
+#### Scenario: Full-chain evidence is supplied to reducer
+- **WHEN** the warning-lane reducer receives full-chain random repository release evidence
+- **THEN** it SHALL preserve selected repository identifiers, lane IDs, lane statuses, lane summaries, blockers, limitations, and recommended next actions as source evidence.
+
+#### Scenario: Full-chain evidence has non-clean lanes
+- **WHEN** full-chain evidence includes warning, blocking, operator-guided, or not-provided lanes
+- **THEN** the reducer SHALL classify those lanes without summarizing the full-chain evidence as clean pass.
+
