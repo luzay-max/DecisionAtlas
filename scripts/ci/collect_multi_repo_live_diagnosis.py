@@ -69,6 +69,38 @@ def _combined_status(statuses: list[str]) -> str:
     return "pass"
 
 
+ACTION_CATEGORY_KEYS = ("product_controlled", "operator_setup", "external_dependency", "not_provided", "blocking")
+
+
+def _empty_action_categories() -> dict[str, int]:
+    return {key: 0 for key in ACTION_CATEGORY_KEYS}
+
+
+def _import_action_categories(import_report: dict[str, Any]) -> dict[str, int]:
+    counts = _empty_action_categories()
+    setup = import_report.get("setup") if isinstance(import_report.get("setup"), dict) else {}
+    setup_outcome = str(setup.get("outcome") or "unknown")
+    next_action = str(setup.get("next_action") or "")
+    if setup_outcome in {"provider_failure", "local_stack_failure"}:
+        counts["blocking"] += 1
+        counts["external_dependency"] += 1
+    elif next_action == "wait_for_import" or setup.get("benchmark_ready") is False:
+        counts["operator_setup"] += 1
+    elif setup_outcome in {"created", "reused", "provided"}:
+        pass
+    else:
+        counts["operator_setup"] += 1
+    return counts
+
+
+def _merge_action_categories(*items: dict[str, int]) -> dict[str, int]:
+    merged = _empty_action_categories()
+    for item in items:
+        for key in ACTION_CATEGORY_KEYS:
+            merged[key] += int(item.get(key) or 0)
+    return merged
+
+
 def select_repo_ids(pool: list[dict[str, Any]], *, repo_ids: list[str], random_count: int | None, random_seed: int) -> list[str]:
     available = [str(row["id"]) for row in pool if row.get("id")]
     if repo_ids:
@@ -141,6 +173,13 @@ def diagnose_repository(
         for name, lane in (core_report.get("lanes") or {}).items()
         if isinstance(lane, dict)
     }
+    core_summary = core_report.get("summary") if isinstance(core_report.get("summary"), dict) else {}
+    core_action_categories = (
+        core_summary.get("action_categories")
+        if isinstance(core_summary.get("action_categories"), dict)
+        else _empty_action_categories()
+    )
+    action_categories = _merge_action_categories(_import_action_categories(import_report), core_action_categories)
     status = _combined_status([setup_outcome, str(core_report.get("status") or "unknown")])
     return {
         "id": repository.get("id"),
@@ -152,6 +191,7 @@ def diagnose_repository(
         "setup_outcome": setup_outcome,
         "core_loop_status": core_report.get("status"),
         "lane_statuses": lane_statuses,
+        "action_categories": action_categories,
         "recommended_next_actions": sorted(
             set((core_report.get("recommended_next_actions") or []) + [(import_report.get("setup") or {}).get("next_action")])
             - {None, ""}
@@ -160,7 +200,7 @@ def diagnose_repository(
             "setup": import_report.get("setup"),
             "error": import_report.get("error"),
         },
-        "core_loop_summary": core_report.get("summary"),
+        "core_loop_summary": core_summary,
     }
 
 
@@ -212,6 +252,12 @@ def build_report(
             for row in results
             if "operator_guided" in {str(value) for value in [row.get("setup_outcome"), *(row.get("lane_statuses") or {}).values()]}
         ),
+        "action_categories": _merge_action_categories(
+            *[
+                row.get("action_categories") if isinstance(row.get("action_categories"), dict) else _empty_action_categories()
+                for row in results
+            ]
+        ),
     }
     recommended_follow_up = sorted(
         {
@@ -246,6 +292,7 @@ def _markdown_cell(value: Any) -> str:
 
 def render_markdown(report: dict[str, Any]) -> str:
     summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    action_summary = summary.get("action_categories") if isinstance(summary.get("action_categories"), dict) else {}
     lines = [
         "# Multi-Repo Live Diagnosis Rotation",
         "",
@@ -256,14 +303,17 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Pass: `{summary.get('pass', 0)}`",
         f"- Warning: `{summary.get('warning', 0)}`",
         f"- Blocking: `{summary.get('blocking', 0)}`",
+        f"- Product actions: `{action_summary.get('product_controlled', 0)}`",
+        f"- Operator/setup actions: `{action_summary.get('operator_setup', 0)}`",
         "",
         "## Repository Results",
         "",
-        "| Repo | Status | Setup | Core loop | Review | Why | Drift | Guardrail |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Repo | Status | Setup | Core loop | Review | Why | Drift | Guardrail | Product actions | Operator/setup actions |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in report.get("repositories") or []:
         lanes = row.get("lane_statuses") if isinstance(row.get("lane_statuses"), dict) else {}
+        categories = row.get("action_categories") if isinstance(row.get("action_categories"), dict) else {}
         lines.append(
             "| "
             + " | ".join(
@@ -276,6 +326,8 @@ def render_markdown(report: dict[str, Any]) -> str:
                     _markdown_cell(lanes.get("why_search")),
                     _markdown_cell(lanes.get("drift")),
                     _markdown_cell(lanes.get("guardrail")),
+                    _markdown_cell(categories.get("product_controlled", 0)),
+                    _markdown_cell(categories.get("operator_setup", 0)),
                 ]
             )
             + " |"

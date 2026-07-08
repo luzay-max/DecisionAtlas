@@ -134,3 +134,66 @@ def test_warning_lane_reducer_writes_json_and_markdown(tmp_path: Path) -> None:
     markdown = output_markdown.read_text(encoding="utf-8")
     assert "Random Repo Warning Lane Reduction" in markdown
     assert "Textualize/rich" in markdown
+
+
+def test_warning_lane_reducer_uses_action_categories_for_aggregate_lanes(tmp_path: Path) -> None:
+    collector = _load_module()
+    multi_repo = _write_json(
+        tmp_path / "multi-repo.json",
+        {
+            "status": "warning",
+            "selected_repo_ids": ["n8n", "rich"],
+            "summary": {
+                "selected_repositories": 2,
+                "warning": 2,
+                "blocking": 0,
+                "action_categories": {
+                    "product_controlled": 0,
+                    "operator_setup": 8,
+                    "external_dependency": 0,
+                    "not_provided": 2,
+                    "blocking": 0,
+                },
+            },
+        },
+    )
+    args = collector.parse_args(["--multi-repo-diagnosis-json", str(multi_repo)])
+
+    report = collector.build_report(args, tmp_path)
+    lane = next(item for item in report["classified_lanes"] if item["id"] == "multi_repo_diagnosis:source")
+
+    assert lane["category"] == "operator_guided"
+    assert report["summary"]["product_controlled"] == 0
+    assert report["summary"]["operator_guided"] >= 1
+
+
+def test_warning_lane_reducer_deduplicates_release_aggregate_multi_repo_lanes(tmp_path: Path) -> None:
+    collector = _load_module()
+    release = _write_json(
+        tmp_path / "release.json",
+        {
+            "status": "warning",
+            "lanes": [
+                {
+                    "id": "multi_repo_diagnosis",
+                    "status": "warning",
+                    "summary": {
+                        "action_categories": {
+                            "product_controlled": 2,
+                            "operator_setup": 0,
+                            "external_dependency": 0,
+                            "not_provided": 0,
+                            "blocking": 0,
+                        }
+                    },
+                }
+            ],
+        },
+    )
+    args = collector.parse_args(["--release-rehearsal-json", str(release)])
+
+    report = collector.build_report(args, tmp_path)
+    lane = next(item for item in report["classified_lanes"] if item["id"] == "release_rehearsal:multi_repo_diagnosis")
+
+    assert lane["category"] == "operator_guided"
+    assert report["summary"]["product_controlled"] == 0

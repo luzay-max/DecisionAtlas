@@ -70,7 +70,18 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
                     "drift": {"status": "pass"},
                     "guardrail": {"status": "pass"},
                 },
-                "summary": {"pass_lanes": 6, "warning_lanes": 0, "blocking_lanes": 0},
+                "summary": {
+                    "pass_lanes": 6,
+                    "warning_lanes": 0,
+                    "blocking_lanes": 0,
+                    "action_categories": {
+                        "product_controlled": 0,
+                        "operator_setup": 0,
+                        "external_dependency": 0,
+                        "not_provided": 0,
+                        "blocking": 0,
+                    },
+                },
                 "recommended_next_actions": ["probe_core_loop"],
             }
         return {
@@ -81,7 +92,18 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
                 "drift": {"status": "not_provided"},
                 "guardrail": {"status": "not_provided"},
             },
-            "summary": {"pass_lanes": 1, "warning_lanes": 4, "blocking_lanes": 0},
+            "summary": {
+                "pass_lanes": 1,
+                "warning_lanes": 4,
+                "blocking_lanes": 0,
+                "action_categories": {
+                    "product_controlled": 0,
+                    "operator_setup": 2,
+                    "external_dependency": 0,
+                    "not_provided": 2,
+                    "blocking": 0,
+                },
+            },
             "recommended_next_actions": ["retry_when_github_or_network_available"],
         }
 
@@ -100,6 +122,8 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
     assert report["status"] == "blocking"
     assert report["summary"]["pass"] == 1
     assert report["summary"]["blocking"] == 1
+    assert report["summary"]["action_categories"]["blocking"] == 1
+    assert report["summary"]["action_categories"]["external_dependency"] == 1
     assert report["repositories"][0]["repo"] == "encode/httpx"
     assert report["repositories"][1]["setup_outcome"] == "provider_failure"
 
@@ -118,6 +142,7 @@ def test_render_markdown_lists_lane_statuses() -> None:
                 "setup_outcome": "reused",
                 "core_loop_status": "warning",
                 "lane_statuses": {"review": "warning", "why_search": "warning", "drift": "pass", "guardrail": "not_provided"},
+                "action_categories": {"product_controlled": 2, "operator_setup": 0},
             }
         ],
         "recommended_follow_up": ["review_candidates"],
@@ -127,5 +152,5 @@ def test_render_markdown_lists_lane_statuses() -> None:
     markdown = diagnosis.render_markdown(report)
 
     assert "encode/httpx" in markdown
-    assert "| encode/httpx | warning | reused | warning | warning | warning | pass | not_provided |" in markdown
+    assert "| encode/httpx | warning | reused | warning | warning | warning | pass | not_provided | 2 | 0 |" in markdown
     assert "review_candidates" in markdown

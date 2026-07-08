@@ -85,6 +85,7 @@ def test_core_loop_collects_clean_imported_workspace(monkeypatch, tmp_path: Path
     assert report["lanes"]["why_search"]["details"]["citation_count"] == 1
     assert report["lanes"]["drift"]["details"]["drift_state"] == "clean"
     assert report["lanes"]["guardrail"]["status"] == "pass"
+    assert report["summary"]["action_categories"]["product_controlled"] == 0
 
 
 def test_core_loop_preserves_missing_workspace_as_warning(tmp_path: Path) -> None:
@@ -104,7 +105,9 @@ def test_core_loop_preserves_missing_workspace_as_warning(tmp_path: Path) -> Non
 
     assert report["status"] == "warning"
     assert report["lanes"]["setup"]["status"] == "warning"
+    assert report["lanes"]["setup"]["action_category"] == "operator_setup"
     assert report["lanes"]["dashboard"]["status"] == "not_provided"
+    assert report["summary"]["action_categories"]["not_provided"] == 5
     assert "run_public_import_rehearsal" in report["recommended_next_actions"]
 
 
@@ -150,9 +153,11 @@ def test_core_loop_classifies_partial_lanes(monkeypatch, tmp_path: Path) -> None
 
     assert report["status"] == "blocking"
     assert report["lanes"]["review"]["status"] == "warning"
+    assert report["lanes"]["review"]["action_category"] == "product_controlled"
     assert report["lanes"]["why_search"]["status"] == "warning"
     assert report["lanes"]["drift"]["status"] == "local_stack_failure"
     assert report["lanes"]["guardrail"]["status"] == "warning"
+    assert report["summary"]["action_categories"]["product_controlled"] >= 3
 
 
 def test_core_loop_markdown_is_compact() -> None:
@@ -169,5 +174,48 @@ def test_core_loop_markdown_is_compact() -> None:
     markdown = core_loop.render_markdown(report)
 
     assert "fastapi/fastapi" in markdown
-    assert "| setup | pass | ready | probe_core_loop |" in markdown
+    assert "| setup | pass | - | ready | probe_core_loop |" in markdown
     assert "no secrets" in markdown
+
+
+def test_core_loop_marks_review_why_drift_as_operator_setup_when_import_waits(monkeypatch, tmp_path: Path) -> None:
+    import_report = _write_json(
+        tmp_path / "public-import.json",
+        {
+            "repository": {"repo": "Textualize/rich", "workspace_slug": "github-textualize-rich"},
+            "setup": {"outcome": "created", "next_action": "wait_for_import", "benchmark_ready": False},
+        },
+    )
+
+    def fake_json_request(**kwargs):
+        path = kwargs["path"]
+        if path.startswith("/dashboard/summary?"):
+            return ({"decision_counts": {}, "workspace_mode": "imported"}, None)
+        if path.startswith("/decisions?"):
+            return ([], None)
+        if path == "/query/why":
+            return ({"status": "evidence_limited", "citations": []}, None)
+        if path.startswith("/drift?"):
+            return ({"alerts": []}, None)
+        raise AssertionError(f"unexpected path {path}")
+
+    monkeypatch.setattr(core_loop, "_json_request", fake_json_request)
+
+    report = core_loop.build_report(
+        root=ROOT,
+        base_url="http://127.0.0.1:3001",
+        repo=None,
+        workspace_slug=None,
+        import_rehearsal_json=import_report,
+        guardrail_json=None,
+        run_guardrail=False,
+        session_token=None,
+        why_question="why",
+        evaluate_drift=False,
+    )
+
+    assert report["summary"]["setup_waiting"] is True
+    assert report["lanes"]["review"]["action_category"] == "operator_setup"
+    assert report["lanes"]["why_search"]["action_category"] == "operator_setup"
+    assert report["lanes"]["drift"]["action_category"] == "operator_setup"
+    assert report["summary"]["action_categories"]["product_controlled"] == 0

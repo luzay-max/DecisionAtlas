@@ -137,6 +137,22 @@ def _summary_status(data: dict[str, Any] | None) -> str:
     return STATUS_UNKNOWN
 
 
+def _benchmark_status_from_summary(data: dict[str, Any], summary: dict[str, Any]) -> str:
+    explicit_status = normalize_status(data.get("status") or data.get("overall_status"), "")
+    if explicit_status:
+        return explicit_status
+    regressed = int(summary.get("regressed") or 0)
+    operationally_blocked = int(summary.get("operationally_blocked") or 0)
+    release_ready = summary.get("release_evidence_ready")
+    if operationally_blocked:
+        return STATUS_BLOCKING
+    if regressed:
+        return STATUS_WARNING
+    if release_ready is True:
+        return STATUS_PASS
+    return STATUS_UNKNOWN
+
+
 def summarize_lane(lane_id: str, data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
@@ -159,11 +175,12 @@ def summarize_lane(lane_id: str, data: dict[str, Any] | None) -> dict[str, Any]:
     if lane_id in {"benchmark_trend", "benchmark_comparison"}:
         summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
         return {
-            "status": normalize_status(data.get("status") or data.get("overall_status"), STATUS_UNKNOWN),
+            "status": _benchmark_status_from_summary(data, summary),
             "repositories": summary.get("repositories") or summary.get("pool_repositories"),
             "covered_repositories": summary.get("covered_repositories"),
             "regressed": int(summary.get("regressed") or 0),
             "operationally_blocked": int(summary.get("operationally_blocked") or 0),
+            "release_evidence_ready": summary.get("release_evidence_ready"),
             "recommended_follow_up": _bounded(data.get("recommended_follow_up") or []),
         }
     if lane_id == "multi_repo_diagnosis":
@@ -175,6 +192,7 @@ def summarize_lane(lane_id: str, data: dict[str, Any] | None) -> dict[str, Any]:
             "pass": summary.get("pass"),
             "warning": summary.get("warning"),
             "blocking": summary.get("blocking"),
+            "action_categories": _bounded(summary.get("action_categories") if isinstance(summary.get("action_categories"), dict) else {}),
             "recommended_follow_up": _bounded(data.get("recommended_follow_up") or []),
         }
     if lane_id == "guardrail_summary":

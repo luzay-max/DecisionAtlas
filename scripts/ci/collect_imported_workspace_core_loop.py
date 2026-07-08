@@ -122,6 +122,42 @@ def _lane(status: str, *, summary: str, next_action: str, details: dict[str, Any
     }
 
 
+def _action_category(lane_name: str, lane: dict[str, Any], *, setup_waiting: bool) -> str:
+    status = str(lane.get("status") or "unknown")
+    if _status_rank(status) == 0:
+        return "pass"
+    if _status_rank(status) >= 2:
+        return "blocking"
+    if status == "not_provided":
+        return "not_provided"
+    if status in {"provider_failure", "local_stack_failure"}:
+        return "external_dependency"
+    next_action = str(lane.get("next_action") or "")
+    if setup_waiting and lane_name in {"review", "why_search", "drift"}:
+        return "operator_setup"
+    if next_action in {"run_public_import_rehearsal", "wait_for_import"}:
+        return "operator_setup"
+    if lane_name in {"review", "why_search", "drift", "guardrail"}:
+        return "product_controlled"
+    return "operator_setup"
+
+
+def _apply_action_categories(lanes: dict[str, dict[str, Any]], *, setup_waiting: bool) -> dict[str, int]:
+    counts = {
+        "product_controlled": 0,
+        "operator_setup": 0,
+        "external_dependency": 0,
+        "not_provided": 0,
+        "blocking": 0,
+    }
+    for lane_name, lane in lanes.items():
+        category = _action_category(lane_name, lane, setup_waiting=setup_waiting)
+        lane["action_category"] = category
+        if category in counts:
+            counts[category] += 1
+    return counts
+
+
 def _derive_workspace_and_repo(
     *,
     workspace_slug: str | None,
@@ -315,6 +351,7 @@ def build_report(
     )
     lanes: dict[str, dict[str, Any]] = {}
     setup_outcome = str(setup.get("outcome") or ("provided" if workspace_slug else "not_provided"))
+    setup_waiting = bool(setup.get("next_action") == "wait_for_import" or setup.get("benchmark_ready") is False)
     setup_status = "pass" if setup_outcome in {"created", "reused", "provided"} and workspace_slug else "warning"
     if setup_outcome in {"provider_failure", "local_stack_failure"}:
         setup_status = setup_outcome
@@ -334,6 +371,7 @@ def build_report(
         for lane_name in ("dashboard", "review", "why_search", "drift"):
             lanes[lane_name] = _lane("not_provided", summary="Workspace slug missing.", next_action="run_public_import_rehearsal")
     lanes["guardrail"] = _probe_guardrail(root=root, guardrail_json=guardrail_json, run_guardrail=run_guardrail)
+    action_summary = _apply_action_categories(lanes, setup_waiting=setup_waiting)
 
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -347,6 +385,8 @@ def build_report(
             "pass_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) == 0),
             "warning_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) == 1),
             "blocking_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) >= 2),
+            "action_categories": action_summary,
+            "setup_waiting": setup_waiting,
         },
         "recommended_next_actions": sorted({str(lane.get("next_action")) for lane in lanes.values() if lane.get("next_action")}),
         "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output.",
@@ -376,14 +416,14 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Lanes",
         "",
-        "| Lane | Status | Summary | Next action |",
-        "| --- | --- | --- | --- |",
+        "| Lane | Status | Action category | Summary | Next action |",
+        "| --- | --- | --- | --- | --- |",
     ]
     for name, lane in lanes.items():
         if not isinstance(lane, dict):
             continue
         lines.append(
-            f"| {_markdown_cell(name)} | {_markdown_cell(lane.get('status'))} | {_markdown_cell(lane.get('summary'))} | {_markdown_cell(lane.get('next_action'))} |"
+            f"| {_markdown_cell(name)} | {_markdown_cell(lane.get('status'))} | {_markdown_cell(lane.get('action_category'))} | {_markdown_cell(lane.get('summary'))} | {_markdown_cell(lane.get('next_action'))} |"
         )
     lines.extend(["", "## Recommended Next Actions", ""])
     for action in report.get("recommended_next_actions") or []:

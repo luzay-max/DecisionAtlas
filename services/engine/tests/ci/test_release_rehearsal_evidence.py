@@ -54,6 +54,59 @@ def test_warning_and_blocking_aggregation(tmp_path: Path) -> None:
     assert report["summary"]["blocking"] == 1
 
 
+def test_benchmark_comparison_release_ready_without_explicit_status_is_pass(tmp_path: Path) -> None:
+    comparison = _write_json(
+        tmp_path / "comparison.json",
+        {
+            "summary": {
+                "repositories": 2,
+                "regressed": 0,
+                "operationally_blocked": 0,
+                "release_evidence_ready": True,
+            }
+        },
+    )
+    args = rehearsal.parse_args(
+        [
+            "--no-default-discovery",
+            "--benchmark-comparison-report",
+            str(comparison),
+        ]
+    )
+
+    report = rehearsal.build_report(args, tmp_path)
+    lanes = {lane["id"]: lane for lane in report["lanes"]}
+
+    assert lanes["benchmark_comparison"]["status"] == "pass"
+    assert lanes["benchmark_comparison"]["summary"]["release_evidence_ready"] is True
+
+
+def test_benchmark_comparison_regression_without_explicit_status_is_warning(tmp_path: Path) -> None:
+    comparison = _write_json(
+        tmp_path / "comparison.json",
+        {
+            "summary": {
+                "repositories": 2,
+                "regressed": 1,
+                "operationally_blocked": 0,
+                "release_evidence_ready": False,
+            }
+        },
+    )
+    args = rehearsal.parse_args(
+        [
+            "--no-default-discovery",
+            "--benchmark-comparison-report",
+            str(comparison),
+        ]
+    )
+
+    report = rehearsal.build_report(args, tmp_path)
+    lanes = {lane["id"]: lane for lane in report["lanes"]}
+
+    assert lanes["benchmark_comparison"]["status"] == "warning"
+
+
 def test_render_markdown_lists_lanes(tmp_path: Path) -> None:
     report = {
         "label": "smoke",

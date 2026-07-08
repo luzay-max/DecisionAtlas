@@ -52,3 +52,27 @@
 - Real random repositories remain `n8n` and `rich`.
 - Classification found 3 product-controlled lanes and 11 operator-guided/customer-host proof lanes.
 - This change does not claim clean pass; it makes the remaining warning work explainable and prioritizable.
+
+## improve-real-repo-core-loop-quality
+
+### Implemented
+
+- Fixed release rehearsal benchmark comparison status derivation when comparison evidence has no explicit top-level status.
+- Added action categories to imported workspace core-loop lanes.
+- Added multi-repo diagnosis aggregate action category counts.
+- Updated warning-lane reduction to use action category counts and deduplicate release/full-chain multi-repo aggregate lanes.
+- Regenerated real repo evidence for `n8n` and `rich`.
+- Archived readiness evidence at `docs/evidence/readiness/2026-07-04-real-repo-core-loop-quality-smoke/`.
+- Added `docs/project/real-repo-core-loop-quality.md`.
+
+### Validation
+
+- `python -m pytest services\engine\tests\ci\test_release_rehearsal_evidence.py services\engine\tests\ci\test_imported_workspace_core_loop.py services\engine\tests\ci\test_multi_repo_live_diagnosis.py services\engine\tests\ci\test_random_repo_warning_lane_reduction.py -q`: 22 tests passed.
+- `python scripts\ci\collect_random_repo_warning_lane_reduction.py ...`: product-controlled warning lanes reduced from 3 to 1, with 0 blocking.
+- System Chrome browser smoke opened `/`, `/evidence`, `/review`, and API `/health` successfully.
+- `pnpm --filter @decisionatlas/web exec playwright test team-self-hosted-rehearsal.spec.ts --config playwright.config.ts --reporter=line`: 1 test passed.
+
+### Notes
+
+- The release remains `warning`; this is correct because customer-host proof is still template/operator-guided and `rich` still has why/drift quality work.
+- The useful progress is attribution quality: false/duplicate product-controlled lanes were removed, leaving one concrete product quality target.

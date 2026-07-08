@@ -163,11 +163,52 @@ def _text_blob(*values: Any) -> str:
     return json.dumps(values, ensure_ascii=False, sort_keys=True).lower()
 
 
+def _find_action_categories(value: Any) -> dict[str, int]:
+    if isinstance(value, dict):
+        categories = value.get("action_categories")
+        if isinstance(categories, dict):
+            return {str(key): int(item or 0) for key, item in categories.items() if isinstance(item, (int, float))}
+        for item in value.values():
+            found = _find_action_categories(item)
+            if found:
+                return found
+    if isinstance(value, list):
+        merged: dict[str, int] = {}
+        for item in value:
+            found = _find_action_categories(item)
+            for key, count in found.items():
+                merged[key] = merged.get(key, 0) + count
+        return merged
+    return {}
+
+
 def _classify_lane(lane: dict[str, Any]) -> tuple[str, str]:
     status = normalize_status(lane.get("status"))
+    source_id = str(lane.get("source_id") or "")
+    lane_id = str(lane.get("lane_id") or "")
+    action_categories = _find_action_categories(lane.get("summary"))
+    product_count = int(action_categories.get("product_controlled") or 0)
+    operator_count = int(action_categories.get("operator_setup") or action_categories.get("operator_guided") or 0)
+    external_count = int(action_categories.get("external_dependency") or 0)
+    not_provided_count = int(action_categories.get("not_provided") or 0)
+    blocking_count = int(action_categories.get("blocking") or 0)
     text = _text_blob(lane.get("id"), lane.get("source_id"), lane.get("label"), lane.get("summary"), lane.get("warnings"))
     if status == STATUS_BLOCKING:
         return "blocking", "source lane is blocking"
+    if lane_id == "readiness_history":
+        return "operator_guided", "readiness history preserves prior non-clean evidence and should be reviewed as release context"
+    if blocking_count:
+        return "blocking", "source action categories include blocking follow-up"
+    if lane_id == "multi_repo_diagnosis" and source_id != "multi_repo_diagnosis":
+        return "operator_guided", "aggregate release lane duplicates multi-repo source details; inspect direct repository lanes for product work"
+    if product_count:
+        return "product_controlled", "source action categories include product-controlled core-loop work"
+    if operator_count:
+        return "operator_guided", "source action categories indicate setup/import/operator follow-up"
+    if external_count:
+        return "external_dependency", "source action categories indicate provider or network follow-up"
+    if not_provided_count:
+        return "not_provided", "source action categories indicate missing evidence"
     if status == STATUS_NOT_PROVIDED:
         return "not_provided", "source evidence is absent or explicitly not provided"
     if status == STATUS_OPERATOR_GUIDED:

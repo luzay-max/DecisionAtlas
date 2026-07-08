@@ -26,8 +26,8 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 | OpenSpec 开发流程 | complete | 多个 archived changes；`openspec validate --all --strict` 最近通过 71 项 | 每次后续迭代继续维护任务书 | 每个新功能独立 change |
 | CodeGraph 辅助开发 | partial | 已在实现前用于前端流程和结构定位 | 不是所有历史 change 都有 CodeGraph 记录 | 后续结构性代码任务继续强制先查 CodeGraph |
 | 真实浏览器人类流程 | complete | `2026-07-03-real-browser-workflow-rehearsal`；Playwright 1 passed；Mimo/team browser 9 passed | 还不是 live GitHub import 成功证明 | `live-public-repo-browser-import-rehearsal` |
-| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`）、warning lane reduction 归因 | 随机真实仓库仍有 warning，但已拆分为产品可修/人工证明/外部依赖类别 | `improve-real-repo-core-loop-quality` |
-| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown、full-chain release rehearsal | 部分真实仓库仍可能是 warning/evidence_limited，需要后续用真实试用反馈降噪 | 真实试用后按问题开 change |
+| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`）、warning lane reduction 归因、real repo core-loop quality 降噪 | 随机真实仓库仍有 warning，但 product-controlled 已从 3 降到 1 | `improve-real-repo-why-drift-grounding` |
+| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown、full-chain release rehearsal、action category counts | `rich` 仍有 why/drift product-controlled warning；客户主机 proof 仍是 operator-guided | `improve-real-repo-why-drift-grounding` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
 | readiness evidence history | complete | release/hosted/benchmark/external install/customer-host v2/full-chain/continuity/handoff/audit 证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | 按 release 节奏持续运行 |
 | self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs、customer-host v2 rehearsal 管线 | 真实客户机器模板仍需由外部环境填写 | 客户试用时归档真实模板 |
@@ -254,11 +254,13 @@ change：`pilot-customer-trial-package`
 5. `real-external-host-trial-evidence`
 6. `pilot-customer-trial-package`
 7. `reduce-random-repo-import-warning-lanes`
+8. `improve-real-repo-core-loop-quality`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package` 与 `reduce-random-repo-import-warning-lanes` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或产品可控 warning 降噪：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package`、`reduce-random-repo-import-warning-lanes` 与 `improve-real-repo-core-loop-quality` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或剩余 why/drift 产品质量降噪：
 
 - 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
-- 重新生成 `random-repo-warning-lane-reduction`，优先处理 `product_controlled` warning。
+- 重新生成 `random-repo-warning-lane-reduction`，确认 `product_controlled` warning 继续下降。
+- 针对 `rich` 的 why/drift 剩余 product-controlled warning 开小 change。
 - 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。
