@@ -45,6 +45,8 @@ def test_core_loop_collects_clean_imported_workspace(monkeypatch, tmp_path: Path
                 },
                 None,
             )
+        if path.startswith("/decisions?") and "review_state=accepted" in path:
+            return ([{"title": "Accepted Pydantic baseline"}], None)
         if path.startswith("/decisions?"):
             return ([{"title": "Use Pydantic models"}, {"title": "Keep async endpoints"}], None)
         if path == "/query/why":
@@ -82,6 +84,8 @@ def test_core_loop_collects_clean_imported_workspace(monkeypatch, tmp_path: Path
     assert report["repository"]["repo"] == "fastapi/fastapi"
     assert report["lanes"]["dashboard"]["details"]["workspace_mode"] == "imported"
     assert report["lanes"]["review"]["details"]["candidate_count"] == 2
+    assert report["accepted_baseline"]["status"] == "present"
+    assert report["accepted_baseline"]["accepted_count"] == 1
     assert report["lanes"]["why_search"]["details"]["citation_count"] == 1
     assert report["lanes"]["drift"]["details"]["drift_state"] == "clean"
     assert report["lanes"]["guardrail"]["status"] == "pass"
@@ -237,12 +241,14 @@ def test_core_loop_adds_grounded_reasons_for_product_controlled_why_and_drift_wa
                     "github_repo": "Textualize/rich",
                     "workspace_mode": "imported",
                     "import_status": "succeeded",
-                    "decision_counts": {"candidate": 0, "accepted": 0},
+                    "decision_counts": {"candidate": 1, "accepted": 0},
                 },
                 None,
             )
-        if path.startswith("/decisions?"):
+        if path.startswith("/decisions?") and "review_state=accepted" in path:
             return ([], None)
+        if path.startswith("/decisions?"):
+            return ([{"title": "Candidate without accepted baseline"}], None)
         if path == "/query/why":
             return (
                 {
@@ -284,14 +290,60 @@ def test_core_loop_adds_grounded_reasons_for_product_controlled_why_and_drift_wa
     assert report["status"] == "warning"
     assert report["lanes"]["why_search"]["action_category"] == "product_controlled"
     assert report["lanes"]["drift"]["action_category"] == "product_controlled"
+    assert report["accepted_baseline"]["status"] == "empty"
+    assert report["accepted_baseline"]["accepted_count"] == 0
     assert report["lane_reasons"]["why_search"][0]["code"] == "missing_accepted_decision_evidence"
+    assert report["lane_reasons"]["why_search"][0]["evidence"]["accepted_baseline_status"] == "empty"
     assert report["lane_reasons"]["drift"][0]["code"] == "missing_accepted_decision_evidence"
+    assert report["lane_reasons"]["drift"][0]["evidence"]["accepted_decision_count"] == 0
     assert report["summary"]["grounding_summary"]["warning_lanes_with_grounding"] == 2
     assert "missing_accepted_decision_evidence" in report["summary"]["grounding_summary"]["reason_codes"]
 
     markdown = core_loop.render_markdown(report)
 
     assert "missing_accepted_decision_evidence" in markdown
+    assert "Accepted Baseline" in markdown
+
+
+def test_core_loop_marks_present_accepted_baseline_as_weak_support_not_missing(monkeypatch, tmp_path: Path) -> None:
+    guardrail_report = _write_json(
+        tmp_path / "guardrail.json",
+        {"guardrail": {"agent_status": "continue", "diff_status": "clean", "drift_status": "clean"}},
+    )
+
+    def fake_json_request(**kwargs):
+        path = kwargs["path"]
+        if path.startswith("/dashboard/summary?"):
+            return ({"decision_counts": {"candidate": 1, "accepted": 1}, "workspace_mode": "imported"}, None)
+        if path.startswith("/decisions?") and "review_state=accepted" in path:
+            return ([{"title": "Accepted baseline decision"}], None)
+        if path.startswith("/decisions?"):
+            return ([{"title": "Candidate decision"}], None)
+        if path == "/query/why":
+            return ({"status": "evidence_limited", "citations": [], "answer_context": {"workspace_mode": "imported"}}, None)
+        if path.startswith("/drift?"):
+            return ({"evaluation": {"state": "review_required"}, "alerts": []}, None)
+        raise AssertionError(f"unexpected path {path}")
+
+    monkeypatch.setattr(core_loop, "_json_request", fake_json_request)
+
+    report = core_loop.build_report(
+        root=ROOT,
+        base_url="http://127.0.0.1:3001",
+        repo="example/repo",
+        workspace_slug="github-example-repo",
+        import_rehearsal_json=None,
+        guardrail_json=guardrail_report,
+        run_guardrail=False,
+        session_token=None,
+        why_question="why",
+        evaluate_drift=False,
+    )
+
+    assert report["accepted_baseline"]["status"] == "present"
+    assert report["accepted_baseline"]["strength"] == "thin"
+    assert report["lane_reasons"]["why_search"][0]["code"] == "weak_why_support"
+    assert report["lane_reasons"]["why_search"][0]["evidence"]["accepted_decision_count"] == 1
 
 
 def test_core_loop_parses_current_guardrail_summary_text() -> None:

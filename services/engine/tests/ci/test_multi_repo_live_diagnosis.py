@@ -70,6 +70,7 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
                     "drift": {"status": "pass"},
                     "guardrail": {"status": "pass"},
                 },
+                "accepted_baseline": {"status": "present", "strength": "thin", "candidate_count": 2, "accepted_count": 1},
                 "summary": {
                     "pass_lanes": 6,
                     "warning_lanes": 0,
@@ -86,6 +87,7 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
             }
         return {
             "status": "warning",
+            "accepted_baseline": {"status": "empty", "strength": "none", "candidate_count": 1, "accepted_count": 0},
             "lanes": {
                 "review": {"status": "warning"},
                 "why_search": {"status": "warning"},
@@ -133,8 +135,10 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
     assert report["summary"]["action_categories"]["blocking"] == 1
     assert report["summary"]["action_categories"]["external_dependency"] == 1
     assert report["summary"]["grounding_reason_codes"] == ["missing_accepted_decision_evidence", "unknown_grounding_gap"]
+    assert report["summary"]["accepted_baseline_statuses"] == ["empty", "present"]
     assert report["repositories"][0]["repo"] == "encode/httpx"
     assert report["repositories"][1]["setup_outcome"] == "provider_failure"
+    assert report["repositories"][1]["accepted_baseline"]["status"] == "empty"
     assert report["repositories"][1]["lane_reasons"]["why_search"][0]["code"] == "missing_accepted_decision_evidence"
 
 
@@ -151,6 +155,7 @@ def test_render_markdown_lists_lane_statuses() -> None:
                 "status": "warning",
                 "setup_outcome": "reused",
                 "core_loop_status": "warning",
+                "accepted_baseline": {"status": "empty", "strength": "none", "candidate_count": 1, "accepted_count": 0},
                 "lane_statuses": {"review": "warning", "why_search": "warning", "drift": "pass", "guardrail": "not_provided"},
                 "grounding_summary": {"warning_lanes_with_grounding": 1, "reason_codes": ["weak_why_support"]},
                 "action_categories": {"product_controlled": 2, "operator_setup": 0},
@@ -163,5 +168,5 @@ def test_render_markdown_lists_lane_statuses() -> None:
     markdown = diagnosis.render_markdown(report)
 
     assert "encode/httpx" in markdown
-    assert "| encode/httpx | warning | reused | warning | warning | warning | pass | not_provided | {\"reason_codes\": [\"weak_why_support\"], \"warning_lanes_with_grounding\": 1} | 2 | 0 |" in markdown
+    assert "| encode/httpx | warning | reused | warning | {\"accepted_count\": 0, \"candidate_count\": 1, \"status\": \"empty\", \"strength\": \"none\"} | warning | warning | pass | not_provided | {\"reason_codes\": [\"weak_why_support\"], \"warning_lanes_with_grounding\": 1} | 2 | 0 |" in markdown
     assert "review_candidates" in markdown

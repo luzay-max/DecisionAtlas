@@ -133,7 +133,64 @@ def _bounded_grounding(value: Any) -> Any:
     return value
 
 
-def _why_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
+def _baseline_status(accepted_count: int, candidate_count: int, *, unavailable: bool = False) -> str:
+    if unavailable:
+        return "unavailable"
+    if accepted_count > 0:
+        return "present"
+    if candidate_count > 0:
+        return "empty"
+    return "absent"
+
+
+def _baseline_strength(accepted_count: int) -> str:
+    if accepted_count >= 2:
+        return "established"
+    if accepted_count == 1:
+        return "thin"
+    return "none"
+
+
+def _accepted_baseline_summary(
+    *,
+    candidate_count: int,
+    candidate_sample_titles: list[str],
+    accepted_payload: list[Any] | None,
+    error_payload: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if error_payload is not None or not isinstance(accepted_payload, list):
+        return {
+            "status": _baseline_status(0, candidate_count, unavailable=True),
+            "strength": "unknown",
+            "candidate_count": candidate_count,
+            "accepted_count": 0,
+            "candidate_sample_titles": candidate_sample_titles[:3],
+            "accepted_sample_titles": [],
+            "next_action": "inspect_accepted_decision_api_or_permissions",
+            "error": error_payload,
+        }
+    accepted_sample_titles = [str(item.get("title")) for item in accepted_payload[:3] if isinstance(item, dict)]
+    accepted_count = len(accepted_payload)
+    status = _baseline_status(accepted_count, candidate_count)
+    next_action = (
+        "accepted_baseline_ready"
+        if status == "present"
+        else "review_candidates_into_accepted_baseline"
+        if status == "empty"
+        else "import_or_review_decision_candidates"
+    )
+    return {
+        "status": status,
+        "strength": _baseline_strength(accepted_count),
+        "candidate_count": candidate_count,
+        "accepted_count": accepted_count,
+        "candidate_sample_titles": candidate_sample_titles[:3],
+        "accepted_sample_titles": accepted_sample_titles,
+        "next_action": next_action,
+    }
+
+
+def _why_grounding_reason(lane: dict[str, Any], accepted_baseline: dict[str, Any]) -> dict[str, Any] | None:
     status = str(lane.get("status") or "unknown")
     if _status_rank(status) != 1 or lane.get("action_category") != "product_controlled":
         return None
@@ -141,7 +198,9 @@ def _why_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
     answer_status = str(details.get("answer_status") or "unknown")
     citation_count = int(details.get("citation_count") or 0)
     primary_decision = details.get("primary_decision")
-    if citation_count <= 0 and not primary_decision:
+    baseline_status = str(accepted_baseline.get("status") or "unknown")
+    accepted_count = int(accepted_baseline.get("accepted_count") or 0)
+    if citation_count <= 0 and not primary_decision and accepted_count <= 0:
         code = "missing_accepted_decision_evidence"
         summary = "Why-search has no citations or primary decision to ground the answer."
     elif answer_status in {"evidence_limited", "limited_support", "unknown"} or citation_count <= 0:
@@ -161,12 +220,14 @@ def _why_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
                 "citation_count": citation_count,
                 "primary_decision_present": bool(primary_decision),
                 "workspace_mode": details.get("workspace_mode"),
+                "accepted_baseline_status": baseline_status,
+                "accepted_decision_count": accepted_count,
             }
         ),
     }
 
 
-def _drift_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
+def _drift_grounding_reason(lane: dict[str, Any], accepted_baseline: dict[str, Any]) -> dict[str, Any] | None:
     status = str(lane.get("status") or "unknown")
     if _status_rank(status) != 1 or lane.get("action_category") != "product_controlled":
         return None
@@ -174,18 +235,23 @@ def _drift_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
     drift_state = str(details.get("drift_state") or "unknown")
     alert_count = int(details.get("alert_count") or 0)
     evaluation = details.get("evaluation") if isinstance(details.get("evaluation"), dict) else {}
+    baseline_status = str(accepted_baseline.get("status") or "unknown")
+    accepted_count = int(accepted_baseline.get("accepted_count") or 0)
     if alert_count > 0:
         code = "unresolved_drift_followup"
         summary = "Drift lane has unresolved alerts that need human follow-up."
     elif drift_state in {"stale", "superseded"} or evaluation.get("stale") or evaluation.get("superseded"):
         code = "stale_or_superseded_evidence"
         summary = "Drift evidence appears stale or superseded and needs refresh."
+    elif accepted_count <= 0:
+        code = "missing_accepted_decision_evidence"
+        summary = "Drift warning may be caused by insufficient accepted-decision baseline evidence."
     elif drift_state in {"unknown", "unevaluated"}:
         code = "unknown_grounding_gap"
         summary = "Drift lane lacks a clean evaluated state or actionable alert evidence."
     else:
-        code = "missing_accepted_decision_evidence"
-        summary = "Drift warning may be caused by insufficient accepted-decision baseline evidence."
+        code = "unknown_grounding_gap"
+        summary = "Drift lane is warning but accepted baseline is present; inspect drift details."
     return {
         "lane": "drift",
         "code": code,
@@ -197,12 +263,18 @@ def _drift_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
                 "alert_count": alert_count,
                 "evaluation_state": evaluation.get("state"),
                 "evaluation_request_status": details.get("evaluation_request_status"),
+                "accepted_baseline_status": baseline_status,
+                "accepted_decision_count": accepted_count,
             }
         ),
     }
 
 
-def _apply_grounding_metadata(lanes: dict[str, dict[str, Any]]) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+def _apply_grounding_metadata(
+    lanes: dict[str, dict[str, Any]],
+    *,
+    accepted_baseline: dict[str, Any],
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
     lane_reasons: dict[str, list[dict[str, Any]]] = {}
     reason_builders = {
         "why_search": _why_grounding_reason,
@@ -212,7 +284,7 @@ def _apply_grounding_metadata(lanes: dict[str, dict[str, Any]]) -> tuple[dict[st
         lane = lanes.get(lane_name)
         if not isinstance(lane, dict):
             continue
-        reason = builder(lane)
+        reason = builder(lane, accepted_baseline)
         if reason is None:
             continue
         lane.setdefault("grounding", {})["reasons"] = [reason]
@@ -304,22 +376,44 @@ def _probe_dashboard(*, base_url: str, workspace_slug: str, session_token: str |
     )
 
 
-def _probe_review(*, base_url: str, workspace_slug: str, session_token: str | None) -> dict[str, Any]:
-    query = urlencode({"workspace_slug": workspace_slug, "review_state": "candidate"})
-    payload, error_payload = _json_request(base_url=base_url, path=f"/decisions?{query}", session_token=session_token)
-    if error_payload is not None or not isinstance(payload, list):
-        status = _classify_request_error(error_payload)
-        return _lane(status, summary="Review queue unavailable.", next_action="inspect_review_api_or_permissions", details={"error": error_payload})
-    count = len(payload)
+def _probe_review(*, base_url: str, workspace_slug: str, session_token: str | None) -> tuple[dict[str, Any], dict[str, Any]]:
+    candidate_query = urlencode({"workspace_slug": workspace_slug, "review_state": "candidate"})
+    candidate_payload, candidate_error = _json_request(base_url=base_url, path=f"/decisions?{candidate_query}", session_token=session_token)
+    if candidate_error is not None or not isinstance(candidate_payload, list):
+        baseline = _accepted_baseline_summary(
+            candidate_count=0,
+            candidate_sample_titles=[],
+            accepted_payload=None,
+            error_payload=candidate_error,
+        )
+        status = _classify_request_error(candidate_error)
+        return (
+            _lane(status, summary="Review queue unavailable.", next_action="inspect_review_api_or_permissions", details={"error": candidate_error}),
+            baseline,
+        )
+    count = len(candidate_payload)
+    candidate_sample_titles = [str(item.get("title")) for item in candidate_payload[:3] if isinstance(item, dict)]
+    accepted_query = urlencode({"workspace_slug": workspace_slug, "review_state": "accepted"})
+    accepted_payload, accepted_error = _json_request(base_url=base_url, path=f"/decisions?{accepted_query}", session_token=session_token)
+    baseline = _accepted_baseline_summary(
+        candidate_count=count,
+        candidate_sample_titles=candidate_sample_titles,
+        accepted_payload=accepted_payload if isinstance(accepted_payload, list) else None,
+        error_payload=accepted_error,
+    )
     status = "pass" if count > 0 else "warning"
-    return _lane(
-        status,
-        summary="Review queue has candidate decisions." if count else "Review queue is empty; accepted baseline may be missing or already reviewed.",
-        next_action="review_candidates" if count else "inspect_import_quality_or_existing_decisions",
-        details={
-            "candidate_count": count,
-            "sample_titles": [str(item.get("title")) for item in payload[:3] if isinstance(item, dict)],
-        },
+    return (
+        _lane(
+            status,
+            summary="Review queue has candidate decisions." if count else "Review queue is empty; accepted baseline may be missing or already reviewed.",
+            next_action="review_candidates" if count else "inspect_import_quality_or_existing_decisions",
+            details={
+                "candidate_count": count,
+                "sample_titles": candidate_sample_titles,
+                "accepted_baseline": baseline,
+            },
+        ),
+        baseline,
     )
 
 
@@ -484,15 +578,24 @@ def build_report(
 
     if workspace_slug:
         lanes["dashboard"] = _probe_dashboard(base_url=base_url, workspace_slug=workspace_slug, session_token=session_token)
-        lanes["review"] = _probe_review(base_url=base_url, workspace_slug=workspace_slug, session_token=session_token)
+        lanes["review"], accepted_baseline = _probe_review(base_url=base_url, workspace_slug=workspace_slug, session_token=session_token)
         lanes["why_search"] = _probe_why(base_url=base_url, workspace_slug=workspace_slug, question=why_question, session_token=session_token)
         lanes["drift"] = _probe_drift(base_url=base_url, workspace_slug=workspace_slug, session_token=session_token, evaluate=evaluate_drift)
     else:
+        accepted_baseline = {
+            "status": "not_provided",
+            "strength": "unknown",
+            "candidate_count": 0,
+            "accepted_count": 0,
+            "candidate_sample_titles": [],
+            "accepted_sample_titles": [],
+            "next_action": "run_public_import_rehearsal",
+        }
         for lane_name in ("dashboard", "review", "why_search", "drift"):
             lanes[lane_name] = _lane("not_provided", summary="Workspace slug missing.", next_action="run_public_import_rehearsal")
     lanes["guardrail"] = _probe_guardrail(root=root, guardrail_json=guardrail_json, run_guardrail=run_guardrail)
     action_summary = _apply_action_categories(lanes, setup_waiting=setup_waiting)
-    lane_reasons, grounding_summary = _apply_grounding_metadata(lanes)
+    lane_reasons, grounding_summary = _apply_grounding_metadata(lanes, accepted_baseline=accepted_baseline)
 
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -501,6 +604,7 @@ def build_report(
         "status": _overall_status(lanes),
         "base_url": base_url,
         "repository": {"repo": repo, "workspace_slug": workspace_slug},
+        "accepted_baseline": accepted_baseline,
         "lanes": lanes,
         "lane_reasons": lane_reasons,
         "summary": {
@@ -508,6 +612,7 @@ def build_report(
             "warning_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) == 1),
             "blocking_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) >= 2),
             "action_categories": action_summary,
+            "accepted_baseline": accepted_baseline,
             "grounding_summary": grounding_summary,
             "setup_waiting": setup_waiting,
         },
@@ -536,6 +641,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Repository: `{repository.get('repo', '-')}`",
         f"- Workspace slug: `{repository.get('workspace_slug', '-')}`",
         f"- Base URL: `{report.get('base_url')}`",
+        f"- Accepted baseline: `{(report.get('accepted_baseline') or {}).get('status', '-')}`",
+        "",
+        "## Accepted Baseline",
+        "",
+        f"- Summary: `{_markdown_cell(report.get('accepted_baseline'))}`",
         "",
         "## Lanes",
         "",

@@ -256,12 +256,13 @@ change：`pilot-customer-trial-package`
 7. `reduce-random-repo-import-warning-lanes`
 8. `improve-real-repo-core-loop-quality`
 9. `improve-real-repo-why-drift-grounding`
+10. `improve-real-repo-accepted-decision-baseline`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package`、`reduce-random-repo-import-warning-lanes`、`improve-real-repo-core-loop-quality` 与 `improve-real-repo-why-drift-grounding` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或继续把 grounded warning 转化为可审阅的 accepted decision baseline：
+`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package`、`reduce-random-repo-import-warning-lanes`、`improve-real-repo-core-loop-quality`、`improve-real-repo-why-drift-grounding` 与 `improve-real-repo-accepted-decision-baseline` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或把 `rich` 的候选决策通过受控 review flow 转化为 accepted baseline：
 
 - 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
 - 重新生成 `random-repo-warning-lane-reduction`，确认 `product_controlled` warning 继续下降。
-- 针对 `rich` 的 `missing_accepted_decision_evidence` 继续开小 change，把 grounded warning 转化为更稳定的 accepted decision baseline。
+- 针对 `rich` 的候选决策 review/accept 流程继续开小 change，把 accepted count 从 `0` 提升到可用于 why/drift 的 baseline。
 - 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。

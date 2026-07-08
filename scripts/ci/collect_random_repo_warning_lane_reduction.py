@@ -152,6 +152,17 @@ def _grounding_details(item: dict[str, Any]) -> dict[str, Any] | list[Any] | Non
     return None
 
 
+def _accepted_baseline_details(item: dict[str, Any]) -> dict[str, Any] | None:
+    value = item.get("accepted_baseline")
+    if isinstance(value, dict) and value:
+        return _bounded(value)
+    summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+    value = summary.get("accepted_baseline")
+    if isinstance(value, dict) and value:
+        return _bounded(value)
+    return None
+
+
 def _source_status(data: dict[str, Any] | None) -> str:
     if data is None:
         return STATUS_NOT_PROVIDED
@@ -294,6 +305,7 @@ def _lane_from_item(source: dict[str, Any], item: dict[str, Any], index: int, ki
         "status": normalize_status(item.get("status") or item.get("overall_status") or item.get("result") or item.get("outcome")),
         "summary": _bounded(item.get("summary") if isinstance(item.get("summary"), dict) else item),
         "grounding": _grounding_details(item),
+        "accepted_baseline": _accepted_baseline_details(item),
         "warnings": _bounded(item.get("warnings") or []),
         "source_path": source.get("source_path"),
     }
@@ -454,8 +466,10 @@ def render_markdown(report: dict[str, Any]) -> str:
     for lane in report.get("classified_lanes") or []:
         grounding = lane.get("grounding")
         grounding_suffix = f" grounding={_markdown_cell(grounding)}" if grounding else ""
+        baseline = lane.get("accepted_baseline")
+        baseline_suffix = f" accepted_baseline={_markdown_cell(baseline)}" if baseline else ""
         lines.append(
-            f"- `{lane['category']}` `{lane['status']}` {lane['id']}: {lane.get('rationale', '')}{grounding_suffix}"
+            f"- `{lane['category']}` `{lane['status']}` {lane['id']}: {lane.get('rationale', '')}{grounding_suffix}{baseline_suffix}"
         )
     lines.extend(["", "## Sources", ""])
     for source in report.get("sources") or []:

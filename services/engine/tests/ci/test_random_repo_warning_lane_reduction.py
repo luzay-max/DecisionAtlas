@@ -155,6 +155,12 @@ def test_warning_lane_reducer_surfaces_product_controlled_grounding_details(tmp_
                         "not_provided": 0,
                         "blocking": 0,
                     },
+                    "accepted_baseline": {
+                        "status": "empty",
+                        "strength": "none",
+                        "candidate_count": 1,
+                        "accepted_count": 0,
+                    },
                     "grounding_summary": {
                         "warning_lanes_with_grounding": 2,
                         "reason_codes": ["missing_accepted_decision_evidence", "unknown_grounding_gap"],
@@ -182,12 +188,15 @@ def test_warning_lane_reducer_surfaces_product_controlled_grounding_details(tmp_
 
     assert lane["category"] == "product_controlled"
     assert lane["grounding"]["reason_codes"] == ["missing_accepted_decision_evidence", "unknown_grounding_gap"]
+    assert lane["accepted_baseline"]["status"] == "empty"
+    assert lane["accepted_baseline"]["accepted_count"] == 0
 
     collector.write_report(tmp_path, report, None, str(output_markdown))
     markdown = output_markdown.read_text(encoding="utf-8")
 
     assert "missing_accepted_decision_evidence" in markdown
     assert "unknown_grounding_gap" in markdown
+    assert "accepted_baseline" in markdown
 
 
 def test_warning_lane_reducer_uses_action_categories_for_aggregate_lanes(tmp_path: Path) -> None:
