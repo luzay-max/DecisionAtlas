@@ -131,6 +131,27 @@ def _bounded(value: Any, *, limit: int = 600) -> Any:
     return value
 
 
+def _markdown_cell(value: Any) -> str:
+    if value is None:
+        return "-"
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return str(value).replace("|", "\\|").replace("\n", "<br>") or "-"
+
+
+def _grounding_details(item: dict[str, Any]) -> dict[str, Any] | list[Any] | None:
+    for key in ("grounding_summary", "lane_reasons", "grounding"):
+        value = item.get(key)
+        if value:
+            return _bounded(value)
+    summary = item.get("summary") if isinstance(item.get("summary"), dict) else {}
+    for key in ("grounding_summary", "lane_reasons", "grounding"):
+        value = summary.get(key)
+        if value:
+            return _bounded(value)
+    return None
+
+
 def _source_status(data: dict[str, Any] | None) -> str:
     if data is None:
         return STATUS_NOT_PROVIDED
@@ -272,6 +293,7 @@ def _lane_from_item(source: dict[str, Any], item: dict[str, Any], index: int, ki
         "label": item.get("label") or item.get("name") or item.get("repo_id") or lane_id,
         "status": normalize_status(item.get("status") or item.get("overall_status") or item.get("result") or item.get("outcome")),
         "summary": _bounded(item.get("summary") if isinstance(item.get("summary"), dict) else item),
+        "grounding": _grounding_details(item),
         "warnings": _bounded(item.get("warnings") or []),
         "source_path": source.get("source_path"),
     }
@@ -430,8 +452,10 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append(f"- `{action['priority']}` `{action['category']}`: {action['action']}")
     lines.extend(["", "## Classified Lanes", ""])
     for lane in report.get("classified_lanes") or []:
+        grounding = lane.get("grounding")
+        grounding_suffix = f" grounding={_markdown_cell(grounding)}" if grounding else ""
         lines.append(
-            f"- `{lane['category']}` `{lane['status']}` {lane['id']}: {lane.get('rationale', '')}"
+            f"- `{lane['category']}` `{lane['status']}` {lane['id']}: {lane.get('rationale', '')}{grounding_suffix}"
         )
     lines.extend(["", "## Sources", ""])
     for source in report.get("sources") or []:

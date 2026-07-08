@@ -122,6 +122,108 @@ def _lane(status: str, *, summary: str, next_action: str, details: dict[str, Any
     }
 
 
+def _bounded_grounding(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _bounded_grounding(item) for key, item in sorted(value.items(), key=lambda item: str(item[0]))}
+    if isinstance(value, list):
+        return [_bounded_grounding(item) for item in value[:10]]
+    if isinstance(value, str):
+        text = value.strip()
+        return text if len(text) <= 240 else text[:239].rstrip() + "..."
+    return value
+
+
+def _why_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
+    status = str(lane.get("status") or "unknown")
+    if _status_rank(status) != 1 or lane.get("action_category") != "product_controlled":
+        return None
+    details = lane.get("details") if isinstance(lane.get("details"), dict) else {}
+    answer_status = str(details.get("answer_status") or "unknown")
+    citation_count = int(details.get("citation_count") or 0)
+    primary_decision = details.get("primary_decision")
+    if citation_count <= 0 and not primary_decision:
+        code = "missing_accepted_decision_evidence"
+        summary = "Why-search has no citations or primary decision to ground the answer."
+    elif answer_status in {"evidence_limited", "limited_support", "unknown"} or citation_count <= 0:
+        code = "weak_why_support"
+        summary = "Why-search returned weak support or insufficient citations."
+    else:
+        code = "unknown_grounding_gap"
+        summary = "Why-search is warning but no specific supported reason was detected."
+    return {
+        "lane": "why_search",
+        "code": code,
+        "summary": summary,
+        "next_action": lane.get("next_action"),
+        "evidence": _bounded_grounding(
+            {
+                "answer_status": answer_status,
+                "citation_count": citation_count,
+                "primary_decision_present": bool(primary_decision),
+                "workspace_mode": details.get("workspace_mode"),
+            }
+        ),
+    }
+
+
+def _drift_grounding_reason(lane: dict[str, Any]) -> dict[str, Any] | None:
+    status = str(lane.get("status") or "unknown")
+    if _status_rank(status) != 1 or lane.get("action_category") != "product_controlled":
+        return None
+    details = lane.get("details") if isinstance(lane.get("details"), dict) else {}
+    drift_state = str(details.get("drift_state") or "unknown")
+    alert_count = int(details.get("alert_count") or 0)
+    evaluation = details.get("evaluation") if isinstance(details.get("evaluation"), dict) else {}
+    if alert_count > 0:
+        code = "unresolved_drift_followup"
+        summary = "Drift lane has unresolved alerts that need human follow-up."
+    elif drift_state in {"stale", "superseded"} or evaluation.get("stale") or evaluation.get("superseded"):
+        code = "stale_or_superseded_evidence"
+        summary = "Drift evidence appears stale or superseded and needs refresh."
+    elif drift_state in {"unknown", "unevaluated"}:
+        code = "unknown_grounding_gap"
+        summary = "Drift lane lacks a clean evaluated state or actionable alert evidence."
+    else:
+        code = "missing_accepted_decision_evidence"
+        summary = "Drift warning may be caused by insufficient accepted-decision baseline evidence."
+    return {
+        "lane": "drift",
+        "code": code,
+        "summary": summary,
+        "next_action": lane.get("next_action"),
+        "evidence": _bounded_grounding(
+            {
+                "drift_state": drift_state,
+                "alert_count": alert_count,
+                "evaluation_state": evaluation.get("state"),
+                "evaluation_request_status": details.get("evaluation_request_status"),
+            }
+        ),
+    }
+
+
+def _apply_grounding_metadata(lanes: dict[str, dict[str, Any]]) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    lane_reasons: dict[str, list[dict[str, Any]]] = {}
+    reason_builders = {
+        "why_search": _why_grounding_reason,
+        "drift": _drift_grounding_reason,
+    }
+    for lane_name, builder in reason_builders.items():
+        lane = lanes.get(lane_name)
+        if not isinstance(lane, dict):
+            continue
+        reason = builder(lane)
+        if reason is None:
+            continue
+        lane.setdefault("grounding", {})["reasons"] = [reason]
+        lane_reasons[lane_name] = [reason]
+    codes = sorted({reason["code"] for reasons in lane_reasons.values() for reason in reasons})
+    return lane_reasons, {
+        "warning_lanes_with_grounding": len(lane_reasons),
+        "reason_codes": codes,
+    }
+
+
 def _action_category(lane_name: str, lane: dict[str, Any], *, setup_waiting: bool) -> str:
     status = str(lane.get("status") or "unknown")
     if _status_rank(status) == 0:
@@ -283,18 +385,36 @@ def _probe_drift(*, base_url: str, workspace_slug: str, session_token: str | Non
     )
 
 
+def _parse_guardrail_summary(text: str) -> dict[str, Any]:
+    guardrail: dict[str, Any] = {
+        "agent_status": "unknown",
+        "diff_status": None,
+        "drift_status": None,
+        "required_tests": [],
+        "findings": [],
+    }
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Agent status:"):
+            guardrail["agent_status"] = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("Diff check:"):
+            guardrail["diff_status"] = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("Drift report:"):
+            guardrail["drift_status"] = stripped.split(":", 1)[1].strip()
+        elif stripped.startswith("- "):
+            guardrail["findings"].append(stripped[2:].strip())
+    return {"guardrail": guardrail}
+
+
 def _run_guardrail(root: Path) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    command = [sys.executable, "scripts/governance/agent_guardrail.py", "--summary", "--json"]
+    command = [sys.executable, "scripts/governance/agent_guardrail.py", "--summary"]
     try:
         result = subprocess.run(command, cwd=root, check=False, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError, TimeoutError) as exc:
         return None, {"type": "subprocess_error", "detail": str(exc)}
     if result.returncode != 0:
         return None, {"type": "subprocess_failed", "status": result.returncode, "detail": result.stderr or result.stdout}
-    try:
-        return json.loads(result.stdout), None
-    except json.JSONDecodeError as exc:
-        return None, {"type": "invalid_json", "detail": str(exc)}
+    return _parse_guardrail_summary(result.stdout), None
 
 
 def _probe_guardrail(*, root: Path, guardrail_json: Path | None, run_guardrail: bool) -> dict[str, Any]:
@@ -372,6 +492,7 @@ def build_report(
             lanes[lane_name] = _lane("not_provided", summary="Workspace slug missing.", next_action="run_public_import_rehearsal")
     lanes["guardrail"] = _probe_guardrail(root=root, guardrail_json=guardrail_json, run_guardrail=run_guardrail)
     action_summary = _apply_action_categories(lanes, setup_waiting=setup_waiting)
+    lane_reasons, grounding_summary = _apply_grounding_metadata(lanes)
 
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -381,11 +502,13 @@ def build_report(
         "base_url": base_url,
         "repository": {"repo": repo, "workspace_slug": workspace_slug},
         "lanes": lanes,
+        "lane_reasons": lane_reasons,
         "summary": {
             "pass_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) == 0),
             "warning_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) == 1),
             "blocking_lanes": sum(1 for lane in lanes.values() if _status_rank(str(lane.get("status"))) >= 2),
             "action_categories": action_summary,
+            "grounding_summary": grounding_summary,
             "setup_waiting": setup_waiting,
         },
         "recommended_next_actions": sorted({str(lane.get("next_action")) for lane in lanes.values() if lane.get("next_action")}),
@@ -416,14 +539,14 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Lanes",
         "",
-        "| Lane | Status | Action category | Summary | Next action |",
-        "| --- | --- | --- | --- | --- |",
+        "| Lane | Status | Action category | Grounding | Summary | Next action |",
+        "| --- | --- | --- | --- | --- | --- |",
     ]
     for name, lane in lanes.items():
         if not isinstance(lane, dict):
             continue
         lines.append(
-            f"| {_markdown_cell(name)} | {_markdown_cell(lane.get('status'))} | {_markdown_cell(lane.get('action_category'))} | {_markdown_cell(lane.get('summary'))} | {_markdown_cell(lane.get('next_action'))} |"
+            f"| {_markdown_cell(name)} | {_markdown_cell(lane.get('status'))} | {_markdown_cell(lane.get('action_category'))} | {_markdown_cell(lane.get('grounding'))} | {_markdown_cell(lane.get('summary'))} | {_markdown_cell(lane.get('next_action'))} |"
         )
     lines.extend(["", "## Recommended Next Actions", ""])
     for action in report.get("recommended_next_actions") or []:

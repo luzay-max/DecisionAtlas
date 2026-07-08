@@ -1,7 +1,7 @@
 # Readiness Evidence History
 
-- Generated at: `2026-07-04T01:16:06.051981+00:00`
-- Entries: `8`
+- Generated at: `2026-07-08T08:43:58.260807+00:00`
+- Entries: `10`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -13,6 +13,8 @@
 | 2026-07-03-external-customer-host-rehearsal-v2-smoke | 2026-07-03T06:27:54.442227+00:00 | warning | - | - | - | - | warning | - | - | - | - | - | - | 4 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-03-full-chain-random-repo-release-rehearsal-smoke | 2026-07-03T06:35:28.000989+00:00 | warning | - | - | - | - | - | warning | - | - | - | - | - | 4 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-04-random-repo-warning-lane-reduction-smoke | 2026-07-04T00:00:00+00:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | warning | not_provided | not_provided | not_provided | 14 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-04-real-repo-core-loop-quality-smoke | 2026-07-04T00:20:00+00:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 19 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-08-why-drift-grounding-smoke | 2026-07-08T00:32:00+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

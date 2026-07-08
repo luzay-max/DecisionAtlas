@@ -174,7 +174,7 @@ def test_core_loop_markdown_is_compact() -> None:
     markdown = core_loop.render_markdown(report)
 
     assert "fastapi/fastapi" in markdown
-    assert "| setup | pass | - | ready | probe_core_loop |" in markdown
+    assert "| setup | pass | - | - | ready | probe_core_loop |" in markdown
     assert "no secrets" in markdown
 
 
@@ -218,4 +218,98 @@ def test_core_loop_marks_review_why_drift_as_operator_setup_when_import_waits(mo
     assert report["lanes"]["review"]["action_category"] == "operator_setup"
     assert report["lanes"]["why_search"]["action_category"] == "operator_setup"
     assert report["lanes"]["drift"]["action_category"] == "operator_setup"
+    assert report["lane_reasons"] == {}
     assert report["summary"]["action_categories"]["product_controlled"] == 0
+
+
+def test_core_loop_adds_grounded_reasons_for_product_controlled_why_and_drift_warnings(monkeypatch, tmp_path: Path) -> None:
+    guardrail_report = _write_json(
+        tmp_path / "guardrail.json",
+        {"guardrail": {"agent_status": "continue", "diff_status": "clean", "drift_status": "clean"}},
+    )
+
+    def fake_json_request(**kwargs):
+        path = kwargs["path"]
+        if path.startswith("/dashboard/summary?"):
+            return (
+                {
+                    "workspace_slug": "github-textualize-rich",
+                    "github_repo": "Textualize/rich",
+                    "workspace_mode": "imported",
+                    "import_status": "succeeded",
+                    "decision_counts": {"candidate": 0, "accepted": 0},
+                },
+                None,
+            )
+        if path.startswith("/decisions?"):
+            return ([], None)
+        if path == "/query/why":
+            return (
+                {
+                    "status": "evidence_limited",
+                    "question": kwargs["body"]["question"],
+                    "answer_context": {"workspace_mode": "imported"},
+                    "citations": [],
+                    "primary_decision": None,
+                },
+                None,
+            )
+        if path.startswith("/drift?"):
+            return (
+                {
+                    "workspace_mode": "imported",
+                    "evaluation": {"state": "needs_review"},
+                    "alerts": [],
+                },
+                None,
+            )
+        raise AssertionError(f"unexpected path {path}")
+
+    monkeypatch.setattr(core_loop, "_json_request", fake_json_request)
+
+    report = core_loop.build_report(
+        root=ROOT,
+        base_url="http://127.0.0.1:3001",
+        repo="Textualize/rich",
+        workspace_slug="github-textualize-rich",
+        import_rehearsal_json=None,
+        guardrail_json=guardrail_report,
+        run_guardrail=False,
+        session_token=None,
+        why_question="why is rich structured this way",
+        evaluate_drift=False,
+        generated_at="2026-07-04T00:00:00+00:00",
+    )
+
+    assert report["status"] == "warning"
+    assert report["lanes"]["why_search"]["action_category"] == "product_controlled"
+    assert report["lanes"]["drift"]["action_category"] == "product_controlled"
+    assert report["lane_reasons"]["why_search"][0]["code"] == "missing_accepted_decision_evidence"
+    assert report["lane_reasons"]["drift"][0]["code"] == "missing_accepted_decision_evidence"
+    assert report["summary"]["grounding_summary"]["warning_lanes_with_grounding"] == 2
+    assert "missing_accepted_decision_evidence" in report["summary"]["grounding_summary"]["reason_codes"]
+
+    markdown = core_loop.render_markdown(report)
+
+    assert "missing_accepted_decision_evidence" in markdown
+
+
+def test_core_loop_parses_current_guardrail_summary_text() -> None:
+    payload = core_loop._parse_guardrail_summary(
+        "\n".join(
+            [
+                "Agent status: caution",
+                "Diff check: pass",
+                "Drift report: drift_detected",
+                "Recommended next actions:",
+                "- Review the historical issue before repeating the same implementation pattern.",
+            ]
+        )
+    )
+
+    guardrail = payload["guardrail"]
+
+    assert guardrail["agent_status"] == "caution"
+    assert guardrail["diff_status"] == "pass"
+    assert guardrail["drift_status"] == "drift_detected"
+    assert guardrail["findings"] == ["Review the historical issue before repeating the same implementation pattern."]

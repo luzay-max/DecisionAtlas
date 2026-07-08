@@ -136,6 +136,60 @@ def test_warning_lane_reducer_writes_json_and_markdown(tmp_path: Path) -> None:
     assert "Textualize/rich" in markdown
 
 
+def test_warning_lane_reducer_surfaces_product_controlled_grounding_details(tmp_path: Path) -> None:
+    collector = _load_module()
+    multi_repo = _write_json(
+        tmp_path / "multi-repo.json",
+        {
+            "status": "warning",
+            "selected_repo_ids": ["rich"],
+            "repositories": [
+                {
+                    "id": "rich",
+                    "repo": "Textualize/rich",
+                    "status": "warning",
+                    "action_categories": {
+                        "product_controlled": 2,
+                        "operator_setup": 0,
+                        "external_dependency": 0,
+                        "not_provided": 0,
+                        "blocking": 0,
+                    },
+                    "grounding_summary": {
+                        "warning_lanes_with_grounding": 2,
+                        "reason_codes": ["missing_accepted_decision_evidence", "unknown_grounding_gap"],
+                    },
+                    "lane_reasons": {
+                        "why_search": [{"code": "missing_accepted_decision_evidence"}],
+                        "drift": [{"code": "unknown_grounding_gap"}],
+                    },
+                }
+            ],
+        },
+    )
+    output_markdown = tmp_path / "out.md"
+    args = collector.parse_args(
+        [
+            "--multi-repo-diagnosis-json",
+            str(multi_repo),
+            "--output-markdown",
+            str(output_markdown),
+        ]
+    )
+
+    report = collector.build_report(args, tmp_path)
+    lane = next(item for item in report["classified_lanes"] if item["id"] == "multi_repo_diagnosis:rich")
+
+    assert lane["category"] == "product_controlled"
+    assert lane["grounding"]["reason_codes"] == ["missing_accepted_decision_evidence", "unknown_grounding_gap"]
+
+    collector.write_report(tmp_path, report, None, str(output_markdown))
+    markdown = output_markdown.read_text(encoding="utf-8")
+
+    assert "missing_accepted_decision_evidence" in markdown
+    assert "unknown_grounding_gap" in markdown
+
+
 def test_warning_lane_reducer_uses_action_categories_for_aggregate_lanes(tmp_path: Path) -> None:
     collector = _load_module()
     multi_repo = _write_json(

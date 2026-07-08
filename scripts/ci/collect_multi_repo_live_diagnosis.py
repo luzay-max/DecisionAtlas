@@ -174,6 +174,8 @@ def diagnose_repository(
         if isinstance(lane, dict)
     }
     core_summary = core_report.get("summary") if isinstance(core_report.get("summary"), dict) else {}
+    lane_reasons = core_report.get("lane_reasons") if isinstance(core_report.get("lane_reasons"), dict) else {}
+    grounding_summary = core_summary.get("grounding_summary") if isinstance(core_summary.get("grounding_summary"), dict) else {}
     core_action_categories = (
         core_summary.get("action_categories")
         if isinstance(core_summary.get("action_categories"), dict)
@@ -191,6 +193,8 @@ def diagnose_repository(
         "setup_outcome": setup_outcome,
         "core_loop_status": core_report.get("status"),
         "lane_statuses": lane_statuses,
+        "lane_reasons": lane_reasons,
+        "grounding_summary": grounding_summary,
         "action_categories": action_categories,
         "recommended_next_actions": sorted(
             set((core_report.get("recommended_next_actions") or []) + [(import_report.get("setup") or {}).get("next_action")])
@@ -258,6 +262,18 @@ def build_report(
                 for row in results
             ]
         ),
+        "grounding_reason_codes": sorted(
+            {
+                str(code)
+                for row in results
+                for code in (
+                    ((row.get("grounding_summary") or {}).get("reason_codes") or [])
+                    if isinstance(row.get("grounding_summary"), dict)
+                    else []
+                )
+                if code
+            }
+        ),
     }
     recommended_follow_up = sorted(
         {
@@ -308,8 +324,8 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         "## Repository Results",
         "",
-        "| Repo | Status | Setup | Core loop | Review | Why | Drift | Guardrail | Product actions | Operator/setup actions |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Repo | Status | Setup | Core loop | Review | Why | Drift | Guardrail | Grounding | Product actions | Operator/setup actions |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in report.get("repositories") or []:
         lanes = row.get("lane_statuses") if isinstance(row.get("lane_statuses"), dict) else {}
@@ -326,6 +342,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                     _markdown_cell(lanes.get("why_search")),
                     _markdown_cell(lanes.get("drift")),
                     _markdown_cell(lanes.get("guardrail")),
+                    _markdown_cell(row.get("grounding_summary")),
                     _markdown_cell(categories.get("product_controlled", 0)),
                     _markdown_cell(categories.get("operator_setup", 0)),
                 ]

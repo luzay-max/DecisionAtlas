@@ -103,6 +103,14 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
                     "not_provided": 2,
                     "blocking": 0,
                 },
+                "grounding_summary": {
+                    "warning_lanes_with_grounding": 2,
+                    "reason_codes": ["missing_accepted_decision_evidence", "unknown_grounding_gap"],
+                },
+            },
+            "lane_reasons": {
+                "why_search": [{"code": "missing_accepted_decision_evidence", "summary": "Why evidence is weak."}],
+                "drift": [{"code": "unknown_grounding_gap", "summary": "Drift was not evaluated cleanly."}],
             },
             "recommended_next_actions": ["retry_when_github_or_network_available"],
         }
@@ -124,8 +132,10 @@ def test_multi_repo_diagnosis_preserves_mixed_outcomes(monkeypatch, tmp_path: Pa
     assert report["summary"]["blocking"] == 1
     assert report["summary"]["action_categories"]["blocking"] == 1
     assert report["summary"]["action_categories"]["external_dependency"] == 1
+    assert report["summary"]["grounding_reason_codes"] == ["missing_accepted_decision_evidence", "unknown_grounding_gap"]
     assert report["repositories"][0]["repo"] == "encode/httpx"
     assert report["repositories"][1]["setup_outcome"] == "provider_failure"
+    assert report["repositories"][1]["lane_reasons"]["why_search"][0]["code"] == "missing_accepted_decision_evidence"
 
 
 def test_render_markdown_lists_lane_statuses() -> None:
@@ -142,6 +152,7 @@ def test_render_markdown_lists_lane_statuses() -> None:
                 "setup_outcome": "reused",
                 "core_loop_status": "warning",
                 "lane_statuses": {"review": "warning", "why_search": "warning", "drift": "pass", "guardrail": "not_provided"},
+                "grounding_summary": {"warning_lanes_with_grounding": 1, "reason_codes": ["weak_why_support"]},
                 "action_categories": {"product_controlled": 2, "operator_setup": 0},
             }
         ],
@@ -152,5 +163,5 @@ def test_render_markdown_lists_lane_statuses() -> None:
     markdown = diagnosis.render_markdown(report)
 
     assert "encode/httpx" in markdown
-    assert "| encode/httpx | warning | reused | warning | warning | warning | pass | not_provided | 2 | 0 |" in markdown
+    assert "| encode/httpx | warning | reused | warning | warning | warning | pass | not_provided | {\"reason_codes\": [\"weak_why_support\"], \"warning_lanes_with_grounding\": 1} | 2 | 0 |" in markdown
     assert "review_candidates" in markdown
