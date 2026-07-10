@@ -1,7 +1,7 @@
 # Readiness Evidence History
 
-- Generated at: `2026-07-08T08:58:25.589199+00:00`
-- Entries: `11`
+- Generated at: `2026-07-10T01:58:12.393038+00:00`
+- Entries: `12`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -16,6 +16,7 @@
 | 2026-07-04-real-repo-core-loop-quality-smoke | 2026-07-04T00:20:00+00:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 19 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-08-why-drift-grounding-smoke | 2026-07-08T00:32:00+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-08-accepted-decision-baseline-smoke | 2026-07-08T01:18:00+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-10-review-candidates-accepted-baseline-smoke | 2026-07-10T09:58:12.2702934+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

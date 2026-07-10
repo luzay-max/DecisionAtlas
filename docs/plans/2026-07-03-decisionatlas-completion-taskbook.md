@@ -23,11 +23,11 @@ DecisionAtlas 已经具备“可运行、可演示、可生成治理证据、可
 
 | 主线 | 当前状态 | 已有证据 | 仍缺什么 | 下一步 OpenSpec |
 |---|---|---|---|---|
-| OpenSpec 开发流程 | complete | 多个 archived changes；`openspec validate --all --strict` 最近通过 71 项 | 每次后续迭代继续维护任务书 | 每个新功能独立 change |
+| OpenSpec 开发流程 | complete | 多个 archived changes；`openspec validate --all --strict` 最近通过 83 项 | 每次后续迭代继续维护任务书 | 每个新功能独立 change |
 | CodeGraph 辅助开发 | partial | 已在实现前用于前端流程和结构定位 | 不是所有历史 change 都有 CodeGraph 记录 | 后续结构性代码任务继续强制先查 CodeGraph |
 | 真实浏览器人类流程 | complete | `2026-07-03-real-browser-workflow-rehearsal`；Playwright 1 passed；Mimo/team browser 9 passed | 还不是 live GitHub import 成功证明 | `live-public-repo-browser-import-rehearsal` |
-| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`）、warning lane reduction 归因、real repo core-loop quality 降噪 | 随机真实仓库仍有 warning，但 product-controlled 已从 3 降到 1 | `improve-real-repo-why-drift-grounding` |
-| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown、full-chain release rehearsal、action category counts | `rich` 仍有 why/drift product-controlled warning；客户主机 proof 仍是 operator-guided | `improve-real-repo-why-drift-grounding` |
+| 真实 GitHub repo 验证 | partial | real repo benchmark、public GitHub import rehearsal、browser 中使用 `openai/openai-cookbook` 引用、`pallets/flask` imported browser rehearsal、`multi-repo-live-diagnosis-rotation` 多仓库轮换诊断、full-chain 随机仓库演练（`n8n`、`rich`）、warning lane reduction 归因、real repo core-loop quality 降噪 | `rich` 已建立 1 条 accepted baseline 并完成真实 Chrome review/why/drift 验证；但该 workspace 是复用导入，baseline 仍为 thin，随机真实仓库仍有 warning | `fresh-random-public-repo-import-rehearsal` |
+| 核心闭环：导入 -> 审核 -> why -> drift -> guardrail | partial | demo/browser flow、benchmark、guardrail、drift specs、`imported-workspace-core-loop-rehearsal` collector/browser evidence、multi-repo diagnosis JSON/Markdown、full-chain release rehearsal、action category counts | `rich` 精确 Why 查询和漂移重评已通过，但默认诊断仍有弱引用 warning；客户主机 proof 仍含 operator-guided 边界 | `fresh-random-public-repo-import-rehearsal` |
 | 治理知识质量 | complete | rule lifecycle、stale/superseded、source evidence、guardrail specs | 后续可继续降噪，但近期主能力已覆盖 | 后续按问题开小 change |
 | readiness evidence history | complete | release/hosted/benchmark/external install/customer-host v2/full-chain/continuity/handoff/audit 证据归档、one-command release rehearsal 归档 | 需要每次 release 都跑一次 rehearsal 并观察趋势 | 按 release 节奏持续运行 |
 | self-hosted 包和商业边界 | complete | package baseline、license/support boundary、commercial sales kit、handoff/audit docs、customer-host v2 rehearsal 管线 | 真实客户机器模板仍需由外部环境填写 | 客户试用时归档真实模板 |
@@ -257,12 +257,13 @@ change：`pilot-customer-trial-package`
 8. `improve-real-repo-core-loop-quality`
 9. `improve-real-repo-why-drift-grounding`
 10. `improve-real-repo-accepted-decision-baseline`
+11. `review-candidates-into-accepted-baseline-flow`
 
-`review-audit-ux-hardening`、`external-customer-host-rehearsal-v2`、`full-chain-random-repo-release-rehearsal`、`post-full-chain-product-roadmap`、`real-external-host-trial-evidence`、`pilot-customer-trial-package`、`reduce-random-repo-import-warning-lanes`、`improve-real-repo-core-loop-quality`、`improve-real-repo-why-drift-grounding` 与 `improve-real-repo-accepted-decision-baseline` 已完成。下一步不建议继续扩展大功能，建议进入真实外部试用或把 `rich` 的候选决策通过受控 review flow 转化为 accepted baseline：
+上述 11 个 change 已完成，`rich` 已通过受控 review flow 从 0 条 accepted 提升到 1 条，并完成真实 Chrome Why/Drift 验证。下一步不建议继续扩展大功能，应优先证明全新随机公开仓库从零导入的完整链路，并推进真实外部试用：
 
 - 用真实非本人机器替换示例 customer-host 模板，并通过 `real-external-host-trial-evidence` 归档。
 - 每次试用或 release 都跑一次 full-chain random repo release rehearsal。
 - 重新生成 `random-repo-warning-lane-reduction`，确认 `product_controlled` warning 继续下降。
-- 针对 `rich` 的候选决策 review/accept 流程继续开小 change，把 accepted count 从 `0` 提升到可用于 why/drift 的 baseline。
+- 新开 `fresh-random-public-repo-import-rehearsal`，随机选择未复用的公开 GitHub 仓库，从零完成 import -> review -> why -> drift -> guardrail -> release evidence。
 - 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。
