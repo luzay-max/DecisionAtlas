@@ -1068,3 +1068,275 @@ def test_improved_source_ref_coverage_can_upgrade_imported_why_answer_to_ok(tmp_
 
     assert response["status"] == "ok"
     assert len(response["citations"]) >= 2
+
+class SparseRecoverySuccessProvider:
+    def __init__(self) -> None:
+        self.extraction_requests: list[ExtractionRequest] = []
+
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return False
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        self.extraction_requests.append(request)
+        return """
+        {
+          "title": "Adopt bounded worker queues",
+          "problem": "Synchronous background work delayed requests",
+          "context": "The service needed predictable request latency",
+          "constraints": "Keep deployment operations bounded",
+          "chosen_option": "Move background work to a bounded worker queue",
+          "tradeoffs": "Additional worker operations for lower request latency",
+          "confidence": 0.86,
+          "source_quote": "We chose a bounded worker queue because synchronous background work delayed requests."
+        }
+        """
+
+
+class SparseRecoveryNullProvider:
+    def __init__(self) -> None:
+        self.extraction_requests: list[ExtractionRequest] = []
+
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return False
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        self.extraction_requests.append(request)
+        return None
+
+
+class SparseRecoveryMixedFailureProvider:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return False
+
+    def extract_candidate(self, request: ExtractionRequest) -> str | None:
+        self.calls += 1
+        if self.calls == 1:
+            return """
+            {
+              "title": "Shard the relational database",
+              "problem": "Database write throughput is saturated",
+              "chosen_option": "Shard PostgreSQL by tenant",
+              "tradeoffs": "Cross-shard joins become expensive",
+              "confidence": 0.7,
+              "source_quote": "This quote is not in the artifact."
+            }
+            """
+        raise ProviderTimeoutError("sparse recovery provider timeout")
+
+
+def _create_sparse_workspace(db_path: Path, artifacts: list[dict]) -> object:
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(slug="sparse-workspace", name="Sparse", repo_url="https://github.com/org/sparse")
+        session.add(workspace)
+        session.flush()
+        for index, payload in enumerate(artifacts, start=1):
+            session.add(
+                Artifact(
+                    workspace_id=workspace.id,
+                    type=payload["type"],
+                    source_id=str(index),
+                    repo="org/sparse",
+                    title=payload["title"],
+                    content=payload["content"],
+                    author="alice",
+                    url=f"https://github.com/org/sparse/artifacts/{index}",
+                    timestamp=None,
+                    metadata_json=payload.get("metadata_json"),
+                )
+            )
+        session.commit()
+    return engine
+
+
+def _sparse_artifacts() -> list[dict]:
+    return [
+        {
+            "type": "doc",
+            "title": "Architecture decision",
+            "content": (
+                "We chose a bounded worker queue because synchronous background work delayed requests. "
+                "The trade-off is additional worker operations while request latency becomes predictable."
+            ),
+            "metadata_json": {"path": "docs/architecture.md", "signal_category": "architecture"},
+        },
+        {
+            "type": "pr",
+            "title": "Roll out the queue",
+            "content": (
+                "We decided to roll out the queue gradually because capacity was uncertain. "
+                "This choice trades rollout speed for safer operations."
+            ),
+            "metadata_json": {},
+        },
+        {
+            "type": "issue",
+            "title": "Migration decision",
+            "content": (
+                "The team chose a compatibility adapter because clients could not migrate together. "
+                "The trade-off is temporary maintenance overhead."
+            ),
+            "metadata_json": {},
+        },
+        {
+            "type": "commit",
+            "title": "Replace synchronous dispatch",
+            "content": (
+                "We decided to replace synchronous dispatch because requests were blocked by background work. "
+                "The chosen queue adds operational complexity but keeps latency bounded. "
+                "Migration remains gradual and reversible while worker capacity is measured. "
+                "This rationale is recorded for later review and rollout decisions."
+            ),
+            "metadata_json": {},
+        },
+    ]
+
+
+def test_pipeline_sparse_recovery_creates_grounded_candidate(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-success.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(db_path, _sparse_artifacts()[:1])
+    provider = SparseRecoverySuccessProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider, sparse_recovery_max_artifacts=2)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    with Session(engine) as session:
+        decision = session.scalar(select(Decision))
+        refs = session.scalars(select(SourceRef)).all()
+
+    assert created == 1
+    assert decision is not None
+    assert decision.review_state == "candidate"
+    assert len(refs) >= 1
+    assert any(
+        ref.quote == "We chose a bounded worker queue because synchronous background work delayed requests."
+        for ref in refs
+    )
+    assert summary["sparse_recovery_status"] == "recovered"
+    assert summary["sparse_recovery_attempted_artifacts"] == 1
+    assert summary["sparse_recovery_model_attempts"] == 1
+    assert summary["sparse_recovery_recovered_candidates"] == 1
+    assert summary["sparse_recovery_evidence_families"] == {"architecture_doc": 1}
+
+
+def test_pipeline_sparse_recovery_respects_disabled_budget(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-disabled.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(db_path, _sparse_artifacts()[:1])
+    provider = SparseRecoveryNullProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider, sparse_recovery_max_artifacts=0)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    assert created == 0
+    assert provider.extraction_requests == []
+    assert summary["sparse_recovery_status"] == "skipped"
+    assert summary["sparse_recovery_skip_reason"] == "disabled_budget"
+    assert summary["sparse_recovery_model_attempts"] == 0
+
+
+def test_pipeline_sparse_recovery_is_family_diverse_and_bounded(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-diverse.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(db_path, _sparse_artifacts())
+    provider = SparseRecoveryNullProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider, sparse_recovery_max_artifacts=3)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    assert created == 0
+    assert len(provider.extraction_requests) == 3
+    assert [request.artifact_title for request in provider.extraction_requests] == [
+        "Architecture decision",
+        "Roll out the queue",
+        "Migration decision",
+    ]
+    assert summary["sparse_recovery_status"] == "exhausted"
+    assert summary["sparse_recovery_skip_reason"] == "all_attempts_rejected"
+    assert summary["sparse_recovery_attempted_artifacts"] == 3
+    assert summary["sparse_recovery_model_attempts"] == 3
+    assert len(summary["sparse_recovery_evidence_families"]) == 3
+    assert summary["sparse_recovery_rejection_reasons"] == {"null_decision": 3}
+
+
+def test_pipeline_sparse_recovery_keeps_grounding_and_provider_failures_nonfatal(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-failures.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(db_path, _sparse_artifacts()[:2])
+    provider = SparseRecoveryMixedFailureProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider, sparse_recovery_max_artifacts=2)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    with Session(engine) as session:
+        assert session.scalar(select(Decision)) is None
+
+    assert created == 0
+    assert summary["sparse_recovery_status"] == "exhausted"
+    assert summary["sparse_recovery_rejection_reasons"]["ungrounded_quote"] == 1
+    assert summary["sparse_recovery_rejection_reasons"]["provider_timeout"] == 1
+    assert summary["skipped_provider_timeout"] >= 1
+
+class NormalCandidateProvider(SparseRecoverySuccessProvider):
+    def screen_decision_likeness(self, request: DecisionScreeningRequest) -> bool:
+        return True
+
+
+def test_pipeline_sparse_recovery_skips_when_normal_candidate_exists(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-candidate-present.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(db_path, _sparse_artifacts()[:1])
+    provider = NormalCandidateProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    assert created == 1
+    assert summary["sparse_recovery_status"] == "skipped"
+    assert summary["sparse_recovery_skip_reason"] == "candidate_present"
+    assert summary["sparse_recovery_model_attempts"] == 0
+
+
+def test_pipeline_sparse_recovery_reports_no_eligible_evidence(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "sparse-recovery-no-evidence.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    engine = _create_sparse_workspace(
+        db_path,
+        [
+            {
+                "type": "commit",
+                "title": "Formatting cleanup",
+                "content": "Reformat files.",
+                "metadata_json": {},
+            }
+        ],
+    )
+    provider = SparseRecoveryNullProvider()
+
+    with Session(engine) as session:
+        pipeline = CandidateExtractionPipeline(session, provider)
+        created = pipeline.run(workspace_slug="sparse-workspace")
+        summary = pipeline.last_run_stats.to_summary()
+
+    assert created == 0
+    assert summary["sparse_recovery_status"] == "skipped"
+    assert summary["sparse_recovery_skip_reason"] == "no_eligible_evidence"
+    assert summary["sparse_recovery_eligible_artifacts"] == 0
+    assert summary["sparse_recovery_model_attempts"] == 0

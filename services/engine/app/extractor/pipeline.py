@@ -84,6 +84,8 @@ MIN_EXTRACTION_SIGNAL_SCORE = 4
 MAX_FULL_EXTRACTION_CONCURRENCY = 3
 MAX_RELEVANT_BLOCKS = 6
 MAX_RECOVERY_FRAGMENTS = 6
+MAX_SPARSE_RECOVERY_ARTIFACTS = 4
+MIN_SPARSE_RECOVERY_SIGNAL_SCORE = 4
 DOC_SIGNAL_CATEGORY_FAMILIES = {
     "adr": "adr_doc",
     "rfc": "rfc_doc",
@@ -133,6 +135,7 @@ class _CompletedExtraction:
     request_error: bool = False
     latency_ms: int = 0
     recovery: bool = False
+    sparse_recovery: bool = False
 
 
 @dataclass(slots=True)
@@ -164,6 +167,14 @@ class ExtractionRunStats:
     skipped_invalid_json: int = 0
     selected_extraction_families: dict[str, int] = field(default_factory=dict)
     conversion_loss_reasons: dict[str, int] = field(default_factory=dict)
+    sparse_recovery_status: str = "not_evaluated"
+    sparse_recovery_skip_reason: str | None = None
+    sparse_recovery_eligible_artifacts: int = 0
+    sparse_recovery_attempted_artifacts: int = 0
+    sparse_recovery_model_attempts: int = 0
+    sparse_recovery_recovered_candidates: int = 0
+    sparse_recovery_evidence_families: dict[str, int] = field(default_factory=dict)
+    sparse_recovery_rejection_reasons: dict[str, int] = field(default_factory=dict)
     elapsed_seconds: int | None = None
     estimated_remaining_seconds: int | None = None
     average_full_extraction_latency_ms: int | None = None
@@ -344,6 +355,54 @@ def _classify_extraction_family(artifact) -> str:
     return "lightweight_evidence"
 
 
+def _is_sparse_recovery_eligible(ranked: _RankedArtifact) -> bool:
+    artifact = ranked.artifact
+    if ranked.score < MIN_SPARSE_RECOVERY_SIGNAL_SCORE:
+        return False
+    content = artifact.content or ""
+    metadata = artifact.metadata_json or {}
+    signal_category = str(metadata.get("signal_category", "")).lower()
+    explicit_signal = _count_signal_hits(content) >= 2
+    strong_document = artifact.type == "doc" and signal_category in STRONG_DOCUMENT_CATEGORIES
+    titled_signal = any(token in (artifact.title or "").lower() for token in TITLE_SIGNAL_WORDS)
+    return explicit_signal or strong_document or titled_signal
+
+
+def _select_sparse_recovery_artifacts(
+    ranked_artifacts: list[_RankedArtifact],
+    *,
+    excluded_artifact_ids: set[int],
+    max_artifacts: int,
+) -> list[object]:
+    if max_artifacts <= 0:
+        return []
+    eligible = [
+        ranked
+        for ranked in ranked_artifacts
+        if ranked.artifact_id not in excluded_artifact_ids and _is_sparse_recovery_eligible(ranked)
+    ]
+    selected: list[_RankedArtifact] = []
+    selected_ids: set[int] = set()
+    seen_families: set[str] = set()
+    for ranked in eligible:
+        family = _classify_extraction_family(ranked.artifact)
+        if family in seen_families:
+            continue
+        selected.append(ranked)
+        selected_ids.add(ranked.artifact_id)
+        seen_families.add(family)
+        if len(selected) >= max_artifacts:
+            break
+    if len(selected) < max_artifacts:
+        for ranked in eligible:
+            if ranked.artifact_id in selected_ids:
+                continue
+            selected.append(ranked)
+            selected_ids.add(ranked.artifact_id)
+            if len(selected) >= max_artifacts:
+                break
+    return [ranked.artifact for ranked in selected]
+
 def _prepare_relevant_content(
     artifact,
     *,
@@ -471,14 +530,62 @@ def _select_recovery_fragments(blocks: list[str]) -> list[str]:
 
 
 class CandidateExtractionPipeline:
-    def __init__(self, session: Session, provider: ExtractionProvider) -> None:
+    def __init__(
+        self,
+        session: Session,
+        provider: ExtractionProvider,
+        *,
+        sparse_recovery_max_artifacts: int = MAX_SPARSE_RECOVERY_ARTIFACTS,
+    ) -> None:
         self.session = session
         self.provider = provider
+        self.sparse_recovery_max_artifacts = max(0, sparse_recovery_max_artifacts)
         self.workspaces = WorkspaceRepository(session)
         self.artifacts = ArtifactRepository(session)
         self.decisions = DecisionRepository(session)
         self.source_refs = SourceRefRepository(session)
         self.last_run_stats = ExtractionRunStats()
+
+    def _persist_candidate(
+        self,
+        *,
+        workspace_id: int,
+        completed: _CompletedExtraction,
+        evaluation: _ExtractionEvaluation,
+        stats: ExtractionRunStats,
+    ) -> None:
+        if evaluation.decision is None:
+            raise ValueError("Cannot persist an extraction without a decision")
+        decision = self.decisions.create_candidate(
+            workspace_id=workspace_id,
+            title=evaluation.decision.title,
+            problem=evaluation.decision.problem,
+            context=evaluation.decision.context,
+            constraints=evaluation.decision.constraints,
+            chosen_option=evaluation.decision.chosen_option,
+            tradeoffs=evaluation.decision.tradeoffs,
+            confidence=evaluation.decision.confidence,
+        )
+        for span_start, span_end, quote in evaluation.grounded_quotes:
+            self.source_refs.create(
+                decision_id=decision.id,
+                artifact_id=completed.artifact.id,
+                span_start=span_start,
+                span_end=span_end,
+                quote=quote,
+                url=completed.artifact.url,
+                relevance_score=evaluation.decision.confidence,
+            )
+        stats.created_candidates += 1
+        if evaluation.salvaged:
+            stats.salvaged_candidates += 1
+        if completed.recovery:
+            stats.recovered_candidates += 1
+        if completed.sparse_recovery:
+            stats.sparse_recovery_recovered_candidates += 1
+        if len(evaluation.grounded_quotes) == 1:
+            stats.thin_source_ref_decisions += 1
+            _record_conversion_loss(stats, "thin_source_ref_coverage")
 
     def run(
         self,
@@ -568,9 +675,11 @@ class CandidateExtractionPipeline:
         if progress_callback is not None:
             progress_callback(stats)
 
+        full_extraction_artifact_ids: set[int] = set()
         futures: dict[object, object] = {}
         with ThreadPoolExecutor(max_workers=MAX_FULL_EXTRACTION_CONCURRENCY) as executor:
             for artifact, payload, family, prompt in screened_positive:
+                full_extraction_artifact_ids.add(artifact.id)
                 stats.full_extraction_requests += 1
                 stats.current_artifact_title = artifact.title
                 stats.current_extraction_family = family
@@ -614,39 +723,90 @@ class CandidateExtractionPipeline:
                     _record_attempt_failure_counters(stats, completed, evaluation)
                     _record_conversion_loss(stats, evaluation.loss_reason or "null_decision")
                 else:
-                    decision = self.decisions.create_candidate(
+                    self._persist_candidate(
                         workspace_id=workspace.id,
-                        title=evaluation.decision.title,
-                        problem=evaluation.decision.problem,
-                        context=evaluation.decision.context,
-                        constraints=evaluation.decision.constraints,
-                        chosen_option=evaluation.decision.chosen_option,
-                        tradeoffs=evaluation.decision.tradeoffs,
-                        confidence=evaluation.decision.confidence,
+                        completed=completed,
+                        evaluation=evaluation,
+                        stats=stats,
                     )
-                    for span_start, span_end, quote in evaluation.grounded_quotes:
-                        self.source_refs.create(
-                            decision_id=decision.id,
-                            artifact_id=completed.artifact.id,
-                            span_start=span_start,
-                            span_end=span_end,
-                            quote=quote,
-                            url=completed.artifact.url,
-                            relevance_score=evaluation.decision.confidence,
-                        )
-                    stats.created_candidates += 1
-                    if evaluation.salvaged:
-                        stats.salvaged_candidates += 1
-                    if completed.recovery:
-                        stats.recovered_candidates += 1
-                    if len(evaluation.grounded_quotes) == 1:
-                        stats.thin_source_ref_decisions += 1
-                        _record_conversion_loss(stats, "thin_source_ref_coverage")
                 _refresh_work_totals(stats)
                 _update_progress(stats, started_at)
                 if progress_callback is not None:
                     progress_callback(stats)
 
+        if stats.created_candidates > 0:
+            stats.sparse_recovery_status = "skipped"
+            stats.sparse_recovery_skip_reason = "candidate_present"
+        elif self.sparse_recovery_max_artifacts <= 0:
+            stats.sparse_recovery_status = "skipped"
+            stats.sparse_recovery_skip_reason = "disabled_budget"
+        else:
+            excluded_artifact_ids = set(full_extraction_artifact_ids)
+            excluded_artifact_ids.update(
+                ranked.artifact_id
+                for ranked in ranked_artifacts
+                if self.source_refs.exists_for_artifact(ranked.artifact_id)
+            )
+            sparse_artifacts = _select_sparse_recovery_artifacts(
+                ranked_artifacts,
+                excluded_artifact_ids=excluded_artifact_ids,
+                max_artifacts=self.sparse_recovery_max_artifacts,
+            )
+            stats.sparse_recovery_eligible_artifacts = len(sparse_artifacts)
+            if not sparse_artifacts:
+                stats.sparse_recovery_status = "skipped"
+                stats.sparse_recovery_skip_reason = "no_eligible_evidence"
+            else:
+                stats.sparse_recovery_status = "attempted"
+                stats.current_phase = "sparse_recovery"
+                for artifact in sparse_artifacts:
+                    family = _classify_extraction_family(artifact)
+                    stats.sparse_recovery_attempted_artifacts += 1
+                    stats.sparse_recovery_model_attempts += 1
+                    stats.recovery_extraction_attempts += 1
+                    stats.full_extraction_requests += 1
+                    stats.sparse_recovery_evidence_families[family] = (
+                        stats.sparse_recovery_evidence_families.get(family, 0) + 1
+                    )
+                    stats.current_artifact_title = artifact.title
+                    stats.current_extraction_family = family
+                    completed = _run_recovery_extraction(
+                        artifact,
+                        family,
+                        self.provider,
+                        extraction_prompts,
+                    )
+                    completed.sparse_recovery = True
+                    latency_total_ms = _accumulate_completed_attempt(stats, latency_total_ms, completed)
+                    evaluation = _evaluate_extraction_attempt(completed)
+                    if evaluation.decision is None:
+                        reason = evaluation.loss_reason or "null_decision"
+                        _record_attempt_failure_counters(stats, completed, evaluation)
+                        _record_conversion_loss(stats, reason)
+                        stats.sparse_recovery_rejection_reasons[reason] = (
+                            stats.sparse_recovery_rejection_reasons.get(reason, 0) + 1
+                        )
+                    else:
+                        self._persist_candidate(
+                            workspace_id=workspace.id,
+                            completed=completed,
+                            evaluation=evaluation,
+                            stats=stats,
+                        )
+                        stats.sparse_recovery_status = "recovered"
+                        stats.sparse_recovery_skip_reason = None
+                        _refresh_work_totals(stats)
+                        _update_progress(stats, started_at)
+                        if progress_callback is not None:
+                            progress_callback(stats)
+                        break
+                    _refresh_work_totals(stats)
+                    _update_progress(stats, started_at)
+                    if progress_callback is not None:
+                        progress_callback(stats)
+                if stats.sparse_recovery_recovered_candidates == 0:
+                    stats.sparse_recovery_status = "exhausted"
+                    stats.sparse_recovery_skip_reason = "all_attempts_rejected"
         stats.current_artifact_title = None
         stats.current_phase = "completed"
         stats.current_extraction_family = None

@@ -89,7 +89,25 @@ def test_collect_rehearsal_composes_successful_fresh_import(monkeypatch, tmp_pat
         lambda **kwargs: {
             "setup": {"outcome": "created", "next_action": "run_benchmark"},
             "repository": {"repo": selected["repo"], "workspace_slug": "github-pytest-dev-pluggy"},
-            "import_job": {"job_id": "job-fresh", "status": "succeeded", "imported_count": 17},
+            "import_job": {
+                "job_id": "job-fresh",
+                "status": "succeeded",
+                "imported_count": 17,
+                "summary": {
+                    "extraction_summary": {
+                        "created_candidates": 1,
+                        "sparse_recovery_status": "recovered",
+                        "sparse_recovery_skip_reason": None,
+                        "sparse_recovery_eligible_artifacts": 2,
+                        "sparse_recovery_attempted_artifacts": 1,
+                        "sparse_recovery_model_attempts": 1,
+                        "sparse_recovery_recovered_candidates": 1,
+                        "sparse_recovery_evidence_families": {"pull_request": 1},
+                        "sparse_recovery_rejection_reasons": {},
+                        "conversion_loss_reasons": {"null_decision": 1},
+                    }
+                },
+            },
         },
     )
     captured = {}
@@ -123,6 +141,13 @@ def test_collect_rehearsal_composes_successful_fresh_import(monkeypatch, tmp_pat
     assert report["fresh_import"]["outcome"] == "fresh_import"
     assert report["summary"]["workspace_slug"] == "github-pytest-dev-pluggy"
     assert report["summary"]["imported_count"] == 17
+    assert report["sparse_conversion"]["status"] == "recovered"
+    assert report["sparse_conversion"]["model_attempts"] == 1
+    assert report["sparse_conversion"]["recovered_candidates"] == 1
+    assert report["sparse_conversion"]["evidence_families"] == {"pull_request": 1}
+    markdown = rehearsal.render_markdown(report)
+    assert "Sparse recovery status:" in markdown
+    assert "recovered" in markdown
     assert report["status"] == "warning"
     assert "review_candidates_before_accepted_baseline_claim" in report["recommended_next_actions"]
     assert captured["workspace_slug"] == "github-pytest-dev-pluggy"

@@ -1,7 +1,7 @@
 # Readiness Evidence History
 
-- Generated at: `2026-07-13T01:53:04.920676+00:00`
-- Entries: `13`
+- Generated at: `2026-07-13T02:45:57.850469+00:00`
+- Entries: `14`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -18,6 +18,7 @@
 | 2026-07-08-accepted-decision-baseline-smoke | 2026-07-08T01:18:00+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | - | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-10-review-candidates-accepted-baseline-smoke | 2026-07-10T09:58:12.2702934+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | warning | - | warning | warning | not_provided | not_provided | not_provided | 21 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-13-fresh-public-sniffio-import-rehearsal | 2026-07-13T10:30:00+08:00 | warning | unknown | operator_guided | passed | not_provided | warning | warning | warning | warning | warning | not_provided | not_provided | not_provided | 30 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-13-sparse-repo-decision-conversion-rehearsal | 2026-07-13T10:45:30+08:00 | warning | unknown | operator_guided | passed | not_provided | not_provided | warning | warning | warning | warning | not_provided | not_provided | not_provided | 23 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

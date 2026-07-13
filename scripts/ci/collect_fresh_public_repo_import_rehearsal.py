@@ -172,6 +172,25 @@ def _next_actions(
     return sorted(actions)
 
 
+def _sparse_conversion_summary(import_report: dict[str, Any] | None) -> dict[str, Any]:
+    import_job = (import_report or {}).get("import_job")
+    if not isinstance(import_job, dict):
+        return {"status": "not_provided", "recovered_candidates": 0, "model_attempts": 0}
+    job_summary = import_job.get("summary") if isinstance(import_job.get("summary"), dict) else {}
+    extraction = job_summary.get("extraction_summary") if isinstance(job_summary.get("extraction_summary"), dict) else {}
+    return {
+        "status": extraction.get("sparse_recovery_status") or "not_provided",
+        "skip_reason": extraction.get("sparse_recovery_skip_reason"),
+        "eligible_artifacts": int(extraction.get("sparse_recovery_eligible_artifacts") or 0),
+        "attempted_artifacts": int(extraction.get("sparse_recovery_attempted_artifacts") or 0),
+        "model_attempts": int(extraction.get("sparse_recovery_model_attempts") or 0),
+        "recovered_candidates": int(extraction.get("sparse_recovery_recovered_candidates") or 0),
+        "evidence_families": extraction.get("sparse_recovery_evidence_families") or {},
+        "rejection_reasons": extraction.get("sparse_recovery_rejection_reasons") or {},
+        "conversion_loss_reasons": extraction.get("conversion_loss_reasons") or {},
+        "created_candidates": int(extraction.get("created_candidates") or 0),
+    }
+
 def collect_rehearsal(
     *,
     root: Path,
@@ -269,6 +288,7 @@ def collect_rehearsal(
         },
         "fresh_import": import_lane,
         "import_rehearsal": import_report,
+        "sparse_conversion": _sparse_conversion_summary(import_report),
         "core_loop": core_loop_report,
         "browser": browser,
         "limitations": [
@@ -291,6 +311,8 @@ def collect_rehearsal(
         "imported_count": ((import_report or {}).get("import_job") or {}).get("imported_count"),
         "core_loop_status": (core_loop_report or {}).get("status"),
         "browser_status": browser_status,
+        "sparse_recovery_status": report["sparse_conversion"]["status"],
+        "sparse_recovered_candidates": report["sparse_conversion"]["recovered_candidates"],
     }
     return report
 
@@ -322,6 +344,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     import_job = ((report.get("import_rehearsal") or {}).get("import_job") or {})
     core_report = report.get("core_loop") or {}
     browser = report.get("browser") or {}
+    sparse_conversion = report.get("sparse_conversion") or {}
     lines = [
         "# Fresh Public Repository Import Rehearsal",
         "",
@@ -337,6 +360,9 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Imported count: `{import_job.get('imported_count') if import_job else '-'}`",
         f"- Core-loop status: `{core_report.get('status') or '-'}`",
         f"- Browser status: `{browser.get('status') or '-'}`",
+        f"- Sparse recovery status: `{sparse_conversion.get('status') or '-'}`",
+        f"- Sparse model attempts: `{sparse_conversion.get('model_attempts', 0)}`",
+        f"- Sparse recovered candidates: `{sparse_conversion.get('recovered_candidates', 0)}`",
         "",
         "## Candidate Preflight",
         "",

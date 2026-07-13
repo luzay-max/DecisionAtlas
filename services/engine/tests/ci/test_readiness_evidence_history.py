@@ -234,6 +234,7 @@ def test_readiness_history_archives_fresh_public_repo_import_rehearsal(tmp_path:
                 "summary": {"warning_lanes": 4, "blocking_lanes": 0},
             },
             "browser": {"status": "pass"},
+            "sparse_conversion": {"status": "recovered", "model_attempts": 2, "recovered_candidates": 1},
             "limitations": ["No accepted decision baseline was produced."],
             "summary": {"fresh_import": True},
         },
@@ -266,6 +267,9 @@ def test_readiness_history_archives_fresh_public_repo_import_rehearsal(tmp_path:
     assert summary["imported_count"] == 147
     assert summary["core_loop_status"] == "warning"
     assert summary["browser_status"] == "pass"
+    assert summary["sparse_recovery_status"] == "recovered"
+    assert summary["sparse_model_attempts"] == 2
+    assert summary["sparse_recovered_candidates"] == 1
     assert entry["counts"]["warnings"] == 4
     assert entry["counts"]["known_limitations"] == 1
     assert entry["counts"]["fresh_public_repo_import_blockers"] == 0

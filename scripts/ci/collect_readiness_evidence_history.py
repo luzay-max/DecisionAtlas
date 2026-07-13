@@ -261,6 +261,7 @@ def _summarize_fresh_public_repo_import(data: dict[str, Any] | None) -> dict[str
     core_loop = data.get("core_loop") if isinstance(data.get("core_loop"), dict) else {}
     core_summary = core_loop.get("summary") if isinstance(core_loop.get("summary"), dict) else {}
     browser = data.get("browser") if isinstance(data.get("browser"), dict) else {}
+    sparse_conversion = data.get("sparse_conversion") if isinstance(data.get("sparse_conversion"), dict) else {}
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
     return {
         "status": data.get("status") or "unknown",
@@ -274,6 +275,9 @@ def _summarize_fresh_public_repo_import(data: dict[str, Any] | None) -> dict[str
         "outcome": fresh_import.get("outcome"),
         "core_loop_status": core_loop.get("status") or summary.get("core_loop_status"),
         "browser_status": browser.get("status") or summary.get("browser_status"),
+        "sparse_recovery_status": sparse_conversion.get("status") or summary.get("sparse_recovery_status"),
+        "sparse_recovered_candidates": int(sparse_conversion.get("recovered_candidates") or summary.get("sparse_recovered_candidates") or 0),
+        "sparse_model_attempts": int(sparse_conversion.get("model_attempts") or 0),
         "warning_count": int(core_summary.get("warning_lanes") or 0),
         "blocker_count": int(core_summary.get("blocking_lanes") or 0),
         "operator_guided_count": int(str(data.get("status") or "").lower() == "operator_guided"),

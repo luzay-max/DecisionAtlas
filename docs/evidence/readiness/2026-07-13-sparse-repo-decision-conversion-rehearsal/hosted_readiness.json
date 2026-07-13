@@ -1,0 +1,207 @@
+{
+  "blockers": [],
+  "generated_at": "2026-06-10T03:44:54.575491+00:00",
+  "hosted_urls": {
+    "api": "http://127.0.0.1:3001",
+    "engine": "http://127.0.0.1:8000",
+    "web": "http://127.0.0.1:3000"
+  },
+  "lanes": [
+    {
+      "command": "scripts/demo/health-check.ps1 -WebBaseUrl <web>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "web_hosted_url",
+      "label": "Hosted web URL",
+      "recommended_next_action": "Run hosted health check against the web URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "scripts/demo/health-check.ps1 -ApiBaseUrl <api>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "api_hosted_url",
+      "label": "Hosted API URL",
+      "recommended_next_action": "Run hosted health check against the API URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "scripts/demo/health-check.ps1 -EngineBaseUrl <engine>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "engine_hosted_url",
+      "label": "Hosted engine URL",
+      "recommended_next_action": "Run hosted health check against the engine URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "group": "core_hosted_services",
+      "id": "hosted_health_check",
+      "label": "Hosted health check",
+      "recommended_next_action": "Run scripts/demo/health-check.ps1 with hosted URLs.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "pass"
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1",
+      "details": {
+        "reason": "status=passed"
+      },
+      "group": "public_walkthrough",
+      "id": "hosted_smoke_check",
+      "label": "Hosted guided-demo smoke check",
+      "recommended_next_action": "Run scripts/demo/smoke-check.ps1 with hosted URLs.",
+      "required_for_public_walkthrough": true,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-stack-browser-smoke.json",
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/demo/check_seeded_demo.py --json",
+      "details": {
+        "reason": "ready=True",
+        "summary": "Seeded demo lane is walkthrough-ready."
+      },
+      "group": "public_walkthrough",
+      "id": "seeded_demo_readiness",
+      "label": "Seeded demo readiness",
+      "recommended_next_action": "Run python scripts/demo/check_seeded_demo.py --json before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\seeded-demo-readiness.json",
+      "status": "pass"
+    },
+    {
+      "command": "scripts/demo/reset-demo.ps1 or scripts/demo/reseed-demo.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "group": "recovery",
+      "id": "recovery_drill",
+      "label": "Reset/reseed recovery drill",
+      "recommended_next_action": "Record whether reset/reseed recovery was rehearsed or intentionally deferred.",
+      "required_for_public_walkthrough": false,
+      "source_path": null,
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/governance/agent_guardrail.py --summary",
+      "details": {
+        "agent_status": "continue",
+        "handoff_summary": {
+          "advisory_only": true,
+          "agent_status": "continue",
+          "diff_status": "pass",
+          "drift_status": "clean",
+          "human_questions": [],
+          "recommended_next_actions": [
+            "No governance blockers detected. Continue with normal review.",
+            "No governance drift signals detected. Continue normal review."
+          ],
+          "required_tests": []
+        },
+        "summary": "Governance guardrail found no blocking or caution-level governance concerns."
+      },
+      "group": "governance",
+      "id": "governance_guardrail",
+      "label": "Governance guardrail",
+      "recommended_next_action": "Run and disclose guardrail caution or pause evidence if showing the governance lane.",
+      "required_for_public_walkthrough": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\guardrail-summary.json",
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/ci/collect_release_evidence.py",
+      "details": {
+        "missing_inputs": [],
+        "overall_status": "passed",
+        "warnings": []
+      },
+      "group": "release_evidence",
+      "id": "release_evidence",
+      "label": "Release evidence bundle",
+      "recommended_next_action": "Attach release evidence when using hosted readiness for release or preview handoff.",
+      "required_for_public_walkthrough": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\release-evidence.json",
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/ci/run_benchmark.py --live-real-repos or --benchmark-compare-*",
+      "details": {
+        "comparison_type": "real-repo-benchmark-regression",
+        "failed": 0,
+        "operationally_blocked": 0,
+        "regressed": 0,
+        "repositories": 2
+      },
+      "group": "optional_credibility",
+      "id": "real_repo_evidence",
+      "label": "Real-repo benchmark evidence",
+      "recommended_next_action": "Attach dated real-repo benchmark evidence only when the optional credibility lane is shown.",
+      "required_for_public_walkthrough": false,
+      "source_path": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-repo-benchmark-comparison.json",
+      "status": "pass"
+    }
+  ],
+  "missing_inputs": [
+    {
+      "id": "web_hosted_url",
+      "label": "Hosted web URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    },
+    {
+      "id": "api_hosted_url",
+      "label": "Hosted API URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    },
+    {
+      "id": "engine_hosted_url",
+      "label": "Hosted engine URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    }
+  ],
+  "overall_status": "operator_guided",
+  "public_walkthrough_decision": "operator_review_required",
+  "public_walkthrough_status": "operator_guided",
+  "recommended_next_actions": [
+    "Attach dated real-repo benchmark evidence only when the optional credibility lane is shown.",
+    "Attach release evidence when using hosted readiness for release or preview handoff.",
+    "Record whether reset/reseed recovery was rehearsed or intentionally deferred.",
+    "Run and disclose guardrail caution or pause evidence if showing the governance lane.",
+    "Run hosted health check against the API URL before external preview.",
+    "Run hosted health check against the engine URL before external preview.",
+    "Run hosted health check against the web URL before external preview.",
+    "Run python scripts/demo/check_seeded_demo.py --json before external preview.",
+    "Run scripts/demo/health-check.ps1 with hosted URLs.",
+    "Run scripts/demo/smoke-check.ps1 with hosted URLs."
+  ],
+  "recovery_scope": "Default reset/reseed recovery is scoped to demo-workspace and does not implicitly delete imported workspaces or governance history.",
+  "release_gate_note": "Hosted readiness is operator-guided evidence for a running environment and does not replace scripts/ci/pre-release.ps1.",
+  "schema_version": 1,
+  "source_paths": {
+    "governance_guardrail": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\guardrail-summary.json",
+    "hosted_smoke_check": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-stack-browser-smoke.json",
+    "real_repo_evidence": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\real-repo-benchmark-comparison.json",
+    "release_evidence": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\release-evidence.json",
+    "seeded_demo_readiness": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\seeded-demo-readiness.json"
+  },
+  "warnings": []
+}

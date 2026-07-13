@@ -292,3 +292,29 @@ change：`fresh-random-public-repo-import-rehearsal`
 - 当前 repository 产生 0 candidates / 0 accepted decisions，所以 Why 和 Drift 保持 `evidence_limited`。
 - readiness 为 `warning`、0 blockers；这证明可靠导入和诚实降级，不等于核心决策质量已达 clean pass。
 - 下一刀优先优化 sparse real repo 的 decision conversion，再用新的未导入仓库做回归。
+
+### P13：Sparse 真实仓库决策转换（本轮完成）
+
+change：`improve-sparse-repo-decision-conversion`
+
+目标：
+
+- 在 normal extraction 为 0 candidate 时执行有界、family-diverse sparse recovery。
+- 保持 grounded quote、source ref、confidence 和人工审阅边界。
+- 把 sparse eligibility、attempt、rejection 和 recovered metrics 纳入 import、fresh rehearsal 与 readiness history。
+- 使用真实模型、fresh repository、Chrome 和 DOM-CUA 验证。
+
+验收证据：
+
+- 完整 engine pytest 376 passed；OpenSpec strict 85/85。
+- fresh `jazzband/pip-tools`：no-workspace preflight，1207 artifacts，80 screenings，49 extraction calls，28 candidates。
+- normal candidate 存在时 sparse lane 为 `skipped/candidate_present`，0 extra calls。
+- `python-trio/sniffio` supplemental reanalysis：sparse 4 model calls、4 null、0 fabricated candidate。
+- 人工接受 1 条 pip-tools decision；Why pass / 2 citations；Drift clean / 0 alerts。
+- `docs/evidence/readiness/2026-07-13-sparse-repo-decision-conversion-rehearsal/`。
+
+边界与下一步：
+
+- pip-tools candidates 全部经过 parser salvage，首屏候选置信度偏低，下一步需要 precision/ranking/duplicate reduction。
+- dashboard 重复显示大量 `repeated_postmortem_issue`，下一刀优先做 governance finding 去重。
+- 真实外部客户主机 clean proof 仍未完成。
