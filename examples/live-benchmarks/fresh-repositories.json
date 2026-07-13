@@ -1,0 +1,32 @@
+[
+  {
+    "id": "itsdangerous",
+    "repo": "pallets/itsdangerous",
+    "role": "small_python_security_library",
+    "benchmark_purpose": "Validate a fresh import on a compact library with security and compatibility rationale."
+  },
+  {
+    "id": "markupsafe",
+    "repo": "pallets/markupsafe",
+    "role": "small_python_extension_library",
+    "benchmark_purpose": "Validate decision extraction from a compact mature extension library."
+  },
+  {
+    "id": "pluggy",
+    "repo": "pytest-dev/pluggy",
+    "role": "small_python_plugin_library",
+    "benchmark_purpose": "Validate a fresh import on a mature plugin architecture repository."
+  },
+  {
+    "id": "sniffio",
+    "repo": "python-trio/sniffio",
+    "role": "small_python_async_library",
+    "benchmark_purpose": "Validate a bounded import on a small asynchronous runtime detection library."
+  },
+  {
+    "id": "structlog",
+    "repo": "hynek/structlog",
+    "role": "python_observability_library",
+    "benchmark_purpose": "Validate a fresh import with documentation, compatibility, and API design decisions."
+  }
+]

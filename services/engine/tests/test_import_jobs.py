@@ -15,16 +15,83 @@ from app.ingest.github_types import GitHubImportResult
 from app.jobs.import_jobs import (
     _classify_failure,
     _classify_private_access_validation_failure,
+    _github_client_for_workspace,
     _normalize_repo,
+    _token_for_workspace,
     queue_github_import,
     run_github_import,
 )
 from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderTimeoutError
 
 
+def test_public_workspace_can_use_valid_global_github_token() -> None:
+    workspace = SimpleNamespace(access_source_type="public")
+    settings = SimpleNamespace(github_token="valid-global-token")
+
+    assert _token_for_workspace(session=None, workspace=workspace, settings=settings) == "valid-global-token"
+
+
+def test_public_workspace_falls_back_to_anonymous_for_unauthorized_global_token(monkeypatch) -> None:
+    created_tokens = []
+
+    class FakeGitHubClient:
+        def __init__(self, token=None, max_pages=5) -> None:
+            self.token = token
+            created_tokens.append(token)
+
+        def get_repository_metadata(self, repo):
+            request = httpx.Request("GET", f"https://api.github.com/repos/{repo}")
+            response = httpx.Response(401, request=request)
+            raise httpx.HTTPStatusError("unauthorized", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient", FakeGitHubClient)
+    workspace = SimpleNamespace(access_source_type="public")
+    settings = SimpleNamespace(github_token="stale-global-token", github_import_max_pages=5)
+
+    client = _github_client_for_workspace(
+        session=None,
+        workspace=workspace,
+        settings=settings,
+        repo="pytest-dev/pluggy",
+    )
+
+    assert client.token is None
+    assert created_tokens == ["stale-global-token", None]
+
+def test_installation_workspace_can_still_use_configured_github_token() -> None:
+    workspace = SimpleNamespace(access_source_type="github_app_installation")
+    settings = SimpleNamespace(github_token="installation-token")
+
+    assert _token_for_workspace(session=None, workspace=workspace, settings=settings) == "installation-token"
+
+
+def test_owner_scoped_token_workspace_uses_bound_secret(monkeypatch) -> None:
+    class FakeTokenRepository:
+        def __init__(self, session) -> None:
+            pass
+
+        def get_by_owner_scope_and_source_ref(self, *, owner_scope, source_ref):
+            assert owner_scope == "owner-1"
+            assert source_ref == "token-source-1"
+            return SimpleNamespace(token_secret="owner-scoped-token")
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubTokenAccessSourceRepository", FakeTokenRepository)
+    workspace = SimpleNamespace(
+        access_source_type="github_token",
+        access_source_ref="token-source-1",
+        owner_scope="owner-1",
+        repo_identity="org/private",
+        repo_url="https://github.com/org/private",
+        slug="github-org-private",
+    )
+
+    assert _token_for_workspace(session=object(), workspace=workspace, settings=SimpleNamespace()) == "owner-scoped-token"
+
+
 def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-failure.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
@@ -88,6 +155,7 @@ def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Pat
 def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-timeout.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
@@ -171,6 +239,7 @@ def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path:
 def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-thin-coverage.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
@@ -256,6 +325,7 @@ def test_run_github_import_records_thin_source_ref_coverage_in_summary(tmp_path:
 def test_run_github_import_records_recovery_conversion_counters_in_summary(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-recovery.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
@@ -361,6 +431,8 @@ def test_classify_failure_distinguishes_network_provider_and_repository_access()
 
     assert _classify_failure(GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))) == "network_failure"
     assert _classify_failure(http_error) == "repository_access_failure"
+    server_error = httpx.HTTPStatusError("bad gateway", request=request, response=httpx.Response(502, request=request))
+    assert _classify_failure(server_error) == "network_failure"
     assert _classify_failure(ProviderTimeoutError("provider timeout")) == "provider_failure"
 
 
@@ -396,6 +468,7 @@ def test_normalize_repo_rejects_invalid_input_without_retryable_client_path() ->
 def test_queue_github_import_rejects_private_repo_without_authorized_source(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-private-required.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    monkeypatch.setenv("GITHUB_TOKEN", "")
 
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")

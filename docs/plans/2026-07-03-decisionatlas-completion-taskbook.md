@@ -267,3 +267,28 @@ change：`pilot-customer-trial-package`
 - 新开 `fresh-random-public-repo-import-rehearsal`，随机选择未复用的公开 GitHub 仓库，从零完成 import -> review -> why -> drift -> guardrail -> release evidence。
 - 重新生成 `pilot-customer-trial-package`，确认交付包 warning 来源可解释。
 - 根据真实客户试用反馈，再决定是否开组织管理、安装恢复、GitHub private repo UX 或商业材料深化 change。
+
+### P12：全新随机公开仓库从零导入演练（本轮完成）
+
+change：`fresh-random-public-repo-import-rehearsal`
+
+目标：
+
+- 从候选池确定性随机选择当前 owner scope 中不存在 workspace 的公开 GitHub 仓库。
+- 证明 no-workspace preflight -> created full import -> terminal success -> core loop -> browser -> release/readiness evidence。
+- 修复公开仓库 stale token 401 回退和 GitHub 502/503/504 有界重试。
+- 将 fresh import 作为 readiness history 一等证据族。
+
+验收证据：
+
+- 真实仓库 `python-trio/sniffio`，预检 `workspace_exists=false`。
+- fresh import job 成功，导入 147 artifacts。
+- Chrome 完成 dashboard、Review、Why Search、Drift 和返回 dashboard，0 console errors。
+- `docs/evidence/readiness/2026-07-13-fresh-public-sniffio-import-rehearsal/`。
+- 42 个相关 pytest 通过；OpenSpec strict 84/84 通过。
+
+边界：
+
+- 当前 repository 产生 0 candidates / 0 accepted decisions，所以 Why 和 Drift 保持 `evidence_limited`。
+- readiness 为 `warning`、0 blockers；这证明可靠导入和诚实降级，不等于核心决策质量已达 clean pass。
+- 下一刀优先优化 sparse real repo 的 decision conversion，再用新的未导入仓库做回归。

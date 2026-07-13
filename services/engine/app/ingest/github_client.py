@@ -207,7 +207,12 @@ class GitHubClient:
         attempts = self.transport_retry_attempts + 1
         for attempt in range(1, attempts + 1):
             try:
-                return self.client.get(path, params=params)
+                response = self.client.get(path, params=params)
+                if response.status_code in {502, 503, 504} and attempt < attempts:
+                    if self.transport_retry_backoff_seconds > 0:
+                        sleep(self.transport_retry_backoff_seconds * attempt)
+                    continue
+                return response
             except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
                 if attempt >= attempts:
                     raise GitHubNetworkError(

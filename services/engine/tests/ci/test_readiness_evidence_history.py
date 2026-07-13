@@ -210,6 +210,69 @@ def test_readiness_history_archives_full_delivery_evidence_families(tmp_path: Pa
     assert "warning" in trend_markdown
 
 
+def test_readiness_history_archives_fresh_public_repo_import_rehearsal(tmp_path: Path) -> None:
+    history = _load_history_module()
+    fresh_path = _write_json(
+        tmp_path / "fresh.json",
+        {
+            "generated_at": "2026-07-13T01:42:17+00:00",
+            "status": "warning",
+            "selection": {
+                "seed": "20260710-fresh-01",
+                "selected_repository": "python-trio/sniffio",
+            },
+            "fresh_import": {"status": "pass", "outcome": "fresh_import"},
+            "import_rehearsal": {
+                "import_job": {
+                    "job_id": "job-1",
+                    "workspace_slug": "github-python-trio-sniffio",
+                    "imported_count": 147,
+                }
+            },
+            "core_loop": {
+                "status": "warning",
+                "summary": {"warning_lanes": 4, "blocking_lanes": 0},
+            },
+            "browser": {"status": "pass"},
+            "limitations": ["No accepted decision baseline was produced."],
+            "summary": {"fresh_import": True},
+        },
+    )
+    fresh_markdown = tmp_path / "fresh.md"
+    fresh_markdown.write_text("# Fresh import rehearsal\n", encoding="utf-8")
+
+    entry = history.build_entry(
+        sources=[
+            history.EvidenceSource(
+                history.FAMILY_FRESH_PUBLIC_REPO_IMPORT,
+                fresh_path,
+                fresh_markdown,
+            )
+        ],
+        root=tmp_path,
+        history_root=tmp_path / "history",
+        label="fresh public import",
+        created_at="2026-07-13T01:42:17+00:00",
+    )
+    index = history.build_index(tmp_path / "history")
+    index_markdown = history.render_index_markdown(index)
+    trend_markdown = history.render_trend_markdown([entry], limit=5)
+    summary = entry["families"]["fresh_public_repo_import_rehearsal"]
+
+    assert summary["status"] == "warning"
+    assert summary["fresh_import"] is True
+    assert summary["selected_repository"] == "python-trio/sniffio"
+    assert summary["workspace_slug"] == "github-python-trio-sniffio"
+    assert summary["imported_count"] == 147
+    assert summary["core_loop_status"] == "warning"
+    assert summary["browser_status"] == "pass"
+    assert entry["counts"]["warnings"] == 4
+    assert entry["counts"]["known_limitations"] == 1
+    assert entry["counts"]["fresh_public_repo_import_blockers"] == 0
+    assert (tmp_path / "history" / "2026-07-13-fresh-public-import" / "fresh_public_repo_import_rehearsal.json").exists()
+    assert "Fresh import" in index_markdown
+    assert "warning" in trend_markdown
+
 def test_readiness_history_records_omitted_and_invalid_sources_without_tmp_scanning(tmp_path: Path) -> None:
     history = _load_history_module()
     entry = history.build_entry(

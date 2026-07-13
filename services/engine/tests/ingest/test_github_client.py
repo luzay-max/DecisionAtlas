@@ -297,6 +297,49 @@ def test_transport_failure_retries_and_recovers() -> None:
     assert attempts == 2
 
 
+def test_transient_server_failure_retries_and_recovers() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(502, request=request, json={"message": "Bad Gateway"})
+        return httpx.Response(200, request=request, json=[])
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    assert client.fetch_issues("org/repo") == []
+    assert attempts == 2
+
+
+def test_transient_server_failure_exhaustion_preserves_http_status() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        return httpx.Response(502, request=request, json={"message": "Bad Gateway"})
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    try:
+        client.fetch_issues("org/repo")
+    except httpx.HTTPStatusError as exc:
+        assert exc.response.status_code == 502
+    else:
+        raise AssertionError("expected HTTPStatusError")
+
+    assert attempts == 3
+
 def test_transport_failure_exhaustion_raises_network_error() -> None:
     attempts = 0
 
