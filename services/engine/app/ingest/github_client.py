@@ -133,6 +133,17 @@ class GitHubClient:
             "private": bool(payload.get("private")),
             "default_branch": payload.get("default_branch") or "main",
         }
+    def is_public_repository_reachable(self, repo: str) -> bool:
+        response = self._get(
+            f"https://github.com/{repo}.git/info/refs",
+            params={"service": "git-upload-pack"},
+        )
+        if response.status_code == 200:
+            return True
+        if response.status_code in {401, 403, 404}:
+            return False
+        response.raise_for_status()
+        return False
 
     def list_repository_files(self, repo: str, *, ref: str | None = None) -> list[GitHubRepositoryFile]:
         branch = ref or self.get_default_branch(repo)

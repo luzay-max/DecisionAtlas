@@ -408,3 +408,50 @@ def test_get_repository_metadata_maps_private_flag() -> None:
         "private": True,
         "default_branch": "main",
     }
+
+def test_public_repository_probe_uses_git_smart_http_endpoint() -> None:
+    observed_urls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed_urls.append(str(request.url))
+        return httpx.Response(200, content=b"001e# service=git-upload-pack")
+
+    client = GitHubClient(
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com")
+    )
+
+    assert client.is_public_repository_reachable("pallets/flask") is True
+    assert observed_urls == [
+        "https://github.com/pallets/flask.git/info/refs?service=git-upload-pack"
+    ]
+
+
+def test_public_repository_probe_rejects_private_or_missing_endpoint() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"message": "Not Found"})
+
+    client = GitHubClient(
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com")
+    )
+
+    assert client.is_public_repository_reachable("org/private-repo") is False
+
+
+def test_public_repository_probe_retries_transient_gateway_response() -> None:
+    attempts = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            return httpx.Response(503, json={"message": "Service Unavailable"})
+        return httpx.Response(200, content=b"001e# service=git-upload-pack")
+
+    client = GitHubClient(
+        transport_retry_attempts=2,
+        transport_retry_backoff_seconds=0,
+        client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
+    )
+
+    assert client.is_public_repository_reachable("pallets/flask") is True
+    assert attempts == 3

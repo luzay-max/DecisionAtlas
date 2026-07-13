@@ -17,7 +17,9 @@ from app.jobs.import_jobs import (
     _classify_private_access_validation_failure,
     _github_client_for_workspace,
     _normalize_repo,
+    _preflight_repository_access,
     _token_for_workspace,
+    RepositoryAccessError,
     queue_github_import,
     run_github_import,
 )
@@ -465,6 +467,55 @@ def test_normalize_repo_rejects_invalid_input_without_retryable_client_path() ->
         raise AssertionError("expected ValueError")
 
 
+def test_public_preflight_falls_back_when_metadata_is_rate_limited(monkeypatch) -> None:
+    request = httpx.Request("GET", "https://api.github.com/repos/pallets/flask")
+    response = httpx.Response(403, request=request, json={"message": "API rate limit exceeded"})
+
+    def rate_limited_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("rate limited", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", rate_limited_metadata)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.is_public_repository_reachable",
+        lambda self, repo: True,
+    )
+
+    _preflight_repository_access(
+        session=None,
+        repo_ref="pallets/flask",
+        owner_scope="local-default",
+        access_source_type="public",
+        access_source_ref=None,
+    )
+
+
+def test_public_preflight_keeps_indeterminate_forbidden_as_network_failure(monkeypatch) -> None:
+    request = httpx.Request("GET", "https://api.github.com/repos/pallets/flask")
+    response = httpx.Response(403, request=request, json={"message": "API rate limit exceeded"})
+
+    def rate_limited_metadata(self, repo: str):
+        raise httpx.HTTPStatusError("rate limited", request=request, response=response)
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", rate_limited_metadata)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubClient.is_public_repository_reachable",
+        lambda self, repo: False,
+    )
+
+    try:
+        _preflight_repository_access(
+            session=None,
+            repo_ref="pallets/flask",
+            owner_scope="local-default",
+            access_source_type="public",
+            access_source_ref=None,
+        )
+    except RepositoryAccessError as exc:
+        assert exc.failure_category == "network_failure"
+        assert "provider or network failure" in str(exc)
+    else:
+        raise AssertionError("expected RepositoryAccessError")
+
 def test_queue_github_import_rejects_private_repo_without_authorized_source(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-private-required.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
@@ -481,6 +532,7 @@ def test_queue_github_import_rejects_private_repo_without_authorized_source(tmp_
         raise httpx.HTTPStatusError("not found", request=request, response=response)
 
     monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.get_repository_metadata", fake_get_repository_metadata)
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient.is_public_repository_reachable", lambda self, repo: False)
 
     try:
         queue_github_import(workspace_slug=None, repo="org/private-repo", mode="full")

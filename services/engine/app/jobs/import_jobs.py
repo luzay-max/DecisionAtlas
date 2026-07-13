@@ -937,17 +937,31 @@ def _preflight_repository_access(
         return
 
     token = getattr(settings, "github_token", None) if access_source_type == "github_app_installation" else None
+    client = GitHubClient(token=token, max_pages=settings.github_import_max_pages)
     try:
-        metadata = GitHubClient(token=token, max_pages=settings.github_import_max_pages).get_repository_metadata(repo_ref)
+        metadata = client.get_repository_metadata(repo_ref)
     except httpx.HTTPStatusError as exc:
         if access_source_type == "github_app_installation":
             raise RepositoryAccessError(
                 f"Installation-backed repository authorization failed for {repo_ref}.",
                 failure_category="authorization_failed",
             ) from exc
+        try:
+            if client.is_public_repository_reachable(repo_ref):
+                return
+        except (httpx.HTTPStatusError, GitHubNetworkError) as probe_exc:
+            raise RepositoryAccessError(
+                f"GitHub provider or network failure while checking repository access for {repo_ref}.",
+                failure_category="network_failure",
+            ) from probe_exc
+        if exc.response.status_code in {401, 404}:
+            raise RepositoryAccessError(
+                f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
+                failure_category="credential_required",
+            ) from exc
         raise RepositoryAccessError(
-            f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
-            failure_category="credential_required",
+            f"GitHub provider or network failure while checking repository access for {repo_ref}.",
+            failure_category="network_failure",
         ) from exc
     except GitHubNetworkError as exc:
         raise RepositoryAccessError(

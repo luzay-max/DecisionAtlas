@@ -342,3 +342,21 @@ change：deduplicate-governance-drift-findings
 
 - 正常仓库的三条 finding 语义不同，保留人工审阅。
 - 下一刀执行 improve-imported-candidate-precision-ranking，降低 pip-tools 低置信、salvaged 和近重复 candidate 的审阅成本。
+
+### P15：公开仓库 CI Access Probe 稳定性（进行中）
+
+change：harden-public-repo-ci-access-probe
+
+触发证据：
+
+- GitHub Actions run 29221547589：Node、typecheck、engine、benchmark 通过。
+- browser smoke 11/12，通过项无回归。
+- pallets/flask metadata 被共享 runner 错误折叠为 credential_required。
+
+实现与本地验证：
+
+- 使用匿名 Git smart-HTTP info/refs 作为 metadata 失败后的 bounded fallback。
+- 区分 credential_required 与 network_failure。
+- 聚焦测试 33 passed；engine full 388 passed。
+- pallets/flask 真实 probe=true，本地导入已达到 1157 artifacts。
+- 等待全新 GitHub Actions runner 验证后归档。

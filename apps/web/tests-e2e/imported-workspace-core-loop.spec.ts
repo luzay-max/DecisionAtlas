@@ -50,7 +50,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await page.goto(`/workspaces/${encodeURIComponent(workspaceSlug)}`);
   await expect(page.getByLabel("Active workspace context")).toContainText("Workspace dashboard");
   await expect(page.getByRole("heading", { name: workspaceSlug })).toBeVisible();
-  await expect(page.getByText(REAL_PUBLIC_REPO)).toBeVisible();
+  await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: /Review candidates/i }).first().click();
   await expect(page).toHaveURL(new RegExp(`/review\\?workspace=${workspaceSlug}`));
@@ -61,7 +61,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText(/real public GitHub repository reference/i)).toBeVisible();
-  await expect(page.getByText(REAL_PUBLIC_REPO)).toBeVisible();
+  await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
 
   await page.getByRole("link", { name: "Drift", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/drift\\?workspace=${workspaceSlug}`));
