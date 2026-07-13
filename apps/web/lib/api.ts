@@ -1003,6 +1003,8 @@ export type AgentGuardrailResult = {
     type: string;
     title: string;
     recommended_next_action?: string;
+    occurrence_count?: number;
+    source_count?: number;
   }>;
 };
 

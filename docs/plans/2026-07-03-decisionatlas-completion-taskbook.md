@@ -318,3 +318,27 @@ change：`improve-sparse-repo-decision-conversion`
 - pip-tools candidates 全部经过 parser salvage，首屏候选置信度偏低，下一步需要 precision/ranking/duplicate reduction。
 - dashboard 重复显示大量 `repeated_postmortem_issue`，下一刀优先做 governance finding 去重。
 - 真实外部客户主机 clean proof 仍未完成。
+
+### P14：治理漂移 Finding 精度与去重（本轮完成）
+
+change：deduplicate-governance-drift-findings
+
+目标：
+
+- 在 detector 边界过滤普通文本、否定结果和弱重合误报。
+- 对真正等价的 repeated issue 使用稳定语义键合并。
+- 保留 occurrence/source counts、唯一 evidence 和 advisory 边界。
+- 让 guardrail、dashboard、CLI 和 readiness evidence 共享 canonical signal。
+
+验收证据：
+
+- 当前真实工作树 repeated issue 从 28 降为 3，噪声下降 89.3%。
+- 两份临时等价历史问题合并为 1 条 signal，occurrence 2、source 3。
+- Chrome 显示 recurrence 标签，DOM-CUA 成功进入 Governance，console 0 error/warning。
+- engine 383 passed；web 83 passed；OpenSpec strict 86/86。
+- docs/evidence/readiness/2026-07-13-governance-drift-finding-deduplication/。
+
+边界与下一步：
+
+- 正常仓库的三条 finding 语义不同，保留人工审阅。
+- 下一刀执行 improve-imported-candidate-precision-ranking，降低 pip-tools 低置信、salvaged 和近重复 candidate 的审阅成本。

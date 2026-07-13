@@ -145,6 +145,22 @@ DecisionAtlas 已经具备可重复的自托管完整链路：
 - evidence 必须保留 warning/blocking/operator-guided/not-provided。
 - 更新日志、任务书、readiness history、OpenSpec archive 和 scoped git commit。
 
+## 已完成的 P0：治理 finding 精度与去重
+
+deduplicate-governance-drift-findings 已完成：
+
+- repeated issue 从 28 降为 3，减少 89.3%。
+- 修复 issue 子串、普通策略说明、否定结果和弱重合误报。
+- 等价 finding 使用 occurrence/source counts 合并，保留不同语义 finding。
+- engine 383、web 83、OpenSpec 86/86 全绿。
+- Chrome + DOM-CUA 真实 workspace 验证通过。
+
 ## 下一刀
 
-立即执行 `deduplicate-governance-drift-findings`。原因不是 UI 美观，而是当前重复 finding 会阻碍管理员识别真正的治理动作，并污染 dashboard、guardrail 和 release evidence 的可读性。
+立即执行 improve-imported-candidate-precision-ranking。当前 pip-tools 的 28 条 candidates 全部经过 parser salvage，首屏置信度偏低；下一阶段应先做 grounded/confidence/family/salvage 排序和近重复聚类，再考虑扩大模型或仓库规模。
+
+完成该 change 后按顺序推进：
+
+1. benchmark-sparse-conversion-trends。
+2. complete-real-customer-host-trial。
+3. 根据首批 2-3 个 self-hosted pilot 的真实阻塞选择 private repo、通知或升级回滚深化。

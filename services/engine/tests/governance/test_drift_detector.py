@@ -3,7 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.governance.drift_detector import collect_governance_drift_context, main, run_governance_drift_detection
+from app.governance.drift_detector import (
+    MAX_CANONICAL_SIGNAL_EVIDENCE,
+    DriftEvidence,
+    GovernanceDriftSignal,
+    _dedupe_signals,
+    _issue_lines,
+    collect_governance_drift_context,
+    main,
+    run_governance_drift_detection,
+)
 
 
 FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "governance_drift_detector"
@@ -189,6 +198,118 @@ def test_repeated_postmortem_issue_signal_links_prior_and_recent_evidence(tmp_pa
     repeated = next(signal for signal in report.signals if signal.type == "repeated_postmortem_issue")
     assert len(repeated.evidence) >= 2
 
+
+def _repeated_signal(
+    signal_id: str,
+    issue: str,
+    *,
+    path: str,
+    extra_evidence: list[DriftEvidence] | None = None,
+) -> GovernanceDriftSignal:
+    return GovernanceDriftSignal(
+        id=signal_id,
+        type="repeated_postmortem_issue",
+        severity="warning",
+        title="Recent context resembles a historical issue",
+        detail="A prior issue appears similar to recent context.",
+        evidence=[
+            DriftEvidence(kind="project_log", path=path, title=Path(path).name, excerpt=issue),
+            DriftEvidence(kind="recent_context", title="recent governance context", excerpt="redis retry changed"),
+            *(extra_evidence or []),
+        ],
+        recommended_next_action="Review the historical issue.",
+    )
+
+
+def test_issue_line_detection_rejects_substrings_policy_mentions_and_negated_outcomes() -> None:
+    text = """
+Current evidence summary: 67 reviewable decisions across sources.
+Private issue text must never be committed.
+No runtime errors observed during the check.
+The imported state is evidence_limited, not a runtime failure.
+Issue: Redis timeout error caused import retry failure.
+A regression caused duplicate drift alerts.
+"""
+
+    assert _issue_lines(text) == [
+        "Issue: Redis timeout error caused import retry failure.",
+        "A regression caused duplicate drift alerts.",
+    ]
+
+def test_semantic_dedupe_merges_equivalent_issue_variants_and_counts_sources() -> None:
+    first = _repeated_signal(
+        "repeated-z",
+        "Issue 2026-07-12: Redis timeout error caused import retry failure in services/engine/app/import.py",
+        path="docs/project/z-update-log.md",
+    )
+    second = _repeated_signal(
+        "repeated-a",
+        "Issue 2026-07-13 - Redis timeout error caused import retry failure in C:\\repo\\services\\engine\\app\\import.py",
+        path="docs/project/a-update-log.md",
+    )
+
+    signals = _dedupe_signals([first, second])
+
+    assert len(signals) == 1
+    assert signals[0].id == "repeated-a"
+    assert signals[0].occurrence_count == 2
+    assert signals[0].source_count == 3
+    assert len(signals[0].evidence) == 3
+
+
+def test_semantic_dedupe_is_stable_across_input_order() -> None:
+    first = _repeated_signal("repeated-b", "Issue: Redis timeout retry failure.", path="docs/project/b.md")
+    second = _repeated_signal("repeated-a", "Failure - retry timeout Redis issue!", path="docs/project/a.md")
+
+    assert _dedupe_signals([first, second]) == _dedupe_signals([second, first])
+
+
+def test_semantic_dedupe_preserves_distinct_issues_with_same_title() -> None:
+    redis = _repeated_signal("repeated-redis", "Issue: Redis timeout caused import retry failure.", path="docs/project/a.md")
+    oauth = _repeated_signal("repeated-oauth", "Issue: OAuth callback state mismatch caused login failure.", path="docs/project/b.md")
+
+    signals = _dedupe_signals([redis, oauth])
+
+    assert len(signals) == 2
+    assert {signal.occurrence_count for signal in signals} == {1}
+
+
+def test_semantic_dedupe_bounds_unique_evidence_without_mutating_sources() -> None:
+    evidence = [
+        DriftEvidence(kind="project_log", path=f"docs/project/{index}.md", excerpt=f"Issue: Redis timeout retry failure {index}")
+        for index in range(MAX_CANONICAL_SIGNAL_EVIDENCE + 4)
+    ]
+    signal = _repeated_signal(
+        "repeated-bounded",
+        "Issue: Redis timeout retry failure.",
+        path="docs/project/root.md",
+        extra_evidence=evidence,
+    )
+    original_evidence = list(signal.evidence)
+
+    canonical = _dedupe_signals([signal])[0]
+
+    assert len(canonical.evidence) == MAX_CANONICAL_SIGNAL_EVIDENCE
+    assert canonical.source_count == MAX_CANONICAL_SIGNAL_EVIDENCE + 6
+    assert signal.evidence == original_evidence
+
+
+def test_report_exposes_raw_and_canonical_signal_counts(tmp_path: Path) -> None:
+    _write_project_context(tmp_path)
+    docs_dir = tmp_path / "docs" / "project"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    issue = "Issue: Redis timeout error caused import retry failure."
+    (docs_dir / "2026-01-01-update-log.md").write_text(issue, encoding="utf-8")
+    (docs_dir / "2026-02-01-postmortem.md").write_text(f"Failure - retry import error caused by Redis timeout!", encoding="utf-8")
+    diff = "diff --git a/services/engine/app/import_retry.py b/services/engine/app/import_retry.py\n+redis timeout error import retry failure\n"
+
+    report = run_governance_drift_detection(root=tmp_path, governance_rules=[], diff_text=diff)
+
+    repeated = [signal for signal in report.signals if signal.type == "repeated_postmortem_issue"]
+    assert len(repeated) == 1
+    assert repeated[0].occurrence_count == 2
+    assert report.context["raw_signal_count"] > report.context["canonical_signal_count"]
+    assert report.context["merged_signal_occurrences"] == 1
 
 def test_unsynced_decision_signal_requests_human_review(tmp_path: Path) -> None:
     data = _fixture("review_required.json")
