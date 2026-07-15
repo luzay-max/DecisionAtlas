@@ -343,7 +343,7 @@ change：deduplicate-governance-drift-findings
 - 正常仓库的三条 finding 语义不同，保留人工审阅。
 - 下一刀执行 improve-imported-candidate-precision-ranking，降低 pip-tools 低置信、salvaged 和近重复 candidate 的审阅成本。
 
-### P15：公开仓库 CI Access Probe 稳定性（进行中）
+### P15：公开仓库 CI Access Probe 稳定性（已完成）
 
 change：harden-public-repo-ci-access-probe
 
@@ -359,4 +359,6 @@ change：harden-public-repo-ci-access-probe
 - 区分 credential_required 与 network_failure。
 - 聚焦测试 33 passed；engine full 388 passed。
 - pallets/flask 真实 probe=true，本地导入已达到 1157 artifacts。
-- 等待全新 GitHub Actions runner 验证后归档。
+- 使用随机公开仓库 pallets/itsdangerous 完成真实 Playwright 核心链路。
+- GitHub Actions run 29380845943 全绿，browser smoke 12/12 passed。
+- 主规格已同步，change 已归档；下一刀执行 improve-imported-candidate-precision-ranking。
