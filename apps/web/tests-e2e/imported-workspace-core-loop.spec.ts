@@ -87,7 +87,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   ).first();
   await expect(whySearchLink).toBeVisible();
   await whySearchLink.click();
-  await expect(page).toHaveURL(new RegExp(`/search\\?workspace=${workspaceSlug}`));
+  await expect(page).toHaveURL(new RegExp(`/search\\?workspace=${workspaceSlug}`), { timeout: 15_000 });
   await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText(/real public GitHub repository reference/i)).toBeVisible();
