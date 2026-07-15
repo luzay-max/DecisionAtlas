@@ -1229,7 +1229,7 @@ def test_pipeline_sparse_recovery_creates_grounded_candidate(tmp_path: Path, mon
     assert decision is not None
     assert decision.review_state == "candidate"
     assert decision.candidate_metadata_json == {
-        "artifact_family": "architecture_doc",
+        "artifact_family": "lightweight_evidence",
         "parser_salvaged": False,
         "recovery": True,
         "sparse_recovery": True,
