@@ -175,3 +175,15 @@ P2 `benchmark-sparse-conversion-trends` 已完成实现和真实演练：四类 
 2. 完成管理员登录、账号分发、公共/私有仓库接入、审阅、Why、Drift、备份恢复。
 3. 将 hosted URL、recovery、operator runbook 从 `operator_guided`/模板状态推进到真实责任人可复核的证据。
 4. 只有在 2-3 个 self-hosted pilot 暴露明确阻塞后，才选择 private repo、通知或升级回滚的下一项深化。
+
+## 2026-07-15 执行状态更新：Benchmark 判定修正
+
+`make-benchmark-value-outcomes-monotonic` 已完成实现和真实验证。n8n 原先的失败不是产品退化，而是 fixture 把“stress profile 的最低预期”错误当成“允许结果的精确枚举”；真实 workspace 已达到 72 candidates、7 accepted、14 strong、0 thin ratio，实际价值为 `useful_now`。
+
+本轮将 benchmark 改为：
+
+- ranked product outcome 按最低声明 floor 判断，超过 floor 输出 `exceeds_floor`；低于 floor 输出 `below_floor`。
+- missing workspace、network/provider error、operational blocker 不参与 product rank，继续单独失败。
+- release evidence 现在可以解释“结果变好而不是 fixture 失效”。
+
+当前固定 live benchmark：5/5 通过。下一阶段不再修改 benchmark 口径，改为在独立 VM/测试服务器完成客户控制主机验证，并收集第一批 self-hosted pilot 的私有仓库和恢复反馈。

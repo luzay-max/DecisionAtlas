@@ -471,6 +471,58 @@ def test_value_classification_covers_bounded_outcome_families() -> None:
     assert operational_blocked["value_outcome"] == "operational_blocked"
 
 
+def test_value_outcome_assessment_allows_stronger_product_result() -> None:
+    benchmark = _load_benchmark_module()
+
+    row = benchmark._attach_value_summary(
+        {
+            "dashboard": {
+                "bounded_outcome": "why_ready",
+                "candidate_decision_count": 72,
+                "accepted_decision_count": 7,
+                "total_decision_count": 79,
+                "checks": {"readiness_allowed": True},
+            },
+            "candidate_quality": {"passed": True, "observations": {"strong_candidate_count": 14, "thin_candidate_ratio": 0}},
+            "why_cases": [],
+            "drift": {"passed": True, "cases": []},
+            "expectations": {
+                "expected_value_outcomes": [
+                    "reviewable_limited",
+                    "conversion_limited",
+                    "evidence_limited",
+                    "missing_workspace",
+                    "operational_blocked",
+                ]
+            },
+        }
+    )
+
+    assert row["value_outcome"] == "useful_now"
+    assert row["value_outcome_allowed"] is True
+    assert row["value_outcome_assessment"] == "exceeds_floor"
+    assert row["minimum_product_value_floor"] == "conversion_limited"
+
+
+def test_value_outcome_assessment_rejects_below_floor_and_keeps_operational_explicit() -> None:
+    benchmark = _load_benchmark_module()
+
+    below_floor = benchmark._assess_value_outcome("reviewable_limited", ["useful_now"])
+    missing = benchmark._assess_value_outcome("missing_workspace", ["useful_now", "missing_workspace"])
+    unconstrained = benchmark._assess_value_outcome("useful_now", ["missing_workspace", "operational_blocked"])
+
+    assert below_floor == {
+        "allowed": False,
+        "assessment": "below_floor",
+        "minimum_product_value_floor": "useful_now",
+        "minimum_product_value_rank": 5,
+    }
+    assert missing["allowed"] is True
+    assert missing["assessment"] == "operational"
+    assert unconstrained["allowed"] is True
+    assert unconstrained["assessment"] == "not_constrained"
+
+
 def test_live_real_repo_validation_writes_markdown_report_from_json_rows(tmp_path, monkeypatch) -> None:
     benchmark = _load_benchmark_module()
     repository = {

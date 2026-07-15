@@ -1,7 +1,7 @@
 # Readiness Evidence History
 
-- Generated at: `2026-07-15T05:23:05.997540+00:00`
-- Entries: `19`
+- Generated at: `2026-07-15T05:51:28.866896+00:00`
+- Entries: `20`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -24,6 +24,7 @@
 | 2026-07-15-benchmark-sparse-conversion-live-four-profile-rehearsal | 2026-07-15T11:15:00+00:00 | warning | warning | operator_guided | passed | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-15-customer-host-trial-isolated | 2026-07-15T13:30:00+08:00 | warning | - | - | - | - | - | - | - | warning | - | - | - | - | 8 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-15-customer-host-trial-release-rehearsal | 2026-07-15T13:45:00+08:00 | warning | warning | operator_guided | passed | not_provided | not_provided | not_provided | warning | warning | not_provided | warning | warning | not_provided | 22 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-15-monotonic-value-outcomes | 2026-07-15T14:26:00+08:00 | warning | passed | not_provided | passed | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

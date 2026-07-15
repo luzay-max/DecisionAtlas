@@ -29,6 +29,13 @@ VALUE_OUTCOME_RANK = {
     "evidence_limited": 2,
     "conversion_limited": 1,
 }
+VALUE_OUTCOME_ASSESSMENTS = {
+    "exact",
+    "exceeds_floor",
+    "below_floor",
+    "operational",
+    "not_constrained",
+}
 BENCHMARK_MOVEMENTS = {
     "improved",
     "unchanged",
@@ -823,12 +830,53 @@ def _value_outcome(row: dict) -> str:
     return "evidence_limited"
 
 
+def _assess_value_outcome(outcome: str, expected_outcomes: list[str]) -> dict[str, Any]:
+    """Assess a value outcome against a profile's minimum product-value floor."""
+    expected = [str(value) for value in expected_outcomes if str(value) in VALUE_OUTCOMES]
+    if outcome in OPERATIONAL_VALUE_OUTCOMES:
+        return {
+            "allowed": outcome in expected,
+            "assessment": "operational",
+            "minimum_product_value_floor": None,
+            "minimum_product_value_rank": None,
+        }
+
+    expected_product = [value for value in expected if value in VALUE_OUTCOME_RANK]
+    if not expected_product:
+        return {
+            "allowed": True,
+            "assessment": "not_constrained",
+            "minimum_product_value_floor": None,
+            "minimum_product_value_rank": None,
+        }
+
+    floor = min(expected_product, key=lambda value: VALUE_OUTCOME_RANK[value])
+    outcome_rank = VALUE_OUTCOME_RANK.get(outcome)
+    floor_rank = VALUE_OUTCOME_RANK[floor]
+    if outcome in expected:
+        assessment = "exact"
+    elif outcome_rank is not None and outcome_rank > floor_rank:
+        assessment = "exceeds_floor"
+    else:
+        assessment = "below_floor"
+    return {
+        "allowed": outcome_rank is not None and outcome_rank >= floor_rank,
+        "assessment": assessment,
+        "minimum_product_value_floor": floor,
+        "minimum_product_value_rank": floor_rank,
+    }
+
+
 def _attach_value_summary(row: dict) -> dict:
     outcome = _value_outcome(row)
     follow_ups = _follow_up_categories(row)
     expectations = ((row.get("expectations") or {}).get("expected_value_outcomes")) or []
+    assessment = _assess_value_outcome(outcome, expectations)
     row["value_outcome"] = outcome
-    row["value_outcome_allowed"] = outcome in expectations if expectations else True
+    row["value_outcome_allowed"] = assessment["allowed"]
+    row["value_outcome_assessment"] = assessment["assessment"]
+    row["minimum_product_value_floor"] = assessment["minimum_product_value_floor"]
+    row["minimum_product_value_rank"] = assessment["minimum_product_value_rank"]
     row["limitation_categories"] = _limitation_categories(row)
     row["follow_up_categories"] = follow_ups
     row["key_metrics"] = {

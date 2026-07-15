@@ -441,3 +441,27 @@ change：`complete-real-customer-host-trial`
 2. 在新鲜公共仓库上接受 1-3 条高质量候选，复跑 Why/Drift，形成 warning reduction 与 accepted baseline evidence。
 3. 针对 n8n benchmark 失败定位是数据质量、阈值还是运行依赖，再决定修复或调整 profile；不要先放宽门槛。
 4. 外部 host proof 稳定后，再做 hosted URL 公开演示、恢复流程和操作员交付；billing、多租户、Marketplace、自助 OAuth 继续后置。
+
+### P19：Benchmark Value Outcome 单调判定（本轮完成）
+
+change：`make-benchmark-value-outcomes-monotonic`
+
+完成内容：
+
+- 修复 benchmark 对 `expected_value_outcomes` 的 exact-membership 误判：更强的 product outcome 现在按 `VALUE_OUTCOME_RANK` 识别为 `exceeds_floor`，不是失败。
+- `missing_workspace`、`operational_blocked` 保持独立 operational 分支，不能因为“更强”规则被提升为产品通过。
+- 报告新增 `value_outcome_assessment`、`minimum_product_value_floor` 和 rank，解释为什么结果是 exact、exceeds_floor、below_floor、operational 或 not_constrained。
+- n8n 真实 profile 从原来的 false failure 修复为 `useful_now`、`exceeds_floor`、allowed；固定 live benchmark 从 4/5 恢复为 5/5。
+
+验证证据：
+
+- focused benchmark tests：21 passed；engine：401 passed；API：32 passed；Web：83 passed。
+- typecheck、benchmark fixture、OpenSpec strict `90/90` 通过。
+- 真实 Chrome 访问 `github-n8n-io-n8n` 的 Dashboard、Review、Why Search、Drift，4/4 页面通过，无 page error、无数据变更。
+- release evidence：`passed`；readiness history：`2026-07-15-monotonic-value-outcomes`。
+
+边界与下一步：
+
+- 本 change 只修正 benchmark/reporting 语义，不降低候选质量、Why、Drift 或导入门槛。
+- readiness history 仍会显示 optional evidence `not_provided`，这是证据完整度提示，不是 benchmark 失败。
+- 下一刀回到真实客户闭环：独立 VM/测试服务器、私有仓库脱敏试用和客户反馈；暂不做 SaaS billing、多租户或 Marketplace。
