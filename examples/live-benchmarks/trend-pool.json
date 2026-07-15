@@ -6,7 +6,13 @@
     "release_role": "doc-heavy Python library",
     "benchmark_purpose": "Track whether documentation-heavy libraries produce grounded, reviewable rationale candidates.",
     "priority": "core",
-    "operator_setup_status": "operator_guided"
+    "operator_setup_status": "operator_guided",
+    "profile": "docs_heavy",
+    "sparse_expectations": {
+      "expects_sparse_recovery": false,
+      "allow_zero_candidates": true,
+      "expected_statuses": ["skipped", "attempted", "recovered", "exhausted", "not_evaluated"]
+    }
   },
   {
     "id": "fastapi",
@@ -15,7 +21,13 @@
     "release_role": "large Python framework",
     "benchmark_purpose": "Track large-framework extraction quality across docs, issues, and PR rationale.",
     "priority": "core",
-    "operator_setup_status": "operator_guided"
+    "operator_setup_status": "operator_guided",
+    "profile": "medium_decision_rich",
+    "sparse_expectations": {
+      "expects_sparse_recovery": false,
+      "allow_zero_candidates": true,
+      "expected_statuses": ["skipped", "attempted", "recovered", "exhausted", "not_evaluated"]
+    }
   },
   {
     "id": "rich",
@@ -24,7 +36,13 @@
     "release_role": "smaller Python documentation library",
     "benchmark_purpose": "Track thinner-evidence repositories and first-baseline acceptance behavior.",
     "priority": "secondary",
-    "operator_setup_status": "operator_guided"
+    "operator_setup_status": "operator_guided",
+    "profile": "small_sparse",
+    "sparse_expectations": {
+      "expects_sparse_recovery": true,
+      "allow_zero_candidates": true,
+      "expected_statuses": ["attempted", "recovered", "exhausted", "not_evaluated"]
+    }
   },
   {
     "id": "n8n",
@@ -33,7 +51,13 @@
     "release_role": "large TypeScript stress repository",
     "benchmark_purpose": "Track screened-in artifact volume and conversion-limited behavior on a large repository.",
     "priority": "stress",
-    "operator_setup_status": "operator_guided"
+    "operator_setup_status": "operator_guided",
+    "profile": "stress",
+    "sparse_expectations": {
+      "expects_sparse_recovery": true,
+      "allow_zero_candidates": true,
+      "expected_statuses": ["attempted", "recovered", "exhausted", "not_evaluated"]
+    }
   },
   {
     "id": "browser-use",
@@ -42,6 +66,12 @@
     "release_role": "decision-rich regression repository",
     "benchmark_purpose": "Protect known imported why-search and drift-regression examples.",
     "priority": "core",
-    "operator_setup_status": "ready"
+    "operator_setup_status": "ready",
+    "profile": "medium_decision_rich",
+    "sparse_expectations": {
+      "expects_sparse_recovery": false,
+      "allow_zero_candidates": false,
+      "expected_statuses": ["skipped", "attempted", "recovered", "exhausted", "not_evaluated"]
+    }
   }
 ]

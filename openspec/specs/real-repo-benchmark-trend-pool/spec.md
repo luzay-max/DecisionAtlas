@@ -3,9 +3,7 @@
 ## Purpose
 
 Fixed-pool real repository benchmark trend evidence for release rehearsals and team handoff.
-
 ## Requirements
-
 ### Requirement: Fixed real repository trend pool
 The system SHALL define a source-controlled fixed real repository trend pool that identifies the public repositories expected in release benchmark trend evidence.
 
@@ -15,7 +13,7 @@ The system SHALL define a source-controlled fixed real repository trend pool tha
 
 #### Scenario: Pool records release intent
 - **WHEN** an operator opens the fixed trend pool
-- **THEN** each repository entry MUST include a stable id, repository name, workspace slug, release role, benchmark purpose, priority, and operator setup status
+- **THEN** each repository entry MUST include a stable id, repository name, workspace slug, release role, benchmark purpose, priority, operator setup status, a bounded repository profile, and sparse-conversion expectations
 
 ### Requirement: Benchmark trend evidence generation
 The system SHALL generate benchmark trend evidence from the fixed repository pool and an optional benchmark comparison JSON file.

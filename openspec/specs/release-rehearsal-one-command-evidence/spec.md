@@ -16,10 +16,10 @@ The system SHALL provide a single operator command that generates release rehear
 - **THEN** the bundle SHALL mark that lane as `not_provided` or `operator_guided` rather than failing.
 
 ### Requirement: Release rehearsal preserves mixed outcomes
-The release rehearsal SHALL aggregate lane outcomes without hiding warnings or blockers.
+The release rehearsal SHALL aggregate release, hosted, benchmark comparison, sparse benchmark trend, multi-repo diagnosis, guardrail, and history lane outcomes without hiding warnings or blockers.
 
 #### Scenario: A lane is warning
-- **WHEN** release, hosted readiness, benchmark trend, multi-repo diagnosis, guardrail, or history evidence reports warning
+- **WHEN** release, hosted readiness, benchmark trend, sparse benchmark trend, multi-repo diagnosis, guardrail, or history evidence reports warning
 - **THEN** the top-level rehearsal status SHALL be warning unless a blocking lane exists.
 
 #### Scenario: A lane is blocking

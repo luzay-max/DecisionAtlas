@@ -22,7 +22,10 @@ REQUIRED_POOL_FIELDS = {
     "benchmark_purpose",
     "priority",
     "operator_setup_status",
+    "profile",
+    "sparse_expectations",
 }
+ALLOWED_PROFILES = {"small_sparse", "medium_decision_rich", "docs_heavy", "stress"}
 
 
 def _read_json(path: Path) -> Any:
@@ -84,6 +87,15 @@ def validate_pool(pool: list[dict[str, Any]]) -> list[str]:
             errors.append(f"{repo_id or f'entry_{index}'}:invalid_workspace_slug")
         if str(row.get("operator_setup_status") or "").strip() not in {"ready", "operator_guided", "not_provided"}:
             errors.append(f"{repo_id or f'entry_{index}'}:invalid_operator_setup_status")
+        if str(row.get("profile") or "").strip() not in ALLOWED_PROFILES:
+            errors.append(f"{repo_id or f'entry_{index}'}:invalid_profile")
+        sparse_expectations = row.get("sparse_expectations")
+        if not isinstance(sparse_expectations, dict):
+            errors.append(f"{repo_id or f'entry_{index}'}:invalid_sparse_expectations")
+        elif not isinstance(sparse_expectations.get("expected_statuses"), list) or not sparse_expectations.get(
+            "expected_statuses"
+        ):
+            errors.append(f"{repo_id or f'entry_{index}'}:missing_sparse_expected_statuses")
     return errors
 
 
@@ -116,6 +128,8 @@ def _trend_status(*, pool_errors: list[str], comparison_provided: bool, rows: li
         return "warning"
     if any(str(row.get("movement") or "") in WARNING_MOVEMENTS for row in rows):
         return "warning"
+    if any(str((row.get("sparse_conversion") or {}).get("movement") or "") in WARNING_MOVEMENTS for row in rows):
+        return "warning"
     return "pass"
 
 
@@ -131,6 +145,10 @@ def recommended_follow_up(*, summary: dict[str, Any], pool_errors: list[str], co
         follow_up.append("Investigate regressed repositories before claiming release quality improvement.")
     if summary.get("operationally_blocked"):
         follow_up.append("Resolve operationally-blocked repositories or document operator acceptance.")
+    if summary.get("sparse_regressed"):
+        follow_up.append("Investigate sparse conversion regressions before claiming recovery quality improvement.")
+    if summary.get("sparse_operationally_blocked"):
+        follow_up.append("Resolve sparse provider or runtime blockers before comparing recovered yield.")
     if summary.get("operator_guided_repositories"):
         follow_up.append("Review operator-guided repository setup status during release rehearsal.")
     if not follow_up:
@@ -174,8 +192,14 @@ def build_trend(
                 "benchmark_purpose": repo.get("benchmark_purpose"),
                 "priority": repo.get("priority"),
                 "operator_setup_status": repo.get("operator_setup_status"),
+                "profile": repo.get("profile"),
+                "sparse_expectations": repo.get("sparse_expectations") or {},
                 "coverage_status": coverage_status,
                 "movement": movement,
+                "sparse_conversion": (comparison_row or {}).get("sparse_conversion") or {
+                    "movement": "not_provided" if not comparison_provided else "missing-from-current",
+                    "reasons": [],
+                },
                 "current_value_outcome": comparison_row.get("current_value_outcome") if comparison_row else None,
                 "baseline_value_outcome": comparison_row.get("baseline_value_outcome") if comparison_row else None,
                 "current_bounded_outcome": comparison_row.get("current_bounded_outcome") if comparison_row else None,
@@ -201,6 +225,20 @@ def build_trend(
         "regressed": movement_counts.get("regressed", 0),
         "improved": movement_counts.get("improved", 0),
         "operationally_blocked": movement_counts.get("operationally-blocked", 0),
+        "sparse_improved": sum(
+            1 for row in rows if (row.get("sparse_conversion") or {}).get("movement") == "improved"
+        ),
+        "sparse_regressed": sum(
+            1 for row in rows if (row.get("sparse_conversion") or {}).get("movement") == "regressed"
+        ),
+        "sparse_operationally_blocked": sum(
+            1
+            for row in rows
+            if (row.get("sparse_conversion") or {}).get("movement") == "operationally-blocked"
+        ),
+        "sparse_not_provided": sum(
+            1 for row in rows if (row.get("sparse_conversion") or {}).get("movement") == "not_provided"
+        ),
         "missing_from_current": movement_counts.get("missing-from-current", 0) + movement_counts.get("missing-from-pool", 0),
         "release_evidence_ready": comparison_provided and not pool_errors,
     }
@@ -250,11 +288,12 @@ def render_markdown(trend: dict[str, Any]) -> str:
         f"- Missing repositories: `{summary.get('missing_repositories', 0)}`",
         f"- Regressed: `{summary.get('regressed', 0)}`",
         f"- Operationally blocked: `{summary.get('operationally_blocked', 0)}`",
+        f"- Sparse improved/regressed/blocked: `{summary.get('sparse_improved', 0)}/{summary.get('sparse_regressed', 0)}/{summary.get('sparse_operationally_blocked', 0)}`",
         "",
         "## Repository Trend Pool",
         "",
-        "| Repository | Priority | Setup | Coverage | Movement | Value outcome | Bounded outcome | Reasons |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Repository | Profile | Priority | Setup | Coverage | Movement | Sparse movement | Value outcome | Bounded outcome | Reasons |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in trend.get("repositories") or []:
         value_outcome = (
@@ -273,10 +312,12 @@ def render_markdown(trend: dict[str, Any]) -> str:
                 _markdown_cell(value)
                 for value in (
                     row.get("repo") or row.get("id"),
+                    row.get("profile"),
                     row.get("priority"),
                     row.get("operator_setup_status"),
                     row.get("coverage_status"),
                     row.get("movement"),
+                    (row.get("sparse_conversion") or {}).get("movement"),
                     value_outcome,
                     bounded_outcome,
                     row.get("reasons") or [],

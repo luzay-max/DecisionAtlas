@@ -62,6 +62,12 @@ def test_benchmark_comparison_release_ready_without_explicit_status_is_pass(tmp_
                 "repositories": 2,
                 "regressed": 0,
                 "operationally_blocked": 0,
+                "sparse_movements": {
+                    "improved": 1,
+                    "regressed": 0,
+                    "operationally_blocked": 0,
+                    "not_provided": 1,
+                },
                 "release_evidence_ready": True,
             }
         },
@@ -79,6 +85,8 @@ def test_benchmark_comparison_release_ready_without_explicit_status_is_pass(tmp_
 
     assert lanes["benchmark_comparison"]["status"] == "pass"
     assert lanes["benchmark_comparison"]["summary"]["release_evidence_ready"] is True
+    assert lanes["benchmark_comparison"]["summary"]["sparse_improved"] == 1
+    assert lanes["benchmark_comparison"]["summary"]["sparse_not_provided"] == 1
 
 
 def test_benchmark_comparison_regression_without_explicit_status_is_warning(tmp_path: Path) -> None:

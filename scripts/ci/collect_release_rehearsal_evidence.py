@@ -174,12 +174,21 @@ def summarize_lane(lane_id: str, data: dict[str, Any] | None) -> dict[str, Any]:
         }
     if lane_id in {"benchmark_trend", "benchmark_comparison"}:
         summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+        sparse_summary = summary.get("sparse_movements") if isinstance(summary.get("sparse_movements"), dict) else summary
         return {
             "status": _benchmark_status_from_summary(data, summary),
             "repositories": summary.get("repositories") or summary.get("pool_repositories"),
             "covered_repositories": summary.get("covered_repositories"),
             "regressed": int(summary.get("regressed") or 0),
             "operationally_blocked": int(summary.get("operationally_blocked") or 0),
+            "sparse_improved": int(sparse_summary.get("improved") or summary.get("sparse_improved") or 0),
+            "sparse_regressed": int(sparse_summary.get("regressed") or summary.get("sparse_regressed") or 0),
+            "sparse_operationally_blocked": int(
+                sparse_summary.get("operationally_blocked") or summary.get("sparse_operationally_blocked") or 0
+            ),
+            "sparse_not_provided": int(
+                sparse_summary.get("not_provided") or summary.get("sparse_not_provided") or 0
+            ),
             "release_evidence_ready": summary.get("release_evidence_ready"),
             "recommended_follow_up": _bounded(data.get("recommended_follow_up") or []),
         }

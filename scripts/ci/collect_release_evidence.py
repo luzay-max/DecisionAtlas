@@ -106,6 +106,7 @@ def _status_from_guardrail(data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
 
 def _status_from_benchmark_comparison(data: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    sparse = summary.get("sparse_movements") if isinstance(summary.get("sparse_movements"), dict) else {}
     regressed = int(summary.get("regressed") or 0)
     operationally_blocked = int(summary.get("operationally_blocked") or 0)
     status = STATUS_WARNING if regressed or operationally_blocked else STATUS_PASSED
@@ -115,6 +116,10 @@ def _status_from_benchmark_comparison(data: dict[str, Any]) -> tuple[str, dict[s
         "regressed": regressed,
         "operationally_blocked": operationally_blocked,
         "improved": summary.get("improved"),
+        "sparse_improved": int(sparse.get("improved") or 0),
+        "sparse_regressed": int(sparse.get("regressed") or 0),
+        "sparse_operationally_blocked": int(sparse.get("operationally_blocked") or 0),
+        "sparse_not_provided": int(sparse.get("not_provided") or 0),
         "release_evidence_ready": summary.get("release_evidence_ready"),
     }
     return status, details
@@ -135,12 +140,12 @@ def build_evidence_item(source: SourceInput, root: Path) -> tuple[dict[str, Any]
 
     if source.path is not None:
         path = source.path if source.path.is_absolute() else root / source.path
-        item["source_path"] = str(path)
+        item["source_path"] = _display_path(path, root)
         if not path.exists():
             status = STATUS_MISSING if source.required else STATUS_WARNING
             item["status"] = status
             item["details"] = {"reason": "provided_source_path_missing"}
-            warnings.append(f"{source.label} source path does not exist: {path}")
+            warnings.append(f"{source.label} source path does not exist: {_display_path(path, root)}")
             return item, warnings
 
         data, error = _read_json(path)
@@ -184,6 +189,13 @@ def build_evidence_item(source: SourceInput, root: Path) -> tuple[dict[str, Any]
     item["status"] = STATUS_MISSING if source.required else STATUS_NOT_PROVIDED
     item["details"] = {"reason": "no_status_or_source_path_provided"}
     return item, warnings
+
+
+def _display_path(path: Path, root: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return "<external-path>"
 
 
 def calculate_overall_status(required_gates: list[dict[str, Any]], advisory_signals: list[dict[str, Any]]) -> str:

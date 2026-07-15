@@ -201,6 +201,7 @@ def summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": STATUS_NOT_PROVIDED}
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    sparse = summary.get("sparse_movements") if isinstance(summary.get("sparse_movements"), dict) else {}
     regressed = int(summary.get("regressed") or 0)
     operationally_blocked = int(summary.get("operationally_blocked") or 0)
     return {
@@ -211,6 +212,10 @@ def summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
         "improved": int(summary.get("improved") or 0),
         "regressed": regressed,
         "operationally_blocked": operationally_blocked,
+        "sparse_improved": int(sparse.get("improved") or 0),
+        "sparse_regressed": int(sparse.get("regressed") or 0),
+        "sparse_operationally_blocked": int(sparse.get("operationally_blocked") or 0),
+        "sparse_not_provided": int(sparse.get("not_provided") or 0),
         "release_evidence_ready": summary.get("release_evidence_ready"),
     }
 
@@ -231,6 +236,10 @@ def summarize_benchmark_trend(data: dict[str, Any] | None) -> dict[str, Any]:
         "regressed": int(summary.get("regressed") or 0),
         "improved": int(summary.get("improved") or 0),
         "operationally_blocked": int(summary.get("operationally_blocked") or 0),
+        "sparse_improved": int(summary.get("sparse_improved") or 0),
+        "sparse_regressed": int(summary.get("sparse_regressed") or 0),
+        "sparse_operationally_blocked": int(summary.get("sparse_operationally_blocked") or 0),
+        "sparse_not_provided": int(summary.get("sparse_not_provided") or 0),
         "missing_from_current": int(summary.get("missing_from_current") or 0),
         "recommended_follow_up": sanitize(data.get("recommended_follow_up") or []),
     }

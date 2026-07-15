@@ -61,6 +61,12 @@ def test_readiness_history_extracts_release_hosted_and_benchmark_summaries(tmp_p
                 "regressed": 1,
                 "operationally_blocked": 1,
                 "movements": {"improved": 1, "regressed": 1, "operationally-blocked": 1},
+                "sparse_movements": {
+                    "improved": 1,
+                    "regressed": 1,
+                    "operationally_blocked": 0,
+                    "not_provided": 1,
+                },
             },
         },
     )
@@ -84,6 +90,8 @@ def test_readiness_history_extracts_release_hosted_and_benchmark_summaries(tmp_p
     assert entry["families"]["release_evidence"]["status"] == "warning"
     assert entry["families"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert entry["families"]["benchmark_comparison"]["regressed"] == 1
+    assert entry["families"]["benchmark_comparison"]["sparse_regressed"] == 1
+    assert entry["families"]["benchmark_comparison"]["sparse_not_provided"] == 1
     assert entry["families"]["release_evidence"]["source_path"] == "release.json"
     assert entry["artifacts"]["release_evidence"]["source_json_path"] == "release.json"
     assert entry["counts"]["benchmark_operational_blockers"] == 1

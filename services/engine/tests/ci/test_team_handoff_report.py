@@ -49,7 +49,22 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
         tmp_path / "benchmark.json",
         {
             "comparison_type": "real-repo-benchmark-regression",
-            "summary": {"repositories": 1, "improved": 1, "regressed": 0, "operationally_blocked": 0},
+            "summary": {
+                "repositories": 1,
+                "improved": 1,
+                "regressed": 0,
+                "operationally_blocked": 0,
+                "sparse_movements": {
+                    "improved": 1,
+                    "regressed": 0,
+                    "operationally_blocked": 0,
+                    "not_provided": 0,
+                },
+                "sparse_improved": 1,
+                "sparse_regressed": 0,
+                "sparse_operationally_blocked": 0,
+                "sparse_not_provided": 0,
+            },
         },
     )
     license_support = _write_json(
@@ -175,7 +190,9 @@ def test_team_handoff_report_generates_json_and_markdown(tmp_path: Path) -> None
     assert bundle["sections"]["release_evidence"]["status"] == "pass"
     assert bundle["sections"]["hosted_readiness"]["public_walkthrough_status"] == "operator_guided"
     assert bundle["sections"]["benchmark_comparison"]["repositories"] == 1
+    assert bundle["sections"]["benchmark_comparison"]["sparse_improved"] == 1
     assert bundle["sections"]["benchmark_trend"]["repositories"] == 1
+    assert bundle["sections"]["benchmark_trend"]["sparse_improved"] == 1
     assert bundle["sections"]["license_support"]["tier"] == "Team Self-hosted"
     assert bundle["sections"]["clean_install_rehearsal"]["status"] == "warning"
     assert bundle["sections"]["external_install_evidence"]["status"] == "warning"

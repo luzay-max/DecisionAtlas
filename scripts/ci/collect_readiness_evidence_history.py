@@ -180,6 +180,7 @@ def _summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": "not_provided"}
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    sparse = summary.get("sparse_movements") if isinstance(summary.get("sparse_movements"), dict) else {}
     regressed = int(summary.get("regressed") or 0)
     operationally_blocked = int(summary.get("operationally_blocked") or 0)
     status = "warning" if regressed or operationally_blocked else "passed"
@@ -192,6 +193,10 @@ def _summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
         "regressed": regressed,
         "improved": int(summary.get("improved") or 0),
         "operationally_blocked": operationally_blocked,
+        "sparse_improved": int(sparse.get("improved") or 0),
+        "sparse_regressed": int(sparse.get("regressed") or 0),
+        "sparse_operationally_blocked": int(sparse.get("operationally_blocked") or 0),
+        "sparse_not_provided": int(sparse.get("not_provided") or 0),
         "release_evidence_ready": summary.get("release_evidence_ready"),
     }
 
