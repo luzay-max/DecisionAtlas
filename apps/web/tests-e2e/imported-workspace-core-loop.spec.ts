@@ -82,7 +82,11 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
     }
   }
 
-  await page.getByRole("link", { name: "Why Search", exact: true }).click();
+  const whySearchLink = page.locator(
+    `a[href="/search?workspace=${encodeURIComponent(workspaceSlug)}"]`
+  ).first();
+  await expect(whySearchLink).toBeVisible();
+  await whySearchLink.click();
   await expect(page).toHaveURL(new RegExp(`/search\\?workspace=${workspaceSlug}`));
   await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
