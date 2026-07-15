@@ -325,6 +325,13 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
 
     def fake_request(**kwargs):
         path = kwargs["path"]
+        if path == "/runtime/provider-mode":
+            return {
+                "mode": "openai_compatible",
+                "is_live": True,
+                "llm_provider_mode": "openai_compatible",
+                "embedding_provider_mode": "openai_compatible",
+            }, None
         if path.startswith("/dashboard/summary"):
             return {
                 "workspace_mode": "imported",
@@ -385,6 +392,7 @@ def test_live_real_repo_validation_reports_dashboard_why_and_drift(tmp_path, mon
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert status == 0
+    assert report["base_url"] == "http://127.0.0.1:3001"
     assert report["repositories"][0]["passed"] is True
     assert report["repositories"][0]["role"] == "decision_rich_regression_repo"
     assert report["repositories"][0]["benchmark_purpose"] == "Useful value classification test."
@@ -549,6 +557,7 @@ def _benchmark_row(
     why_passed: int = 0,
     drift_passed: int = 0,
     operational_error: dict | None = None,
+    sparse_conversion: dict | None = None,
 ) -> dict:
     return {
         "id": repo_id,
@@ -585,6 +594,7 @@ def _benchmark_row(
             "cases": [{"id": "drift", "passed": drift_passed > 0, "matching_forbidden_alerts": []}],
         },
         "operational_error": operational_error,
+        "sparse_conversion": sparse_conversion or {},
     }
 
 
@@ -610,7 +620,7 @@ def test_benchmark_history_snapshot_extracts_bounded_report_fields() -> None:
     snapshot = benchmark.build_benchmark_history_snapshot(report)
 
     assert benchmark.validate_benchmark_history_snapshot(snapshot) == 0
-    assert snapshot["schema_version"] == 1
+    assert snapshot["schema_version"] == 2
     row = snapshot["repositories"][0]
     assert row["id"] == "repo"
     assert row["key_metrics"]["candidate_decision_count"] == 2
@@ -623,6 +633,158 @@ def test_benchmark_history_snapshot_extracts_bounded_report_fields() -> None:
     }
     assert row["drift_summary"]["passed_count"] == 1
     assert "base_url" not in row
+
+
+def test_sparse_conversion_metrics_are_normalized_and_legacy_payload_is_not_inferred() -> None:
+    benchmark = _load_benchmark_module()
+    repository = {
+        "id": "repo",
+        "repo": "org/repo",
+        "workspace_slug": "github-org-repo",
+        "expectations": {
+            "minimum_candidate_decisions": 0,
+            "minimum_reviewable_candidates": 0,
+            "minimum_accepted_decisions": 0,
+            "minimum_screened_in_artifacts": 0,
+            "expected_readiness_states": ["review_ready"],
+            "expected_why_states": ["review_required"],
+            "expected_drift_states": ["review_required"],
+        },
+    }
+    payload = {
+        "workspace_mode": "imported",
+        "import_status": "succeeded",
+        "decision_counts": {"candidate": 0, "accepted": 0, "rejected": 0, "superseded": 0},
+        "workspace_readiness": {"state": "review_ready", "review_state": "review_ready", "why_state": "review_required"},
+        "drift_status": {"state": "review_required"},
+        "latest_import": {
+            "summary": {
+                "extraction_summary": {
+                    "full_extraction_requests": 4,
+                    "created_candidates": 1,
+                    "recovered_candidates": 1,
+                    "sparse_recovery_status": "recovered",
+                    "sparse_recovery_eligible_artifacts": 3,
+                    "sparse_recovery_attempted_artifacts": 2,
+                    "sparse_recovery_model_attempts": 2,
+                    "sparse_recovery_recovered_candidates": 1,
+                    "sparse_recovery_rejection_reasons": {"null_decision": 1},
+                    "conversion_loss_reasons": {"invalid_json": 2},
+                    "elapsed_seconds": 12,
+                }
+            }
+        },
+    }
+
+    passed, row = benchmark._evaluate_dashboard_payload(
+        repository,
+        payload,
+        {"mode": "openai_compatible", "is_live": True, "llm_provider_mode": "openai_compatible", "embedding_provider_mode": "fake", "model_label": "test-model"},
+    )
+    assert passed is True
+    assert row["sparse_conversion"]["status"] == "recovered"
+    assert row["sparse_conversion"]["normal_attempts"] == 4
+    assert row["sparse_conversion"]["sparse_recovered_candidates"] == 1
+    assert row["sparse_conversion"]["sparse_recovered_yield"] == 0.5
+    assert row["sparse_conversion"]["provider_mode"] == "openai_compatible"
+
+    _, legacy_row = benchmark._evaluate_dashboard_payload(repository, {"decision_counts": {}})
+    assert legacy_row["sparse_conversion"]["status"] == "not_provided"
+    assert legacy_row["sparse_conversion"]["sparse_model_attempts"] is None
+
+
+def test_sparse_conversion_normalization_handles_normal_zero_and_exhausted_outcomes() -> None:
+    benchmark = _load_benchmark_module()
+
+    normal = benchmark._sparse_conversion_from_payload({
+        "latest_import": {"summary": {"extraction_summary": {
+            "full_extraction_requests": 2,
+            "created_candidates": 1,
+            "recovered_candidates": 0,
+            "sparse_recovery_model_attempts": 0,
+            "sparse_recovery_recovered_candidates": 0,
+            "sparse_recovery_status": "skipped",
+        }}}
+    })
+    assert normal["normal_candidates"] == 1
+    assert normal["normal_candidate_yield"] == 0.5
+
+    zero = benchmark._sparse_conversion_from_payload({
+        "latest_import": {"summary": {"extraction_summary": {
+            "full_extraction_requests": 0,
+            "created_candidates": 0,
+            "recovered_candidates": 0,
+            "sparse_recovery_model_attempts": 0,
+            "sparse_recovery_recovered_candidates": 0,
+            "sparse_recovery_status": "skipped",
+        }}}
+    })
+    assert zero["normal_candidates"] == 0
+    assert zero["candidate_yield"] is None
+
+    exhausted = benchmark._sparse_conversion_from_payload({
+        "latest_import": {"summary": {"extraction_summary": {
+            "full_extraction_requests": 1,
+            "created_candidates": 0,
+            "recovered_candidates": 0,
+            "sparse_recovery_model_attempts": 2,
+            "sparse_recovery_recovered_candidates": 0,
+            "sparse_recovery_status": "exhausted",
+            "sparse_recovery_rejection_reasons": {"provider_failure": 2},
+        }}}
+    })
+    assert exhausted["status"] == "exhausted"
+    assert exhausted["sparse_recovered_yield"] == 0.0
+    assert exhausted["rejection_reasons"] == {"provider_failure": 2}
+
+
+def test_sparse_conversion_comparison_prioritizes_provider_failure() -> None:
+    benchmark = _load_benchmark_module()
+    baseline = benchmark.build_benchmark_history_snapshot({
+        "repositories": [_benchmark_row(sparse_conversion={"status": "skipped"})]
+    })
+    current = benchmark.build_benchmark_history_snapshot({
+        "repositories": [_benchmark_row(
+            value_outcome="operational_blocked",
+            bounded_outcome="operational_failure",
+            operational_error={"type": "url_error"},
+            sparse_conversion={},
+        )]
+    })
+
+    comparison = benchmark.compare_benchmark_snapshots(current_snapshot=current, baseline_snapshot=baseline)
+
+    assert comparison["repositories"][0]["sparse_conversion"]["movement"] == "operationally-blocked"
+    assert comparison["summary"]["sparse_movements"]["operationally_blocked"] == 1
+
+
+def test_sparse_conversion_comparison_reports_yield_movement_and_rejection_deltas() -> None:
+    benchmark = _load_benchmark_module()
+    baseline = benchmark.build_benchmark_history_snapshot({
+        "repositories": [_benchmark_row(sparse_conversion={
+            "status": "exhausted",
+            "normal_attempts": 4,
+            "sparse_recovered_candidates": 0,
+            "sparse_recovered_yield": 0.0,
+            "rejection_reasons": {"null_decision": 2},
+        })]
+    })
+    current = benchmark.build_benchmark_history_snapshot({
+        "repositories": [_benchmark_row(sparse_conversion={
+            "status": "recovered",
+            "normal_attempts": 4,
+            "sparse_recovered_candidates": 1,
+            "sparse_recovered_yield": 0.5,
+            "rejection_reasons": {"provider_timeout": 1},
+        })]
+    })
+
+    comparison = benchmark.compare_benchmark_snapshots(current_snapshot=current, baseline_snapshot=baseline)
+    sparse = comparison["repositories"][0]["sparse_conversion"]
+    assert sparse["movement"] == "improved"
+    assert sparse["metric_deltas"]["sparse_recovered_yield"]["delta"] == 0.5
+    assert sparse["rejection_reason_deltas"]["added"] == ["provider_timeout"]
+    assert comparison["summary"]["sparse_movements"]["improved"] == 1
 
 
 def test_benchmark_history_snapshot_validation_rejects_malformed_shape() -> None:

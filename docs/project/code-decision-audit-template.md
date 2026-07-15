@@ -20,6 +20,8 @@ python scripts/ci/collect_code_decision_audit_report.py `
   --benchmark-trend-json .tmp/real-repo-benchmark-coverage-trend.json `
   --coverage-rehearsal-json .tmp/real-repo-benchmark-coverage-rehearsal.json `
   --team-handoff-json .tmp/team-handoff-report.json `
+  --external-install-evidence-json .tmp/external-self-hosted-install-evidence.json `
+  --real-continuity-rehearsal-json .tmp/real-backup-restore-upgrade-rehearsal.json `
   --readiness-history-index-json docs/evidence/readiness/index.json `
   --license-support-json templates/self-hosted-entitlement.example.json `
   --output-json .tmp/code-decision-audit-report.json `
@@ -83,6 +85,8 @@ Validation evidence:
 | Hosted/operator readiness |  |  |  |
 | Benchmark comparison |  |  |  |
 | Readiness evidence history |  |  |  |
+| External self-hosted install evidence |  |  | Required before customer-host install claims. |
+| Real backup/restore/upgrade rehearsal |  |  | Required before tested continuity mechanics claims. |
 
 State vocabulary:
 

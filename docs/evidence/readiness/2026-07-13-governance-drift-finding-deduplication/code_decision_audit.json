@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "overall_status": "passed",
+  "generated_at": "2026-07-13T11:17:19.9242273+08:00",
+  "recommended_tier": "release_evidence",
+  "change": "deduplicate-governance-drift-findings",
+  "repository_context": "DecisionAtlas current real worktree",
+  "sections": {
+    "detector_precision": {
+      "status": "passed",
+      "before_repeated_findings": 28,
+      "after_repeated_findings": 3,
+      "reduction_count": 25,
+      "reduction_percent": 89.3,
+      "distinct_findings_preserved": 3
+    },
+    "semantic_canonicalization": {
+      "status": "passed",
+      "recurrence_fixture_occurrences": 2,
+      "recurrence_fixture_sources": 3,
+      "canonical_cards": 1,
+      "evidence_bound": 12,
+      "input_order_stable": true
+    },
+    "guardrail_api": {
+      "status": "passed",
+      "agent_status": "caution",
+      "fixture_signal_count": 4,
+      "recurring_signal_count": 1,
+      "source": "guardrail-recurrence.json"
+    },
+    "chrome_human_flow": {
+      "status": "passed",
+      "workspace": "github-jazzband-pip-tools",
+      "repository": "jazzband/pip-tools",
+      "recurrence_label": "重复 2 次 · 3 个来源",
+      "governance_navigation": "passed",
+      "console_errors": 0,
+      "screenshot": "chrome-dashboard-recurrence.png"
+    },
+    "automated_tests": {
+      "status": "passed",
+      "engine_tests": 383,
+      "web_tests": 83,
+      "engine_governance_tests": 36,
+      "guardrail_banner_tests": 2,
+      "openspec_strict": "86/86",
+      "lint": "passed",
+      "typecheck": "passed"
+    }
+  },
+  "boundaries": [
+    "Recurrence browser rehearsal used two temporary explicit historical-issue documents; both were removed after capture.",
+    "Normal repository state retains three semantically distinct repeated-issue findings.",
+    "Governance remains advisory and the current guardrail status remains caution.",
+    "No private repository content, token material, or raw model output is archived."
+  ],
+  "commit_before_change": "08d49b1"
+}

@@ -133,6 +133,14 @@ def test_workspace_membership_overrides_scope_role_for_review(tmp_path: Path, mo
     )
     assert assigned_viewer.status_code == 200
 
+    viewer_can_read_candidates = client.get(
+        "/decisions",
+        headers={SESSION_HEADER: reviewer_token},
+        params={"workspace_slug": "team-alpha-workspace", "review_state": "candidate"},
+    )
+    assert viewer_can_read_candidates.status_code == 200
+    assert viewer_can_read_candidates.json()[0]["title"] == "Use Redis Cache"
+
     reviewer_after_override = client.post(
         "/decisions/1/review",
         headers={SESSION_HEADER: reviewer_token},

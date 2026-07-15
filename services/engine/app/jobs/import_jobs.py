@@ -155,9 +155,11 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
 
         importer = GitHubImporter(
             session,
-            GitHubClient(
-                token=_token_for_workspace(session=session, workspace=workspace, settings=settings),
-                max_pages=settings.github_import_max_pages,
+            _github_client_for_workspace(
+                session=session,
+                workspace=workspace,
+                settings=settings,
+                repo=repo,
             ),
         )
         runtime = build_runtime_providers(settings)
@@ -244,6 +246,14 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                     "skipped_invalid_json": 0,
                     "selected_extraction_families": {},
                     "conversion_loss_reasons": {},
+                    "sparse_recovery_status": "not_evaluated",
+                    "sparse_recovery_skip_reason": None,
+                    "sparse_recovery_eligible_artifacts": 0,
+                    "sparse_recovery_attempted_artifacts": 0,
+                    "sparse_recovery_model_attempts": 0,
+                    "sparse_recovery_recovered_candidates": 0,
+                    "sparse_recovery_evidence_families": {},
+                    "sparse_recovery_rejection_reasons": {},
                     "elapsed_seconds": 0,
                     "estimated_remaining_seconds": None,
                     "average_full_extraction_latency_ms": None,
@@ -804,6 +814,8 @@ def _classify_failure(exc: Exception) -> str:
         return "network_failure"
     if isinstance(exc, httpx.HTTPStatusError):
         status_code = exc.response.status_code
+        if status_code >= 500:
+            return "network_failure"
         if 400 <= status_code < 500:
             return "repository_access_failure"
     if isinstance(exc, (ProviderConfigurationError, ProviderTimeoutError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError)):
@@ -891,6 +903,20 @@ def _token_for_workspace(*, session, workspace, settings) -> str | None:
     return getattr(settings, "github_token", None)
 
 
+def _github_client_for_workspace(*, session, workspace, settings, repo: str) -> GitHubClient:
+    token = _token_for_workspace(session=session, workspace=workspace, settings=settings)
+    client = GitHubClient(token=token, max_pages=settings.github_import_max_pages)
+    if workspace.access_source_type not in {None, "public"} or not token:
+        return client
+    try:
+        client.get_repository_metadata(repo)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code not in {401, 403}:
+            raise
+        return GitHubClient(token=None, max_pages=settings.github_import_max_pages)
+    return client
+
+
 def _preflight_repository_access(
     *,
     session,
@@ -911,17 +937,31 @@ def _preflight_repository_access(
         return
 
     token = getattr(settings, "github_token", None) if access_source_type == "github_app_installation" else None
+    client = GitHubClient(token=token, max_pages=settings.github_import_max_pages)
     try:
-        metadata = GitHubClient(token=token, max_pages=settings.github_import_max_pages).get_repository_metadata(repo_ref)
+        metadata = client.get_repository_metadata(repo_ref)
     except httpx.HTTPStatusError as exc:
         if access_source_type == "github_app_installation":
             raise RepositoryAccessError(
                 f"Installation-backed repository authorization failed for {repo_ref}.",
                 failure_category="authorization_failed",
             ) from exc
+        try:
+            if client.is_public_repository_reachable(repo_ref):
+                return
+        except (httpx.HTTPStatusError, GitHubNetworkError) as probe_exc:
+            raise RepositoryAccessError(
+                f"GitHub provider or network failure while checking repository access for {repo_ref}.",
+                failure_category="network_failure",
+            ) from probe_exc
+        if exc.response.status_code in {401, 404}:
+            raise RepositoryAccessError(
+                f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
+                failure_category="credential_required",
+            ) from exc
         raise RepositoryAccessError(
-            f"Repository {repo_ref} is not publicly reachable. Configure private repository access if this repository is private.",
-            failure_category="credential_required",
+            f"GitHub provider or network failure while checking repository access for {repo_ref}.",
+            failure_category="network_failure",
         ) from exc
     except GitHubNetworkError as exc:
         raise RepositoryAccessError(

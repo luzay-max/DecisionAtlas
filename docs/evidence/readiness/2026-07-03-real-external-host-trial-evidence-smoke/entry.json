@@ -1,0 +1,63 @@
+{
+  "artifacts": {
+    "real_external_host_trial_evidence": {
+      "json": "real_external_host_trial_evidence.json",
+      "markdown": "real_external_host_trial_evidence.md",
+      "source_json_path": ".tmp/real-external-host-trial-evidence.json",
+      "source_markdown_path": ".tmp/real-external-host-trial-evidence.md"
+    }
+  },
+  "commit": null,
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 8,
+    "warnings": 3
+  },
+  "created_at": "2026-07-03T00:00:00+00:00",
+  "entry_id": "2026-07-03-real-external-host-trial-evidence-smoke",
+  "families": {
+    "real_external_host_trial_evidence": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-03T00:00:00+00:00",
+      "host_input_path": "templates/external-customer-host-rehearsal-v2.example.json",
+      "host_proof_level": "template_or_placeholder",
+      "label": "Real external host trial evidence",
+      "lane_statuses": {
+        "customer_host_v2": "warning",
+        "full_chain_random_repo_release": "warning",
+        "host_input": "pass",
+        "placeholder_review": "warning",
+        "required_host_review": "pass"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "placeholder_finding_count": 8,
+      "redaction_finding_count": 0,
+      "selected_repo_ids": [
+        "n8n",
+        "rich"
+      ],
+      "source_markdown_path": ".tmp/real-external-host-trial-evidence.md",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "warning_count": 3
+    }
+  },
+  "label": "real-external-host-trial-evidence-smoke",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": null,
+  "warnings": []
+}

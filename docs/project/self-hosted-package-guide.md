@@ -21,6 +21,7 @@ decisionatlas-self-hosted/
   templates/
     self-hosted.env.example
     self-hosted-entitlement.example.json
+    external-self-hosted-install-evidence.example.json
   docs/
     project/
       deployment.md
@@ -40,6 +41,7 @@ decisionatlas-self-hosted/
       pilot-support-renewal-upgrade-boundary.md
       self-hosted-operations-runbook.md
       team-handoff-reporting.md
+      external-self-hosted-install-evidence.md
       self-hosted-license-and-support-boundary.md
       release-checklist.md
   scripts/
@@ -53,6 +55,7 @@ decisionatlas-self-hosted/
       collect_release_evidence.py
       collect_readiness_evidence_history.py
       collect_team_handoff_report.py
+      collect_external_self_hosted_install_evidence.py
       verify_pilot_customer_delivery_kit.py
       verify_pilot_commercial_proposal_kit.py
       rehearse_clean_self_hosted_install.py
@@ -91,7 +94,7 @@ python scripts\ci\verify_self_hosted_package.py `
   --output-markdown .tmp\self-hosted-package-verification.md
 ```
 
-The verifier checks package structure and manifest integrity. It does not start Docker, validate live credentials, import private repositories, or run a live benchmark. Those remain separate rehearsal evidence.
+The verifier checks package structure and manifest integrity. It does not start Docker, validate live credentials, import private repositories, run a live benchmark, or prove installation on a customer-controlled host. Those remain separate rehearsal evidence.
 
 Verify the pilot customer materials:
 
@@ -124,11 +127,25 @@ python scripts\ci\rehearse_clean_self_hosted_install.py `
   --public-github-import-json .tmp\public-github-import-rehearsal.json `
   --license-support-json templates\self-hosted-entitlement.example.json `
   --team-handoff-json .tmp\team-handoff-report.json `
+  --external-install-evidence-json .tmp\external-self-hosted-install-evidence.json `
   --output-json .tmp\clean-self-hosted-install-rehearsal.json `
   --output-markdown .tmp\clean-self-hosted-install-rehearsal.md
 ```
 
-The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<label>/package-copy`, checks operator handoff entry points, preserves missing or non-pass evidence states, and writes operator-readable Markdown. Package verification is necessary but not sufficient for clean customer handoff.
+The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<label>/package-copy`, checks operator handoff entry points, preserves missing or non-pass evidence states, and writes operator-readable Markdown. Package verification and local clean rehearsal are necessary but not sufficient for clean customer-host proof.
+
+## Collect External Install Evidence
+
+Use external install evidence when the package is exercised on a clean VM, another machine, or customer-controlled host:
+
+```powershell
+python scripts\ci\collect_external_self_hosted_install_evidence.py `
+  --input-json templates\external-self-hosted-install-evidence.example.json `
+  --output-json .tmp\external-self-hosted-install-evidence.json `
+  --output-markdown .tmp\external-self-hosted-install-evidence.md
+```
+
+Fill the input file on the external host before running the collector. Missing evidence remains `not_provided` or `operator_guided`; blocked or unsafe evidence must not be treated as pass.
 
 ## Operator Setup
 
@@ -156,6 +173,7 @@ The clean rehearsal copies the package into `.tmp/clean-self-hosted-install/<lab
 - Public GitHub import rehearsal before claiming live public-repo benchmark evidence.
 - Readiness evidence history entry for durable customer claims.
 - Team handoff report JSON/Markdown for customer or operator review.
+- External self-hosted install evidence JSON/Markdown before claiming that the package was validated on a clean VM, another machine, or customer-controlled host.
 - License/support boundary documentation and customer-specific entitlement record for paid handoff.
 
 ## Explicit Non-Goals

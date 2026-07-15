@@ -21,6 +21,7 @@ DRIFT_SIGNAL_TYPES = {
     "repeated_postmortem_issue",
     "unsynced_decision",
 }
+MAX_CANONICAL_SIGNAL_EVIDENCE = 12
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,8 @@ class GovernanceDriftSignal:
     detail: str
     evidence: list[DriftEvidence] = field(default_factory=list)
     recommended_next_action: str | None = None
+    occurrence_count: int = 1
+    source_count: int = 1
 
 
 @dataclass(frozen=True)
@@ -128,15 +131,14 @@ def run_governance_drift_detection(
         database_url=database_url,
         archived_change_limit=archived_change_limit,
     )
-    signals = _dedupe_signals(
-        [
-            *_detect_roadmap_mismatch(context),
-            *_detect_spec_gaps(context),
-            *_detect_stale_rules(context),
-            *_detect_repeated_postmortem_issues(context),
-            *_detect_unsynced_decisions(context),
-        ]
-    )
+    raw_signals = [
+        *_detect_roadmap_mismatch(context),
+        *_detect_spec_gaps(context),
+        *_detect_stale_rules(context),
+        *_detect_repeated_postmortem_issues(context),
+        *_detect_unsynced_decisions(context),
+    ]
+    signals = _dedupe_signals(raw_signals)
     human_decisions = _human_decisions_needed(signals)
     recommended_actions = _recommended_actions(signals, human_decisions)
     status = _status_from_signals(signals, human_decisions)
@@ -152,6 +154,9 @@ def run_governance_drift_detection(
             "log_refs": len(context.log_refs),
             "governance_rules": len(context.governance_rules),
             "accepted_rule_count": len(context.accepted_rules),
+            "raw_signal_count": len(raw_signals),
+            "canonical_signal_count": len(signals),
+            "merged_signal_occurrences": len(raw_signals) - len(signals),
             "diff_paths": context.diff_context.all_paths,
             "advisory_only": True,
         },
@@ -449,7 +454,8 @@ def _detect_repeated_postmortem_issues(context: GovernanceDriftContext) -> list[
         issue_lines = _issue_lines(log_ref.text)
         for line in issue_lines[:6]:
             line_tokens = set(_tokens(line))
-            if len(line_tokens & recent_tokens) < 3:
+            overlap_count = len(line_tokens & recent_tokens)
+            if overlap_count < 3 or overlap_count / max(len(line_tokens), 1) < 0.6:
                 continue
             signals.append(
                 GovernanceDriftSignal(
@@ -609,12 +615,18 @@ def _decision_markers_from_text(text: str) -> list[str]:
 
 def _issue_lines(text: str) -> list[str]:
     lines: list[str] = []
+    explicit_issue = re.compile(r"(?i)^(?:issue|error|bug|regression|failure|failed)\s*[:：-]")
+    strong_failure = re.compile(r"(?i)\b(?:error|bug|regression|failed|failure)\b")
+    negated_failure = re.compile(r"(?i)\b(?:no|not|without)\b.{0,40}\b(?:issue|error|bug|regression|failure)\b")
     for line in text.splitlines():
         stripped = line.strip().lstrip("-* ").strip()
         if not stripped:
             continue
-        lowered = stripped.lower()
-        if any(marker in lowered for marker in ("issue", "error", "bug", "regression", "failed", "failure", "错误", "失败", "问题")):
+        if negated_failure.search(stripped):
+            continue
+        if explicit_issue.search(stripped) or strong_failure.search(stripped) or any(
+            marker in stripped for marker in ("错误", "失败", "问题")
+        ):
             lines.append(stripped)
     return lines
 
@@ -721,14 +733,85 @@ def _dedupe_strings(values: Iterable[str]) -> list[str]:
 
 
 def _dedupe_signals(signals: Iterable[GovernanceDriftSignal]) -> list[GovernanceDriftSignal]:
-    seen: set[str] = set()
-    result: list[GovernanceDriftSignal] = []
+    grouped: dict[str, list[GovernanceDriftSignal]] = {}
     for signal in signals:
-        if signal.id in seen:
-            continue
-        seen.add(signal.id)
-        result.append(signal)
+        grouped.setdefault(_signal_semantic_key(signal), []).append(signal)
+
+    result: list[GovernanceDriftSignal] = []
+    for semantic_key in sorted(grouped):
+        group = sorted(grouped[semantic_key], key=lambda signal: signal.id)
+        representative = group[0]
+        evidence_by_identity = {
+            _evidence_identity(evidence): evidence
+            for signal in group
+            for evidence in signal.evidence
+        }
+        ordered_evidence = [
+            evidence_by_identity[identity]
+            for identity in sorted(evidence_by_identity)
+        ]
+        result.append(
+            GovernanceDriftSignal(
+                id=representative.id,
+                type=representative.type,
+                severity=representative.severity,
+                title=representative.title,
+                detail=representative.detail,
+                evidence=ordered_evidence[:MAX_CANONICAL_SIGNAL_EVIDENCE],
+                recommended_next_action=representative.recommended_next_action,
+                occurrence_count=sum(max(signal.occurrence_count, 1) for signal in group),
+                source_count=len({_evidence_source_identity(evidence) for evidence in ordered_evidence}),
+            )
+        )
     return result
+
+
+def _signal_semantic_key(signal: GovernanceDriftSignal) -> str:
+    if signal.type != "repeated_postmortem_issue":
+        return f"{signal.type}:id:{signal.id}"
+    historical_excerpt = next(
+        (
+            evidence.excerpt
+            for evidence in signal.evidence
+            if evidence.kind != "recent_context" and evidence.excerpt
+        ),
+        None,
+    )
+    semantic_text = _normalize_issue_identity(historical_excerpt or signal.detail or signal.title)
+    return f"{signal.type}:issue:{semantic_text or signal.id}"
+
+
+def _normalize_issue_identity(value: str) -> str:
+    normalized = value.lower()
+    normalized = re.sub(r"\b\d{4}-\d{1,2}-\d{1,2}(?:[t\s]\d{1,2}:\d{2}(?::\d{2})?)?\b", " ", normalized)
+    normalized = re.sub(r"(?:[a-z]:)?(?:[/\\][\w.@-]+){2,}", " ", normalized)
+    normalized = re.sub(r"\b(?:0x)?[0-9a-f]{7,40}\b", " ", normalized)
+    normalized = re.sub(r"\b\d+\b", " ", normalized)
+    boilerplate = {"issue", "error", "bug", "regression", "failed", "failure", "caused", "because", "by"}
+    tokens = [token for token in _tokens(normalized) if token not in boilerplate]
+    return "-".join(sorted(set(tokens)))
+
+
+def _evidence_identity(evidence: DriftEvidence) -> tuple[str, ...]:
+    return (
+        str(evidence.kind or ""),
+        str(evidence.path or ""),
+        str(evidence.id or ""),
+        str(evidence.title or ""),
+        str(evidence.excerpt or ""),
+        str(evidence.lifecycle_status or ""),
+        str(evidence.lifecycle_rationale or ""),
+        str(evidence.superseded_by_rule_id or ""),
+    )
+
+
+def _evidence_source_identity(evidence: DriftEvidence) -> tuple[str, ...]:
+    return (
+        str(evidence.kind or ""),
+        str(evidence.path or ""),
+        str(evidence.id or ""),
+        str(evidence.title or ""),
+    )
 
 
 def _slug(value: str) -> str:

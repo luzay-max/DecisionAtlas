@@ -38,6 +38,12 @@ def _pool() -> list[dict]:
             "benchmark_purpose": "Protect known imported why-search and drift examples.",
             "priority": "core",
             "operator_setup_status": "ready",
+            "profile": "medium_decision_rich",
+            "sparse_expectations": {
+                "expects_sparse_recovery": False,
+                "allow_zero_candidates": True,
+                "expected_statuses": ["skipped", "attempted", "recovered", "exhausted", "not_evaluated"],
+            },
         },
         {
             "id": "fastapi",
@@ -47,6 +53,12 @@ def _pool() -> list[dict]:
             "benchmark_purpose": "Track large framework extraction quality.",
             "priority": "core",
             "operator_setup_status": "operator_guided",
+            "profile": "docs_heavy",
+            "sparse_expectations": {
+                "expects_sparse_recovery": True,
+                "allow_zero_candidates": True,
+                "expected_statuses": ["attempted", "recovered", "exhausted", "not_evaluated"],
+            },
         },
     ]
 
@@ -149,6 +161,10 @@ def test_team_handoff_report_summarizes_benchmark_trend(tmp_path: Path) -> None:
                     "regressed": 1,
                     "improved": 0,
                     "operationally_blocked": 0,
+                    "sparse_improved": 0,
+                    "sparse_regressed": 1,
+                    "sparse_operationally_blocked": 0,
+                    "sparse_not_provided": 0,
                     "missing_from_current": 1,
                 },
                 "recommended_follow_up": ["Investigate regressed repositories."],
@@ -173,3 +189,4 @@ def test_team_handoff_report_summarizes_benchmark_trend(tmp_path: Path) -> None:
     assert report["sections"]["benchmark_trend"]["status"] == "warning"
     assert report["sections"]["benchmark_trend"]["covered_repositories"] == 1
     assert report["sections"]["benchmark_trend"]["operator_guided_repositories"] == 1
+    assert report["sections"]["benchmark_trend"]["sparse_regressed"] == 1

@@ -4,11 +4,12 @@ import React from "react";
 
 import { useI18n } from "../i18n/language-provider";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
-import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
+import { GlobalSidebar } from "../navigation/global-sidebar";
 import { TimelineList } from "./timeline-list";
 import { DecisionTopologyMap } from "./decision-topology-map";
 import { TimelineResponse } from "../../lib/api";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 
 export function TimelinePageContent({
   timeline,
@@ -23,33 +24,40 @@ export function TimelinePageContent({
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
 
   return (
-    <main className="page-shell">
-      <section className="panel">
-        <DemoWorkspaceNav workspaceSlug={workspaceSlug} currentPath="/timeline" />
-        <p className="eyebrow">{messages.timeline.eyebrow}</p>
-        <h1>{messages.timeline.title}</h1>
-        <p className="lede">{messages.timeline.lede}</p>
-        {provenance ? (
-          <ProvenanceBanner
-            workspaceMode={provenance.workspace_mode}
-            sourceSummary={provenance.source_summary}
-            context="timeline"
+    <>
+      <GlobalSidebar workspaceSlug={workspaceSlug} />
+      <main className="page-with-sidebar">
+        <section className="panel">
+          <WorkspaceContextBanner
+            workspaceSlug={workspaceSlug}
+            current="Decision timeline"
+            description="Review how decisions evolved and open any decision detail without losing workspace context."
           />
-        ) : null}
-        {isGuidedDemoWorkspace ? (
-          <GuidedDemoPanel
-            step={4}
-            total={messages.guidedDemo.steps.length}
-            title={messages.guidedDemo.timelineTitle}
-            description={messages.guidedDemo.timelineDescription}
-            steps={messages.guidedDemo.steps}
-            nextHref={`/drift?workspace=${encodeURIComponent(workspaceSlug)}`}
-            nextLabel={messages.guidedDemo.timelineNext}
-          />
-        ) : null}
-        <DecisionTopologyMap items={items} workspaceSlug={workspaceSlug} />
-        <TimelineList items={items} workspaceSlug={workspaceSlug} />
-      </section>
-    </main>
+          <p className="eyebrow">{messages.timeline.eyebrow}</p>
+          <h1>{messages.timeline.title}</h1>
+          <p className="lede">{messages.timeline.lede}</p>
+          {provenance ? (
+            <ProvenanceBanner
+              workspaceMode={provenance.workspace_mode}
+              sourceSummary={provenance.source_summary}
+              context="timeline"
+            />
+          ) : null}
+          {isGuidedDemoWorkspace ? (
+            <GuidedDemoPanel
+              step={4}
+              total={messages.guidedDemo.steps.length}
+              title={messages.guidedDemo.timelineTitle}
+              description={messages.guidedDemo.timelineDescription}
+              steps={messages.guidedDemo.steps}
+              nextHref={`/drift?workspace=${encodeURIComponent(workspaceSlug)}`}
+              nextLabel={messages.guidedDemo.timelineNext}
+            />
+          ) : null}
+          <DecisionTopologyMap items={items} workspaceSlug={workspaceSlug} />
+          <TimelineList items={items} workspaceSlug={workspaceSlug} />
+        </section>
+      </main>
+    </>
   );
 }

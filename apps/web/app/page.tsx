@@ -4,12 +4,13 @@ import Link from "next/link";
 import React from "react";
 
 import { AdvancedControls } from "../components/guided-demo/advanced-controls";
-import { AccountScopeSurface } from "../components/auth/account-scope-surface";
 import { AdminOnly } from "../components/auth/role-gate";
 import { GuidedDemoPanel } from "../components/guided-demo/guided-demo-panel";
 import { GitHubAppInstallationPanel } from "../components/github-app/github-app-installation-panel";
 import { LiveAnalysisForm } from "../components/home/live-analysis-form";
-import { LanguageToggle } from "../components/i18n/language-toggle";
+import { RepositoryImportFlowGuide } from "../components/home/repository-import-flow-guide";
+import { RoleAwareWorkbench } from "../components/home/role-aware-workbench";
+import { GlobalSidebar } from "../components/navigation/global-sidebar";
 import { PrivateRepoAccessPanel } from "../components/private-access/private-repo-access-panel";
 import { useI18n } from "../components/i18n/language-provider";
 import { ProviderModeToggle } from "../components/runtime/provider-mode-toggle";
@@ -19,12 +20,10 @@ export default function HomePage() {
   const guidedDemoSteps = messages.guidedDemo.steps;
 
   return (
-    <main className="home">
-      <div className="panel" style={{ background: "transparent", backdropFilter: "none", WebkitBackdropFilter: "none", boxShadow: "none", border: "none", maxWidth: "1280px" }}>
-        <div className="action-row home-toolbar" style={{ justifyContent: "flex-end", marginBottom: "40px" }}>
-          <AccountScopeSurface />
-          <LanguageToggle />
-        </div>
+    <>
+      <GlobalSidebar />
+      <main className="page-with-sidebar">
+        <div className="panel" style={{ background: "transparent", backdropFilter: "none", WebkitBackdropFilter: "none", boxShadow: "none", border: "none", maxWidth: "960px" }}>
         
         {/* Hero Section */}
         <div style={{ textAlign: "center", marginBottom: "80px", position: "relative" }}>
@@ -47,6 +46,25 @@ export default function HomePage() {
 
         {/* Bento Grid for Concepts & Steps */}
         <div className="bento-grid" style={{ marginBottom: "48px" }}>
+          {/* Getting Started Box */}
+          <div className="bento-item" style={{ animationDelay: "0ms", gridColumn: "span 2" }}>
+            <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{messages.home.gettingStarted}</h3>
+            <p className="muted" style={{ marginBottom: "20px", lineHeight: 1.6 }}>{messages.home.gettingStartedDescription}</p>
+            <div style={{ display: "grid", gap: "16px" }}>
+              {[
+                { title: messages.home.step1Title, desc: messages.home.step1Description },
+                { title: messages.home.step2Title, desc: messages.home.step2Description },
+                { title: messages.home.step3Title, desc: messages.home.step3Description },
+                { title: messages.home.step4Title, desc: messages.home.step4Description },
+              ].map((step) => (
+                <div key={step.title} style={{ padding: "12px 16px", background: "var(--card-bg)", borderRadius: "12px", border: "1px solid var(--line)" }}>
+                  <p style={{ fontWeight: 600, marginBottom: "4px" }}>{step.title}</p>
+                  <p className="muted" style={{ fontSize: "0.9rem", margin: 0 }}>{step.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Concepts Box */}
           <div className="bento-item" style={{ animationDelay: "0ms" }}>
             <h3 style={{ fontSize: "1.5rem", marginBottom: "8px" }}>{messages.home.conceptsLabel}</h3>
@@ -85,11 +103,19 @@ export default function HomePage() {
               <Link href="/drift?workspace=demo-workspace" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
                 {messages.home.jumpDrift}
               </Link>
-              <Link href="/team" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
-                Team admin
+              <Link href="/evidence" className="action-link shimmer-btn" style={{ padding: "12px 24px", minWidth: "44px", minHeight: "44px", display: "flex", alignItems: "center", borderRadius: "99px" }}>
+                Evidence Center
               </Link>
             </div>
           </div>
+        </div>
+
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "250ms", marginBottom: "48px" }}>
+          <RoleAwareWorkbench />
+        </div>
+
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "275ms", marginBottom: "48px" }}>
+          <RepositoryImportFlowGuide />
         </div>
 
         {/* Guided Demo Panel - Takes full width below bento grid */}
@@ -116,13 +142,33 @@ export default function HomePage() {
               <h2>{messages.liveAnalysis.title}</h2>
               <AdminOnly>
                 <LiveAnalysisForm />
+                <GitHubAppInstallationPanel />
+                <PrivateRepoAccessPanel />
               </AdminOnly>
-              <GitHubAppInstallationPanel />
-              <PrivateRepoAccessPanel />
             </section>
           </AdvancedControls>
         </div>
+
+        {/* Next Steps Section */}
+        <div style={{ animation: "enterFromBottom 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards", animationDelay: "500ms", marginTop: "48px" }}>
+          <div className="card" style={{ textAlign: "center", padding: "32px" }}>
+            <h3 style={{ fontSize: "1.3rem", marginBottom: "8px" }}>{messages.home.nextSteps}</h3>
+            <p className="muted" style={{ marginBottom: "20px" }}>{messages.home.nextStepsDescription}</p>
+            <div className="action-row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "12px" }}>
+              <Link href="/#advanced-controls" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.analyzeRepo}
+              </Link>
+              <Link href="/settings" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.viewSettings}
+              </Link>
+              <Link href="/evidence" className="action-link shimmer-btn" style={{ padding: "12px 24px", borderRadius: "99px" }}>
+                {messages.home.viewEvidence}
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
