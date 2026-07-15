@@ -25,6 +25,8 @@
 - 固定 live benchmark profile 为 4/5 通过，n8n 1 个失败；该结果没有被隐藏。
 - 证据文件：`.tmp/customer-host-trial-evidence.json/md`、`.tmp/customer-host-trial-release-evidence.json/md`、`.tmp/customer-host-trial-hosted-readiness.json/md`、`.tmp/customer-host-trial-benchmark-comparison.json/md`、`.tmp/customer-host-trial-team-handoff.json/md`。
 - readiness history：`2026-07-15-customer-host-trial-release-rehearsal`。
+- OpenSpec change 已归档为 `2026-07-15-complete-real-customer-host-trial`；实现提交 `76decc8` 已推送。
+- GitHub Actions run `29391492181` 成功，远端 Windows CI 的 Node、typecheck、engine、benchmark fixture 和 browser smoke 全部通过。
 
 ## 边界与下一步
 

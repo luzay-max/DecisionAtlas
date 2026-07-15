@@ -20,4 +20,4 @@
 
 - [x] 4.1 Generate JSON/Markdown trial, release, hosted readiness, continuity, handoff, and readiness-history evidence with no secrets, raw source, raw model output, or absolute local paths.
 - [x] 4.2 Update the completion taskbook, dated update log, and next-development plan with actual host boundary, verification results, unresolved external-host requirements, and the next pilot priority.
-- [ ] 4.3 Archive the OpenSpec change, commit scoped files on the dedicated branch, push it, run and inspect GitHub Actions, and report the exact CI result.
+- [x] 4.3 Archive the OpenSpec change, commit scoped files on the dedicated branch, push it, run and inspect GitHub Actions, and report the exact CI result.

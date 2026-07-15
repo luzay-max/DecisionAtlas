@@ -427,6 +427,7 @@ change：`complete-real-customer-host-trial`
 - release evidence 为 `warning`，三个必需门禁通过；guardrail 为 `caution`，保留治理历史提醒。
 - hosted readiness 为 `operator_guided`，因为本轮没有外部 hosted URL；不能把本地 Docker 结果称为客户主机证明。
 - 固定 live benchmark profile 为 4/5 通过，n8n 1 个 profile 失败；该失败已保留在 live report，不能只报告通过项。
+- OpenSpec change 已归档；实现提交 `76decc8` 已推送，GitHub Actions run `29391492181` 全绿，包含 Node、typecheck、engine、benchmark fixture 和 browser smoke。
 
 未完成边界：
 
