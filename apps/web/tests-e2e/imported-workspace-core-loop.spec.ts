@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const REAL_PUBLIC_REPO = "pallets/flask";
+const REAL_PUBLIC_REPO = process.env.PLAYWRIGHT_REAL_PUBLIC_REPO ?? "pallets/flask";
 
 test("imported workspace core loop browser rehearsal", async ({ page }) => {
   const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:3001";
@@ -61,7 +61,12 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText(/real public GitHub repository reference/i)).toBeVisible();
-  await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
+  const repositoryCitation = page.getByRole("link", {
+    name: `https://github.com/${REAL_PUBLIC_REPO}`,
+    exact: true
+  });
+  await expect(repositoryCitation).toBeVisible();
+  await expect(repositoryCitation).toHaveAttribute("href", `https://github.com/${REAL_PUBLIC_REPO}`);
 
   await page.getByRole("link", { name: "Drift", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/drift\\?workspace=${workspaceSlug}`));
