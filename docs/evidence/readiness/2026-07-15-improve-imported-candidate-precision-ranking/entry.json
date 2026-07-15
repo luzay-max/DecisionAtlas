@@ -1,0 +1,69 @@
+{
+  "entry_id": "2026-07-15-improve-imported-candidate-precision-ranking",
+  "label": "Imported candidate precision ranking",
+  "created_at": "2026-07-15T09:58:53+08:00",
+  "status": "pass",
+  "commit": "2f57d70",
+  "families": {
+    "candidate_precision_ordering": {
+      "status": "pass",
+      "source_json_path": "candidate_precision_evidence.json",
+      "source_markdown_path": "candidate_precision_evidence.md",
+      "provider_mode": "openai_compatible",
+      "is_live": true,
+      "workspaces": [
+        {
+          "workspace_slug": "github-jazzband-pip-tools",
+          "candidate_count": 27,
+          "strong": 21,
+          "partial": 6,
+          "weak": 0,
+          "before_top_id": 416,
+          "after_top_id": 442,
+          "top_changed": true
+        },
+        {
+          "workspace_slug": "github-pallets-markupsafe",
+          "candidate_count": 5,
+          "strong": 4,
+          "partial": 1,
+          "weak": 0,
+          "before_top_id": 454,
+          "after_top_id": 454,
+          "top_changed": false
+        }
+      ]
+    },
+    "browser_rehearsal": {
+      "status": "pass",
+      "test": "imported-workspace-core-loop.spec.ts",
+      "repository": "pallets/markupsafe",
+      "result": "1 passed",
+      "scope": "real local stack, real public GitHub import, Chromium browser flow"
+    },
+    "local_regressions": {
+      "status": "pass",
+      "engine": "392 passed",
+      "web": "83 passed",
+      "api": "32 passed",
+      "typecheck": "pass",
+      "openspec_strict": "88 passed",
+      "benchmark_fixture": "pass"
+    },
+    "github_actions": {
+      "status": "pass",
+      "run_id": 29384129719,
+      "commit": "2f57d70",
+      "node_tests": "pass",
+      "typecheck": "pass",
+      "engine_tests": "392 passed",
+      "benchmark_fixture": "pass",
+      "browser_smoke": "12 passed"
+    }
+  },
+  "warnings": [
+    "Before ordering is reconstructed from the live candidate payload using legacy confidence ordering; it is not a historical database snapshot.",
+    "All candidates remain individually reviewable; no automatic acceptance, rejection, merge, or deletion is performed."
+  ],
+  "sensitive_material_note": "No tokens, credentials, raw model responses, or private repository contents are included."
+}

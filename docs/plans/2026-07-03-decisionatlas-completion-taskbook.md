@@ -362,3 +362,21 @@ change：harden-public-repo-ci-access-probe
 - 使用随机公开仓库 pallets/itsdangerous 完成真实 Playwright 核心链路。
 - GitHub Actions run 29380845943 全绿，browser smoke 12/12 passed。
 - 主规格已同步，change 已归档；下一刀执行 improve-imported-candidate-precision-ranking。
+
+### P16：Imported Candidate Precision Ranking（已完成）
+
+change：improve-imported-candidate-precision-ranking
+
+已完成：
+
+- 候选 metadata、evidence-first score/tier、稳定排序和近重复代表。
+- imported review API、队列摘要、卡片解释和人工 review action 保持可用。
+- pip-tools 与新鲜 pallets/markupsafe 的真实 API 排序证据。
+- 真实浏览器核心链路 1 passed，engine 392、web 83、API 32、OpenSpec strict 88 全部通过。
+- 最终实现提交 2f57d70 已推送；GitHub Actions run 29384129719 全绿，browser smoke 12/12。
+
+边界：
+
+- before/after 对比的 before 是从实时候选 payload 重建的旧 confidence 排序，不是历史数据库快照。
+- 不自动 accept、reject、merge 或删除候选。
+- change 已达到归档条件；下一刀进入 sparse conversion 多仓库趋势。

@@ -21,4 +21,4 @@
 
 - [x] 4.1 Compare the pip-tools baseline and a fresh public repository using machine-readable before/after candidate ordering evidence
 - [x] 4.2 Run focused and full regressions, OpenSpec strict validation, guardrail, and real Chrome/Browser human rehearsal
-- [ ] 4.3 Record the dated update log, taskbook status, readiness evidence, GitHub Actions result, and archive the change
+- [x] 4.3 Record the dated update log, taskbook status, readiness evidence, GitHub Actions result, and archive the change

@@ -157,10 +157,10 @@ deduplicate-governance-drift-findings 已完成：
 
 ## 下一刀
 
-立即执行 improve-imported-candidate-precision-ranking。当前 pip-tools 的 28 条 candidates 全部经过 parser salvage，首屏置信度偏低；下一阶段应先做 grounded/confidence/family/salvage 排序和近重复聚类，再考虑扩大模型或仓库规模。
+improve-imported-candidate-precision-ranking 已完成实现和 GitHub Actions 全链路验证。真实 pip-tools 与新鲜 markupsafe 证据显示，队列已从 confidence-first 切换为 precision-ranked，并能显示 strong/partial tier 和 extraction origin。下一阶段不扩大模型范围，先做 sparse conversion 多仓库趋势。
 
 完成该 change 后按顺序推进：
 
-1. benchmark-sparse-conversion-trends。
+1. benchmark-sparse-conversion-trends：固定仓库池、统一 seed，记录 normal/sparse attempts、candidate yield、recovered yield、rejection reasons、耗时和 provider mode。
 2. complete-real-customer-host-trial。
 3. 根据首批 2-3 个 self-hosted pilot 的真实阻塞选择 private repo、通知或升级回滚深化。
