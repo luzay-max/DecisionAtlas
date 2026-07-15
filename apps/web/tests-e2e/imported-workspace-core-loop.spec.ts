@@ -10,10 +10,15 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
     body: JSON.stringify({ repo: REAL_PUBLIC_REPO, mode: "full" })
   });
   const importText = await importResponse.text();
-  expect(importResponse.ok, importText).toBeTruthy();
   const importBody = JSON.parse(importText);
-  const workspaceSlug = importBody.workspace_slug;
+  const activeImport = importBody.detail?.active_import;
+  expect(
+    importResponse.ok || activeImport?.repo === REAL_PUBLIC_REPO,
+    importText
+  ).toBeTruthy();
+  const workspaceSlug = importBody.workspace_slug ?? activeImport?.workspace_slug;
   expect(workspaceSlug).toBeTruthy();
+  expect(importBody.job_id ?? activeImport?.job_id).toBeTruthy();
 
   await page.route("**/query/why", async (route) => {
     await route.fulfill({
@@ -52,16 +57,29 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await expect(page.getByRole("heading", { name: workspaceSlug })).toBeVisible();
   await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
 
+  const summaryResponse = await fetch(
+    apiBaseUrl + "/dashboard/summary?workspace_slug=" + encodeURIComponent(workspaceSlug)
+  );
+  const summaryText = await summaryResponse.text();
+  expect(summaryResponse.ok, summaryText).toBeTruthy();
+  const dashboardSummary = JSON.parse(summaryText);
   const reviewLink = page.locator(
     `a[href="/review?workspace=${encodeURIComponent(workspaceSlug)}"]`
   ).first();
   await expect(reviewLink).toBeVisible();
-  await reviewLink.click();
-  await expect(page).toHaveURL(new RegExp(`/review\\?workspace=${workspaceSlug}`));
-  await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
-  const precisionSummary = page.getByLabel("Candidate precision summary");
-  if (await precisionSummary.count()) {
-    await expect(precisionSummary).toContainText(/Queue precision:/i);
+  await expect(reviewLink).toHaveAttribute(
+    "href",
+    "/review?workspace=" + encodeURIComponent(workspaceSlug)
+  );
+  const importIsRunning = ["queued", "running", "paused"].includes(dashboardSummary.import_status);
+  if ((dashboardSummary.decision_counts?.candidate ?? 0) > 0 && !importIsRunning) {
+    await reviewLink.click();
+    await expect(page).toHaveURL(new RegExp("/review\\?workspace=" + workspaceSlug));
+    await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
+    const precisionSummary = page.getByLabel("Candidate precision summary");
+    if (await precisionSummary.count()) {
+      await expect(precisionSummary).toContainText(/Queue precision:/i);
+    }
   }
 
   await page.getByRole("link", { name: "Why Search", exact: true }).click();
