@@ -133,6 +133,17 @@ class GitHubClient:
             "private": bool(payload.get("private")),
             "default_branch": payload.get("default_branch") or "main",
         }
+    def is_public_repository_reachable(self, repo: str) -> bool:
+        response = self._get(
+            f"https://github.com/{repo}.git/info/refs",
+            params={"service": "git-upload-pack"},
+        )
+        if response.status_code == 200:
+            return True
+        if response.status_code in {401, 403, 404}:
+            return False
+        response.raise_for_status()
+        return False
 
     def list_repository_files(self, repo: str, *, ref: str | None = None) -> list[GitHubRepositoryFile]:
         branch = ref or self.get_default_branch(repo)
@@ -207,7 +218,12 @@ class GitHubClient:
         attempts = self.transport_retry_attempts + 1
         for attempt in range(1, attempts + 1):
             try:
-                return self.client.get(path, params=params)
+                response = self.client.get(path, params=params)
+                if response.status_code in {502, 503, 504} and attempt < attempts:
+                    if self.transport_retry_backoff_seconds > 0:
+                        sleep(self.transport_retry_backoff_seconds * attempt)
+                    continue
+                return response
             except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
                 if attempt >= attempts:
                     raise GitHubNetworkError(

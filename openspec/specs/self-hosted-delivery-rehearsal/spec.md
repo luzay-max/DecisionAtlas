@@ -1,7 +1,7 @@
 # self-hosted-delivery-rehearsal Specification
 
 ## Purpose
-TBD - created by archiving change rehearse-self-hosted-delivery. Update Purpose after archive.
+Defines a repeatable self-hosted delivery rehearsal workflow that produces customer-readable handoff evidence covering package verification, clean install, and continuity readiness before claiming operator trial readiness.
 ## Requirements
 ### Requirement: Self-hosted delivery rehearsal is repeatable
 The system SHALL define a repeatable self-hosted delivery rehearsal that an operator can run before claiming customer handoff readiness.
@@ -83,3 +83,62 @@ The self-hosted delivery rehearsal SHALL include backup/restore/upgrade rehearsa
 #### Scenario: Continuity evidence is missing
 - **WHEN** backup/restore/upgrade rehearsal evidence is absent
 - **THEN** delivery rehearsal material SHALL preserve `operator_guided` or `not_provided` state and avoid claiming clean continuity readiness.
+
+### Requirement: Delivery rehearsal references external install evidence
+The self-hosted delivery rehearsal SHALL include the customer-host trial operator kit and external install evidence before claiming customer-controlled host install readiness.
+
+#### Scenario: External install evidence is available
+- **WHEN** a self-hosted delivery rehearsal claims customer-controlled host install readiness
+- **THEN** the rehearsal summary SHALL reference the operator kit version, external install evidence JSON or Markdown, external host class, package identity, core lane statuses, blockers, proof level, and limitations
+
+#### Scenario: External install evidence is missing
+- **WHEN** a self-hosted delivery rehearsal is completed without external install evidence
+- **THEN** the rehearsal SHALL classify customer-controlled host install readiness as `not_provided` or `operator_guided`
+- **AND** it SHALL NOT claim that the package has been validated on a non-developer or customer-controlled machine.
+
+### Requirement: Delivery rehearsal references real continuity evidence
+The self-hosted delivery rehearsal SHALL reference real backup/restore/upgrade rehearsal evidence before claiming tested continuity readiness.
+
+#### Scenario: Real continuity evidence is supplied
+- **WHEN** a self-hosted delivery rehearsal claims tested backup, restore, upgrade, or rollback readiness
+- **THEN** the rehearsal SHALL reference real continuity evidence JSON or Markdown, scratch scope, restore validation status, post-upgrade status, rollback plan status, blockers, and limitations
+
+#### Scenario: Real continuity evidence is missing
+- **WHEN** a self-hosted delivery rehearsal is completed without real continuity rehearsal evidence
+- **THEN** the rehearsal SHALL classify tested continuity readiness as `not_provided` or `operator_guided`
+- **AND** it SHALL NOT claim that backup, restore, upgrade, or rollback mechanics have been exercised
+
+### Requirement: Delivery rehearsal archives complete evidence history
+The self-hosted delivery rehearsal SHALL include guidance for archiving complete delivery evidence into readiness history.
+
+#### Scenario: Complete evidence is available
+- **WHEN** release, hosted, benchmark, external install, real continuity, handoff, and audit evidence artifacts exist
+- **THEN** the rehearsal documentation SHALL provide a command that archives those artifacts into readiness history and regenerates index/trend output.
+
+#### Scenario: Evidence is incomplete
+- **WHEN** some complete delivery evidence artifacts are missing
+- **THEN** the rehearsal guidance SHALL require the archive to preserve missing evidence as `not_provided`, `operator_guided`, `warning`, or `blocking`.
+
+### Requirement: Delivery rehearsal references customer-host v2 evidence
+Self-hosted delivery rehearsal material SHALL reference customer-host v2 evidence before claiming customer-controlled host readiness.
+
+#### Scenario: Customer-host v2 evidence exists
+- **WHEN** delivery rehearsal or handoff material claims customer-controlled host readiness
+- **THEN** it SHALL reference customer-host v2 JSON or Markdown evidence, host proof level, lane statuses, blockers, and limitations.
+
+#### Scenario: Customer-host v2 evidence is missing
+- **WHEN** customer-host v2 evidence is absent
+- **THEN** delivery rehearsal or handoff material SHALL preserve `not_provided` or `operator_guided` state and SHALL NOT claim verified external customer-host readiness.
+
+### Requirement: Delivery rehearsal includes customer-host trial execution guidance
+The self-hosted delivery rehearsal SHALL provide an ordered command sequence for an operator to run the customer-host trial kit and archive its result.
+
+#### Scenario: Operator prepares an external trial
+- **WHEN** an operator starts a customer-host trial
+- **THEN** the rehearsal guidance SHALL identify the sanitized input template, package/version identity, startup and health commands, core browser workflow, continuity evidence, and archive command.
+
+#### Scenario: Trial runs only on local infrastructure
+- **WHEN** an operator can validate only a local workstation or local Docker environment
+- **THEN** the rehearsal SHALL label the result `operator_guided` or `known_limitation`
+- **AND** SHALL NOT present it as external customer-host proof.
+

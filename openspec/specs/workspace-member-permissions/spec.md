@@ -52,3 +52,14 @@ The product SHALL show permission boundaries clearly rather than presenting auth
 - **WHEN** an action is unavailable because the user's role is insufficient
 - **THEN** the product SHALL show a permission explanation
 - **AND** it SHALL NOT imply that the workspace or decision data is missing.
+
+### Requirement: Role affordances are visible in review workflows
+Workspace member permission state SHALL be visible in review workflows.
+
+#### Scenario: Admin or reviewer has action permission
+- **WHEN** the current role can review decisions
+- **THEN** review controls SHALL be presented as available actions.
+
+#### Scenario: Viewer lacks review permission
+- **WHEN** the current role is viewer
+- **THEN** review controls SHALL be disabled or absent and the UI SHALL explain the read-only boundary.

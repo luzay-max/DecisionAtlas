@@ -1,0 +1,28 @@
+{
+  "artifacts": {
+    "release_rehearsal_json": "release_rehearsal.json",
+    "release_rehearsal_markdown": "release_rehearsal.md"
+  },
+  "created_at": "2026-07-03T01:53:43.418128+00:00",
+  "entry_id": "2026-07-03-release-rehearsal-one-command",
+  "family_statuses": {
+    "benchmark_comparison": "warning",
+    "benchmark_trend": "warning",
+    "guardrail_summary": "pass",
+    "hosted_readiness": "operator_guided",
+    "multi_repo_diagnosis": "warning",
+    "readiness_history": "warning",
+    "release_evidence": "pass"
+  },
+  "label": "release-rehearsal-one-command",
+  "schema_version": 1,
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 7,
+    "missing_lanes": 0,
+    "operator_guided_lanes": 1,
+    "pass": 2,
+    "warning": 5
+  }
+}

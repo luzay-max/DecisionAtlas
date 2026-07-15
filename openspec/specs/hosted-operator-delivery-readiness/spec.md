@@ -1,7 +1,7 @@
 # hosted-operator-delivery-readiness Specification
 
 ## Purpose
-TBD - created by archiving change hosted-operator-delivery-readiness. Update Purpose after archive.
+Generates hosted/operator delivery readiness artifacts with bounded lane classifications, recovery posture tracking, and external preview preparation evidence.
 ## Requirements
 ### Requirement: Hosted operator readiness artifact generation
 The system SHALL provide a local way to generate hosted/operator delivery readiness evidence for external preview preparation.

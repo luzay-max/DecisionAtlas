@@ -1,0 +1,142 @@
+{
+  "blockers": [],
+  "commit": "6313e21",
+  "evidence_type": "full-chain-random-repo-release-rehearsal",
+  "generated_at": "2026-07-13T01:52:46.009166+00:00",
+  "label": "Fresh public sniffio full-chain rehearsal",
+  "lanes": [
+    {
+      "id": "multi_repo_diagnosis",
+      "label": "Random real GitHub repositories",
+      "source_path": ".tmp/multi-repo-live-diagnosis.json",
+      "status": "warning",
+      "summary": {
+        "blocking": 0,
+        "pass": 0,
+        "recommended_follow_up": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "selected_repositories": 2,
+        "status": "warning",
+        "warning": 2
+      },
+      "warnings": []
+    },
+    {
+      "id": "release_rehearsal",
+      "label": "Release rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "generated_paths": {},
+        "recommended_follow_up": [
+          "Complete or explicitly disclose operator-guided release rehearsal lanes.",
+          "Review operator-guided repository setup status during release rehearsal.",
+          "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations.",
+          "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 7,
+          "missing_lanes": 0,
+          "operator_guided_lanes": 1,
+          "pass": 2,
+          "warning": 5
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "customer_host_v2",
+      "label": "Customer-host v2",
+      "source_path": ".tmp/external-customer-host-rehearsal-v2.json",
+      "status": "warning",
+      "summary": {
+        "host_proof_level": "customer_controlled_with_browser_smoke",
+        "limitations": [
+          "Replace this sample with real customer-host observations before handoff.",
+          "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 7,
+          "not_provided": 0,
+          "operator_guided": 0,
+          "pass": 3,
+          "warning": 4
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "browser_rehearsal",
+      "label": "Browser rehearsal",
+      "source_path": null,
+      "status": "pass",
+      "summary": {
+        "command": "Chrome Playwright and DOM-CUA human flow",
+        "status": "pass",
+        "summary": "Chrome verified dashboard, Review, Why Search, Drift, and dashboard return for fresh python-trio/sniffio workspace; imported 147 artifacts with zero console errors and preserved evidence-limited results."
+      },
+      "warnings": []
+    },
+    {
+      "id": "readiness_history",
+      "label": "Readiness history",
+      "source_path": "docs/evidence/readiness/index.json",
+      "status": "warning",
+      "summary": {
+        "entry_count": 12,
+        "latest_entry_id": "2026-07-10-review-candidates-accepted-baseline-smoke",
+        "status": "warning"
+      },
+      "warnings": []
+    }
+  ],
+  "limitations": [
+    "This bundle composes bounded evidence; it does not embed raw logs, secrets, or private repository content.",
+    "Random real repository diagnosis depends on local stack, GitHub, and provider availability.",
+    "Customer-host proof is only as strong as the supplied customer-host v2 evidence."
+  ],
+  "recommended_next_actions": [
+    "Review or disclose non-pass full-chain lanes: multi_repo_diagnosis, release_rehearsal, customer_host_v2, readiness_history.",
+    "Archive this full-chain rehearsal with release/customer-host evidence before handoff."
+  ],
+  "schema_version": 1,
+  "selected_repo_ids": [
+    "n8n",
+    "rich"
+  ],
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 5,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "pass": 1,
+    "selected_repositories": 2,
+    "warning": 4
+  },
+  "version_label": "2026-07-13-fresh-public-sniffio"
+}

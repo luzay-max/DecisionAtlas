@@ -1,0 +1,30 @@
+# Full-Chain Random Repo Release Rehearsal
+
+- Label: `2026-07-04-real-repo-core-loop-quality-smoke`
+- Generated at: `2026-07-04T00:14:00+00:00`
+- Status: `warning`
+- Selected real repositories: `n8n, rich`
+- Pass lanes: `1`
+- Warning lanes: `4`
+- Blocking lanes: `0`
+
+## Evidence Lanes
+
+| Lane | Status | Source | Summary |
+| --- | --- | --- | --- |
+| Random real GitHub repositories | warning | .tmp/multi-repo-live-diagnosis.json | {"blocking": 0, "pass": 1, "recommended_follow_up": ["continue_with_targeted_validation", "evaluate_or_monitor_drift", "improve_accepted_decision_evidence", "inspect_alerts", "inspect_citations", "probe_core_loop", "review_candidates", "review_candidates_or_ask_why", "run_benchmark"], "selected_repo_ids": ["n8n", "rich"], "selected_repositories": 2, "status": "warning", "warning": 1} |
+| Release rehearsal | warning | .tmp/release-rehearsal-evidence.json | {"generated_paths": {}, "recommended_follow_up": ["Complete or explicitly disclose operator-guided release rehearsal lanes.", "Review operator-guided repository setup status during release rehearsal.", "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations.", "Run or attach benchmark comparison rows for missing fixed-pool repositories.", "continue_with_targeted_validation", "evaluate_or_monitor_drift", "improve_accepted_decision_evidence", "inspect_alerts", "inspect_citations", "probe_core_loop", "review_candidates", "review_candidates_or_ask_why", "run_benchmark"], "status": "warning", "summary": {"blocking": 0, "lanes": 7, "missing_lanes": 0, "operator_guided_lanes": 1, "pass": 3, "warning": 4}} |
+| Customer-host v2 | warning | .tmp/external-customer-host-rehearsal-v2.json | {"host_proof_level": "customer_controlled_with_browser_smoke", "limitations": ["Replace this sample with real customer-host observations before handoff.", "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."], "status": "warning", "summary": {"blocking": 0, "lanes": 7, "not_provided": 0, "operator_guided": 0, "pass": 3, "warning": 4}} |
+| Browser rehearsal | pass | - | {"command": "pnpm --filter @decisionatlas/web exec playwright test team-self-hosted-rehearsal.spec.ts --config playwright.config.ts --reporter=line", "status": "pass", "summary": "Prior team self-hosted browser rehearsal passed against local stack"} |
+| Readiness history | warning | docs/evidence/readiness/index.json | {"entry_count": 8, "latest_entry_id": "2026-07-04-random-repo-warning-lane-reduction-smoke", "status": "warning"} |
+
+## Limitations
+
+- This bundle composes bounded evidence; it does not embed raw logs, secrets, or private repository content.
+- Random real repository diagnosis depends on local stack, GitHub, and provider availability.
+- Customer-host proof is only as strong as the supplied customer-host v2 evidence.
+
+## Recommended Next Actions
+
+- Review or disclose non-pass full-chain lanes: multi_repo_diagnosis, release_rehearsal, customer_host_v2, readiness_history.
+- Archive this full-chain rehearsal with release/customer-host evidence before handoff.

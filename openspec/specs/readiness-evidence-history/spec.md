@@ -1,7 +1,7 @@
 # readiness-evidence-history Specification
 
 ## Purpose
-TBD - created by archiving change readiness-evidence-history. Update Purpose after archive.
+Provides local archiving and indexing of readiness evidence artifacts into a durable history with trend summaries and team handoff reports.
 ## Requirements
 ### Requirement: Readiness evidence can be archived into durable history
 The system SHALL provide a local way to promote selected readiness evidence artifacts from scratch output into a durable dated or versioned history entry.
@@ -91,3 +91,74 @@ Readiness evidence workflows SHALL allow operators to attach benchmark trend evi
 #### Scenario: Trend evidence is missing
 - **WHEN** benchmark trend evidence is not supplied
 - **THEN** readiness-facing summaries MUST keep the missing trend evidence visible as `not_provided` or `warning` rather than silently dropping it
+
+### Requirement: Readiness history supports full delivery evidence families
+Readiness evidence history SHALL support external install, real continuity rehearsal, team handoff, and Code Decision Audit evidence families in addition to release, hosted, and benchmark evidence.
+
+#### Scenario: New evidence families are supplied
+- **WHEN** archive generation receives external install evidence, real continuity rehearsal, team handoff, or Code Decision Audit JSON and Markdown paths
+- **THEN** the history entry SHALL copy the supplied artifacts and record compact summaries for those families.
+
+#### Scenario: New evidence families are omitted
+- **WHEN** archive generation omits one or more full delivery evidence families
+- **THEN** the history entry SHALL mark the omitted families `not_provided` rather than omitting them from the entry.
+
+### Requirement: Readiness history trend includes delivery readiness signals
+Readiness evidence history trend output SHALL include compact full delivery readiness signals.
+
+#### Scenario: Trend is rendered
+- **WHEN** trend Markdown is generated from entries containing full delivery evidence families
+- **THEN** the trend SHALL expose release, hosted walkthrough, benchmark regressions, external install status, real continuity status, handoff status, audit status, warnings, operator-guided count, and not-provided count.
+
+### Requirement: Readiness history can archive one-command rehearsal bundles
+Readiness evidence history SHALL support release rehearsal bundle outputs as dated/versioned evidence.
+
+#### Scenario: Rehearsal bundle is supplied
+- **WHEN** a release rehearsal JSON path is supplied to readiness history archival
+- **THEN** the archive SHALL preserve the bundle status, generated paths, and lane summaries.
+
+#### Scenario: History archival is skipped
+- **WHEN** the operator does not request archival
+- **THEN** the rehearsal SHALL still write `.tmp` JSON and Markdown and mark history as `operator_guided`.
+
+### Requirement: Readiness history can archive customer-host v2 rehearsal
+Readiness evidence history SHALL support customer-host v2 rehearsal artifacts as durable delivery evidence.
+
+#### Scenario: Customer-host v2 evidence is supplied
+- **WHEN** readiness history archival receives customer-host v2 JSON and Markdown
+- **THEN** the archive SHALL preserve the bundle status, host proof level, lane summaries, blockers, limitations, and linked artifact filenames.
+
+#### Scenario: Customer-host v2 evidence is omitted
+- **WHEN** readiness history archival omits customer-host v2 evidence
+- **THEN** history summaries SHALL keep that evidence family visible as `not_provided` rather than implying external customer-host validation.
+
+### Requirement: Readiness history can archive real external host trial evidence
+Readiness evidence history SHALL support real external host trial evidence as a durable evidence family.
+
+#### Scenario: Real external host trial evidence is supplied
+- **WHEN** readiness history archival receives real external host trial JSON and Markdown
+- **THEN** the archive SHALL preserve the status, host proof level, placeholder finding count, redaction finding count, selected repository identifiers, source statuses, blockers, and linked artifact filenames.
+
+#### Scenario: Real external host trial evidence is omitted
+- **WHEN** readiness history archival omits real external host trial evidence
+- **THEN** history summaries SHALL keep that evidence family visible as `not_provided` rather than implying real external/customer-controlled host validation.
+
+### Requirement: Readiness history trend includes real external host trial state
+Readiness evidence history trend output SHALL include compact real external host trial readiness state.
+
+#### Scenario: Trend is rendered
+- **WHEN** trend Markdown is generated from entries containing real external host trial evidence
+- **THEN** the trend SHALL expose real external host trial status, host proof level, warning counts, blocker counts, placeholder finding counts, operator-guided counts, and not-provided counts.
+
+### Requirement: Readiness evidence history supports fresh public repository import rehearsal evidence
+Readiness evidence history SHALL support fresh public repository import rehearsal JSON and Markdown as a durable evidence family.
+
+#### Scenario: Fresh import rehearsal evidence is supplied
+- **WHEN** readiness history archival receives fresh public repository import rehearsal JSON and Markdown paths
+- **THEN** the archive SHALL preserve the selected repository, deterministic seed, fresh-import outcome, workspace, import job, imported artifact count, core-loop status, browser status, limitations, blockers, and linked artifact filenames
+- **AND** index and trend summaries SHALL expose the evidence family status without converting warnings into pass.
+
+#### Scenario: Fresh import rehearsal evidence is omitted
+- **WHEN** readiness history archival omits fresh public repository import rehearsal evidence
+- **THEN** the history entry SHALL mark that evidence family as `not_provided`
+- **AND** it SHALL NOT search scratch output for a substitute.

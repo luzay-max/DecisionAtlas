@@ -1,0 +1,56 @@
+{
+  "artifacts": {
+    "external_customer_host_rehearsal_v2": {
+      "json": "external_customer_host_rehearsal_v2.json",
+      "markdown": "external_customer_host_rehearsal_v2.md",
+      "source_json_path": ".tmp/external-customer-host-rehearsal-v2.json",
+      "source_markdown_path": ".tmp/external-customer-host-rehearsal-v2.md"
+    }
+  },
+  "commit": "bdf88f2",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "real_continuity_blockers": 0,
+    "warnings": 4
+  },
+  "created_at": "2026-07-03T06:27:54.442227+00:00",
+  "entry_id": "2026-07-03-external-customer-host-rehearsal-v2-smoke",
+  "families": {
+    "external_customer_host_rehearsal_v2": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-03T06:27:54.442227+00:00",
+      "host_input_path": "templates/external-customer-host-rehearsal-v2.example.json",
+      "host_proof_level": "customer_controlled_with_browser_smoke",
+      "label": "External customer-host rehearsal v2",
+      "lane_statuses": {
+        "browser_smoke": "pass",
+        "clean_install": "warning",
+        "customer_host_template": "pass",
+        "external_install": "warning",
+        "package_verification": "pass",
+        "readiness_history": "unknown",
+        "release_rehearsal": "warning"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "source_markdown_path": ".tmp/external-customer-host-rehearsal-v2.md",
+      "source_path": ".tmp/external-customer-host-rehearsal-v2.json",
+      "status": "warning",
+      "warning_count": 4
+    }
+  },
+  "label": "external-customer-host-rehearsal-v2-smoke",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "v2-smoke",
+  "warnings": []
+}

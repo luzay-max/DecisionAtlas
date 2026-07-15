@@ -113,6 +113,9 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[0]["candidate_quality"]["has_primary_artifact"] is True
     assert body[0]["candidate_quality"]["has_source_url"] is True
     assert body[0]["candidate_quality"]["confidence_bucket"] == "high"
+    assert body[0]["candidate_ranking"]["tier"] == "strong"
+    assert body[0]["candidate_ranking"]["is_representative"] is True
+    assert body[0]["candidate_ranking"]["artifact_family"] == "unknown"
     assert body[0]["review_evidence"]["primary_artifact"] == {
         "id": 1,
         "type": "issue",
@@ -132,6 +135,8 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
         "missing_source_url",
         "low_confidence",
     ]
+    assert body[1]["candidate_ranking"]["tier"] == "weak"
+    assert body[1]["candidate_ranking"]["parser_salvaged"] is None
 
 
 def test_candidate_quality_boundaries_do_not_promote_weak_evidence(tmp_path: Path, monkeypatch) -> None:

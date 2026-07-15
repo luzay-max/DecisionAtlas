@@ -1,0 +1,218 @@
+{
+  "base_url": "http://127.0.0.1:3001",
+  "commit": "2f57d70",
+  "comparison_basis": "Before is reconstructed from the live candidate payload using the pre-change confidence ordering; after is the precision-ranked API ordering. This is not a historical snapshot.",
+  "generated_at": "2026-07-15T02:34:16.880079+00:00",
+  "provider_mode": {
+    "embedding_provider_mode": "fake",
+    "is_live": true,
+    "llm_provider_mode": "openai_compatible",
+    "mode": "openai_compatible",
+    "override_active": false
+  },
+  "schema_version": 1,
+  "sensitive_material_note": "Evidence contains bounded IDs, titles, scores, and status only; no tokens or raw model output.",
+  "status": "pass",
+  "workspaces": [
+    {
+      "after": {
+        "decision_ids": [
+          442,
+          441,
+          440,
+          438,
+          435,
+          434,
+          433,
+          432,
+          430,
+          429,
+          428,
+          426,
+          425,
+          424,
+          423,
+          422,
+          420,
+          419,
+          418,
+          417,
+          416,
+          439,
+          437,
+          436,
+          431,
+          427,
+          421
+        ],
+        "ordering": "precision_tier_score_confidence_id"
+      },
+      "before": {
+        "decision_ids": [
+          416,
+          417,
+          418,
+          419,
+          420,
+          421,
+          422,
+          423,
+          424,
+          425,
+          426,
+          427,
+          428,
+          429,
+          430,
+          431,
+          432,
+          433,
+          434,
+          435,
+          436,
+          437,
+          438,
+          439,
+          440,
+          441,
+          442
+        ],
+        "ordering": "legacy_confidence_desc_id_asc"
+      },
+      "candidate_count": 27,
+      "duplicate_secondary_count": 0,
+      "ordering_delta": {
+        "moved_down": [
+          416,
+          417,
+          418,
+          419,
+          420,
+          421,
+          422,
+          423,
+          424,
+          425,
+          426,
+          427,
+          431,
+          436,
+          437
+        ],
+        "moved_up": [
+          442,
+          441,
+          440,
+          438,
+          435,
+          434,
+          433,
+          432,
+          430,
+          429,
+          428,
+          439
+        ],
+        "top_changed": true
+      },
+      "tier_counts": {
+        "partial": 6,
+        "strong": 21,
+        "weak": 0
+      },
+      "top_candidate": {
+        "candidate_ranking": {
+          "artifact_family": "unknown",
+          "cluster_id": null,
+          "cluster_size": 1,
+          "duplicate_of": null,
+          "is_representative": true,
+          "parser_salvaged": null,
+          "reasons": [
+            "multiple_source_refs",
+            "previewable_quote",
+            "artifact_provenance",
+            "source_url_available",
+            "low_confidence",
+            "decision_specificity",
+            "unknown_extraction_origin"
+          ],
+          "recovery": false,
+          "score": 80,
+          "sparse_recovery": false,
+          "tier": "strong"
+        },
+        "id": 442,
+        "title": "Use Python 3.13 for \"QA\" workflow"
+      },
+      "workspace_slug": "github-jazzband-pip-tools"
+    },
+    {
+      "after": {
+        "decision_ids": [
+          454,
+          451,
+          450,
+          453,
+          452
+        ],
+        "ordering": "precision_tier_score_confidence_id"
+      },
+      "before": {
+        "decision_ids": [
+          454,
+          450,
+          451,
+          452,
+          453
+        ],
+        "ordering": "legacy_confidence_desc_id_asc"
+      },
+      "candidate_count": 5,
+      "duplicate_secondary_count": 0,
+      "ordering_delta": {
+        "moved_down": [
+          450,
+          452
+        ],
+        "moved_up": [
+          451,
+          453
+        ],
+        "top_changed": false
+      },
+      "tier_counts": {
+        "partial": 1,
+        "strong": 4,
+        "weak": 0
+      },
+      "top_candidate": {
+        "candidate_ranking": {
+          "artifact_family": "pull_request",
+          "cluster_id": null,
+          "cluster_size": 1,
+          "duplicate_of": null,
+          "is_representative": true,
+          "parser_salvaged": false,
+          "reasons": [
+            "multiple_source_refs",
+            "previewable_quote",
+            "artifact_provenance",
+            "source_url_available",
+            "high_confidence",
+            "decision_specificity",
+            "high_signal_artifact_family",
+            "recovery_extraction"
+          ],
+          "recovery": true,
+          "score": 87,
+          "sparse_recovery": false,
+          "tier": "strong"
+        },
+        "id": 454,
+        "title": "Release version 2.1.2 using new automated workflow"
+      },
+      "workspace_slug": "github-pallets-markupsafe"
+    }
+  ]
+}

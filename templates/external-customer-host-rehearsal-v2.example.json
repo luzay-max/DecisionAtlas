@@ -1,0 +1,64 @@
+{
+  "host_profile": {
+    "host_class": "customer-vm",
+    "os_family": "Windows Server or Linux",
+    "os_version": "fill-me",
+    "deployment_mode": "docker-compose",
+    "is_customer_controlled": true,
+    "operator": "customer-or-operator-name"
+  },
+  "package_identity": {
+    "package_label": "decisionatlas-self-hosted",
+    "version_label": "fill-me",
+    "commit": "fill-me",
+    "package_manifest_sha256": "optional"
+  },
+  "commands_run": [
+    {
+      "id": "start_stack",
+      "command": "scripts/dev/start-real-stack.bat",
+      "status": "passed",
+      "summary": "Stack started on customer-controlled host. Do not paste raw logs or secrets."
+    }
+  ],
+  "health_checks": [
+    {
+      "id": "web_home",
+      "url": "http://127.0.0.1:3000",
+      "status": "passed",
+      "summary": "Homepage opened."
+    },
+    {
+      "id": "api_health",
+      "url": "http://127.0.0.1:3001/health",
+      "status": "passed",
+      "summary": "API health returned OK."
+    },
+    {
+      "id": "engine_health",
+      "url": "http://127.0.0.1:8000/health",
+      "status": "passed",
+      "summary": "Engine health returned OK."
+    }
+  ],
+  "browser_smoke": {
+    "status": "passed",
+    "operator": "customer-or-operator-name",
+    "summary": "Opened home, team, review, evidence, and workspace pages.",
+    "pages": [
+      "/",
+      "/team",
+      "/review?workspace=demo-workspace",
+      "/evidence"
+    ]
+  },
+  "redaction_acknowledgement": {
+    "acknowledged": true,
+    "reviewer": "customer-or-operator-name",
+    "note": "This file excludes tokens, .env values, raw private repositories, raw logs, and backups."
+  },
+  "limitations": [
+    "Replace this sample with real customer-host observations before handoff.",
+    "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+  ]
+}

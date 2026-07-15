@@ -1,0 +1,339 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": "benchmark_comparison.json",
+      "markdown": "benchmark_comparison.md",
+      "source_json_path": ".tmp/customer-host-trial-benchmark-comparison.json",
+      "source_markdown_path": ".tmp/customer-host-trial-benchmark-comparison.md"
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "json": "fresh_public_repo_import_rehearsal.json",
+      "markdown": "fresh_public_repo_import_rehearsal.md",
+      "source_json_path": ".tmp/customer-host-trial-fresh-repo.json",
+      "source_markdown_path": ".tmp/customer-host-trial-fresh-repo.md"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "hosted_readiness": {
+      "json": "hosted_readiness.json",
+      "markdown": "hosted_readiness.md",
+      "source_json_path": ".tmp/customer-host-trial-hosted-readiness.json",
+      "source_markdown_path": ".tmp/customer-host-trial-hosted-readiness.md"
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_continuity_rehearsal": {
+      "json": "real_continuity_rehearsal.json",
+      "markdown": "real_continuity_rehearsal.md",
+      "source_json_path": ".tmp/customer-host-trial-real-continuity.json",
+      "source_markdown_path": ".tmp/customer-host-trial-real-continuity.md"
+    },
+    "real_external_host_trial_evidence": {
+      "json": "real_external_host_trial_evidence.json",
+      "markdown": "real_external_host_trial_evidence.md",
+      "source_json_path": ".tmp/customer-host-trial-evidence.json",
+      "source_markdown_path": ".tmp/customer-host-trial-evidence.md"
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/customer-host-trial-release-evidence.json",
+      "source_markdown_path": ".tmp/customer-host-trial-release-evidence.md"
+    },
+    "team_handoff": {
+      "json": "team_handoff.json",
+      "markdown": "team_handoff.md",
+      "source_json_path": ".tmp/customer-host-trial-team-handoff.json",
+      "source_markdown_path": ".tmp/customer-host-trial-team-handoff.md"
+    }
+  },
+  "commit": "b613033",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "fresh_public_repo_import_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 4,
+    "not_provided": 10,
+    "operator_guided": 11,
+    "random_repo_warning_classified_lanes": 0,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 0,
+    "warnings": 22
+  },
+  "created_at": "2026-07-15T13:45:00+08:00",
+  "entry_id": "2026-07-15-customer-host-trial-release-rehearsal",
+  "families": {
+    "benchmark_comparison": {
+      "comparison_type": "real-repo-benchmark-regression",
+      "generated_at": "2026-07-15T05:21:29.801665+00:00",
+      "improved": 0,
+      "label": "Benchmark comparison",
+      "movements": {
+        "improved": 0,
+        "missing-from-current": 0,
+        "needs-review": 0,
+        "newly-evaluated": 4,
+        "operationally-blocked": 0,
+        "product-limited": 0,
+        "regressed": 0,
+        "unchanged": 1
+      },
+      "operationally_blocked": 0,
+      "regressed": 0,
+      "release_evidence_ready": true,
+      "repositories": 5,
+      "source_markdown_path": ".tmp/customer-host-trial-benchmark-comparison.md",
+      "source_path": ".tmp/customer-host-trial-benchmark-comparison.json",
+      "sparse_improved": 0,
+      "sparse_not_provided": 5,
+      "sparse_operationally_blocked": 0,
+      "sparse_regressed": 0,
+      "status": "passed"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "blocker_count": 0,
+      "browser_status": "operator_guided",
+      "core_loop_status": "warning",
+      "fresh_import": true,
+      "generated_at": "2026-07-15T05:12:52.342458+00:00",
+      "imported_count": 1169,
+      "job_id": "080a4b1d-54ca-4a47-a3f6-fbc401252808",
+      "known_limitation_count": 4,
+      "label": "Fresh public repo import rehearsal",
+      "operator_guided_count": 0,
+      "outcome": "fresh_import",
+      "seed": "customer-host-trial-20260715",
+      "selected_repository": "hynek/structlog",
+      "source_markdown_path": ".tmp/customer-host-trial-fresh-repo.md",
+      "source_path": ".tmp/customer-host-trial-fresh-repo.json",
+      "sparse_model_attempts": 0,
+      "sparse_recovered_candidates": 0,
+      "sparse_recovery_status": "skipped",
+      "status": "warning",
+      "warning_count": 3,
+      "workspace_slug": "github-hynek-structlog"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "label": "Full-chain random repo release rehearsal",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "hosted_readiness": {
+      "blocker_count": 0,
+      "blockers": [],
+      "generated_at": "2026-07-15T13:40:00+08:00",
+      "known_limitation_count": 0,
+      "known_limitation_lanes": [],
+      "label": "Hosted readiness",
+      "lane_statuses": {
+        "api_hosted_url": "operator_guided",
+        "engine_hosted_url": "operator_guided",
+        "governance_guardrail": "non_blocking",
+        "hosted_health_check": "operator_guided",
+        "hosted_smoke_check": "operator_guided",
+        "real_repo_evidence": "pass",
+        "recovery_drill": "warning",
+        "release_evidence": "non_blocking",
+        "seeded_demo_readiness": "operator_guided",
+        "web_hosted_url": "operator_guided"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 6,
+      "operator_guided_lanes": [
+        "web_hosted_url",
+        "api_hosted_url",
+        "engine_hosted_url",
+        "hosted_health_check",
+        "hosted_smoke_check",
+        "seeded_demo_readiness"
+      ],
+      "public_walkthrough_decision": "operator_review_required",
+      "public_walkthrough_status": "operator_guided",
+      "source_markdown_path": ".tmp/customer-host-trial-hosted-readiness.md",
+      "source_path": ".tmp/customer-host-trial-hosted-readiness.json",
+      "status": "operator_guided",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "random_repo_warning_lane_reduction": {
+      "label": "Random repo warning lane reduction",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_continuity_rehearsal": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T05:03:22.415371+00:00",
+      "label": "Real continuity rehearsal",
+      "lane_statuses": {
+        "database_backup": "pass",
+        "path_safety:backup_artifact": "pass",
+        "path_safety:rehearsal_dir": "pass",
+        "path_safety:restore_state": "pass",
+        "path_safety:source_state": "pass",
+        "post_upgrade_validation": "operator_guided",
+        "redaction": "pass",
+        "restore_validation": "pass",
+        "rollback_plan": "operator_guided",
+        "scratch_workspace": "pass",
+        "upgrade_transition": "pass"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 2,
+      "redaction_finding_count": 0,
+      "restore_matches_source": true,
+      "restored_record_count": 2,
+      "source_markdown_path": ".tmp/customer-host-trial-real-continuity.md",
+      "source_path": ".tmp/customer-host-trial-real-continuity.json",
+      "source_record_count": 2,
+      "status": "warning",
+      "warning_count": 0
+    },
+    "real_external_host_trial_evidence": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T13:30:00+08:00",
+      "host_input_path": ".tmp/customer-host-trial-input.json",
+      "host_proof_level": "external_template_not_customer_controlled",
+      "label": "Real external host trial evidence",
+      "lane_statuses": {
+        "admin_login": "pass",
+        "browser_smoke": "pass",
+        "continuity": "operator_guided",
+        "customer_host_v2": "not_provided",
+        "drift": "warning",
+        "full_chain_random_repo_release": "warning",
+        "health": "pass",
+        "host_input": "warning",
+        "placeholder_review": "pass",
+        "repository_import": "pass",
+        "required_host_review": "warning",
+        "review": "pass",
+        "startup": "pass",
+        "team_workspace": "operator_guided",
+        "why": "warning"
+      },
+      "not_provided_count": 1,
+      "operator_guided_count": 2,
+      "placeholder_finding_count": 0,
+      "redaction_finding_count": 0,
+      "selected_repo_ids": [],
+      "source_markdown_path": ".tmp/customer-host-trial-evidence.md",
+      "source_path": ".tmp/customer-host-trial-evidence.json",
+      "status": "warning",
+      "warning_count": 8
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "caution",
+        "real_repo_benchmark_comparison": "passed",
+        "targeted_tests": "passed",
+        "trend_comparison": "passed"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T13:35:00+08:00",
+      "label": "Release evidence",
+      "missing_input_count": 0,
+      "missing_inputs": [],
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/customer-host-trial-release-evidence.md",
+      "source_path": ".tmp/customer-host-trial-release-evidence.json",
+      "status": "warning",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "team_handoff": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T13:45:00+08:00",
+      "label": "Team handoff",
+      "not_provided_count": 4,
+      "operator_guided_count": 1,
+      "section_statuses": {
+        "benchmark_comparison": "pass",
+        "benchmark_trend": "unknown",
+        "clean_install_rehearsal": "warning",
+        "external_install_evidence": "not_provided",
+        "hosted_readiness": "operator_guided",
+        "license_support": "not_provided",
+        "public_github_import": "warning",
+        "readiness_history": "warning",
+        "real_continuity_rehearsal": "warning",
+        "release_evidence": "warning",
+        "review_audit": "not_provided",
+        "self_hosted_package": "pass",
+        "trend_comparison": "not_provided"
+      },
+      "source_markdown_path": ".tmp/customer-host-trial-team-handoff.md",
+      "source_path": ".tmp/customer-host-trial-team-handoff.json",
+      "status": "warning",
+      "warning_count": 11
+    }
+  },
+  "label": "customer-host-trial-release-rehearsal",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "customer-host-trial-2026-07-15",
+  "warnings": []
+}

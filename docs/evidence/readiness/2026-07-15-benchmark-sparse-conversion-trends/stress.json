@@ -1,0 +1,426 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-15T09:15:00+00:00",
+  "evidence_type": "fresh-public-repo-import-rehearsal",
+  "status": "warning",
+  "base_url": "http://127.0.0.1:3001",
+  "selection": {
+    "mode": "seeded_candidate_pool",
+    "seed": "stress-20260715-37",
+    "candidate_pool_digest": "ce326cebafe10da43f7e386f7690f24d31d8b2f490892ca574d1e6b34ebbed91",
+    "candidate_count": 2,
+    "selected_repository": "LiPu-jpg/Openwrite",
+    "considered": [
+      {
+        "repo": "LiPu-jpg/Openwrite",
+        "outcome": "selected_fresh",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "LiPu-jpg/Openwrite",
+          "repo_url": "https://github.com/LiPu-jpg/Openwrite",
+          "workspace_exists": false,
+          "workspace_slug": null,
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": null,
+          "active_import": null,
+          "latest_sync_origin": null,
+          "latest_sync_at": null,
+          "last_import_summary": null,
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      }
+    ]
+  },
+  "fresh_import": {
+    "status": "pass",
+    "outcome": "fresh_import",
+    "next_action": "probe_fresh_workspace_core_loop",
+    "summary": "No-workspace preflight was followed by a successful full import."
+  },
+  "import_rehearsal": {
+    "generated_at": "2026-07-15T04:12:04.147960+00:00",
+    "evidence_type": "public-github-import-rehearsal",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "id": "lipu-jpg-openwrite",
+      "repo": "LiPu-jpg/Openwrite",
+      "workspace_slug": "github-lipu-jpg-openwrite",
+      "role": "fresh_public_rehearsal_candidate",
+      "benchmark_purpose": "Prove a fresh public GitHub import and governed core loop."
+    },
+    "setup": {
+      "outcome": "created",
+      "benchmark_ready": true,
+      "next_action": "run_benchmark"
+    },
+    "lookup": {
+      "owner_scope": "local-default",
+      "repo": "LiPu-jpg/Openwrite",
+      "repo_url": "https://github.com/LiPu-jpg/Openwrite",
+      "workspace_exists": false,
+      "workspace_slug": null,
+      "has_successful_import": false,
+      "can_incremental_sync": false,
+      "has_running_import": false,
+      "latest_import": null,
+      "active_import": null,
+      "latest_sync_origin": null,
+      "latest_sync_at": null,
+      "last_import_summary": null,
+      "provider": "github",
+      "access_mode": "public",
+      "access_source_type": "public",
+      "access_source_label": "Public GitHub access",
+      "access_requirement": null,
+      "access_requirement_detail": null
+    },
+    "import_job": {
+      "job_id": "31300f81-8f5a-4689-9901-7b4f87773280",
+      "workspace_slug": "github-lipu-jpg-openwrite",
+      "repo": "LiPu-jpg/Openwrite",
+      "mode": "full",
+      "status": "succeeded",
+      "sync_origin": "manual_full",
+      "trigger_event": null,
+      "imported_count": 32,
+      "summary": {
+        "stage": "completed",
+        "imported_count": 1,
+        "artifact_counts": {
+          "issue": 2,
+          "pr": 5,
+          "commit": 24,
+          "doc": 1
+        },
+        "document_summary": {
+          "selected": 1,
+          "imported": 1,
+          "skipped": {
+            "non_markdown": 149,
+            "generated_or_vendor_path": 0,
+            "outside_high_signal_paths": 91
+          },
+          "categories": {
+            "general": 1
+          }
+        },
+        "extraction_summary": {
+          "shortlisted_artifacts": 0,
+          "screened_artifacts": 0,
+          "screened_in_artifacts": 0,
+          "screened_out_artifacts": 0,
+          "full_extraction_requests": 0,
+          "completed_full_extractions": 0,
+          "recovery_extraction_attempts": 0,
+          "total_artifacts": 0,
+          "processed_artifacts": 0,
+          "created_candidates": 0,
+          "salvaged_candidates": 0,
+          "recovered_candidates": 0,
+          "thin_source_ref_decisions": 0,
+          "skipped_provider_400": 0,
+          "skipped_provider_timeout": 0,
+          "skipped_invalid_json": 0,
+          "selected_extraction_families": {},
+          "conversion_loss_reasons": {},
+          "sparse_recovery_status": "skipped",
+          "sparse_recovery_skip_reason": "no_eligible_evidence",
+          "sparse_recovery_eligible_artifacts": 0,
+          "sparse_recovery_attempted_artifacts": 0,
+          "sparse_recovery_model_attempts": 0,
+          "sparse_recovery_recovered_candidates": 0,
+          "sparse_recovery_evidence_families": {},
+          "sparse_recovery_rejection_reasons": {},
+          "elapsed_seconds": 0,
+          "estimated_remaining_seconds": null,
+          "average_full_extraction_latency_ms": null,
+          "current_artifact_title": null,
+          "current_phase": "completed",
+          "current_extraction_family": null
+        },
+        "evidence_summary": {
+          "reviewable_decisions": 0,
+          "decision_source_types": {},
+          "contributing_doc_categories": {},
+          "contributing_doc_paths": []
+        },
+        "outcome": "insufficient_evidence"
+      },
+      "error_message": null,
+      "started_at": "2026-07-15T04:11:54.933266",
+      "finished_at": "2026-07-15T04:12:01.951793"
+    },
+    "error": null
+  },
+  "sparse_conversion": {
+    "status": "skipped",
+    "skip_reason": "no_eligible_evidence",
+    "eligible_artifacts": 0,
+    "attempted_artifacts": 0,
+    "model_attempts": 0,
+    "recovered_candidates": 0,
+    "evidence_families": {},
+    "rejection_reasons": {},
+    "conversion_loss_reasons": {},
+    "created_candidates": 0
+  },
+  "core_loop": {
+    "schema_version": 1,
+    "generated_at": "2026-07-15T09:15:00+00:00",
+    "evidence_type": "imported-workspace-core-loop-rehearsal",
+    "status": "warning",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "repo": "LiPu-jpg/Openwrite",
+      "workspace_slug": "github-lipu-jpg-openwrite"
+    },
+    "accepted_baseline": {
+      "status": "absent",
+      "strength": "none",
+      "candidate_count": 0,
+      "accepted_count": 0,
+      "candidate_sample_titles": [],
+      "accepted_sample_titles": [],
+      "next_action": "import_or_review_decision_candidates"
+    },
+    "lanes": {
+      "setup": {
+        "status": "pass",
+        "summary": "Workspace setup source `explicit` reported `provided`.",
+        "next_action": "probe_core_loop",
+        "details": {
+          "workspace_slug": "github-lipu-jpg-openwrite",
+          "repo": "LiPu-jpg/Openwrite",
+          "setup": {
+            "source": "explicit"
+          }
+        },
+        "action_category": "pass"
+      },
+      "dashboard": {
+        "status": "pass",
+        "summary": "Dashboard summary loaded for imported workspace.",
+        "next_action": "review_candidates_or_ask_why",
+        "details": {
+          "workspace_slug": "github-lipu-jpg-openwrite",
+          "github_repo": "LiPu-jpg/Openwrite",
+          "workspace_mode": "imported",
+          "import_status": "succeeded",
+          "candidate_decisions": 0,
+          "accepted_decisions": 0,
+          "drift_state": "evidence_limited",
+          "readiness_state": "evidence_limited"
+        },
+        "action_category": "pass"
+      },
+      "review": {
+        "status": "warning",
+        "summary": "Review queue is empty; accepted baseline may be missing or already reviewed.",
+        "next_action": "inspect_import_quality_or_existing_decisions",
+        "details": {
+          "candidate_count": 0,
+          "sample_titles": [],
+          "accepted_baseline": {
+            "status": "absent",
+            "strength": "none",
+            "candidate_count": 0,
+            "accepted_count": 0,
+            "candidate_sample_titles": [],
+            "accepted_sample_titles": [],
+            "next_action": "import_or_review_decision_candidates"
+          }
+        },
+        "action_category": "product_controlled"
+      },
+      "why_search": {
+        "status": "warning",
+        "summary": "Why-search returned `evidence_limited`.",
+        "next_action": "improve_accepted_decision_evidence",
+        "details": {
+          "answer_status": "evidence_limited",
+          "question": "Which architectural decision is most important for operating this project at scale?",
+          "citation_count": 0,
+          "workspace_mode": "imported",
+          "primary_decision": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "why_search",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Why-search has no citations or primary decision to ground the answer.",
+              "next_action": "improve_accepted_decision_evidence",
+              "evidence": {
+                "accepted_baseline_status": "absent",
+                "accepted_decision_count": 0,
+                "answer_status": "evidence_limited",
+                "citation_count": 0,
+                "primary_decision_present": false,
+                "workspace_mode": "imported"
+              }
+            }
+          ]
+        }
+      },
+      "drift": {
+        "status": "warning",
+        "summary": "Drift lane returned `evidence_limited` with 0 alert(s).",
+        "next_action": "evaluate_or_monitor_drift",
+        "details": {
+          "drift_state": "evidence_limited",
+          "alert_count": 0,
+          "evaluation": {
+            "state": "evidence_limited",
+            "can_evaluate": false,
+            "next_action": "inspect_import_summary",
+            "last_evaluated_at": "2026-07-15T04:12:06.224986+00:00",
+            "evaluated_rules": 0,
+            "created_alerts": 0
+          },
+          "evaluation_request_status": "ok",
+          "evaluation_error": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "drift",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+              "next_action": "evaluate_or_monitor_drift",
+              "evidence": {
+                "accepted_baseline_status": "absent",
+                "accepted_decision_count": 0,
+                "alert_count": 0,
+                "drift_state": "evidence_limited",
+                "evaluation_request_status": "ok",
+                "evaluation_state": "evidence_limited"
+              }
+            }
+          ]
+        }
+      },
+      "guardrail": {
+        "status": "warning",
+        "summary": "Guardrail returned `caution`.",
+        "next_action": "inspect_guardrail_findings",
+        "details": {
+          "agent_status": "caution",
+          "diff_status": "pass",
+          "drift_status": "drift_detected",
+          "required_tests_count": 0,
+          "findings_count": 2
+        },
+        "action_category": "product_controlled"
+      }
+    },
+    "lane_reasons": {
+      "why_search": [
+        {
+          "lane": "why_search",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Why-search has no citations or primary decision to ground the answer.",
+          "next_action": "improve_accepted_decision_evidence",
+          "evidence": {
+            "accepted_baseline_status": "absent",
+            "accepted_decision_count": 0,
+            "answer_status": "evidence_limited",
+            "citation_count": 0,
+            "primary_decision_present": false,
+            "workspace_mode": "imported"
+          }
+        }
+      ],
+      "drift": [
+        {
+          "lane": "drift",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+          "next_action": "evaluate_or_monitor_drift",
+          "evidence": {
+            "accepted_baseline_status": "absent",
+            "accepted_decision_count": 0,
+            "alert_count": 0,
+            "drift_state": "evidence_limited",
+            "evaluation_request_status": "ok",
+            "evaluation_state": "evidence_limited"
+          }
+        }
+      ]
+    },
+    "summary": {
+      "pass_lanes": 2,
+      "warning_lanes": 4,
+      "blocking_lanes": 0,
+      "action_categories": {
+        "product_controlled": 4,
+        "operator_setup": 0,
+        "external_dependency": 0,
+        "not_provided": 0,
+        "blocking": 0
+      },
+      "accepted_baseline": {
+        "status": "absent",
+        "strength": "none",
+        "candidate_count": 0,
+        "accepted_count": 0,
+        "candidate_sample_titles": [],
+        "accepted_sample_titles": [],
+        "next_action": "import_or_review_decision_candidates"
+      },
+      "grounding_summary": {
+        "warning_lanes_with_grounding": 2,
+        "reason_codes": [
+          "missing_accepted_decision_evidence"
+        ]
+      },
+      "setup_waiting": false
+    },
+    "recommended_next_actions": [
+      "evaluate_or_monitor_drift",
+      "improve_accepted_decision_evidence",
+      "inspect_guardrail_findings",
+      "inspect_import_quality_or_existing_decisions",
+      "probe_core_loop",
+      "review_candidates_or_ask_why"
+    ],
+    "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output."
+  },
+  "browser": {
+    "status": "not_provided",
+    "summary": "Human browser rehearsal has not been attached."
+  },
+  "limitations": [
+    "A seeded bounded pool is random and reproducible but is not an unbounded sample of GitHub.",
+    "GitHub and the real local stack are external runtime dependencies.",
+    "A successful import can still yield evidence-limited decision quality.",
+    "Evidence excludes credentials, raw private source, raw model output, and unbounded logs."
+  ],
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "improve_accepted_decision_evidence",
+    "inspect_guardrail_findings",
+    "inspect_import_quality_or_existing_decisions",
+    "probe_core_loop",
+    "review_candidates_or_ask_why",
+    "run_human_browser_rehearsal_for_fresh_workspace"
+  ],
+  "summary": {
+    "fresh_import": true,
+    "selected_repository": "LiPu-jpg/Openwrite",
+    "workspace_slug": "github-lipu-jpg-openwrite",
+    "imported_count": 32,
+    "core_loop_status": "warning",
+    "browser_status": "not_provided",
+    "sparse_recovery_status": "skipped",
+    "sparse_recovered_candidates": 0
+  }
+}

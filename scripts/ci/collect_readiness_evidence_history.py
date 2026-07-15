@@ -16,15 +16,36 @@ DEFAULT_HISTORY_ROOT = Path("docs/evidence/readiness")
 FAMILY_RELEASE = "release_evidence"
 FAMILY_HOSTED = "hosted_readiness"
 FAMILY_BENCHMARK = "benchmark_comparison"
+FAMILY_EXTERNAL_INSTALL = "external_install_evidence"
+FAMILY_EXTERNAL_CUSTOMER_HOST_V2 = "external_customer_host_rehearsal_v2"
+FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE = "full_chain_random_repo_release_rehearsal"
+FAMILY_FRESH_PUBLIC_REPO_IMPORT = "fresh_public_repo_import_rehearsal"
+FAMILY_REAL_EXTERNAL_HOST_TRIAL = "real_external_host_trial_evidence"
+FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION = "random_repo_warning_lane_reduction"
+FAMILY_REAL_CONTINUITY = "real_continuity_rehearsal"
+FAMILY_TEAM_HANDOFF = "team_handoff"
+FAMILY_CODE_DECISION_AUDIT = "code_decision_audit"
 FAMILY_LABELS = {
     FAMILY_RELEASE: "Release evidence",
     FAMILY_HOSTED: "Hosted readiness",
     FAMILY_BENCHMARK: "Benchmark comparison",
+    FAMILY_EXTERNAL_INSTALL: "External install evidence",
+    FAMILY_EXTERNAL_CUSTOMER_HOST_V2: "External customer-host rehearsal v2",
+    FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE: "Full-chain random repo release rehearsal",
+    FAMILY_FRESH_PUBLIC_REPO_IMPORT: "Fresh public repo import rehearsal",
+    FAMILY_REAL_EXTERNAL_HOST_TRIAL: "Real external host trial evidence",
+    FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION: "Random repo warning lane reduction",
+    FAMILY_REAL_CONTINUITY: "Real continuity rehearsal",
+    FAMILY_TEAM_HANDOFF: "Team handoff",
+    FAMILY_CODE_DECISION_AUDIT: "Code Decision Audit",
 }
 NON_CLEAN_STATUSES = {
+    "blocked",
     "blocking",
     "caution",
+    "error",
     "failed",
+    "failure",
     "incomplete",
     "known_limitation",
     "missing",
@@ -159,6 +180,7 @@ def _summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
     if data is None:
         return {"status": "not_provided"}
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    sparse = summary.get("sparse_movements") if isinstance(summary.get("sparse_movements"), dict) else {}
     regressed = int(summary.get("regressed") or 0)
     operationally_blocked = int(summary.get("operationally_blocked") or 0)
     status = "warning" if regressed or operationally_blocked else "passed"
@@ -171,7 +193,201 @@ def _summarize_benchmark(data: dict[str, Any] | None) -> dict[str, Any]:
         "regressed": regressed,
         "improved": int(summary.get("improved") or 0),
         "operationally_blocked": operationally_blocked,
+        "sparse_improved": int(sparse.get("improved") or 0),
+        "sparse_regressed": int(sparse.get("regressed") or 0),
+        "sparse_operationally_blocked": int(sparse.get("operationally_blocked") or 0),
+        "sparse_not_provided": int(sparse.get("not_provided") or 0),
         "release_evidence_ready": summary.get("release_evidence_ready"),
+    }
+
+
+def _summarize_external_install(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    host = data.get("external_host") if isinstance(data.get("external_host"), dict) else {}
+    findings = data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "host_class": host.get("host_class"),
+        "customer_controlled": host.get("is_customer_controlled"),
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": _count_status(lanes, {"warning"}),
+        "blocker_count": len(findings) + _count_status(lanes, {"blocked", "blocking", "failed", "failure", "error"}),
+        "operator_guided_count": _count_status(lanes, {"operator_guided"}),
+        "not_provided_count": _count_status(lanes, {"not_provided"}),
+        "redaction_finding_count": len(findings),
+    }
+
+
+def _summarize_external_customer_host_v2(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "host_proof_level": "not_provided"}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "host_proof_level": data.get("host_proof_level"),
+        "host_input_path": data.get("host_input_path"),
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": int(summary.get("warning") or 0),
+        "blocker_count": int(summary.get("blocking") or 0),
+        "operator_guided_count": int(summary.get("operator_guided") or 0),
+        "not_provided_count": int(summary.get("not_provided") or 0),
+    }
+
+
+def _summarize_full_chain_random_repo_release(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "selected_repo_ids": []}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "selected_repo_ids": data.get("selected_repo_ids") or [],
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": int(summary.get("warning") or 0),
+        "blocker_count": int(summary.get("blocking") or 0),
+        "operator_guided_count": int(summary.get("operator_guided") or 0),
+        "not_provided_count": int(summary.get("not_provided") or 0),
+    }
+
+
+def _summarize_fresh_public_repo_import(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "fresh_import": False}
+    selection = data.get("selection") if isinstance(data.get("selection"), dict) else {}
+    fresh_import = data.get("fresh_import") if isinstance(data.get("fresh_import"), dict) else {}
+    import_rehearsal = data.get("import_rehearsal") if isinstance(data.get("import_rehearsal"), dict) else {}
+    import_job = import_rehearsal.get("import_job") if isinstance(import_rehearsal.get("import_job"), dict) else {}
+    core_loop = data.get("core_loop") if isinstance(data.get("core_loop"), dict) else {}
+    core_summary = core_loop.get("summary") if isinstance(core_loop.get("summary"), dict) else {}
+    browser = data.get("browser") if isinstance(data.get("browser"), dict) else {}
+    sparse_conversion = data.get("sparse_conversion") if isinstance(data.get("sparse_conversion"), dict) else {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "seed": selection.get("seed"),
+        "selected_repository": selection.get("selected_repository"),
+        "workspace_slug": import_job.get("workspace_slug") or summary.get("workspace_slug"),
+        "job_id": import_job.get("job_id"),
+        "imported_count": int(import_job.get("imported_count") or summary.get("imported_count") or 0),
+        "fresh_import": fresh_import.get("outcome") == "fresh_import" or bool(summary.get("fresh_import")),
+        "outcome": fresh_import.get("outcome"),
+        "core_loop_status": core_loop.get("status") or summary.get("core_loop_status"),
+        "browser_status": browser.get("status") or summary.get("browser_status"),
+        "sparse_recovery_status": sparse_conversion.get("status") or summary.get("sparse_recovery_status"),
+        "sparse_recovered_candidates": int(sparse_conversion.get("recovered_candidates") or summary.get("sparse_recovered_candidates") or 0),
+        "sparse_model_attempts": int(sparse_conversion.get("model_attempts") or 0),
+        "warning_count": int(core_summary.get("warning_lanes") or 0),
+        "blocker_count": int(core_summary.get("blocking_lanes") or 0),
+        "operator_guided_count": int(str(data.get("status") or "").lower() == "operator_guided"),
+        "known_limitation_count": len(data.get("limitations") if isinstance(data.get("limitations"), list) else []),
+    }
+
+def _summarize_real_external_host_trial(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "host_proof_level": "not_provided", "selected_repo_ids": []}
+    lanes = data.get("lanes") if isinstance(data.get("lanes"), list) else []
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "host_proof_level": data.get("host_proof_level"),
+        "host_input_path": data.get("host_input_path"),
+        "selected_repo_ids": data.get("selected_repo_ids") or [],
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": int(summary.get("warning") or 0),
+        "blocker_count": int(summary.get("blocking") or 0),
+        "operator_guided_count": int(summary.get("operator_guided") or 0),
+        "not_provided_count": int(summary.get("not_provided") or 0),
+        "placeholder_finding_count": int(summary.get("placeholder_findings") or 0),
+        "redaction_finding_count": int(summary.get("redaction_findings") or 0),
+    }
+
+
+def _summarize_random_repo_warning_lane_reduction(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "selected_repo_ids": []}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "selected_repo_ids": data.get("selected_repo_ids") or [],
+        "classified_lanes": int(summary.get("classified_lanes") or 0),
+        "product_controlled_count": int(summary.get("product_controlled") or 0),
+        "external_dependency_count": int(summary.get("external_dependency") or 0),
+        "operator_guided_count": int(summary.get("operator_guided") or 0),
+        "not_provided_count": int(summary.get("not_provided") or 0),
+        "blocker_count": int(summary.get("blocking") or 0),
+        "warning_count": int(summary.get("product_controlled") or 0)
+        + int(summary.get("external_dependency") or 0)
+        + int(summary.get("operator_guided") or 0)
+        + int(summary.get("not_provided") or 0),
+    }
+
+
+def _summarize_real_continuity(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    lanes = data.get("continuity_lanes") if isinstance(data.get("continuity_lanes"), list) else []
+    integrity = data.get("integrity") if isinstance(data.get("integrity"), dict) else {}
+    findings = data.get("redaction_findings") if isinstance(data.get("redaction_findings"), list) else []
+    return {
+        "status": data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "restore_matches_source": integrity.get("restore_matches_source"),
+        "source_record_count": integrity.get("source_record_count"),
+        "restored_record_count": integrity.get("restored_record_count"),
+        "lane_statuses": {str(lane.get("id")): lane.get("status") for lane in lanes if isinstance(lane, dict)},
+        "warning_count": _count_status(lanes, {"warning"}),
+        "blocker_count": len(data.get("blockers") if isinstance(data.get("blockers"), list) else []) + len(findings),
+        "operator_guided_count": _count_status(lanes, {"operator_guided"}),
+        "not_provided_count": _count_status(lanes, {"not_provided"}),
+        "redaction_finding_count": len(findings),
+    }
+
+
+def _summarize_team_handoff(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    sections = data.get("sections") if isinstance(data.get("sections"), dict) else {}
+    return {
+        "status": data.get("overall_status") or data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "section_statuses": {
+            str(key): value.get("status")
+            for key, value in sections.items()
+            if isinstance(value, dict)
+        },
+        "warning_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in NON_CLEAN_STATUSES),
+        "blocker_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in {"blocking", "blocked", "failed", "failure", "error"}),
+        "operator_guided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "operator_guided"),
+        "not_provided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "not_provided"),
+    }
+
+
+def _summarize_code_decision_audit(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    sections = data.get("sections") if isinstance(data.get("sections"), dict) else {}
+    return {
+        "status": data.get("overall_status") or data.get("status") or "unknown",
+        "generated_at": data.get("generated_at"),
+        "recommended_tier": data.get("recommended_tier"),
+        "section_statuses": {
+            str(key): value.get("status")
+            for key, value in sections.items()
+            if isinstance(value, dict)
+        },
+        "warning_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in NON_CLEAN_STATUSES),
+        "blocker_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() in {"blocking", "blocked", "failed", "failure", "error"}),
+        "operator_guided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "operator_guided"),
+        "not_provided_count": sum(1 for value in sections.values() if isinstance(value, dict) and str(value.get("status") or "").lower() == "not_provided"),
     }
 
 
@@ -182,6 +398,24 @@ def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
         return _summarize_hosted(data)
     if family == FAMILY_BENCHMARK:
         return _summarize_benchmark(data)
+    if family == FAMILY_EXTERNAL_INSTALL:
+        return _summarize_external_install(data)
+    if family == FAMILY_EXTERNAL_CUSTOMER_HOST_V2:
+        return _summarize_external_customer_host_v2(data)
+    if family == FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE:
+        return _summarize_full_chain_random_repo_release(data)
+    if family == FAMILY_FRESH_PUBLIC_REPO_IMPORT:
+        return _summarize_fresh_public_repo_import(data)
+    if family == FAMILY_REAL_EXTERNAL_HOST_TRIAL:
+        return _summarize_real_external_host_trial(data)
+    if family == FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION:
+        return _summarize_random_repo_warning_lane_reduction(data)
+    if family == FAMILY_REAL_CONTINUITY:
+        return _summarize_real_continuity(data)
+    if family == FAMILY_TEAM_HANDOFF:
+        return _summarize_team_handoff(data)
+    if family == FAMILY_CODE_DECISION_AUDIT:
+        return _summarize_code_decision_audit(data)
     raise ValueError(f"Unsupported evidence family: {family}")
 
 
@@ -208,6 +442,16 @@ def _entry_counts(families: dict[str, dict[str, Any]]) -> dict[str, int]:
         "benchmark_regressions": int(families.get(FAMILY_BENCHMARK, {}).get("regressed") or 0),
         "benchmark_operational_blockers": int(families.get(FAMILY_BENCHMARK, {}).get("operationally_blocked") or 0),
         "benchmark_improvements": int(families.get(FAMILY_BENCHMARK, {}).get("improved") or 0),
+        "external_install_blockers": int(families.get(FAMILY_EXTERNAL_INSTALL, {}).get("blocker_count") or 0),
+        "external_customer_host_v2_blockers": int(families.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2, {}).get("blocker_count") or 0),
+        "full_chain_random_repo_release_blockers": int(families.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, {}).get("blocker_count") or 0),
+        "fresh_public_repo_import_blockers": int(families.get(FAMILY_FRESH_PUBLIC_REPO_IMPORT, {}).get("blocker_count") or 0),
+        "real_external_host_trial_blockers": int(families.get(FAMILY_REAL_EXTERNAL_HOST_TRIAL, {}).get("blocker_count") or 0),
+        "real_external_host_trial_placeholder_findings": int(families.get(FAMILY_REAL_EXTERNAL_HOST_TRIAL, {}).get("placeholder_finding_count") or 0),
+        "random_repo_warning_product_controlled": int(families.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION, {}).get("product_controlled_count") or 0),
+        "random_repo_warning_external_dependency": int(families.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION, {}).get("external_dependency_count") or 0),
+        "random_repo_warning_classified_lanes": int(families.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION, {}).get("classified_lanes") or 0),
+        "real_continuity_blockers": int(families.get(FAMILY_REAL_CONTINUITY, {}).get("blocker_count") or 0),
     }
 
 
@@ -332,8 +576,8 @@ def render_index_markdown(index: dict[str, Any]) -> str:
         f"- Generated at: `{index.get('generated_at')}`",
         f"- Entries: `{len(index.get('entries') or [])}`",
         "",
-        "| Entry | Created | Status | Release | Hosted | Benchmark | Warnings | Blockers | Benchmark movement |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in index.get("entries") or []:
         statuses = entry.get("family_statuses") or {}
@@ -354,6 +598,15 @@ def render_index_markdown(index: dict[str, Any]) -> str:
                     statuses.get(FAMILY_RELEASE),
                     statuses.get(FAMILY_HOSTED),
                     statuses.get(FAMILY_BENCHMARK),
+                    statuses.get(FAMILY_EXTERNAL_INSTALL),
+                    statuses.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2),
+                    statuses.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE),
+                    statuses.get(FAMILY_FRESH_PUBLIC_REPO_IMPORT),
+                    statuses.get(FAMILY_REAL_EXTERNAL_HOST_TRIAL),
+                    statuses.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION),
+                    statuses.get(FAMILY_REAL_CONTINUITY),
+                    statuses.get(FAMILY_TEAM_HANDOFF),
+                    statuses.get(FAMILY_CODE_DECISION_AUDIT),
                     counts.get("warnings", 0),
                     counts.get("blockers", 0),
                     movement,
@@ -389,8 +642,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
 
     lines.extend(
         [
-            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | Warnings | Operator-guided | Not provided |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Operator-guided | Not provided |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for entry in selected:
@@ -398,6 +651,15 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         counts = entry.get("counts") or {}
         release = (families.get(FAMILY_RELEASE) or {}).get("status")
         hosted = (families.get(FAMILY_HOSTED) or {}).get("public_walkthrough_status") or (families.get(FAMILY_HOSTED) or {}).get("status")
+        external = (families.get(FAMILY_EXTERNAL_INSTALL) or {}).get("status")
+        customer_host = (families.get(FAMILY_EXTERNAL_CUSTOMER_HOST_V2) or {}).get("status")
+        full_chain = (families.get(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE) or {}).get("status")
+        fresh_import = (families.get(FAMILY_FRESH_PUBLIC_REPO_IMPORT) or {}).get("status")
+        real_external_host = (families.get(FAMILY_REAL_EXTERNAL_HOST_TRIAL) or {}).get("status")
+        warning_reduction = (families.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION) or {}).get("status")
+        continuity = (families.get(FAMILY_REAL_CONTINUITY) or {}).get("status")
+        handoff = (families.get(FAMILY_TEAM_HANDOFF) or {}).get("status")
+        audit = (families.get(FAMILY_CODE_DECISION_AUDIT) or {}).get("status")
         lines.append(
             "| "
             + " | ".join(
@@ -409,6 +671,15 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
                     hosted,
                     counts.get("benchmark_regressions", 0),
                     counts.get("benchmark_operational_blockers", 0),
+                    external,
+                    customer_host,
+                    full_chain,
+                    fresh_import,
+                    real_external_host,
+                    warning_reduction,
+                    continuity,
+                    handoff,
+                    audit,
                     counts.get("warnings", 0),
                     counts.get("operator_guided", 0),
                     counts.get("not_provided", 0),
@@ -424,6 +695,22 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         follow_up.append("Investigate benchmark regressions before claiming product-quality improvement.")
     if counts.get("benchmark_operational_blockers"):
         follow_up.append("Resolve benchmark operational blockers and rerun comparison.")
+    if counts.get("external_install_blockers"):
+        follow_up.append("Resolve external install evidence blockers before customer-host install claims.")
+    if counts.get("external_customer_host_v2_blockers"):
+        follow_up.append("Resolve customer-host v2 blockers before external customer-host readiness claims.")
+    if counts.get("full_chain_random_repo_release_blockers"):
+        follow_up.append("Resolve full-chain random repo release rehearsal blockers before final handoff claims.")
+    if counts.get("real_external_host_trial_blockers"):
+        follow_up.append("Resolve real external host trial blockers before external customer proof claims.")
+    if counts.get("real_external_host_trial_placeholder_findings"):
+        follow_up.append("Replace placeholder/template host trial values with real sanitized external host observations.")
+    if counts.get("random_repo_warning_product_controlled"):
+        follow_up.append("Reduce product-controlled random repository warning lanes before claiming quality improvement.")
+    if counts.get("random_repo_warning_external_dependency"):
+        follow_up.append("Rerun or disclose external dependency warning lanes in random repository release evidence.")
+    if counts.get("real_continuity_blockers"):
+        follow_up.append("Resolve real continuity rehearsal blockers before backup/restore/upgrade claims.")
     if counts.get("operator_guided"):
         follow_up.append("Complete operator-guided hosted readiness lanes before external preview.")
     if counts.get("not_provided"):
@@ -456,6 +743,15 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         EvidenceSource(FAMILY_RELEASE, Path(args.release_evidence_json) if args.release_evidence_json else None, Path(args.release_evidence_markdown) if args.release_evidence_markdown else None),
         EvidenceSource(FAMILY_HOSTED, Path(args.hosted_readiness_json) if args.hosted_readiness_json else None, Path(args.hosted_readiness_markdown) if args.hosted_readiness_markdown else None),
         EvidenceSource(FAMILY_BENCHMARK, Path(args.benchmark_comparison_json) if args.benchmark_comparison_json else None, Path(args.benchmark_comparison_markdown) if args.benchmark_comparison_markdown else None),
+        EvidenceSource(FAMILY_EXTERNAL_INSTALL, Path(args.external_install_evidence_json) if args.external_install_evidence_json else None, Path(args.external_install_evidence_markdown) if args.external_install_evidence_markdown else None),
+        EvidenceSource(FAMILY_EXTERNAL_CUSTOMER_HOST_V2, Path(args.external_customer_host_v2_json) if args.external_customer_host_v2_json else None, Path(args.external_customer_host_v2_markdown) if args.external_customer_host_v2_markdown else None),
+        EvidenceSource(FAMILY_FULL_CHAIN_RANDOM_REPO_RELEASE, Path(args.full_chain_random_repo_release_json) if args.full_chain_random_repo_release_json else None, Path(args.full_chain_random_repo_release_markdown) if args.full_chain_random_repo_release_markdown else None),
+        EvidenceSource(FAMILY_FRESH_PUBLIC_REPO_IMPORT, Path(args.fresh_public_repo_import_json) if args.fresh_public_repo_import_json else None, Path(args.fresh_public_repo_import_markdown) if args.fresh_public_repo_import_markdown else None),
+        EvidenceSource(FAMILY_REAL_EXTERNAL_HOST_TRIAL, Path(args.real_external_host_trial_json) if args.real_external_host_trial_json else None, Path(args.real_external_host_trial_markdown) if args.real_external_host_trial_markdown else None),
+        EvidenceSource(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION, Path(args.random_repo_warning_lane_reduction_json) if args.random_repo_warning_lane_reduction_json else None, Path(args.random_repo_warning_lane_reduction_markdown) if args.random_repo_warning_lane_reduction_markdown else None),
+        EvidenceSource(FAMILY_REAL_CONTINUITY, Path(args.real_continuity_rehearsal_json) if args.real_continuity_rehearsal_json else None, Path(args.real_continuity_rehearsal_markdown) if args.real_continuity_rehearsal_markdown else None),
+        EvidenceSource(FAMILY_TEAM_HANDOFF, Path(args.team_handoff_json) if args.team_handoff_json else None, Path(args.team_handoff_markdown) if args.team_handoff_markdown else None),
+        EvidenceSource(FAMILY_CODE_DECISION_AUDIT, Path(args.code_decision_audit_json) if args.code_decision_audit_json else None, Path(args.code_decision_audit_markdown) if args.code_decision_audit_markdown else None),
     ]
     entry = build_entry(
         sources=sources,
@@ -506,6 +802,24 @@ def _build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--hosted-readiness-markdown", help="Explicit hosted readiness Markdown path.")
     archive.add_argument("--benchmark-comparison-json", help="Explicit real-repo benchmark comparison JSON path.")
     archive.add_argument("--benchmark-comparison-markdown", help="Explicit real-repo benchmark comparison Markdown path.")
+    archive.add_argument("--external-install-evidence-json", help="Explicit external install evidence JSON path.")
+    archive.add_argument("--external-install-evidence-markdown", help="Explicit external install evidence Markdown path.")
+    archive.add_argument("--external-customer-host-v2-json", help="Explicit external/customer-host rehearsal v2 JSON path.")
+    archive.add_argument("--external-customer-host-v2-markdown", help="Explicit external/customer-host rehearsal v2 Markdown path.")
+    archive.add_argument("--full-chain-random-repo-release-json", help="Explicit full-chain random repo release rehearsal JSON path.")
+    archive.add_argument("--full-chain-random-repo-release-markdown", help="Explicit full-chain random repo release rehearsal Markdown path.")
+    archive.add_argument("--fresh-public-repo-import-json", help="Explicit fresh public repository import rehearsal JSON path.")
+    archive.add_argument("--fresh-public-repo-import-markdown", help="Explicit fresh public repository import rehearsal Markdown path.")
+    archive.add_argument("--real-external-host-trial-json", help="Explicit real external host trial evidence JSON path.")
+    archive.add_argument("--real-external-host-trial-markdown", help="Explicit real external host trial evidence Markdown path.")
+    archive.add_argument("--random-repo-warning-lane-reduction-json", help="Explicit random repo warning lane reduction JSON path.")
+    archive.add_argument("--random-repo-warning-lane-reduction-markdown", help="Explicit random repo warning lane reduction Markdown path.")
+    archive.add_argument("--real-continuity-rehearsal-json", help="Explicit real backup/restore/upgrade rehearsal JSON path.")
+    archive.add_argument("--real-continuity-rehearsal-markdown", help="Explicit real backup/restore/upgrade rehearsal Markdown path.")
+    archive.add_argument("--team-handoff-json", help="Explicit team handoff JSON path.")
+    archive.add_argument("--team-handoff-markdown", help="Explicit team handoff Markdown path.")
+    archive.add_argument("--code-decision-audit-json", help="Explicit Code Decision Audit JSON path.")
+    archive.add_argument("--code-decision-audit-markdown", help="Explicit Code Decision Audit Markdown path.")
 
     summarize = subparsers.add_parser("summarize", help="Regenerate index and trend summary from archived entries.")
     summarize.add_argument("--trend-output", help="Optional path for trend Markdown output.")

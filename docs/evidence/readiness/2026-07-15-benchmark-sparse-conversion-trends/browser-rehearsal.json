@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-15T04:19:28.980Z",
+  "status": "pass",
+  "test": "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+  "profile": "stress",
+  "repository": "LiPu-jpg/Openwrite",
+  "environment": "real_local_stack",
+  "browser": "chromium",
+  "workers": 1,
+  "summary": {
+    "expected": 1,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "duration_ms": 6633
+  },
+  "covered_navigation": [
+    "dashboard",
+    "review_when_available",
+    "why",
+    "drift",
+    "evidence"
+  ],
+  "boundary": "Bounded browser result only; no session tokens, local absolute paths, raw source, or raw model output."
+}

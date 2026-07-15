@@ -1,0 +1,607 @@
+{
+  "generated_at": "2026-07-15T04:15:25.165705+00:00",
+  "base_url": "http://127.0.0.1:3001",
+  "provider": {
+    "status": "provided",
+    "mode": "openai_compatible",
+    "is_live": true,
+    "llm_provider_mode": "openai_compatible",
+    "embedding_provider_mode": "fake",
+    "model_label": "not_provided"
+  },
+  "repositories": [
+    {
+      "id": "drisspg-transformer-nuggets",
+      "repo": "drisspg/transformer_nuggets",
+      "workspace_slug": "github-drisspg-transformer-nuggets",
+      "role": "small_sparse",
+      "benchmark_purpose": "Live sparse conversion trend profile: small_sparse.",
+      "expectations": {
+        "expected_value_outcomes": []
+      },
+      "passed": true,
+      "bounded_outcome": "evidence_limited",
+      "value_outcome": "evidence_limited",
+      "value_outcome_allowed": true,
+      "limitation_categories": [
+        "source_evidence"
+      ],
+      "follow_up_categories": [
+        "source_evidence"
+      ],
+      "key_metrics": {
+        "candidate_decision_count": 0,
+        "accepted_decision_count": 0,
+        "total_decision_count": 0,
+        "screened_in_artifact_count": 1,
+        "strong_candidate_count": 0,
+        "thin_candidate_ratio": 0,
+        "why_case_count": 0,
+        "why_case_passed_count": 0,
+        "drift_case_count": 0,
+        "drift_case_passed_count": 0
+      },
+      "operational_error": null,
+      "dashboard": {
+        "workspace_slug": "github-drisspg-transformer-nuggets",
+        "workspace_mode": "imported",
+        "bounded_outcome": "evidence_limited",
+        "readiness_state": "evidence_limited",
+        "review_state": "review_unavailable",
+        "why_state": "evidence_limited",
+        "drift_state": "evidence_limited",
+        "next_action": "inspect_import_summary",
+        "recommended_actions": [
+          "inspect_import_summary"
+        ],
+        "candidate_decision_count": 0,
+        "accepted_decision_count": 0,
+        "total_decision_count": 0,
+        "screened_in_artifact_count": 1,
+        "latest_import_status": "succeeded",
+        "sparse_conversion": {
+          "status": "exhausted",
+          "skip_reason": "all_attempts_rejected",
+          "normal_attempts": 3,
+          "normal_candidates": 0,
+          "sparse_eligible_artifacts": 1,
+          "sparse_attempted_artifacts": 1,
+          "sparse_model_attempts": 1,
+          "sparse_recovered_candidates": 0,
+          "recovery_candidates": 0,
+          "candidate_yield": 0.0,
+          "normal_candidate_yield": 0.0,
+          "sparse_recovered_yield": 0.0,
+          "rejection_reasons": {
+            "null_decision": 1
+          },
+          "conversion_loss_reasons": {
+            "null_decision": 2
+          },
+          "elapsed_seconds": 26,
+          "provider_mode": "openai_compatible",
+          "provider_is_live": true,
+          "llm_provider_mode": "openai_compatible",
+          "embedding_provider_mode": "fake",
+          "model_label": "not_provided"
+        },
+        "checks": {
+          "readiness_allowed": true,
+          "why_allowed": true,
+          "drift_allowed": true,
+          "minimum_candidate_decisions": true,
+          "minimum_reviewable_candidates": true,
+          "minimum_accepted_decisions": true,
+          "minimum_screened_in_artifacts": true
+        }
+      },
+      "why_cases": [],
+      "drift": {
+        "passed": true,
+        "state": "evidence_limited",
+        "state_allowed": true,
+        "cases": []
+      },
+      "candidate_quality": {
+        "passed": true,
+        "operational_error": null,
+        "observations": {
+          "candidate_count": 0,
+          "label_counts": {},
+          "strong_candidate_count": 0,
+          "thin_candidate_count": 0,
+          "thin_candidate_ratio": 0,
+          "source_ref_count": 0,
+          "previewable_source_ref_count": 0,
+          "provenance_gap_count": 0,
+          "source_url_gap_count": 0,
+          "confidence_buckets": {},
+          "reason_counts": {}
+        },
+        "checks": {
+          "quality_payload_available": true,
+          "reason_payload_available": true,
+          "minimum_strong_candidates": true,
+          "maximum_thin_candidate_ratio": true,
+          "provenance_available": true
+        }
+      },
+      "sparse_conversion": {
+        "status": "exhausted",
+        "skip_reason": "all_attempts_rejected",
+        "normal_attempts": 3,
+        "normal_candidates": 0,
+        "sparse_eligible_artifacts": 1,
+        "sparse_attempted_artifacts": 1,
+        "sparse_model_attempts": 1,
+        "sparse_recovered_candidates": 0,
+        "recovery_candidates": 0,
+        "candidate_yield": 0.0,
+        "normal_candidate_yield": 0.0,
+        "sparse_recovered_yield": 0.0,
+        "rejection_reasons": {
+          "null_decision": 1
+        },
+        "conversion_loss_reasons": {
+          "null_decision": 2
+        },
+        "elapsed_seconds": 26,
+        "provider_mode": "openai_compatible",
+        "provider_is_live": true,
+        "llm_provider_mode": "openai_compatible",
+        "embedding_provider_mode": "fake",
+        "model_label": "not_provided"
+      }
+    },
+    {
+      "id": "harbor-framework-terminal-bench-science",
+      "repo": "harbor-framework/terminal-bench-science",
+      "workspace_slug": "github-harbor-framework-terminal-bench-science",
+      "role": "docs_heavy",
+      "benchmark_purpose": "Live sparse conversion trend profile: docs_heavy.",
+      "expectations": {
+        "expected_value_outcomes": []
+      },
+      "passed": true,
+      "bounded_outcome": "review_ready",
+      "value_outcome": "useful_now",
+      "value_outcome_allowed": true,
+      "limitation_categories": [],
+      "follow_up_categories": [],
+      "key_metrics": {
+        "candidate_decision_count": 29,
+        "accepted_decision_count": 0,
+        "total_decision_count": 29,
+        "screened_in_artifact_count": 33,
+        "strong_candidate_count": 1,
+        "thin_candidate_ratio": 0.0,
+        "why_case_count": 0,
+        "why_case_passed_count": 0,
+        "drift_case_count": 0,
+        "drift_case_passed_count": 0
+      },
+      "operational_error": null,
+      "dashboard": {
+        "workspace_slug": "github-harbor-framework-terminal-bench-science",
+        "workspace_mode": "imported",
+        "bounded_outcome": "review_ready",
+        "readiness_state": "review_ready",
+        "review_state": "review_ready",
+        "why_state": "review_required",
+        "drift_state": "review_required",
+        "next_action": "review_candidates",
+        "recommended_actions": [
+          "review_candidates",
+          "inspect_import_summary"
+        ],
+        "candidate_decision_count": 29,
+        "accepted_decision_count": 0,
+        "total_decision_count": 29,
+        "screened_in_artifact_count": 33,
+        "latest_import_status": "succeeded",
+        "sparse_conversion": {
+          "status": "skipped",
+          "skip_reason": "candidate_present",
+          "normal_attempts": 43,
+          "normal_candidates": 23,
+          "sparse_eligible_artifacts": 0,
+          "sparse_attempted_artifacts": 0,
+          "sparse_model_attempts": 0,
+          "sparse_recovered_candidates": 0,
+          "recovery_candidates": 6,
+          "candidate_yield": 0.6744,
+          "normal_candidate_yield": 0.5349,
+          "sparse_recovered_yield": null,
+          "rejection_reasons": {},
+          "conversion_loss_reasons": {
+            "null_decision": 1,
+            "thin_source_ref_coverage": 3,
+            "ungrounded_quote": 3
+          },
+          "elapsed_seconds": 690,
+          "provider_mode": "openai_compatible",
+          "provider_is_live": true,
+          "llm_provider_mode": "openai_compatible",
+          "embedding_provider_mode": "fake",
+          "model_label": "not_provided"
+        },
+        "checks": {
+          "readiness_allowed": true,
+          "why_allowed": true,
+          "drift_allowed": true,
+          "minimum_candidate_decisions": true,
+          "minimum_reviewable_candidates": true,
+          "minimum_accepted_decisions": true,
+          "minimum_screened_in_artifacts": true
+        }
+      },
+      "why_cases": [],
+      "drift": {
+        "passed": true,
+        "state": "review_required",
+        "state_allowed": true,
+        "cases": []
+      },
+      "candidate_quality": {
+        "passed": true,
+        "operational_error": null,
+        "observations": {
+          "candidate_count": 29,
+          "label_counts": {
+            "strong": 1,
+            "partial": 28
+          },
+          "strong_candidate_count": 1,
+          "thin_candidate_count": 0,
+          "thin_candidate_ratio": 0.0,
+          "source_ref_count": 68,
+          "previewable_source_ref_count": 68,
+          "provenance_gap_count": 0,
+          "source_url_gap_count": 0,
+          "confidence_buckets": {
+            "high": 1,
+            "low": 28
+          },
+          "reason_counts": {
+            "multiple_source_refs": 26,
+            "previewable_quote": 29,
+            "artifact_provenance": 29,
+            "source_url_available": 29,
+            "high_confidence": 1,
+            "low_confidence": 28,
+            "single_source_ref": 3
+          }
+        },
+        "checks": {
+          "quality_payload_available": true,
+          "reason_payload_available": true,
+          "minimum_strong_candidates": true,
+          "maximum_thin_candidate_ratio": true,
+          "provenance_available": true
+        }
+      },
+      "sparse_conversion": {
+        "status": "skipped",
+        "skip_reason": "candidate_present",
+        "normal_attempts": 43,
+        "normal_candidates": 23,
+        "sparse_eligible_artifacts": 0,
+        "sparse_attempted_artifacts": 0,
+        "sparse_model_attempts": 0,
+        "sparse_recovered_candidates": 0,
+        "recovery_candidates": 6,
+        "candidate_yield": 0.6744,
+        "normal_candidate_yield": 0.5349,
+        "sparse_recovered_yield": null,
+        "rejection_reasons": {},
+        "conversion_loss_reasons": {
+          "null_decision": 1,
+          "thin_source_ref_coverage": 3,
+          "ungrounded_quote": 3
+        },
+        "elapsed_seconds": 690,
+        "provider_mode": "openai_compatible",
+        "provider_is_live": true,
+        "llm_provider_mode": "openai_compatible",
+        "embedding_provider_mode": "fake",
+        "model_label": "not_provided"
+      }
+    },
+    {
+      "id": "sirkirby-unifi-mcp",
+      "repo": "sirkirby/unifi-mcp",
+      "workspace_slug": "github-sirkirby-unifi-mcp",
+      "role": "medium_decision_rich",
+      "benchmark_purpose": "Live sparse conversion trend profile: medium_decision_rich.",
+      "expectations": {
+        "expected_value_outcomes": []
+      },
+      "passed": true,
+      "bounded_outcome": "review_ready",
+      "value_outcome": "useful_now",
+      "value_outcome_allowed": true,
+      "limitation_categories": [],
+      "follow_up_categories": [],
+      "key_metrics": {
+        "candidate_decision_count": 51,
+        "accepted_decision_count": 0,
+        "total_decision_count": 51,
+        "screened_in_artifact_count": 56,
+        "strong_candidate_count": 2,
+        "thin_candidate_ratio": 0.0,
+        "why_case_count": 0,
+        "why_case_passed_count": 0,
+        "drift_case_count": 0,
+        "drift_case_passed_count": 0
+      },
+      "operational_error": null,
+      "dashboard": {
+        "workspace_slug": "github-sirkirby-unifi-mcp",
+        "workspace_mode": "imported",
+        "bounded_outcome": "review_ready",
+        "readiness_state": "review_ready",
+        "review_state": "review_ready",
+        "why_state": "review_required",
+        "drift_state": "review_required",
+        "next_action": "review_candidates",
+        "recommended_actions": [
+          "review_candidates",
+          "inspect_import_summary"
+        ],
+        "candidate_decision_count": 51,
+        "accepted_decision_count": 0,
+        "total_decision_count": 51,
+        "screened_in_artifact_count": 56,
+        "latest_import_status": "succeeded",
+        "sparse_conversion": {
+          "status": "skipped",
+          "skip_reason": "candidate_present",
+          "normal_attempts": 74,
+          "normal_candidates": 38,
+          "sparse_eligible_artifacts": 0,
+          "sparse_attempted_artifacts": 0,
+          "sparse_model_attempts": 0,
+          "sparse_recovered_candidates": 0,
+          "recovery_candidates": 13,
+          "candidate_yield": 0.6892,
+          "normal_candidate_yield": 0.5135,
+          "sparse_recovered_yield": null,
+          "rejection_reasons": {},
+          "conversion_loss_reasons": {
+            "invalid_json": 1,
+            "missing_required_fields": 1,
+            "null_decision": 3,
+            "thin_source_ref_coverage": 10
+          },
+          "elapsed_seconds": 772,
+          "provider_mode": "openai_compatible",
+          "provider_is_live": true,
+          "llm_provider_mode": "openai_compatible",
+          "embedding_provider_mode": "fake",
+          "model_label": "not_provided"
+        },
+        "checks": {
+          "readiness_allowed": true,
+          "why_allowed": true,
+          "drift_allowed": true,
+          "minimum_candidate_decisions": true,
+          "minimum_reviewable_candidates": true,
+          "minimum_accepted_decisions": true,
+          "minimum_screened_in_artifacts": true
+        }
+      },
+      "why_cases": [],
+      "drift": {
+        "passed": true,
+        "state": "review_required",
+        "state_allowed": true,
+        "cases": []
+      },
+      "candidate_quality": {
+        "passed": true,
+        "operational_error": null,
+        "observations": {
+          "candidate_count": 51,
+          "label_counts": {
+            "strong": 2,
+            "partial": 49
+          },
+          "strong_candidate_count": 2,
+          "thin_candidate_count": 0,
+          "thin_candidate_ratio": 0.0,
+          "source_ref_count": 113,
+          "previewable_source_ref_count": 113,
+          "provenance_gap_count": 0,
+          "source_url_gap_count": 0,
+          "confidence_buckets": {
+            "high": 2,
+            "low": 49
+          },
+          "reason_counts": {
+            "multiple_source_refs": 41,
+            "previewable_quote": 51,
+            "artifact_provenance": 51,
+            "source_url_available": 51,
+            "high_confidence": 2,
+            "low_confidence": 49,
+            "single_source_ref": 10
+          }
+        },
+        "checks": {
+          "quality_payload_available": true,
+          "reason_payload_available": true,
+          "minimum_strong_candidates": true,
+          "maximum_thin_candidate_ratio": true,
+          "provenance_available": true
+        }
+      },
+      "sparse_conversion": {
+        "status": "skipped",
+        "skip_reason": "candidate_present",
+        "normal_attempts": 74,
+        "normal_candidates": 38,
+        "sparse_eligible_artifacts": 0,
+        "sparse_attempted_artifacts": 0,
+        "sparse_model_attempts": 0,
+        "sparse_recovered_candidates": 0,
+        "recovery_candidates": 13,
+        "candidate_yield": 0.6892,
+        "normal_candidate_yield": 0.5135,
+        "sparse_recovered_yield": null,
+        "rejection_reasons": {},
+        "conversion_loss_reasons": {
+          "invalid_json": 1,
+          "missing_required_fields": 1,
+          "null_decision": 3,
+          "thin_source_ref_coverage": 10
+        },
+        "elapsed_seconds": 772,
+        "provider_mode": "openai_compatible",
+        "provider_is_live": true,
+        "llm_provider_mode": "openai_compatible",
+        "embedding_provider_mode": "fake",
+        "model_label": "not_provided"
+      }
+    },
+    {
+      "id": "lipu-jpg-openwrite",
+      "repo": "LiPu-jpg/Openwrite",
+      "workspace_slug": "github-lipu-jpg-openwrite",
+      "role": "stress",
+      "benchmark_purpose": "Live sparse conversion trend profile: stress.",
+      "expectations": {
+        "expected_value_outcomes": []
+      },
+      "passed": true,
+      "bounded_outcome": "evidence_limited",
+      "value_outcome": "evidence_limited",
+      "value_outcome_allowed": true,
+      "limitation_categories": [
+        "source_evidence"
+      ],
+      "follow_up_categories": [
+        "source_evidence"
+      ],
+      "key_metrics": {
+        "candidate_decision_count": 0,
+        "accepted_decision_count": 0,
+        "total_decision_count": 0,
+        "screened_in_artifact_count": 0,
+        "strong_candidate_count": 0,
+        "thin_candidate_ratio": 0,
+        "why_case_count": 0,
+        "why_case_passed_count": 0,
+        "drift_case_count": 0,
+        "drift_case_passed_count": 0
+      },
+      "operational_error": null,
+      "dashboard": {
+        "workspace_slug": "github-lipu-jpg-openwrite",
+        "workspace_mode": "imported",
+        "bounded_outcome": "evidence_limited",
+        "readiness_state": "evidence_limited",
+        "review_state": "review_unavailable",
+        "why_state": "evidence_limited",
+        "drift_state": "evidence_limited",
+        "next_action": "inspect_import_summary",
+        "recommended_actions": [
+          "inspect_import_summary"
+        ],
+        "candidate_decision_count": 0,
+        "accepted_decision_count": 0,
+        "total_decision_count": 0,
+        "screened_in_artifact_count": 0,
+        "latest_import_status": "succeeded",
+        "sparse_conversion": {
+          "status": "skipped",
+          "skip_reason": "no_eligible_evidence",
+          "normal_attempts": 0,
+          "normal_candidates": 0,
+          "sparse_eligible_artifacts": 0,
+          "sparse_attempted_artifacts": 0,
+          "sparse_model_attempts": 0,
+          "sparse_recovered_candidates": 0,
+          "recovery_candidates": 0,
+          "candidate_yield": null,
+          "normal_candidate_yield": null,
+          "sparse_recovered_yield": null,
+          "rejection_reasons": {},
+          "conversion_loss_reasons": {},
+          "elapsed_seconds": 0,
+          "provider_mode": "openai_compatible",
+          "provider_is_live": true,
+          "llm_provider_mode": "openai_compatible",
+          "embedding_provider_mode": "fake",
+          "model_label": "not_provided"
+        },
+        "checks": {
+          "readiness_allowed": true,
+          "why_allowed": true,
+          "drift_allowed": true,
+          "minimum_candidate_decisions": true,
+          "minimum_reviewable_candidates": true,
+          "minimum_accepted_decisions": true,
+          "minimum_screened_in_artifacts": true
+        }
+      },
+      "why_cases": [],
+      "drift": {
+        "passed": true,
+        "state": "evidence_limited",
+        "state_allowed": true,
+        "cases": []
+      },
+      "candidate_quality": {
+        "passed": true,
+        "operational_error": null,
+        "observations": {
+          "candidate_count": 0,
+          "label_counts": {},
+          "strong_candidate_count": 0,
+          "thin_candidate_count": 0,
+          "thin_candidate_ratio": 0,
+          "source_ref_count": 0,
+          "previewable_source_ref_count": 0,
+          "provenance_gap_count": 0,
+          "source_url_gap_count": 0,
+          "confidence_buckets": {},
+          "reason_counts": {}
+        },
+        "checks": {
+          "quality_payload_available": true,
+          "reason_payload_available": true,
+          "minimum_strong_candidates": true,
+          "maximum_thin_candidate_ratio": true,
+          "provenance_available": true
+        }
+      },
+      "sparse_conversion": {
+        "status": "skipped",
+        "skip_reason": "no_eligible_evidence",
+        "normal_attempts": 0,
+        "normal_candidates": 0,
+        "sparse_eligible_artifacts": 0,
+        "sparse_attempted_artifacts": 0,
+        "sparse_model_attempts": 0,
+        "sparse_recovered_candidates": 0,
+        "recovery_candidates": 0,
+        "candidate_yield": null,
+        "normal_candidate_yield": null,
+        "sparse_recovered_yield": null,
+        "rejection_reasons": {},
+        "conversion_loss_reasons": {},
+        "elapsed_seconds": 0,
+        "provider_mode": "openai_compatible",
+        "provider_is_live": true,
+        "llm_provider_mode": "openai_compatible",
+        "embedding_provider_mode": "fake",
+        "model_label": "not_provided"
+      }
+    }
+  ],
+  "summary": {
+    "repositories": 4,
+    "passed": 4,
+    "failed": 0
+  }
+}
