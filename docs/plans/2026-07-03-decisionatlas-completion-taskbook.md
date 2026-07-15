@@ -380,3 +380,31 @@ change：improve-imported-candidate-precision-ranking
 - before/after 对比的 before 是从实时候选 payload 重建的旧 confidence 排序，不是历史数据库快照。
 - 不自动 accept、reject、merge 或删除候选。
 - change 已归档；归档后发现的导入完成 refresh 导航竞态已修复并通过最终 CI；下一刀进入 sparse conversion 多仓库趋势。
+
+### P17：Sparse Conversion Multi-Profile Trend（进行中，待归档）
+
+change：`benchmark-sparse-conversion-trends`
+
+已完成：
+
+- benchmark snapshot 升级为兼容 schema v2，新增 `sparse_conversion`：normal/sparse attempts、candidate/recovered yield、rejection reasons、耗时和 provider mode。
+- 固定 trend pool 增加 `small_sparse`、`docs_heavy`、`medium_decision_rich`、`stress` profile 与 zero-candidate/sparse expectation；legacy snapshot 仍按 `not_provided` 读取。
+- comparison、coverage rehearsal、release evidence、hosted readiness、readiness history 和 team handoff 均保留 sparse movement，不改变 required gate 语义。
+- 聚焦证据测试 57 passed；engine 397 passed；API 32、Web 83；typecheck、benchmark fixture、OpenSpec strict 88/88 通过。
+- 真实 live provider 为 `openai_compatible`，embedding 为 `fake`；四个 fresh public repo 均完成成功导入和 live benchmark：
+  `drisspg/transformer_nuggets`（small_sparse，sparse exhausted）、
+  `harbor-framework/terminal-bench-science`（docs_heavy，candidate_present）、
+  `sirkirby/unifi-mcp`（medium_decision_rich，candidate_present）、
+  `LiPu-jpg/Openwrite`（stress，no_eligible_evidence）。
+- 本地真实栈浏览器核心链路 1 passed，覆盖 dashboard、review 条件、Why、Drift、Evidence 跳转；完整 JSON/Markdown 证据已保存到 `docs/evidence/readiness/2026-07-15-benchmark-sparse-conversion-trends/`。
+
+边界：
+
+- 四仓库当前是首次纳入比较，因此 movement 是 `newly-evaluated`，还没有同池历史 release baseline；下一次同池运行才会产生真正 improved/regressed 趋势。
+- hosted URL 和 recovery drill 仍为 `operator_guided`；本次不是外部客户主机交付证明。
+- stress 仓库导入成功但没有 eligible evidence，保留为 `evidence_limited`，不人为提升为通过。
+
+下一步：
+
+- 归档并推送本 change，查询对应 GitHub Actions。
+- 之后进入 `complete-real-customer-host-trial`，在独立 VM/外部主机完成 hosted/operator 交付闭环。

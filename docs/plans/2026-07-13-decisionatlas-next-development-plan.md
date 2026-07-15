@@ -164,3 +164,14 @@ improve-imported-candidate-precision-ranking 已完成实现和 GitHub Actions �
 1. benchmark-sparse-conversion-trends：固定仓库池、统一 seed，记录 normal/sparse attempts、candidate yield、recovered yield、rejection reasons、耗时和 provider mode。
 2. complete-real-customer-host-trial。
 3. 根据首批 2-3 个 self-hosted pilot 的真实阻塞选择 private repo、通知或升级回滚深化。
+
+## 2026-07-15 执行状态更新
+
+P2 `benchmark-sparse-conversion-trends` 已完成实现和真实演练：四类 fresh public repo 均有 seeded import/provider/sparse evidence，live benchmark 4/4 通过，trend 首次比较为 4 条 `newly-evaluated`，没有伪造 improved/regressed。`small_sparse` 真实触发 sparse recovery 并以 `exhausted` 结束；正常候选存在时的两个 profile 均保留 `skipped/candidate_present`；stress profile 的无证据结果保留为 `evidence_limited`。
+
+本次 release rehearsal 的下一步不是继续扩展 benchmark 维度，而是完成 P3：`complete-real-customer-host-trial`。优先级为：
+
+1. 在独立 VM 或外部服务器部署离线自托管包，记录真实 host input、安装耗时和恢复点。
+2. 完成管理员登录、账号分发、公共/私有仓库接入、审阅、Why、Drift、备份恢复。
+3. 将 hosted URL、recovery、operator runbook 从 `operator_guided`/模板状态推进到真实责任人可复核的证据。
+4. 只有在 2-3 个 self-hosted pilot 暴露明确阻塞后，才选择 private repo、通知或升级回滚的下一项深化。

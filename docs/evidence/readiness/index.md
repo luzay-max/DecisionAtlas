@@ -1,7 +1,7 @@
 # Readiness Evidence History
 
-- Generated at: `2026-07-13T03:17:35.768068+00:00`
-- Entries: `15`
+- Generated at: `2026-07-15T04:19:10.268059+00:00`
+- Entries: `17`
 
 | Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -20,6 +20,8 @@
 | 2026-07-13-fresh-public-sniffio-import-rehearsal | 2026-07-13T10:30:00+08:00 | warning | unknown | operator_guided | passed | not_provided | warning | warning | warning | warning | warning | not_provided | not_provided | not_provided | 30 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-13-sparse-repo-decision-conversion-rehearsal | 2026-07-13T10:45:30+08:00 | warning | unknown | operator_guided | passed | not_provided | not_provided | warning | warning | warning | warning | not_provided | not_provided | not_provided | 23 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 | 2026-07-13-governance-drift-finding-deduplication | 2026-07-13T11:20:00+08:00 | warning | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | passed | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-15-improve-imported-candidate-precision-ranking | 2026-07-15T09:58:53+08:00 | pass | - | - | - | - | - | - | - | - | - | - | - | - | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
+| 2026-07-15-benchmark-sparse-conversion-live-four-profile-rehearsal | 2026-07-15T11:15:00+00:00 | warning | warning | operator_guided | passed | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | not_provided | 0 | 0 | improved=0, regressed=0, operationally_blocked=0 |
 
 ## Notes
 

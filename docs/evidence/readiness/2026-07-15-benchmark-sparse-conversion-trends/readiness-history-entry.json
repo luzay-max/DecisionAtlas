@@ -1,0 +1,261 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": "benchmark_comparison.json",
+      "markdown": "benchmark_comparison.md",
+      "source_json_path": ".tmp/benchmark-sparse-conversion-trends/live-comparison.json",
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/live-comparison.md"
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "hosted_readiness": {
+      "json": "hosted_readiness.json",
+      "markdown": "hosted_readiness.md",
+      "source_json_path": ".tmp/benchmark-sparse-conversion-trends/hosted-readiness.json",
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/hosted-readiness.md"
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_continuity_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_external_host_trial_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/benchmark-sparse-conversion-trends/release-evidence.json",
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/release-evidence.md"
+    },
+    "team_handoff": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    }
+  },
+  "commit": "b2d1874",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "fresh_public_repo_import_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 10,
+    "operator_guided": 4,
+    "random_repo_warning_classified_lanes": 0,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 0,
+    "warnings": 0
+  },
+  "created_at": "2026-07-15T11:15:00+00:00",
+  "entry_id": "2026-07-15-benchmark-sparse-conversion-live-four-profile-rehearsal",
+  "families": {
+    "benchmark_comparison": {
+      "comparison_type": "real-repo-benchmark-regression",
+      "generated_at": "2026-07-15T04:16:12.950158+00:00",
+      "improved": 0,
+      "label": "Benchmark comparison",
+      "movements": {
+        "improved": 0,
+        "missing-from-current": 1,
+        "needs-review": 0,
+        "newly-evaluated": 4,
+        "operationally-blocked": 0,
+        "product-limited": 0,
+        "regressed": 0,
+        "unchanged": 0
+      },
+      "operationally_blocked": 0,
+      "regressed": 0,
+      "release_evidence_ready": true,
+      "repositories": 5,
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/live-comparison.md",
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/live-comparison.json",
+      "sparse_improved": 0,
+      "sparse_not_provided": 0,
+      "sparse_operationally_blocked": 0,
+      "sparse_regressed": 0,
+      "status": "passed"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "fresh_import": false,
+      "label": "Fresh public repo import rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "label": "Full-chain random repo release rehearsal",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "hosted_readiness": {
+      "blocker_count": 0,
+      "blockers": [],
+      "generated_at": "2026-07-15T10:45:00+00:00",
+      "known_limitation_count": 0,
+      "known_limitation_lanes": [],
+      "label": "Hosted readiness",
+      "lane_statuses": {
+        "api_hosted_url": "operator_guided",
+        "engine_hosted_url": "operator_guided",
+        "governance_guardrail": "non_blocking",
+        "hosted_health_check": "pass",
+        "hosted_smoke_check": "pass",
+        "real_repo_evidence": "pass",
+        "recovery_drill": "operator_guided",
+        "release_evidence": "non_blocking",
+        "seeded_demo_readiness": "pass",
+        "web_hosted_url": "operator_guided"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 4,
+      "operator_guided_lanes": [
+        "web_hosted_url",
+        "api_hosted_url",
+        "engine_hosted_url",
+        "recovery_drill"
+      ],
+      "public_walkthrough_decision": "operator_review_required",
+      "public_walkthrough_status": "operator_guided",
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/hosted-readiness.md",
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/hosted-readiness.json",
+      "status": "operator_guided",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "random_repo_warning_lane_reduction": {
+      "label": "Random repo warning lane reduction",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_continuity_rehearsal": {
+      "label": "Real continuity rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_external_host_trial_evidence": {
+      "host_proof_level": "not_provided",
+      "label": "Real external host trial evidence",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "caution",
+        "real_repo_benchmark_comparison": "passed",
+        "targeted_tests": "passed",
+        "trend_comparison": "not_provided"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T10:30:00+00:00",
+      "label": "Release evidence",
+      "missing_input_count": 1,
+      "missing_inputs": [
+        {
+          "id": "trend_comparison",
+          "label": "Release trend comparison",
+          "required": false,
+          "status": "not_provided"
+        }
+      ],
+      "not_provided_count": 1,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/benchmark-sparse-conversion-trends/release-evidence.md",
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/release-evidence.json",
+      "status": "warning",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "team_handoff": {
+      "label": "Team handoff",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    }
+  },
+  "label": "benchmark sparse conversion live four-profile rehearsal",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "2026-07-15-benchmark-sparse-conversion-trends",
+  "warnings": []
+}

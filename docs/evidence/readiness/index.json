@@ -495,9 +495,71 @@
       "status": "warning",
       "version_label": "2026-07-13-governance-drift-dedup",
       "warnings": []
+    },
+    {
+      "commit": "f0b2836",
+      "counts": {},
+      "created_at": "2026-07-15T09:58:53+08:00",
+      "entry_id": "2026-07-15-improve-imported-candidate-precision-ranking",
+      "family_statuses": {
+        "browser_rehearsal": "pass",
+        "candidate_precision_ordering": "pass",
+        "github_actions": "pass",
+        "local_regressions": "pass"
+      },
+      "label": "Imported candidate precision ranking",
+      "status": "pass",
+      "version_label": null,
+      "warnings": [
+        "Before ordering is reconstructed from the live candidate payload using legacy confidence ordering; it is not a historical database snapshot.",
+        "All candidates remain individually reviewable; no automatic acceptance, rejection, merge, or deletion is performed."
+      ]
+    },
+    {
+      "commit": "b2d1874",
+      "counts": {
+        "benchmark_improvements": 0,
+        "benchmark_operational_blockers": 0,
+        "benchmark_regressions": 0,
+        "blockers": 0,
+        "external_customer_host_v2_blockers": 0,
+        "external_install_blockers": 0,
+        "fresh_public_repo_import_blockers": 0,
+        "full_chain_random_repo_release_blockers": 0,
+        "known_limitations": 0,
+        "not_provided": 10,
+        "operator_guided": 4,
+        "random_repo_warning_classified_lanes": 0,
+        "random_repo_warning_external_dependency": 0,
+        "random_repo_warning_product_controlled": 0,
+        "real_continuity_blockers": 0,
+        "real_external_host_trial_blockers": 0,
+        "real_external_host_trial_placeholder_findings": 0,
+        "warnings": 0
+      },
+      "created_at": "2026-07-15T11:15:00+00:00",
+      "entry_id": "2026-07-15-benchmark-sparse-conversion-live-four-profile-rehearsal",
+      "family_statuses": {
+        "benchmark_comparison": "passed",
+        "code_decision_audit": "not_provided",
+        "external_customer_host_rehearsal_v2": "not_provided",
+        "external_install_evidence": "not_provided",
+        "fresh_public_repo_import_rehearsal": "not_provided",
+        "full_chain_random_repo_release_rehearsal": "not_provided",
+        "hosted_readiness": "operator_guided",
+        "random_repo_warning_lane_reduction": "not_provided",
+        "real_continuity_rehearsal": "not_provided",
+        "real_external_host_trial_evidence": "not_provided",
+        "release_evidence": "warning",
+        "team_handoff": "not_provided"
+      },
+      "label": "benchmark sparse conversion live four-profile rehearsal",
+      "status": "warning",
+      "version_label": "2026-07-15-benchmark-sparse-conversion-trends",
+      "warnings": []
     }
   ],
-  "generated_at": "2026-07-13T03:17:35.768068+00:00",
+  "generated_at": "2026-07-15T04:19:10.268059+00:00",
   "history_root": "C:\\Users\\Max\\Desktop\\DecisionAtlas\\docs\\evidence\\readiness",
   "schema_version": 1
 }
