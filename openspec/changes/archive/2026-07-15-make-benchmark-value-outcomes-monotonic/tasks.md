@@ -17,4 +17,4 @@
 ## 4. Closeout
 
 - [x] 4.1 Generate release evidence and readiness-history entry for the benchmark correction, update the taskbook, dated update log, and next-development plan.
-- [ ] 4.2 Archive the OpenSpec change, commit scoped files, push the dedicated branch, run and inspect GitHub Actions, and report the final CI result.
+- [x] 4.2 Archive the OpenSpec change, commit scoped files, push the dedicated branch, run and inspect GitHub Actions, and report the final CI result.
