@@ -13,6 +13,7 @@ from app.repositories.decisions import DecisionRepository
 from app.repositories.review_audit import ReviewAuditRepository, serialize_review_audit_event
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
+from app.review.candidate_precision import CandidatePrecisionProfile, profile_sort_key, rank_profiles
 
 router = APIRouter(prefix="/decisions", tags=["decisions"])
 
@@ -124,6 +125,7 @@ def _serialize_decision(
     artifacts: ArtifactRepository | None = None,
     workspace_mode: str | None = None,
     source_summary: str | None = None,
+    candidate_profile: CandidatePrecisionProfile | None = None,
 ) -> dict:
     payload = {
         "id": decision.id,
@@ -156,6 +158,20 @@ def _serialize_decision(
             source_refs=source_refs,
             primary_artifact=primary_artifact,
         )
+    if candidate_profile is not None:
+        payload["candidate_ranking"] = {
+            "score": candidate_profile.score,
+            "tier": candidate_profile.tier,
+            "reasons": list(candidate_profile.reasons),
+            "artifact_family": candidate_profile.artifact_family,
+            "parser_salvaged": candidate_profile.parser_salvaged,
+            "recovery": candidate_profile.recovery,
+            "sparse_recovery": candidate_profile.sparse_recovery,
+            "cluster_id": candidate_profile.cluster_id,
+            "cluster_size": candidate_profile.cluster_size,
+            "duplicate_of": candidate_profile.duplicate_of,
+            "is_representative": candidate_profile.is_representative,
+        }
     return payload
 
 
@@ -179,6 +195,15 @@ def list_decisions(
         source_refs = SourceRefRepository(session)
         artifacts = ArtifactRepository(session)
         provenance = get_workspace_provenance(session=session, workspace=workspace)
+        candidate_profiles: dict[int, CandidatePrecisionProfile] = {}
+        if review_state == "candidate":
+            evidence = {}
+            for decision in decisions:
+                decision_refs = source_refs.list_by_decision(decision.id)
+                primary_artifact = artifacts.get_by_id(decision_refs[0].artifact_id) if decision_refs else None
+                evidence[decision.id] = (decision_refs, primary_artifact)
+            candidate_profiles = rank_profiles(decisions, evidence)
+            decisions.sort(key=lambda decision: profile_sort_key(decision, candidate_profiles[decision.id]))
         return [
             _serialize_decision(
                 decision,
@@ -186,6 +211,7 @@ def list_decisions(
                 artifacts=artifacts,
                 workspace_mode=provenance.workspace_mode,
                 source_summary=provenance.source_summary,
+                candidate_profile=candidate_profiles.get(decision.id),
             )
             for decision in decisions
         ]

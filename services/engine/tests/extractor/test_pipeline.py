@@ -823,6 +823,12 @@ def test_pipeline_recovers_candidate_after_recoverable_first_pass_failure(tmp_pa
     assert created == 1
     assert len(decisions) == 1
     assert len(source_refs) >= 2
+    assert decisions[0].candidate_metadata_json == {
+        "artifact_family": "lightweight_evidence",
+        "parser_salvaged": False,
+        "recovery": True,
+        "sparse_recovery": False,
+    }
     assert pipeline.last_run_stats.recovery_extraction_attempts == 1
     assert pipeline.last_run_stats.recovered_candidates == 1
     assert pipeline.last_run_stats.skipped_invalid_json == 0
@@ -905,6 +911,12 @@ def test_pipeline_salvages_recoverable_structured_output(tmp_path: Path, monkeyp
     assert len(decisions) == 1
     assert decisions[0].title == "Queue rollout"
     assert decisions[0].confidence == 0.55
+    assert decisions[0].candidate_metadata_json == {
+        "artifact_family": "pull_request",
+        "parser_salvaged": True,
+        "recovery": False,
+        "sparse_recovery": False,
+    }
     assert pipeline.last_run_stats.salvaged_candidates == 1
 
 
@@ -1216,6 +1228,12 @@ def test_pipeline_sparse_recovery_creates_grounded_candidate(tmp_path: Path, mon
     assert created == 1
     assert decision is not None
     assert decision.review_state == "candidate"
+    assert decision.candidate_metadata_json == {
+        "artifact_family": "architecture_doc",
+        "parser_salvaged": False,
+        "recovery": True,
+        "sparse_recovery": True,
+    }
     assert len(refs) >= 1
     assert any(
         ref.quote == "We chose a bounded worker queue because synchronous background work delayed requests."

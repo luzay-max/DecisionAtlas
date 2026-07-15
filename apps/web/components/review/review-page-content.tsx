@@ -21,6 +21,19 @@ export function ReviewPageContent({
   const { messages } = useI18n();
   const inferredWorkspaceMode = workspaceSlug === "demo-workspace" ? "demo" : "imported";
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
+  const precisionCounts = decisions.reduce(
+    (counts, decision) => {
+      const tier = decision.candidate_ranking?.tier;
+      if (tier === "strong" || tier === "partial" || tier === "weak") {
+        counts[tier] += 1;
+      }
+      if (decision.candidate_ranking && !decision.candidate_ranking.is_representative) {
+        counts.duplicates += 1;
+      }
+      return counts;
+    },
+    { strong: 0, partial: 0, weak: 0, duplicates: 0 }
+  );
 
   return (
     <>
@@ -36,6 +49,15 @@ export function ReviewPageContent({
           <h1>{messages.review.title}</h1>
           <p>{messages.review.lede}</p>
           <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} />
+          {!isGuidedDemoWorkspace && decisions.length > 0 ? (
+            <div className="callout" aria-label="Candidate precision summary">
+              <p>{messages.review.precisionSummary
+                .replace("{strong}", String(precisionCounts.strong))
+                .replace("{partial}", String(precisionCounts.partial))
+                .replace("{weak}", String(precisionCounts.weak))
+                .replace("{duplicates}", String(precisionCounts.duplicates))}</p>
+            </div>
+          ) : null}
           <ReviewAuditPanel decisions={decisions} />
           {isGuidedDemoWorkspace ? (
             <GuidedDemoPanel

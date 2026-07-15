@@ -153,6 +153,19 @@ describe("ReviewPageContent", () => {
                 "high_confidence",
               ],
             },
+            candidate_ranking: {
+              score: 91,
+              tier: "strong",
+              reasons: ["multiple_source_refs", "cluster_representative"],
+              artifact_family: "pull_request",
+              parser_salvaged: false,
+              recovery: false,
+              sparse_recovery: false,
+              cluster_id: "candidate-7",
+              cluster_size: 2,
+              duplicate_of: null,
+              is_representative: true,
+            },
             review_evidence: {
               state: "grounded",
               source_ref_count: 2,
@@ -182,6 +195,10 @@ describe("ReviewPageContent", () => {
 
     expect(screen.getByText(/Accept the first well-supported imported candidate/i)).toBeInTheDocument();
     expect(screen.getByText("Strong candidate")).toBeInTheDocument();
+    expect(screen.getByText(/^Precision tier/).parentElement).toHaveTextContent("strong");
+    expect(screen.getByText(/^Precision score/).parentElement).toHaveTextContent("91");
+    expect(screen.getByText(/^Near-duplicate cluster/).parentElement).toHaveTextContent("2");
+    expect(screen.getByText(/^Near-duplicate cluster/).parentElement).toHaveTextContent("cluster representative");
     expect(screen.getByText(/Multiple grounded refs with previewable evidence/i)).toBeInTheDocument();
     expect(screen.getByText(/Multiple source refs.*Previewable quote.*Artifact provenance.*Source URL available/i)).toBeInTheDocument();
     expect(screen.getByText("Multiple grounded source refs")).toBeInTheDocument();

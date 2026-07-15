@@ -565,6 +565,12 @@ class CandidateExtractionPipeline:
             chosen_option=evaluation.decision.chosen_option,
             tradeoffs=evaluation.decision.tradeoffs,
             confidence=evaluation.decision.confidence,
+            candidate_metadata={
+                "artifact_family": completed.family,
+                "parser_salvaged": bool(evaluation.salvaged),
+                "recovery": bool(completed.recovery),
+                "sparse_recovery": bool(completed.sparse_recovery),
+            },
         )
         for span_start, span_end, quote in evaluation.grounded_quotes:
             self.source_refs.create(

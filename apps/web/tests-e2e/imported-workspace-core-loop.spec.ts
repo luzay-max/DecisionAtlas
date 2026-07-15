@@ -55,6 +55,10 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await page.getByRole("link", { name: /Review candidates/i }).first().click();
   await expect(page).toHaveURL(new RegExp(`/review\\?workspace=${workspaceSlug}`));
   await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
+  const precisionSummary = page.getByLabel("Candidate precision summary");
+  if (await precisionSummary.count()) {
+    await expect(precisionSummary).toContainText(/Queue precision:/i);
+  }
 
   await page.getByRole("link", { name: "Why Search", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/search\\?workspace=${workspaceSlug}`));

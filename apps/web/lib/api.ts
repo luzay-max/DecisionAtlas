@@ -22,6 +22,19 @@ export type ReviewDecision = {
     confidence_bucket: "high" | "medium" | "low" | string;
     reasons: string[];
   };
+  candidate_ranking?: {
+    score: number;
+    tier: "strong" | "partial" | "weak" | string;
+    reasons: string[];
+    artifact_family: string;
+    parser_salvaged: boolean | null;
+    recovery: boolean;
+    sparse_recovery: boolean;
+    cluster_id: string | null;
+    cluster_size: number;
+    duplicate_of: number | null;
+    is_representative: boolean;
+  };
   review_evidence?: {
     state: "grounded" | "thin" | "missing" | string;
     source_ref_count: number;

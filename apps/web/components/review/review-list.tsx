@@ -79,6 +79,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
       {items.map((decision) => {
         const evidence = decision.review_evidence;
         const quality = decision.candidate_quality;
+        const ranking = decision.candidate_ranking;
         const evidenceState = evidence?.state ?? "missing";
         const evidenceLabel =
           evidenceState === "grounded"
@@ -107,6 +108,29 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
               <strong>{messages.review.confidence}:</strong> {decision.confidence.toFixed(2)} ·{" "}
               {confidenceLabel(decision.confidence, messages)}
             </p>
+            {isImportedWorkspace && ranking ? (
+              <div className="callout">
+                <p>
+                  <strong>{messages.review.precisionTier}:</strong> <span className="badge">{ranking.tier}</span>{" "}
+                  {messages.review.precisionScore}: {ranking.score}
+                </p>
+                <p>
+                  <strong>{messages.review.extractionOrigin}:</strong>{" "}
+                  {ranking.artifact_family === "unknown" ? messages.review.unknownExtractionOrigin : ranking.artifact_family}
+                  {ranking.parser_salvaged ? ` · ${messages.review.parserSalvaged}` : ""}
+                  {ranking.recovery ? ` · ${messages.review.recoveredExtraction}` : ""}
+                  {ranking.sparse_recovery ? ` · ${messages.review.sparseRecovery}` : ""}
+                </p>
+                {ranking.cluster_size > 1 ? (
+                  <p>
+                    <strong>{messages.review.duplicateCluster}:</strong> {ranking.cluster_size}{" "}
+                    {ranking.is_representative
+                      ? messages.review.clusterRepresentative
+                      : messages.review.duplicateOf.replace("{id}", String(ranking.duplicate_of))}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {isImportedWorkspace ? (
               <div className="callout">
                 <p className="eyebrow">{messages.review.evidence}</p>
