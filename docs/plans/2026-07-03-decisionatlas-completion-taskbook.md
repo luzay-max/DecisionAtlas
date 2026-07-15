@@ -373,10 +373,10 @@ change：improve-imported-candidate-precision-ranking
 - imported review API、队列摘要、卡片解释和人工 review action 保持可用。
 - pip-tools 与新鲜 pallets/markupsafe 的真实 API 排序证据。
 - 真实浏览器核心链路 1 passed，engine 392、web 83、API 32、OpenSpec strict 88 全部通过。
-- 最终实现提交 2f57d70 已推送；GitHub Actions run 29384129719 全绿，browser smoke 12/12。
+- 最终实现提交 2f57d70 已推送；归档后的导航竞态修复提交 22de990、f0b2836 已推送；GitHub Actions run 29385331090 全绿，browser smoke 12/12。
 
 边界：
 
 - before/after 对比的 before 是从实时候选 payload 重建的旧 confidence 排序，不是历史数据库快照。
 - 不自动 accept、reject、merge 或删除候选。
-- change 已达到归档条件；下一刀进入 sparse conversion 多仓库趋势。
+- change 已归档；归档后发现的导入完成 refresh 导航竞态已修复并通过最终 CI；下一刀进入 sparse conversion 多仓库趋势。

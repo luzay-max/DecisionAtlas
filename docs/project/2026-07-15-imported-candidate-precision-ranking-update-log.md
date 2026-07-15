@@ -34,6 +34,12 @@ Real imported repositories can create a long candidate queue where confidence-on
 - Runs 29383266063 and 29383685702 exposed that the browser smoke tried to enter Review while a fresh import still held the workspace in a running state.
 - The final rehearsal now accepts an existing active import as a valid workspace context, enters Review only when candidates are ready, and still verifies the bounded review link otherwise.
 
+## Post-archive Navigation Race Fix
+
+- Archive follow-up commit 22de990 made the imported smoke locator target the exact workspace-scoped Why Search href; the clean CI run still reproduced the failure while an import completed in the background.
+- Root cause was `DemoImportButton` calling `router.refresh()` after its component had unmounted, which could interrupt an in-flight dashboard navigation and return the browser to the workspace dashboard.
+- Commit f0b2836 guards the refresh with the mounted state. Local imported browser rehearsal passed 1/1, and GitHub Actions run 29385331090 passed Node, typecheck, 392 engine tests, benchmark, and browser smoke 12/12.
+
 ## Next Step
 
-After CI is green and the change is archived, the next priority is sparse-conversion trend evidence across a fixed pool of fresh repositories. Batch rejection, automatic duplicate handling, billing, multi-tenancy, Marketplace, and self-service OAuth remain out of scope.
+With the change archived and the follow-up CI green, the next priority is sparse-conversion trend evidence across a fixed pool of fresh repositories. Batch rejection, automatic duplicate handling, billing, multi-tenancy, Marketplace, and self-service OAuth remain out of scope.

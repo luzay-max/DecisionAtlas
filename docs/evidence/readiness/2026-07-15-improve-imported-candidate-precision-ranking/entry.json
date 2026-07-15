@@ -3,7 +3,7 @@
   "label": "Imported candidate precision ranking",
   "created_at": "2026-07-15T09:58:53+08:00",
   "status": "pass",
-  "commit": "2f57d70",
+  "commit": "f0b2836",
   "families": {
     "candidate_precision_ordering": {
       "status": "pass",
@@ -52,13 +52,14 @@
     },
     "github_actions": {
       "status": "pass",
-      "run_id": 29384129719,
-      "commit": "2f57d70",
+      "run_id": 29385331090,
+      "commit": "f0b2836",
       "node_tests": "pass",
       "typecheck": "pass",
       "engine_tests": "392 passed",
       "benchmark_fixture": "pass",
-      "browser_smoke": "12 passed"
+      "browser_smoke": "12 passed",
+      "navigation_race_fix": "post-import router refresh is guarded after dashboard unmount"
     }
   },
   "warnings": [
