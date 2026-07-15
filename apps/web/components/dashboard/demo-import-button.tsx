@@ -334,7 +334,9 @@ export function DemoImportButton({
       return;
     }
     void waitForJob(activeJobId).then(() => {
-      router.refresh();
+      if (mountedRef.current) {
+        router.refresh();
+      }
     });
   }, [activeJobId, jobStatus, router]);
 
