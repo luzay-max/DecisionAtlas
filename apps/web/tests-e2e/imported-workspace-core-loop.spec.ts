@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const REAL_PUBLIC_REPO = process.env.PLAYWRIGHT_REAL_PUBLIC_REPO ?? "pallets/flask";
+const REAL_PUBLIC_REPO = process.env.PLAYWRIGHT_REAL_PUBLIC_REPO ?? "pallets/markupsafe";
 
 test("imported workspace core loop browser rehearsal", async ({ page }) => {
   const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:3001";
@@ -52,7 +52,11 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await expect(page.getByRole("heading", { name: workspaceSlug })).toBeVisible();
   await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: /Review candidates/i }).first().click();
+  const reviewLink = page.locator(
+    `a[href="/review?workspace=${encodeURIComponent(workspaceSlug)}"]`
+  ).first();
+  await expect(reviewLink).toBeVisible();
+  await reviewLink.click();
   await expect(page).toHaveURL(new RegExp(`/review\\?workspace=${workspaceSlug}`));
   await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
   const precisionSummary = page.getByLabel("Candidate precision summary");
