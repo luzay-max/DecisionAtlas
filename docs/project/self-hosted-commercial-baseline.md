@@ -49,6 +49,8 @@ Private-repo commercial claims should reference [Private Repo Pilot Evidence Tem
 
 Backup/restore/upgrade commercial claims should reference [Backup Restore Upgrade Rehearsal](backup-restore-upgrade-rehearsal.md). A self-hosted package being verifiable is not the same as proving long-term continuity readiness. Clean continuity claims require reviewed rehearsal evidence, or the handoff must preserve `operator_guided`, `known_limitation`, or `not_provided`.
 
+External/customer-host install claims should reference [External Self-Hosted Install Evidence](external-self-hosted-install-evidence.md). Package verification and local clean install rehearsal prove package structure and local handoff hygiene; they do not prove that a clean VM, another machine, or customer-controlled host successfully installed and exercised the product. If external evidence is missing, keep the claim as `not_provided` or `operator_guided`.
+
 ## Deferred Capabilities
 
 The self-hosted baseline does not include:

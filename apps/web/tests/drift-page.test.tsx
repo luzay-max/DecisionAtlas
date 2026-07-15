@@ -10,6 +10,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({
     refresh: vi.fn(),
   }),
+  usePathname: () => "/drift",
+}));
+
+vi.mock("../components/navigation/global-sidebar", () => ({
+  GlobalSidebar: () => <nav data-testid="global-sidebar" />,
 }));
 
 vi.mock("../lib/api", async () => {
@@ -66,7 +71,7 @@ describe("DriftPageContent", () => {
     expect(screen.getByText(/Workspace Type/i)).toBeInTheDocument();
     expect(screen.getByText(/^Demo Workspace$/)).toBeInTheDocument();
     expect(screen.getByText(/The guided demo is complete/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to dashboard" })).toHaveAttribute(
+    expect(screen.getAllByRole("link", { name: "Back to dashboard" })[0]).toHaveAttribute(
       "href",
       "/workspaces/demo-workspace"
     );

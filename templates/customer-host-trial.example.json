@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "evidence_label": "customer-host-trial-example",
+  "host_profile": {
+    "host_class": "clean-vm",
+    "os_family": "Ubuntu Server or Windows Server",
+    "os_version": "fill-me",
+    "deployment_mode": "docker-compose",
+    "is_customer_controlled": false,
+    "operator": "customer-or-operator-name"
+  },
+  "package_identity": {
+    "package_label": "decisionatlas-self-hosted",
+    "version_label": "fill-me",
+    "commit": "fill-me",
+    "package_manifest_sha256": "optional"
+  },
+  "trial_lanes": {
+    "startup": {
+      "status": "operator_guided",
+      "summary": "Run the package startup command on the target host and record only the bounded result."
+    },
+    "health": {
+      "status": "operator_guided",
+      "summary": "Run Web, API, and Engine health checks on the target host."
+    },
+    "admin_login": {
+      "status": "operator_guided",
+      "summary": "Initialize or use the first administrator account without recording credentials."
+    },
+    "team_workspace": {
+      "status": "operator_guided",
+      "summary": "Create reviewer/viewer accounts and verify workspace scope without recording personal data."
+    },
+    "repository_import": {
+      "status": "operator_guided",
+      "summary": "Import a permitted public or private repository and record only repo identity and bounded status."
+    },
+    "review": {
+      "status": "operator_guided",
+      "summary": "Open the review queue and record the bounded outcome."
+    },
+    "why": {
+      "status": "operator_guided",
+      "summary": "Run one grounded Why query and record status/citation count only."
+    },
+    "drift": {
+      "status": "operator_guided",
+      "summary": "Run Drift evaluation and record state/alert count only."
+    },
+    "continuity": {
+      "status": "operator_guided",
+      "summary": "Run the approved backup, restore, or recovery check and record the bounded result."
+    },
+    "browser_smoke": {
+      "status": "operator_guided",
+      "summary": "Open home, team, workspace, review, Why, Drift, and Evidence pages."
+    }
+  },
+  "browser_smoke": {
+    "status": "operator_guided",
+    "operator": "customer-or-operator-name",
+    "pages": ["/", "/team", "/workspaces/<workspace>", "/review", "/search", "/drift", "/evidence"]
+  },
+  "redaction_acknowledgement": {
+    "acknowledged": false,
+    "reviewer": "customer-or-operator-name",
+    "note": "Before archiving, remove tokens, .env values, private keys, raw logs, private source, and database backups."
+  },
+  "source_evidence_paths": [
+    ".tmp/release-evidence.json",
+    ".tmp/hosted-operator-readiness.json",
+    ".tmp/real-repo-benchmark-comparison.json",
+    ".tmp/team-handoff-report.json"
+  ],
+  "limitations": [
+    "This file is a template and is not customer-host proof until filled on the target host.",
+    "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+  ]
+}

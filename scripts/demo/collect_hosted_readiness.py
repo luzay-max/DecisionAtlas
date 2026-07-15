@@ -156,11 +156,11 @@ def build_lane(lane_input: LaneInput, root: Path) -> tuple[dict[str, Any], list[
 
     if lane_input.path is not None:
         path = lane_input.path if lane_input.path.is_absolute() else root / lane_input.path
-        lane["source_path"] = str(path)
+        lane["source_path"] = _display_path(path, root)
         if not path.exists():
             lane["status"] = STATUS_BLOCKING if lane_input.required_for_public_walkthrough else STATUS_NON_BLOCKING
             lane["details"] = {"reason": "provided_source_path_missing"}
-            warnings.append(f"{lane_input.label} source path does not exist: {path}")
+            warnings.append(f"{lane_input.label} source path does not exist: {_display_path(path, root)}")
             return lane, warnings
         data, error = _read_json(path)
         if error is not None:
@@ -182,6 +182,13 @@ def build_lane(lane_input: LaneInput, root: Path) -> tuple[dict[str, Any], list[
         lane["status"] = normalize_status(lane_input.status)
         lane["details"] = {"reason": "explicit_status"}
     return lane, warnings
+
+
+def _display_path(path: Path, root: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return "<external-path>"
 
 
 def calculate_public_walkthrough_status(lanes: list[dict[str, Any]]) -> str:

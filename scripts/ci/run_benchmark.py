@@ -3,10 +3,12 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 import json
+import os
 from pathlib import Path
 import sys
+from typing import Any
 from urllib import error, request
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit, urlunsplit
 
 
 VALUE_OUTCOMES = {
@@ -17,7 +19,8 @@ VALUE_OUTCOMES = {
     "missing_workspace",
     "operational_blocked",
 }
-BENCHMARK_HISTORY_SCHEMA_VERSION = 1
+BENCHMARK_HISTORY_SCHEMA_VERSION = 2
+SUPPORTED_BENCHMARK_HISTORY_SCHEMA_VERSIONS = {1, BENCHMARK_HISTORY_SCHEMA_VERSION}
 OPERATIONAL_VALUE_OUTCOMES = {"missing_workspace", "operational_blocked"}
 PRODUCT_LIMITED_VALUE_OUTCOMES = {"conversion_limited", "evidence_limited"}
 VALUE_OUTCOME_RANK = {
@@ -36,6 +39,16 @@ BENCHMARK_MOVEMENTS = {
     "missing-from-current",
     "needs-review",
 }
+
+
+def _safe_base_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if parsed.scheme and parsed.hostname:
+        netloc = parsed.hostname
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+        return urlunsplit((parsed.scheme, netloc, "", "", ""))
+    return "<redacted>"
 
 
 def load_json(path: Path) -> list[dict]:
@@ -83,6 +96,133 @@ def _nested_int(payload: dict | None, *keys: str) -> int:
         return int(current or 0)
     except (TypeError, ValueError):
         return 0
+
+
+def _optional_nonnegative_int(payload: dict, key: str) -> int | None:
+    if key not in payload or payload.get(key) is None:
+        return None
+    try:
+        return max(0, int(payload.get(key)))
+    except (TypeError, ValueError):
+        return None
+
+
+def _ratio(numerator: int | None, denominator: int | None) -> float | None:
+    if numerator is None or denominator is None or denominator <= 0:
+        return None
+    return round(numerator / denominator, 4)
+
+
+def _bounded_counter_map(value: object) -> dict[str, int]:
+    if not isinstance(value, dict):
+        return {}
+    counters: dict[str, int] = {}
+    for key, raw_count in value.items():
+        label = str(key).strip()[:80]
+        if not label:
+            continue
+        try:
+            counters[label] = max(0, int(raw_count))
+        except (TypeError, ValueError):
+            continue
+    return dict(sorted(counters.items()))
+
+
+def _provider_metadata(base_url: str) -> dict[str, Any]:
+    payload, error_payload = _json_request(base_url=base_url, path="/runtime/provider-mode")
+    if not isinstance(payload, dict):
+        return {
+            "status": "not_provided",
+            "mode": "unknown",
+            "is_live": None,
+            "llm_provider_mode": "unknown",
+            "embedding_provider_mode": "unknown",
+            "model_label": os.getenv("LLM_MODEL") or "not_provided",
+            "error_type": (error_payload or {}).get("type") if isinstance(error_payload, dict) else None,
+        }
+    return {
+        "status": "provided",
+        "mode": payload.get("mode") or "unknown",
+        "is_live": payload.get("is_live"),
+        "llm_provider_mode": payload.get("llm_provider_mode") or "unknown",
+        "embedding_provider_mode": payload.get("embedding_provider_mode") or "unknown",
+        "model_label": os.getenv("LLM_MODEL") or "not_provided",
+    }
+
+
+def _sparse_conversion_from_payload(
+    dashboard_payload: dict,
+    provider_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    extraction = _latest_import_summary(dashboard_payload).get("extraction_summary")
+    provider = provider_metadata or {
+        "status": "not_provided",
+        "mode": "unknown",
+        "is_live": None,
+        "llm_provider_mode": "unknown",
+        "embedding_provider_mode": "unknown",
+        "model_label": "not_provided",
+    }
+    base = {
+        "status": "not_provided",
+        "skip_reason": None,
+        "normal_attempts": None,
+        "normal_candidates": None,
+        "sparse_eligible_artifacts": None,
+        "sparse_attempted_artifacts": None,
+        "sparse_model_attempts": None,
+        "sparse_recovered_candidates": None,
+        "recovery_candidates": None,
+        "candidate_yield": None,
+        "normal_candidate_yield": None,
+        "sparse_recovered_yield": None,
+        "rejection_reasons": {},
+        "conversion_loss_reasons": {},
+        "elapsed_seconds": None,
+        "provider_mode": provider.get("mode") or "unknown",
+        "provider_is_live": provider.get("is_live"),
+        "llm_provider_mode": provider.get("llm_provider_mode") or "unknown",
+        "embedding_provider_mode": provider.get("embedding_provider_mode") or "unknown",
+        "model_label": provider.get("model_label") or "not_provided",
+    }
+    if not isinstance(extraction, dict):
+        return base
+
+    normal_attempts = _optional_nonnegative_int(extraction, "full_extraction_requests")
+    created_candidates = _optional_nonnegative_int(extraction, "created_candidates")
+    recovery_candidates = _optional_nonnegative_int(extraction, "recovered_candidates")
+    sparse_eligible = _optional_nonnegative_int(extraction, "sparse_recovery_eligible_artifacts")
+    sparse_attempted = _optional_nonnegative_int(extraction, "sparse_recovery_attempted_artifacts")
+    sparse_attempts = _optional_nonnegative_int(extraction, "sparse_recovery_model_attempts")
+    sparse_recovered = _optional_nonnegative_int(extraction, "sparse_recovery_recovered_candidates")
+    normal_candidates = (
+        max(created_candidates - recovery_candidates, 0)
+        if created_candidates is not None and recovery_candidates is not None
+        else None
+    )
+    total_attempts = (
+        normal_attempts + sparse_attempts
+        if normal_attempts is not None and sparse_attempts is not None
+        else None
+    )
+    return {
+        **base,
+        "status": str(extraction.get("sparse_recovery_status") or "not_provided"),
+        "skip_reason": extraction.get("sparse_recovery_skip_reason"),
+        "normal_attempts": normal_attempts,
+        "normal_candidates": normal_candidates,
+        "sparse_eligible_artifacts": sparse_eligible,
+        "sparse_attempted_artifacts": sparse_attempted,
+        "sparse_model_attempts": sparse_attempts,
+        "sparse_recovered_candidates": sparse_recovered,
+        "recovery_candidates": recovery_candidates,
+        "candidate_yield": _ratio(created_candidates, total_attempts),
+        "normal_candidate_yield": _ratio(normal_candidates, normal_attempts),
+        "sparse_recovered_yield": _ratio(sparse_recovered, sparse_attempts),
+        "rejection_reasons": _bounded_counter_map(extraction.get("sparse_recovery_rejection_reasons")),
+        "conversion_loss_reasons": _bounded_counter_map(extraction.get("conversion_loss_reasons")),
+        "elapsed_seconds": _optional_nonnegative_int(extraction, "elapsed_seconds"),
+    }
 
 
 def _latest_import_summary(dashboard_payload: dict) -> dict:
@@ -424,7 +564,11 @@ def run_live_real_repo_why_cases(*, base_url: str, why_cases: list[dict]) -> int
     return 0
 
 
-def _evaluate_dashboard_payload(repository: dict, payload: dict) -> tuple[bool, dict]:
+def _evaluate_dashboard_payload(
+    repository: dict,
+    payload: dict,
+    provider_metadata: dict[str, Any] | None = None,
+) -> tuple[bool, dict]:
     expectations = repository.get("expectations", {})
     readiness = payload.get("workspace_readiness") or {}
     drift_status = payload.get("drift_status") or {}
@@ -465,6 +609,7 @@ def _evaluate_dashboard_payload(repository: dict, payload: dict) -> tuple[bool, 
         "total_decision_count": total_decisions,
         "screened_in_artifact_count": screened_in_count,
         "latest_import_status": payload.get("import_status"),
+        "sparse_conversion": _sparse_conversion_from_payload(payload, provider_metadata),
         "checks": checks,
     }
     return all(checks.values()), row
@@ -698,6 +843,11 @@ def _attach_value_summary(row: dict) -> dict:
         "drift_case_count": len(((row.get("drift") or {}).get("cases")) or []),
         "drift_case_passed_count": sum(1 for case in ((row.get("drift") or {}).get("cases")) or [] if case.get("passed")),
     }
+    row["sparse_conversion"] = dict(
+        row.get("sparse_conversion")
+        or ((row.get("dashboard") or {}).get("sparse_conversion"))
+        or {}
+    )
     return row
 
 
@@ -813,6 +963,7 @@ def _snapshot_row_from_report_row(row: dict) -> dict:
         "why_summary": _why_case_summary(row),
         "drift_summary": _drift_case_summary(row),
         "operational_error_type": _operational_error_type(row),
+        "sparse_conversion": dict(row.get("sparse_conversion") or {}),
     }
 
 
@@ -822,6 +973,7 @@ def build_benchmark_history_snapshot(report: dict, *, generated_at: str | None =
         "schema_version": BENCHMARK_HISTORY_SCHEMA_VERSION,
         "generated_at": generated_at or report.get("generated_at") or datetime.now(UTC).isoformat(),
         "source": "live-real-repo-validation-report",
+        "provider": dict(report.get("provider") or {"status": "not_provided"}),
         "summary": {
             "repositories": len(rows),
             "passed": sum(1 for row in rows if row.get("passed")),
@@ -832,7 +984,7 @@ def build_benchmark_history_snapshot(report: dict, *, generated_at: str | None =
 
 
 def validate_benchmark_history_snapshot(snapshot: dict) -> int:
-    if snapshot.get("schema_version") != BENCHMARK_HISTORY_SCHEMA_VERSION:
+    if snapshot.get("schema_version") not in SUPPORTED_BENCHMARK_HISTORY_SCHEMA_VERSIONS:
         print("Invalid benchmark history schema_version.", file=sys.stderr)
         return 1
     if not str(snapshot.get("generated_at", "")).strip():
@@ -870,11 +1022,14 @@ def validate_benchmark_history_snapshot(snapshot: dict) -> int:
         if not isinstance(row.get("drift_summary"), dict):
             print(f"Missing drift_summary for benchmark history row {repo_id}.", file=sys.stderr)
             return 1
+        if "sparse_conversion" in row and not isinstance(row.get("sparse_conversion"), dict):
+            print(f"Invalid sparse_conversion for benchmark history row {repo_id}.", file=sys.stderr)
+            return 1
     return 0
 
 
 def _snapshot_from_report_or_snapshot(payload: dict) -> dict:
-    if payload.get("schema_version") == BENCHMARK_HISTORY_SCHEMA_VERSION:
+    if payload.get("schema_version") in SUPPORTED_BENCHMARK_HISTORY_SCHEMA_VERSIONS:
         return payload
     return build_benchmark_history_snapshot(payload)
 
@@ -903,6 +1058,103 @@ def _category_delta(current: dict, baseline: dict, key: str) -> dict:
         "baseline": sorted(baseline_values),
         "added": sorted(current_values - baseline_values),
         "removed": sorted(baseline_values - current_values),
+    }
+
+
+SPARSE_COMPARISON_METRICS = (
+    "normal_attempts",
+    "normal_candidates",
+    "sparse_eligible_artifacts",
+    "sparse_attempted_artifacts",
+    "sparse_model_attempts",
+    "sparse_recovered_candidates",
+    "recovery_candidates",
+    "candidate_yield",
+    "normal_candidate_yield",
+    "sparse_recovered_yield",
+    "elapsed_seconds",
+)
+
+
+def _sparse_movement(current: dict | None, baseline: dict | None) -> str:
+    if current is None:
+        return "missing-from-current"
+    current_sparse = current.get("sparse_conversion")
+    if current.get("operational_error_type") or (
+        isinstance(current_sparse, dict) and current_sparse.get("status") == "operationally_blocked"
+    ):
+        return "operationally-blocked"
+    if not isinstance(current_sparse, dict) or current_sparse.get("status") in {None, "not_provided"}:
+        return "not_provided"
+    if baseline is None or not isinstance(baseline.get("sparse_conversion"), dict):
+        return "newly-evaluated"
+    baseline_sparse = baseline["sparse_conversion"]
+    if baseline_sparse.get("status") in {None, "not_provided"}:
+        return "newly-evaluated"
+    comparison_key = "sparse_recovered_yield"
+    current_value = current_sparse.get(comparison_key)
+    baseline_value = baseline_sparse.get(comparison_key)
+    if current_value is None or baseline_value is None:
+        comparison_key = "candidate_yield"
+        current_value = current_sparse.get(comparison_key)
+        baseline_value = baseline_sparse.get(comparison_key)
+    if current_value is None or baseline_value is None:
+        comparison_key = "sparse_recovered_candidates"
+        current_value = current_sparse.get(comparison_key)
+        baseline_value = baseline_sparse.get(comparison_key)
+    try:
+        if current_value is None or baseline_value is None:
+            return "unchanged" if current_sparse.get("status") == baseline_sparse.get("status") else "needs-review"
+        current_number = float(current_value)
+        baseline_number = float(baseline_value)
+    except (TypeError, ValueError):
+        return "needs-review"
+    if current_number > baseline_number:
+        return "improved"
+    if current_number < baseline_number:
+        return "regressed"
+    return "unchanged"
+
+
+def _sparse_conversion_comparison(current: dict | None, baseline: dict | None) -> dict[str, Any]:
+    current_sparse = (current or {}).get("sparse_conversion")
+    baseline_sparse = (baseline or {}).get("sparse_conversion")
+    current_sparse = current_sparse if isinstance(current_sparse, dict) else {}
+    baseline_sparse = baseline_sparse if isinstance(baseline_sparse, dict) else {}
+    metric_deltas: dict[str, dict[str, Any]] = {}
+    for key in SPARSE_COMPARISON_METRICS:
+        current_value = current_sparse.get(key)
+        baseline_value = baseline_sparse.get(key)
+        try:
+            delta = (
+                round(float(current_value) - float(baseline_value), 4)
+                if current_value is not None and baseline_value is not None
+                else None
+            )
+        except (TypeError, ValueError):
+            delta = None
+        metric_deltas[key] = {"current": current_value, "baseline": baseline_value, "delta": delta}
+    rejection_delta = {
+        "current": sorted((current_sparse.get("rejection_reasons") or {}).keys()),
+        "baseline": sorted((baseline_sparse.get("rejection_reasons") or {}).keys()),
+    }
+    rejection_delta["added"] = sorted(set(rejection_delta["current"]) - set(rejection_delta["baseline"]))
+    rejection_delta["removed"] = sorted(set(rejection_delta["baseline"]) - set(rejection_delta["current"]))
+    movement = _sparse_movement(current, baseline)
+    reasons = []
+    if movement == "regressed":
+        reasons.append("Sparse conversion yield or recovery count is lower than the baseline.")
+    elif movement == "improved":
+        reasons.append("Sparse conversion yield or recovery count is higher than the baseline.")
+    if rejection_delta["added"]:
+        reasons.append("New sparse rejection reasons: " + ", ".join(rejection_delta["added"][:5]))
+    return {
+        "movement": movement,
+        "status": current_sparse.get("status"),
+        "baseline_status": baseline_sparse.get("status"),
+        "metric_deltas": metric_deltas,
+        "rejection_reason_deltas": rejection_delta,
+        "reasons": reasons,
     }
 
 
@@ -980,6 +1232,7 @@ def compare_benchmark_snapshots(current_snapshot: dict, baseline_snapshot: dict)
         movement = _classify_benchmark_movement(current, baseline)
         summary_counts[movement] += 1
         metric_deltas = _comparison_metric_deltas(current, baseline) if current and baseline else {}
+        sparse_comparison = _sparse_conversion_comparison(current, baseline)
         row = {
             "id": repo_id,
             "repo": (current or baseline or {}).get("repo"),
@@ -990,8 +1243,10 @@ def compare_benchmark_snapshots(current_snapshot: dict, baseline_snapshot: dict)
             "current_bounded_outcome": current.get("bounded_outcome") if current else None,
             "baseline_bounded_outcome": baseline.get("bounded_outcome") if baseline else None,
             "metric_deltas": metric_deltas,
+            "sparse_conversion": sparse_comparison,
             "reasons": _comparison_reasons(current, baseline, movement, metric_deltas),
         }
+        row["reasons"].extend(sparse_comparison["reasons"])
         rows.append(row)
     return {
         "schema_version": BENCHMARK_HISTORY_SCHEMA_VERSION,
@@ -1005,6 +1260,14 @@ def compare_benchmark_snapshots(current_snapshot: dict, baseline_snapshot: dict)
             "regressed": summary_counts.get("regressed", 0),
             "improved": summary_counts.get("improved", 0),
             "operationally_blocked": summary_counts.get("operationally-blocked", 0),
+            "sparse_movements": {
+                "improved": sum(1 for row in rows if row["sparse_conversion"]["movement"] == "improved"),
+                "regressed": sum(1 for row in rows if row["sparse_conversion"]["movement"] == "regressed"),
+                "operationally_blocked": sum(
+                    1 for row in rows if row["sparse_conversion"]["movement"] == "operationally-blocked"
+                ),
+                "not_provided": sum(1 for row in rows if row["sparse_conversion"]["movement"] == "not_provided"),
+            },
             "release_evidence_ready": True,
         },
         "repositories": rows,
@@ -1025,9 +1288,10 @@ def _write_benchmark_comparison_markdown(path: Path, comparison: dict) -> None:
         f"- Improved: `{summary.get('improved', 0)}`",
         f"- Regressed: `{summary.get('regressed', 0)}`",
         f"- Operationally blocked: `{summary.get('operationally_blocked', 0)}`",
+        f"- Sparse movements: `{summary.get('sparse_movements', {})}`",
         "",
-        "| Repository | Movement | Value outcome | Bounded outcome | Metric deltas | Reasons |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Repository | Movement | Sparse movement | Value outcome | Bounded outcome | Metric deltas | Reasons |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in comparison.get("repositories", []):
         metric_deltas = row.get("metric_deltas") or {}
@@ -1043,6 +1307,7 @@ def _write_benchmark_comparison_markdown(path: Path, comparison: dict) -> None:
                 for value in (
                     row.get("repo") or row.get("id"),
                     row.get("movement"),
+                    (row.get("sparse_conversion") or {}).get("movement"),
                     f"{row.get('baseline_value_outcome')} -> {row.get('current_value_outcome')}",
                     f"{row.get('baseline_bounded_outcome')} -> {row.get('current_bounded_outcome')}",
                     metrics,
@@ -1094,7 +1359,8 @@ def run_live_real_repo_validation(
 ) -> int:
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
-        "base_url": base_url,
+        "base_url": _safe_base_url(base_url),
+        "provider": _provider_metadata(base_url),
         "repositories": [],
         "summary": {"repositories": len(repositories), "passed": 0, "failed": 0},
     }
@@ -1137,7 +1403,11 @@ def run_live_real_repo_validation(
             print(f"{repository['id']}: outcome={row['bounded_outcome']} passed=False")
             continue
 
-        dashboard_passed, dashboard_row = _evaluate_dashboard_payload(repository, dashboard_payload)
+        dashboard_passed, dashboard_row = _evaluate_dashboard_payload(
+            repository,
+            dashboard_payload,
+            report.get("provider"),
+        )
         row["bounded_outcome"] = dashboard_row["bounded_outcome"]
         row["dashboard"] = dashboard_row
         repo_passed = dashboard_passed

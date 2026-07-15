@@ -1,0 +1,638 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-15T05:12:52.342458+00:00",
+  "evidence_type": "fresh-public-repo-import-rehearsal",
+  "status": "warning",
+  "base_url": "http://127.0.0.1:3001",
+  "selection": {
+    "mode": "seeded_candidate_pool",
+    "seed": "customer-host-trial-20260715",
+    "candidate_pool_digest": "ede3d49b58e796c8f7c50ba1a8a605baedb8f5f6df349989a81fcc005c23aaf2",
+    "candidate_count": 6,
+    "selected_repository": "hynek/structlog",
+    "considered": [
+      {
+        "repo": "python-trio/sniffio",
+        "workspace_slug": "github-python-trio-sniffio",
+        "outcome": "reused_not_eligible",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "python-trio/sniffio",
+          "repo_url": "https://github.com/python-trio/sniffio",
+          "workspace_exists": true,
+          "workspace_slug": "github-python-trio-sniffio",
+          "has_successful_import": true,
+          "can_incremental_sync": true,
+          "has_running_import": false,
+          "latest_import": {
+            "job_id": "80feea76-2a28-4193-8e2e-1352b4d58965",
+            "workspace_slug": "github-python-trio-sniffio",
+            "repo": "python-trio/sniffio",
+            "mode": "since_last_sync",
+            "status": "succeeded",
+            "sync_origin": "manual_incremental",
+            "trigger_event": null,
+            "imported_count": 3,
+            "summary": {
+              "stage": "completed",
+              "imported_count": 3,
+              "artifact_counts": {
+                "issue": 0,
+                "pr": 2,
+                "commit": 0,
+                "doc": 1
+              },
+              "document_summary": {
+                "selected": 1,
+                "imported": 1,
+                "skipped": {
+                  "non_markdown": 28,
+                  "generated_or_vendor_path": 0,
+                  "outside_high_signal_paths": 1
+                },
+                "categories": {
+                  "general": 1
+                }
+              },
+              "extraction_summary": {
+                "shortlisted_artifacts": 4,
+                "screened_artifacts": 4,
+                "screened_in_artifacts": 0,
+                "screened_out_artifacts": 4,
+                "full_extraction_requests": 4,
+                "completed_full_extractions": 4,
+                "recovery_extraction_attempts": 4,
+                "total_artifacts": 8,
+                "processed_artifacts": 8,
+                "created_candidates": 0,
+                "salvaged_candidates": 0,
+                "recovered_candidates": 0,
+                "thin_source_ref_decisions": 0,
+                "skipped_provider_400": 0,
+                "skipped_provider_timeout": 0,
+                "skipped_invalid_json": 0,
+                "selected_extraction_families": {},
+                "conversion_loss_reasons": {
+                  "null_decision": 4
+                },
+                "sparse_recovery_status": "exhausted",
+                "sparse_recovery_skip_reason": "all_attempts_rejected",
+                "sparse_recovery_eligible_artifacts": 4,
+                "sparse_recovery_attempted_artifacts": 4,
+                "sparse_recovery_model_attempts": 4,
+                "sparse_recovery_recovered_candidates": 0,
+                "sparse_recovery_evidence_families": {
+                  "pull_request": 4
+                },
+                "sparse_recovery_rejection_reasons": {
+                  "null_decision": 4
+                },
+                "elapsed_seconds": 29,
+                "estimated_remaining_seconds": 0,
+                "average_full_extraction_latency_ms": 4220,
+                "current_artifact_title": null,
+                "current_phase": "completed",
+                "current_extraction_family": null
+              },
+              "evidence_summary": {
+                "reviewable_decisions": 0,
+                "decision_source_types": {},
+                "contributing_doc_categories": {},
+                "contributing_doc_paths": []
+              },
+              "outcome": "insufficient_evidence"
+            },
+            "error_message": null,
+            "started_at": "2026-07-13T02:35:53.903403",
+            "finished_at": "2026-07-13T02:36:39.377916"
+          },
+          "active_import": null,
+          "latest_sync_origin": "manual_incremental",
+          "latest_sync_at": "2026-07-13T02:36:39.377916",
+          "last_import_summary": {
+            "stage": "completed",
+            "imported_count": 3,
+            "artifact_counts": {
+              "issue": 0,
+              "pr": 2,
+              "commit": 0,
+              "doc": 1
+            },
+            "document_summary": {
+              "selected": 1,
+              "imported": 1,
+              "skipped": {
+                "non_markdown": 28,
+                "generated_or_vendor_path": 0,
+                "outside_high_signal_paths": 1
+              },
+              "categories": {
+                "general": 1
+              }
+            },
+            "extraction_summary": {
+              "shortlisted_artifacts": 4,
+              "screened_artifacts": 4,
+              "screened_in_artifacts": 0,
+              "screened_out_artifacts": 4,
+              "full_extraction_requests": 4,
+              "completed_full_extractions": 4,
+              "recovery_extraction_attempts": 4,
+              "total_artifacts": 8,
+              "processed_artifacts": 8,
+              "created_candidates": 0,
+              "salvaged_candidates": 0,
+              "recovered_candidates": 0,
+              "thin_source_ref_decisions": 0,
+              "skipped_provider_400": 0,
+              "skipped_provider_timeout": 0,
+              "skipped_invalid_json": 0,
+              "selected_extraction_families": {},
+              "conversion_loss_reasons": {
+                "null_decision": 4
+              },
+              "sparse_recovery_status": "exhausted",
+              "sparse_recovery_skip_reason": "all_attempts_rejected",
+              "sparse_recovery_eligible_artifacts": 4,
+              "sparse_recovery_attempted_artifacts": 4,
+              "sparse_recovery_model_attempts": 4,
+              "sparse_recovery_recovered_candidates": 0,
+              "sparse_recovery_evidence_families": {
+                "pull_request": 4
+              },
+              "sparse_recovery_rejection_reasons": {
+                "null_decision": 4
+              },
+              "elapsed_seconds": 29,
+              "estimated_remaining_seconds": 0,
+              "average_full_extraction_latency_ms": 4220,
+              "current_artifact_title": null,
+              "current_phase": "completed",
+              "current_extraction_family": null
+            },
+            "evidence_summary": {
+              "reviewable_decisions": 0,
+              "decision_source_types": {},
+              "contributing_doc_categories": {},
+              "contributing_doc_paths": []
+            },
+            "outcome": "insufficient_evidence"
+          },
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_source_status": null,
+          "access_source_status_detail": null,
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      },
+      {
+        "repo": "hynek/structlog",
+        "outcome": "selected_fresh",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "hynek/structlog",
+          "repo_url": "https://github.com/hynek/structlog",
+          "workspace_exists": false,
+          "workspace_slug": null,
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": null,
+          "active_import": null,
+          "latest_sync_origin": null,
+          "latest_sync_at": null,
+          "last_import_summary": null,
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      }
+    ]
+  },
+  "fresh_import": {
+    "status": "pass",
+    "outcome": "fresh_import",
+    "next_action": "probe_fresh_workspace_core_loop",
+    "summary": "No-workspace preflight was followed by a successful full import."
+  },
+  "import_rehearsal": {
+    "generated_at": "2026-07-15T05:12:45.644210+00:00",
+    "evidence_type": "public-github-import-rehearsal",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "id": "structlog",
+      "repo": "hynek/structlog",
+      "workspace_slug": "github-hynek-structlog",
+      "role": "python_observability_library",
+      "benchmark_purpose": "Validate a fresh import with documentation, compatibility, and API design decisions."
+    },
+    "setup": {
+      "outcome": "created",
+      "benchmark_ready": true,
+      "next_action": "run_benchmark"
+    },
+    "lookup": {
+      "owner_scope": "local-default",
+      "repo": "hynek/structlog",
+      "repo_url": "https://github.com/hynek/structlog",
+      "workspace_exists": false,
+      "workspace_slug": null,
+      "has_successful_import": false,
+      "can_incremental_sync": false,
+      "has_running_import": false,
+      "latest_import": null,
+      "active_import": null,
+      "latest_sync_origin": null,
+      "latest_sync_at": null,
+      "last_import_summary": null,
+      "provider": "github",
+      "access_mode": "public",
+      "access_source_type": "public",
+      "access_source_label": "Public GitHub access",
+      "access_requirement": null,
+      "access_requirement_detail": null
+    },
+    "import_job": {
+      "job_id": "080a4b1d-54ca-4a47-a3f6-fbc401252808",
+      "workspace_slug": "github-hynek-structlog",
+      "repo": "hynek/structlog",
+      "mode": "full",
+      "status": "succeeded",
+      "sync_origin": "manual_full",
+      "trigger_event": null,
+      "imported_count": 1169,
+      "summary": {
+        "stage": "completed",
+        "imported_count": 1161,
+        "artifact_counts": {
+          "issue": 218,
+          "pr": 429,
+          "commit": 500,
+          "doc": 22
+        },
+        "document_summary": {
+          "selected": 22,
+          "imported": 22,
+          "skipped": {
+            "non_markdown": 91,
+            "generated_or_vendor_path": 0,
+            "outside_high_signal_paths": 5
+          },
+          "categories": {
+            "release": 1,
+            "general": 21
+          }
+        },
+        "extraction_summary": {
+          "shortlisted_artifacts": 52,
+          "screened_artifacts": 52,
+          "screened_in_artifacts": 32,
+          "screened_out_artifacts": 20,
+          "full_extraction_requests": 47,
+          "completed_full_extractions": 47,
+          "recovery_extraction_attempts": 15,
+          "total_artifacts": 99,
+          "processed_artifacts": 99,
+          "created_candidates": 26,
+          "salvaged_candidates": 25,
+          "recovered_candidates": 9,
+          "thin_source_ref_decisions": 4,
+          "skipped_provider_400": 0,
+          "skipped_provider_timeout": 0,
+          "skipped_invalid_json": 0,
+          "selected_extraction_families": {
+            "release_doc": 1,
+            "pull_request": 23,
+            "rationale_doc": 7,
+            "lightweight_evidence": 1
+          },
+          "conversion_loss_reasons": {
+            "null_decision": 6,
+            "thin_source_ref_coverage": 4
+          },
+          "sparse_recovery_status": "skipped",
+          "sparse_recovery_skip_reason": "candidate_present",
+          "sparse_recovery_eligible_artifacts": 0,
+          "sparse_recovery_attempted_artifacts": 0,
+          "sparse_recovery_model_attempts": 0,
+          "sparse_recovery_recovered_candidates": 0,
+          "sparse_recovery_evidence_families": {},
+          "sparse_recovery_rejection_reasons": {},
+          "elapsed_seconds": 430,
+          "estimated_remaining_seconds": 0,
+          "average_full_extraction_latency_ms": 13862,
+          "current_artifact_title": null,
+          "current_phase": "completed",
+          "current_extraction_family": null
+        },
+        "evidence_summary": {
+          "reviewable_decisions": 26,
+          "decision_source_types": {
+            "doc": 10,
+            "pr": 41,
+            "issue": 5
+          },
+          "contributing_doc_categories": {
+            "general": 10
+          },
+          "contributing_doc_paths": [
+            "docs/configuration.md",
+            "docs/standard-library.md",
+            "docs/performance.md",
+            "docs/thread-local.md",
+            "docs/logging-best-practices.md"
+          ]
+        },
+        "outcome": "ok"
+      },
+      "error_message": null,
+      "started_at": "2026-07-15T05:04:29.336620",
+      "finished_at": "2026-07-15T05:12:43.120442"
+    },
+    "error": null
+  },
+  "sparse_conversion": {
+    "status": "skipped",
+    "skip_reason": "candidate_present",
+    "eligible_artifacts": 0,
+    "attempted_artifacts": 0,
+    "model_attempts": 0,
+    "recovered_candidates": 0,
+    "evidence_families": {},
+    "rejection_reasons": {},
+    "conversion_loss_reasons": {
+      "null_decision": 6,
+      "thin_source_ref_coverage": 4
+    },
+    "created_candidates": 26
+  },
+  "core_loop": {
+    "schema_version": 1,
+    "generated_at": "2026-07-15T05:12:52.342423+00:00",
+    "evidence_type": "imported-workspace-core-loop-rehearsal",
+    "status": "warning",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "repo": "hynek/structlog",
+      "workspace_slug": "github-hynek-structlog"
+    },
+    "accepted_baseline": {
+      "status": "empty",
+      "strength": "none",
+      "candidate_count": 26,
+      "accepted_count": 0,
+      "candidate_sample_titles": [
+        "Unbind all passed keys on context manager exit",
+        "Replace exception-based control flow with hasattr in ProcessorFormatter.format",
+        "Avoid deprecated thread locals from best practices"
+      ],
+      "accepted_sample_titles": [],
+      "next_action": "review_candidates_into_accepted_baseline"
+    },
+    "lanes": {
+      "setup": {
+        "status": "pass",
+        "summary": "Workspace setup source `explicit` reported `provided`.",
+        "next_action": "probe_core_loop",
+        "details": {
+          "workspace_slug": "github-hynek-structlog",
+          "repo": "hynek/structlog",
+          "setup": {
+            "source": "explicit"
+          }
+        },
+        "action_category": "pass"
+      },
+      "dashboard": {
+        "status": "pass",
+        "summary": "Dashboard summary loaded for imported workspace.",
+        "next_action": "review_candidates_or_ask_why",
+        "details": {
+          "workspace_slug": "github-hynek-structlog",
+          "github_repo": "hynek/structlog",
+          "workspace_mode": "imported",
+          "import_status": "succeeded",
+          "candidate_decisions": 26,
+          "accepted_decisions": 0,
+          "drift_state": "review_required",
+          "readiness_state": "review_ready"
+        },
+        "action_category": "pass"
+      },
+      "review": {
+        "status": "pass",
+        "summary": "Review queue has candidate decisions.",
+        "next_action": "review_candidates",
+        "details": {
+          "candidate_count": 26,
+          "sample_titles": [
+            "Unbind all passed keys on context manager exit",
+            "Replace exception-based control flow with hasattr in ProcessorFormatter.format",
+            "Avoid deprecated thread locals from best practices"
+          ],
+          "accepted_baseline": {
+            "status": "empty",
+            "strength": "none",
+            "candidate_count": 26,
+            "accepted_count": 0,
+            "candidate_sample_titles": [
+              "Unbind all passed keys on context manager exit",
+              "Replace exception-based control flow with hasattr in ProcessorFormatter.format",
+              "Avoid deprecated thread locals from best practices"
+            ],
+            "accepted_sample_titles": [],
+            "next_action": "review_candidates_into_accepted_baseline"
+          }
+        },
+        "action_category": "pass"
+      },
+      "why_search": {
+        "status": "warning",
+        "summary": "Why-search returned `review_required`.",
+        "next_action": "improve_accepted_decision_evidence",
+        "details": {
+          "answer_status": "review_required",
+          "question": "Which project decisions are represented in this repository?",
+          "citation_count": 0,
+          "workspace_mode": "imported",
+          "primary_decision": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "why_search",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Why-search has no citations or primary decision to ground the answer.",
+              "next_action": "improve_accepted_decision_evidence",
+              "evidence": {
+                "accepted_baseline_status": "empty",
+                "accepted_decision_count": 0,
+                "answer_status": "review_required",
+                "citation_count": 0,
+                "primary_decision_present": false,
+                "workspace_mode": "imported"
+              }
+            }
+          ]
+        }
+      },
+      "drift": {
+        "status": "warning",
+        "summary": "Drift lane returned `review_required` with 0 alert(s).",
+        "next_action": "evaluate_or_monitor_drift",
+        "details": {
+          "drift_state": "review_required",
+          "alert_count": 0,
+          "evaluation": {
+            "state": "review_required",
+            "can_evaluate": false,
+            "next_action": "review_candidates",
+            "last_evaluated_at": "2026-07-15T05:12:52.246661+00:00",
+            "evaluated_rules": 0,
+            "created_alerts": 0
+          },
+          "evaluation_request_status": "ok",
+          "evaluation_error": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "drift",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+              "next_action": "evaluate_or_monitor_drift",
+              "evidence": {
+                "accepted_baseline_status": "empty",
+                "accepted_decision_count": 0,
+                "alert_count": 0,
+                "drift_state": "review_required",
+                "evaluation_request_status": "ok",
+                "evaluation_state": "review_required"
+              }
+            }
+          ]
+        }
+      },
+      "guardrail": {
+        "status": "not_provided",
+        "summary": "Guardrail evidence was not provided.",
+        "next_action": "run_agent_guardrail",
+        "details": {},
+        "action_category": "not_provided"
+      }
+    },
+    "lane_reasons": {
+      "why_search": [
+        {
+          "lane": "why_search",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Why-search has no citations or primary decision to ground the answer.",
+          "next_action": "improve_accepted_decision_evidence",
+          "evidence": {
+            "accepted_baseline_status": "empty",
+            "accepted_decision_count": 0,
+            "answer_status": "review_required",
+            "citation_count": 0,
+            "primary_decision_present": false,
+            "workspace_mode": "imported"
+          }
+        }
+      ],
+      "drift": [
+        {
+          "lane": "drift",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+          "next_action": "evaluate_or_monitor_drift",
+          "evidence": {
+            "accepted_baseline_status": "empty",
+            "accepted_decision_count": 0,
+            "alert_count": 0,
+            "drift_state": "review_required",
+            "evaluation_request_status": "ok",
+            "evaluation_state": "review_required"
+          }
+        }
+      ]
+    },
+    "summary": {
+      "pass_lanes": 3,
+      "warning_lanes": 3,
+      "blocking_lanes": 0,
+      "action_categories": {
+        "product_controlled": 2,
+        "operator_setup": 0,
+        "external_dependency": 0,
+        "not_provided": 1,
+        "blocking": 0
+      },
+      "accepted_baseline": {
+        "status": "empty",
+        "strength": "none",
+        "candidate_count": 26,
+        "accepted_count": 0,
+        "candidate_sample_titles": [
+          "Unbind all passed keys on context manager exit",
+          "Replace exception-based control flow with hasattr in ProcessorFormatter.format",
+          "Avoid deprecated thread locals from best practices"
+        ],
+        "accepted_sample_titles": [],
+        "next_action": "review_candidates_into_accepted_baseline"
+      },
+      "grounding_summary": {
+        "warning_lanes_with_grounding": 2,
+        "reason_codes": [
+          "missing_accepted_decision_evidence"
+        ]
+      },
+      "setup_waiting": false
+    },
+    "recommended_next_actions": [
+      "evaluate_or_monitor_drift",
+      "improve_accepted_decision_evidence",
+      "probe_core_loop",
+      "review_candidates",
+      "review_candidates_or_ask_why",
+      "run_agent_guardrail"
+    ],
+    "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output."
+  },
+  "browser": {
+    "status": "operator_guided",
+    "summary": "Browser verification will be recorded separately on the isolated self-hosted host rehearsal."
+  },
+  "limitations": [
+    "A seeded bounded pool is random and reproducible but is not an unbounded sample of GitHub.",
+    "GitHub and the real local stack are external runtime dependencies.",
+    "A successful import can still yield evidence-limited decision quality.",
+    "Evidence excludes credentials, raw private source, raw model output, and unbounded logs."
+  ],
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "improve_accepted_decision_evidence",
+    "probe_core_loop",
+    "review_candidates",
+    "review_candidates_before_accepted_baseline_claim",
+    "review_candidates_or_ask_why",
+    "run_agent_guardrail",
+    "run_human_browser_rehearsal_for_fresh_workspace"
+  ],
+  "summary": {
+    "fresh_import": true,
+    "selected_repository": "hynek/structlog",
+    "workspace_slug": "github-hynek-structlog",
+    "imported_count": 1169,
+    "core_loop_status": "warning",
+    "browser_status": "operator_guided",
+    "sparse_recovery_status": "skipped",
+    "sparse_recovered_candidates": 0
+  }
+}

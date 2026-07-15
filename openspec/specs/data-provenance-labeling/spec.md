@@ -1,7 +1,7 @@
 # data-provenance-labeling Specification
 
 ## Purpose
-TBD - created by archiving change clarify-demo-vs-live-data. Update Purpose after archive.
+Classifies workspaces as demo, imported, or mixed provenance and labels data source context on trust-sensitive UI surfaces to prevent confusion between seeded walkthrough and live repository analysis.
 ## Requirements
 ### Requirement: Workspace provenance classification
 The system SHALL classify each workspace presented in the product as `demo`, `imported`, or `mixed` so the user can distinguish seeded walkthrough data from real imported repository data.

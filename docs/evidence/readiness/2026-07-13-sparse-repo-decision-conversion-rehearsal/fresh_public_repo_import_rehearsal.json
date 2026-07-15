@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-13T02:43:54.719811+00:00",
+  "evidence_type": "fresh-public-repo-import-rehearsal",
+  "status": "warning",
+  "base_url": "http://127.0.0.1:3001",
+  "selection": {
+    "mode": "seeded_candidate_pool",
+    "seed": "20260713-sparse-01",
+    "candidate_pool_digest": "7c0beae8f51926560ce5f3b8c1b8c369554820ab13038ed7a09169e99308eb9c",
+    "candidate_count": 2,
+    "selected_repository": "jazzband/pip-tools",
+    "considered": [
+      {
+        "repo": "jazzband/pip-tools",
+        "outcome": "selected_fresh",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "jazzband/pip-tools",
+          "repo_url": "https://github.com/jazzband/pip-tools",
+          "workspace_exists": false,
+          "workspace_slug": null,
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": null,
+          "active_import": null,
+          "latest_sync_origin": null,
+          "latest_sync_at": null,
+          "last_import_summary": null,
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      }
+    ]
+  },
+  "fresh_import": {
+    "status": "pass",
+    "outcome": "fresh_import",
+    "next_action": "probe_fresh_workspace_core_loop",
+    "summary": "No-workspace preflight was followed by a successful full import."
+  },
+  "import_rehearsal": {
+    "generated_at": "2026-07-13T10:35:14.871327+08:00",
+    "evidence_type": "public-github-import-rehearsal",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "id": "jazzband-pip-tools",
+      "repo": "jazzband/pip-tools",
+      "workspace_slug": "github-jazzband-pip-tools",
+      "role": "dependency_workflow_tool",
+      "benchmark_purpose": "Exercise decision conversion across resolver changes, reproducibility trade-offs, migration notes, issues, and pull requests."
+    },
+    "setup": {
+      "outcome": "created",
+      "benchmark_ready": true,
+      "next_action": "run_benchmark"
+    },
+    "lookup": {
+      "owner_scope": "local-default",
+      "repo": "jazzband/pip-tools",
+      "repo_url": "https://github.com/jazzband/pip-tools",
+      "workspace_exists": false,
+      "workspace_slug": null,
+      "has_successful_import": false,
+      "can_incremental_sync": false,
+      "has_running_import": false,
+      "latest_import": null,
+      "active_import": null,
+      "latest_sync_origin": null,
+      "latest_sync_at": null,
+      "last_import_summary": null,
+      "provider": "github",
+      "access_mode": "public",
+      "access_source_type": "public",
+      "access_source_label": "Public GitHub access",
+      "access_requirement": null,
+      "access_requirement_detail": null
+    },
+    "import_job": {
+      "job_id": "bced56f9-a8da-418a-bc43-36c0fc39e061",
+      "workspace_slug": "github-jazzband-pip-tools",
+      "repo": "jazzband/pip-tools",
+      "mode": "full",
+      "status": "succeeded",
+      "sync_origin": "manual_full",
+      "trigger_event": null,
+      "imported_count": 1207,
+      "summary": {
+        "stage": "completed",
+        "imported_count": 1207,
+        "artifact_counts": {
+          "issue": 197,
+          "pr": 500,
+          "commit": 500,
+          "doc": 10
+        },
+        "document_summary": {
+          "selected": 10,
+          "imported": 10,
+          "skipped": {
+            "non_markdown": 123,
+            "generated_or_vendor_path": 0,
+            "outside_high_signal_paths": 29
+          },
+          "categories": {
+            "release": 2,
+            "general": 8
+          }
+        },
+        "extraction_summary": {
+          "shortlisted_artifacts": 80,
+          "screened_artifacts": 80,
+          "screened_in_artifacts": 36,
+          "screened_out_artifacts": 44,
+          "full_extraction_requests": 49,
+          "completed_full_extractions": 49,
+          "recovery_extraction_attempts": 13,
+          "total_artifacts": 129,
+          "processed_artifacts": 129,
+          "created_candidates": 28,
+          "salvaged_candidates": 28,
+          "recovered_candidates": 5,
+          "thin_source_ref_decisions": 6,
+          "skipped_provider_400": 0,
+          "skipped_provider_timeout": 0,
+          "skipped_invalid_json": 0,
+          "selected_extraction_families": {
+            "release_doc": 1,
+            "pull_request": 32,
+            "lightweight_evidence": 3
+          },
+          "conversion_loss_reasons": {
+            "null_decision": 3,
+            "thin_source_ref_coverage": 6,
+            "missing_required_fields": 4,
+            "ungrounded_quote": 1
+          },
+          "sparse_recovery_status": "skipped",
+          "sparse_recovery_skip_reason": "candidate_present",
+          "sparse_recovery_eligible_artifacts": 0,
+          "sparse_recovery_attempted_artifacts": 0,
+          "sparse_recovery_model_attempts": 0,
+          "sparse_recovery_recovered_candidates": 0,
+          "sparse_recovery_evidence_families": {},
+          "sparse_recovery_rejection_reasons": {},
+          "elapsed_seconds": 641,
+          "estimated_remaining_seconds": 0,
+          "average_full_extraction_latency_ms": 18060,
+          "current_artifact_title": null,
+          "current_phase": "completed",
+          "current_extraction_family": null
+        },
+        "evidence_summary": {
+          "reviewable_decisions": 28,
+          "decision_source_types": {
+            "pr": 51,
+            "doc": 2,
+            "issue": 5
+          },
+          "contributing_doc_categories": {
+            "release": 2
+          },
+          "contributing_doc_paths": [
+            "CHANGELOG.md"
+          ]
+        },
+        "outcome": "ok"
+      },
+      "error_message": null,
+      "started_at": "2026-07-13T02:23:34.072435",
+      "finished_at": "2026-07-13T02:35:14.554775"
+    },
+    "error": null
+  },
+  "sparse_conversion": {
+    "status": "skipped",
+    "skip_reason": "candidate_present",
+    "eligible_artifacts": 0,
+    "attempted_artifacts": 0,
+    "model_attempts": 0,
+    "recovered_candidates": 0,
+    "evidence_families": {},
+    "rejection_reasons": {},
+    "conversion_loss_reasons": {
+      "null_decision": 3,
+      "thin_source_ref_coverage": 6,
+      "missing_required_fields": 4,
+      "ungrounded_quote": 1
+    },
+    "created_candidates": 28
+  },
+  "core_loop": {
+    "accepted_baseline": {
+      "accepted_count": 1,
+      "accepted_sample_titles": [
+        "Remove support for Python 3.8"
+      ],
+      "candidate_count": 27,
+      "candidate_sample_titles": [
+        "Use Python 3.13 for \"QA\" workflow",
+        "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+        "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+      ],
+      "next_action": "accepted_baseline_ready",
+      "status": "present",
+      "strength": "thin"
+    },
+    "base_url": "http://127.0.0.1:3001",
+    "evidence_type": "imported-workspace-core-loop-rehearsal",
+    "generated_at": "2026-07-13T10:43:31.607204+08:00",
+    "lane_reasons": {},
+    "lanes": {
+      "dashboard": {
+        "action_category": "pass",
+        "details": {
+          "accepted_decisions": 1,
+          "candidate_decisions": 27,
+          "drift_state": "clean",
+          "github_repo": "jazzband/pip-tools",
+          "import_status": "succeeded",
+          "readiness_state": "why_ready",
+          "workspace_mode": "imported",
+          "workspace_slug": "github-jazzband-pip-tools"
+        },
+        "next_action": "review_candidates_or_ask_why",
+        "status": "pass",
+        "summary": "Dashboard summary loaded for imported workspace."
+      },
+      "drift": {
+        "action_category": "pass",
+        "details": {
+          "alert_count": 0,
+          "drift_state": "clean",
+          "evaluation": {
+            "can_evaluate": true,
+            "created_alerts": 0,
+            "evaluated_rules": 0,
+            "last_evaluated_at": "2026-07-13T10:43:30.694525+08:00",
+            "next_action": "evaluate_drift",
+            "state": "clean"
+          },
+          "evaluation_error": null,
+          "evaluation_request_status": "ok"
+        },
+        "next_action": "evaluate_or_monitor_drift",
+        "status": "pass",
+        "summary": "Drift lane returned `clean` with 0 alert(s)."
+      },
+      "guardrail": {
+        "action_category": "product_controlled",
+        "details": {
+          "agent_status": "caution",
+          "diff_status": "pass",
+          "drift_status": "drift_detected",
+          "findings_count": 2,
+          "required_tests_count": 0
+        },
+        "next_action": "inspect_guardrail_findings",
+        "status": "warning",
+        "summary": "Guardrail returned `caution`."
+      },
+      "review": {
+        "action_category": "pass",
+        "details": {
+          "accepted_baseline": {
+            "accepted_count": 1,
+            "accepted_sample_titles": [
+              "Remove support for Python 3.8"
+            ],
+            "candidate_count": 27,
+            "candidate_sample_titles": [
+              "Use Python 3.13 for \"QA\" workflow",
+              "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+              "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+            ],
+            "next_action": "accepted_baseline_ready",
+            "status": "present",
+            "strength": "thin"
+          },
+          "candidate_count": 27,
+          "sample_titles": [
+            "Use Python 3.13 for \"QA\" workflow",
+            "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+            "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+          ]
+        },
+        "next_action": "review_candidates",
+        "status": "pass",
+        "summary": "Review queue has candidate decisions."
+      },
+      "setup": {
+        "action_category": "pass",
+        "details": {
+          "repo": "jazzband/pip-tools",
+          "setup": {
+            "source": "explicit"
+          },
+          "workspace_slug": "github-jazzband-pip-tools"
+        },
+        "next_action": "probe_core_loop",
+        "status": "pass",
+        "summary": "Workspace setup source `explicit` reported `provided`."
+      },
+      "why_search": {
+        "action_category": "pass",
+        "details": {
+          "answer_status": "ok",
+          "citation_count": 2,
+          "primary_decision": {
+            "decision_id": 443,
+            "title": "Remove support for Python 3.8"
+          },
+          "question": "Why did pip-tools remove support for Python 3.8?",
+          "workspace_mode": "imported"
+        },
+        "next_action": "inspect_citations",
+        "status": "pass",
+        "summary": "Why-search returned `ok`."
+      }
+    },
+    "recommended_next_actions": [
+      "evaluate_or_monitor_drift",
+      "inspect_citations",
+      "inspect_guardrail_findings",
+      "probe_core_loop",
+      "review_candidates",
+      "review_candidates_or_ask_why"
+    ],
+    "repository": {
+      "repo": "jazzband/pip-tools",
+      "workspace_slug": "github-jazzband-pip-tools"
+    },
+    "schema_version": 1,
+    "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output.",
+    "status": "warning",
+    "summary": {
+      "accepted_baseline": {
+        "accepted_count": 1,
+        "accepted_sample_titles": [
+          "Remove support for Python 3.8"
+        ],
+        "candidate_count": 27,
+        "candidate_sample_titles": [
+          "Use Python 3.13 for \"QA\" workflow",
+          "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+          "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+        ],
+        "next_action": "accepted_baseline_ready",
+        "status": "present",
+        "strength": "thin"
+      },
+      "action_categories": {
+        "blocking": 0,
+        "external_dependency": 0,
+        "not_provided": 0,
+        "operator_setup": 0,
+        "product_controlled": 1
+      },
+      "blocking_lanes": 0,
+      "grounding_summary": {
+        "reason_codes": [],
+        "warning_lanes_with_grounding": 0
+      },
+      "pass_lanes": 5,
+      "setup_waiting": false,
+      "warning_lanes": 1
+    }
+  },
+  "browser": {
+    "status": "pass",
+    "summary": "Chrome verified the fresh jazzband/pip-tools workspace: 1207 imported artifacts, 28 grounded candidates, manual acceptance of Remove support for Python 3.8, a Why answer with 2 citations, clean Drift with 0 alerts, and DOM-CUA navigation back to the dashboard."
+  },
+  "limitations": [
+    "A seeded bounded pool is random and reproducible but is not an unbounded sample of GitHub.",
+    "GitHub and the real local stack are external runtime dependencies.",
+    "A successful import can still yield evidence-limited decision quality.",
+    "Evidence excludes credentials, raw private source, raw model output, and unbounded logs."
+  ],
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "inspect_citations",
+    "inspect_guardrail_findings",
+    "probe_core_loop",
+    "review_candidates",
+    "review_candidates_or_ask_why"
+  ],
+  "summary": {
+    "fresh_import": true,
+    "selected_repository": "jazzband/pip-tools",
+    "workspace_slug": "github-jazzband-pip-tools",
+    "imported_count": 1207,
+    "core_loop_status": "warning",
+    "browser_status": "pass",
+    "sparse_recovery_status": "skipped",
+    "sparse_recovered_candidates": 0
+  }
+}

@@ -1,7 +1,7 @@
 # guided-demo-experience Specification
 
 ## Purpose
-TBD - created by archiving change stabilize-guided-demo-lane. Update Purpose after archive.
+Establishes the seeded guided demo as the primary MVP walkthrough with a fixed ordered path, next-step guidance, progress cues, and governance second-act boundaries for hosted preview.
 ## Requirements
 ### Requirement: Guided demo is the primary MVP path
 The system SHALL present the seeded demo workspace as the primary MVP walkthrough and SHALL demote non-walkthrough controls to a clearly secondary advanced or experimental area.
