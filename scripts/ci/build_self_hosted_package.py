@@ -58,6 +58,7 @@ SCRIPT_PATHS = [
     "scripts/ci/rehearse_backup_restore_upgrade.py",
     "scripts/ci/rehearse_real_backup_restore_upgrade.py",
     "scripts/ci/collect_external_self_hosted_install_evidence.py",
+    "scripts/ci/collect_real_external_host_trial_evidence.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/verify_pilot_commercial_proposal_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
@@ -76,6 +77,7 @@ TEMPLATE_PATHS = [
     "templates/private-repo-pilot-evidence.example.json",
     "templates/backup-restore-upgrade-rehearsal.example.json",
     "templates/external-self-hosted-install-evidence.example.json",
+    "templates/customer-host-trial.example.json",
 ]
 
 REQUIRED_SERVICES = [

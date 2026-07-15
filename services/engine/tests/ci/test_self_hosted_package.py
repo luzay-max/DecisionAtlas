@@ -75,8 +75,10 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "templates" / "private-repo-pilot-evidence.example.json").exists()
     assert (package_dir / "templates" / "backup-restore-upgrade-rehearsal.example.json").exists()
     assert (package_dir / "templates" / "external-self-hosted-install-evidence.example.json").exists()
+    assert (package_dir / "templates" / "customer-host-trial.example.json").exists()
     assert (package_dir / "docs" / "project" / "external-self-hosted-install-evidence.md").exists()
     assert (package_dir / "scripts" / "ci" / "collect_external_self_hosted_install_evidence.py").exists()
+    assert (package_dir / "scripts" / "ci" / "collect_real_external_host_trial_evidence.py").exists()
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["version_label"] == "test-version"

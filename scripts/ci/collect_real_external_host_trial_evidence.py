@@ -23,6 +23,33 @@ STATUS_BLOCKING = "blocking"
 STATUS_OPERATOR_GUIDED = "operator_guided"
 STATUS_NOT_PROVIDED = "not_provided"
 STATUS_UNKNOWN = "unknown"
+STATUS_NOT_APPLICABLE = "not_applicable"
+
+CORE_TRIAL_LANES = (
+    "startup",
+    "health",
+    "admin_login",
+    "team_workspace",
+    "repository_import",
+    "review",
+    "why",
+    "drift",
+    "continuity",
+    "browser_smoke",
+)
+
+CORE_TRIAL_LABELS = {
+    "startup": "Stack startup",
+    "health": "Service health",
+    "admin_login": "Administrator login",
+    "team_workspace": "Team and workspace setup",
+    "repository_import": "Repository import",
+    "review": "Candidate review",
+    "why": "Why search",
+    "drift": "Drift evaluation",
+    "continuity": "Backup and recovery",
+    "browser_smoke": "Browser smoke",
+}
 
 PASS_STATUSES = {"pass", "passed", "ok", "success", "succeeded", "clean", "ready", "true"}
 WARNING_STATUSES = {"warning", "warn", "caution", "known_limitation", "needs_review", "manual_check"}
@@ -79,6 +106,8 @@ def normalize_status(value: Any, default: str = STATUS_UNKNOWN) -> str:
         return STATUS_OPERATOR_GUIDED
     if normalized in {"missing", "omitted", "not_provided", "not_available"}:
         return STATUS_NOT_PROVIDED
+    if normalized in {"not_applicable", "n_a", "na"}:
+        return STATUS_NOT_APPLICABLE
     return normalized or default
 
 
@@ -112,7 +141,7 @@ def _display_path(path: Path | None, root: Path) -> str | None:
     try:
         return path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
-        return path.as_posix()
+        return "<external-path>"
 
 
 def _read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -127,13 +156,19 @@ def _read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return data, None
 
 
+def _sanitize_text(value: str) -> str:
+    text = value.strip()
+    text = re.sub(r"(?i)(?:[A-Za-z]:[\\/]|\\\\)[^\"\r\n|]+", "<external-path>", text)
+    return text
+
+
 def _bounded(value: Any, limit: int = 500) -> Any:
     if isinstance(value, dict):
         return {str(key): _bounded(item, limit=limit) for key, item in sorted(value.items(), key=lambda item: str(item[0]))}
     if isinstance(value, list):
         return [_bounded(item, limit=limit) for item in value[:25]]
     if isinstance(value, str):
-        text = value.strip()
+        text = _sanitize_text(value)
         return text if len(text) <= limit else text[: limit - 1].rstrip() + "..."
     return value
 
@@ -262,7 +297,74 @@ def _required_host_findings(host_input: dict[str, Any] | None) -> list[dict[str,
         ("redaction_not_acknowledged", "$.redaction_acknowledgement.acknowledged", bool(redaction.get("acknowledged"))),
         ("browser_smoke_not_pass", "$.browser_smoke.status", normalize_status(browser.get("status"), STATUS_NOT_PROVIDED) == STATUS_PASS),
     ]
-    return [{"id": finding_id, "status": STATUS_WARNING, "path": path} for finding_id, path, ok in checks if not ok]
+    findings = [{"id": finding_id, "status": STATUS_WARNING, "path": path} for finding_id, path, ok in checks if not ok]
+    for lane in _core_trial_lanes(host_input):
+        if lane["status"] in {STATUS_NOT_PROVIDED, STATUS_UNKNOWN}:
+            findings.append(
+                {
+                    "id": f"{lane['id']}_lane_missing",
+                    "status": STATUS_WARNING,
+                    "path": f"$.trial_lanes.{lane['id']}",
+                }
+            )
+    return findings
+
+
+def _legacy_lane_status(host_input: dict[str, Any], lane_id: str) -> tuple[str, Any]:
+    if lane_id == "startup":
+        records = host_input.get("commands_run") if isinstance(host_input.get("commands_run"), list) else []
+        record = next((item for item in records if isinstance(item, dict) and item.get("id") in {"start_stack", "startup"}), None)
+        return (normalize_status(record.get("status"), STATUS_NOT_PROVIDED), record.get("summary") if record else None) if record else (STATUS_NOT_PROVIDED, None)
+    if lane_id == "health":
+        records = host_input.get("health_checks") if isinstance(host_input.get("health_checks"), list) else []
+        statuses = [normalize_status(item.get("status"), STATUS_NOT_PROVIDED) for item in records if isinstance(item, dict)]
+        if statuses and all(status == STATUS_PASS for status in statuses):
+            return STATUS_PASS, "All supplied service health checks passed."
+        if statuses:
+            return STATUS_WARNING, "One or more supplied service health checks were not clean."
+    if lane_id == "browser_smoke":
+        browser = host_input.get("browser_smoke") if isinstance(host_input.get("browser_smoke"), dict) else {}
+        return normalize_status(browser.get("status"), STATUS_NOT_PROVIDED), browser.get("summary")
+    return STATUS_NOT_PROVIDED, None
+
+
+def _core_trial_lanes(host_input: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(host_input, dict):
+        return [
+            {
+                "id": lane_id,
+                "label": CORE_TRIAL_LABELS[lane_id],
+                "status": STATUS_NOT_PROVIDED,
+                "source_path": None,
+                "summary": {"reason": "trial_lane_not_provided"},
+                "warnings": ["trial_lane_not_provided"],
+            }
+            for lane_id in CORE_TRIAL_LANES
+        ]
+    supplied = host_input.get("trial_lanes")
+    supplied = supplied if isinstance(supplied, dict) else {}
+    lanes: list[dict[str, Any]] = []
+    for lane_id in CORE_TRIAL_LANES:
+        record = supplied.get(lane_id)
+        if isinstance(record, dict):
+            status = normalize_status(record.get("status"), STATUS_NOT_PROVIDED)
+            summary = record.get("summary") or record.get("evidence") or {"reason": "summary_not_provided"}
+            warnings = record.get("warnings") or ([] if status == STATUS_PASS else ["lane_not_clean"])
+        else:
+            status, legacy_summary = _legacy_lane_status(host_input, lane_id)
+            summary = legacy_summary or {"reason": "trial_lane_not_provided"}
+            warnings = [] if status == STATUS_PASS else ["trial_lane_not_provided"]
+        lanes.append(
+            {
+                "id": lane_id,
+                "label": CORE_TRIAL_LABELS[lane_id],
+                "status": status,
+                "source_path": None,
+                "summary": _bounded(summary),
+                "warnings": _bounded(warnings),
+            }
+        )
+    return lanes
 
 
 def _host_lane(host_input: dict[str, Any] | None, input_path: Path | None, root: Path) -> dict[str, Any]:
@@ -357,6 +459,7 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
 
     lanes = [
         _host_lane(host_input, host_input_path, root),
+        *_core_trial_lanes(host_input),
         _review_lane("placeholder_review", "Placeholder/template review", placeholder_findings),
         _review_lane("required_host_review", "Required host field review", required_findings),
         _source_lane("customer_host_v2", "Customer-host v2", args.customer_host_v2_json, root, _customer_host_summary),
@@ -367,6 +470,16 @@ def build_report(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         lanes[0]["warnings"] = [host_input_error]
     if redaction_findings:
         lanes.append(_review_lane("redaction_review", "Redaction review", redaction_findings))
+
+    source_payloads: list[Any] = []
+    for source_path in (args.customer_host_v2_json, args.full_chain_json):
+        _, source_data, _ = _source_data(source_path, root)
+        if source_data is not None:
+            source_payloads.append(source_data)
+    source_redaction_findings = detect_sensitive_material(source_payloads)
+    if source_redaction_findings:
+        redaction_findings.extend(source_redaction_findings)
+        lanes.append(_review_lane("source_redaction_review", "Source evidence redaction review", source_redaction_findings))
 
     lane_statuses = [str(lane.get("status") or STATUS_UNKNOWN) for lane in lanes]
     status = combined_status(lane_statuses)

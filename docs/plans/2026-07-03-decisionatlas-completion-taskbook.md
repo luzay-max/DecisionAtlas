@@ -408,3 +408,35 @@ change：`benchmark-sparse-conversion-trends`
 
 - 归档并推送本 change，查询对应 GitHub Actions。
 - 之后进入 `complete-real-customer-host-trial`，在独立 VM/外部主机完成 hosted/operator 交付闭环。
+
+### P18：真实客户宿主试用闭环（本轮完成，外部客户证明待补）
+
+change：`complete-real-customer-host-trial`
+
+本轮完成：
+
+- 新增版本化 customer-host trial 输入契约、核心 lane、路径脱敏、source evidence 边界、operator checklist 和 self-hosted package 模板。
+- 使用当前真实本地 Docker stack 执行完整 operator checklist，并随机选择新鲜公共仓库 `hynek/structlog`：全量导入 1,169 个对象，生成 26 个候选决策。
+- 使用真实 Chrome 验证 Home、Team、Settings、Evidence、workspace Dashboard、Review、Why、Timeline、Drift 共 13 个页面/跳转；Why Search 实际调用后在无 accepted baseline 时返回 `review_required`、0 citations，保持 fail-closed。
+- 生成 `.tmp/customer-host-trial-evidence.json/md`、release evidence、hosted readiness、benchmark comparison、continuity、team handoff，并归档到 `docs/evidence/readiness/2026-07-15-customer-host-trial-release-rehearsal/`。
+
+验证结果：
+
+- engine：399 passed；API：32 passed；Web：83 passed；typecheck 通过；benchmark fixture 通过；OpenSpec strict 通过。
+- package verification 通过；clean install 和 real continuity rehearsal 为 warning/operator-guided，无 blocker。
+- release evidence 为 `warning`，三个必需门禁通过；guardrail 为 `caution`，保留治理历史提醒。
+- hosted readiness 为 `operator_guided`，因为本轮没有外部 hosted URL；不能把本地 Docker 结果称为客户主机证明。
+- 固定 live benchmark profile 为 4/5 通过，n8n 1 个 profile 失败；该失败已保留在 live report，不能只报告通过项。
+
+未完成边界：
+
+- 尚未在客户控制的独立 VM/服务器完成外部安装证明。
+- reviewer/viewer 账号实际分工、私有仓库 token 粘贴、外部 hosted URL、真实恢复演练仍需 operator/customer 参与。
+- 新鲜 `hynek/structlog` workspace 尚未接受候选决策，因此 Why/Drift warning 是当前系统的正确保护行为。
+
+下一步优先级：
+
+1. 找一台独立 VM 或测试服务器，按同一 checklist 运行一次真正客户控制主机试用，补齐 external install/customer-host proof。
+2. 在新鲜公共仓库上接受 1-3 条高质量候选，复跑 Why/Drift，形成 warning reduction 与 accepted baseline evidence。
+3. 针对 n8n benchmark 失败定位是数据质量、阈值还是运行依赖，再决定修复或调整 profile；不要先放宽门槛。
+4. 外部 host proof 稳定后，再做 hosted URL 公开演示、恢复流程和操作员交付；billing、多租户、Marketplace、自助 OAuth 继续后置。

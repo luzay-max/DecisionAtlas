@@ -22,6 +22,7 @@ decisionatlas-self-hosted/
     self-hosted.env.example
     self-hosted-entitlement.example.json
     external-self-hosted-install-evidence.example.json
+    customer-host-trial.example.json
   docs/
     project/
       deployment.md
@@ -54,6 +55,7 @@ decisionatlas-self-hosted/
       pre-release.ps1
       collect_release_evidence.py
       collect_readiness_evidence_history.py
+      collect_real_external_host_trial_evidence.py
       collect_team_handoff_report.py
       collect_external_self_hosted_install_evidence.py
       verify_pilot_customer_delivery_kit.py
@@ -146,6 +148,24 @@ python scripts\ci\collect_external_self_hosted_install_evidence.py `
 ```
 
 Fill the input file on the external host before running the collector. Missing evidence remains `not_provided` or `operator_guided`; blocked or unsafe evidence must not be treated as pass.
+
+For the complete customer-host loop, copy `templates/customer-host-trial.example.json` to a private working file on the target host, fill only bounded statuses and summaries, and run:
+
+```powershell
+python scripts\ci\collect_real_external_host_trial_evidence.py `
+  --label customer-host-trial-<date> `
+  --version-label <package-version> `
+  --commit <package-commit> `
+  --host-input-json .\customer-host-trial.json `
+  --customer-host-v2-json .\customer-host-v2.json `
+  --full-chain-json .\full-chain-release.json `
+  --output-json .tmp\real-external-host-trial-evidence.json `
+  --output-markdown .tmp\real-external-host-trial-evidence.md `
+  --archive-history `
+  --archive-label customer-host-trial-<date>
+```
+
+The collector validates the submitted observations but does not install software, start services, import repositories, run browsers, or mutate the target host. A local workstation or local Docker rehearsal must remain `operator_guided`; only an independently controlled external host with clean core lanes can produce `real_external_customer_controlled` proof.
 
 ## Operator Setup
 

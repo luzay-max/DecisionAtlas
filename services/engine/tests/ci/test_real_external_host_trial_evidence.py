@@ -38,6 +38,24 @@ def _real_host_payload() -> dict:
             "commit": "abc123def456",
             "package_manifest_sha256": "7c4f0f46fbb3",
         },
+        "trial_lanes": {
+            lane_id: {
+                "status": "passed",
+                "summary": f"{lane_id} completed on the customer-controlled host.",
+            }
+            for lane_id in (
+                "startup",
+                "health",
+                "admin_login",
+                "team_workspace",
+                "repository_import",
+                "review",
+                "why",
+                "drift",
+                "continuity",
+                "browser_smoke",
+            )
+        },
         "browser_smoke": {
             "status": "passed",
             "operator": "pilot-admin",
@@ -179,3 +197,37 @@ def test_real_external_host_trial_archives_to_readiness_history(tmp_path: Path) 
     ).exists()
     assert (tmp_path / "history" / "index.json").exists()
     assert (tmp_path / "history" / "trend.md").exists()
+
+
+def test_real_external_host_trial_accepts_legacy_lanes_but_keeps_missing_core_work_visible(tmp_path: Path) -> None:
+    collector = _load_module()
+    payload = _real_host_payload()
+    payload.pop("trial_lanes")
+    payload["commands_run"] = [{"id": "start_stack", "status": "passed", "summary": "Started."}]
+    payload["health_checks"] = [{"id": "api_health", "status": "passed", "summary": "OK."}]
+    host_input = _write_json(tmp_path / "legacy.json", payload)
+    args = collector.parse_args(["--host-input-json", str(host_input)])
+
+    report = collector.build_report(args, tmp_path)
+    lanes = {lane["id"]: lane for lane in report["lanes"]}
+
+    assert report["status"] == "warning"
+    assert lanes["startup"]["status"] == "pass"
+    assert lanes["health"]["status"] == "pass"
+    assert lanes["admin_login"]["status"] == "not_provided"
+    assert "admin_login_lane_missing" in {finding["id"] for finding in report["required_host_findings"]}
+
+
+def test_real_external_host_trial_redacts_external_paths_and_source_secrets(tmp_path: Path) -> None:
+    collector = _load_module()
+    payload = _real_host_payload()
+    payload["trial_lanes"]["health"]["summary"] = r"Validated at C:\customer\decisionatlas\health.log"
+    host_input = _write_json(tmp_path / "host.json", payload)
+    outside_source = Path("C:/customer/private-release.json")
+    args = collector.parse_args(["--host-input-json", str(host_input), "--customer-host-v2-json", str(outside_source)])
+
+    report = collector.build_report(args, tmp_path)
+    markdown = collector.render_markdown(report)
+
+    assert "C:\\customer" not in markdown
+    assert "<external-path>" in json.dumps(report)

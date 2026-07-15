@@ -181,6 +181,34 @@ python scripts\ci\collect_external_self_hosted_install_evidence.py `
 
 Attach the resulting JSON to clean install rehearsal, team handoff, and Code Decision Audit reports. If it is absent, preserve `not_provided` or `operator_guided` instead of describing local clean rehearsal as external proof.
 
+## Customer Host Trial Checklist
+
+Use `templates/customer-host-trial.example.json` as the bounded input contract. Fill it on the target host or in a private operator workspace; do not commit the filled file.
+
+1. Record the host class, OS family, deployment mode, operator, package version, and commit. Mark whether the host is independently customer-controlled.
+2. Verify the package manifest and run `scripts/dev/start-real-stack.bat` on Windows or `scripts/dev/start-real-stack.ps1` on Linux/PowerShell.
+3. Run Web, API, and Engine health checks. Record only pass/warning/blocking status and a short sanitized summary.
+4. Initialize the first administrator, create reviewer/viewer accounts, and verify workspace permission boundaries without recording credentials.
+5. Import one permitted fresh public GitHub repository or one approved private repository. Record repo identity and bounded import status only.
+6. Open the dashboard, review queue, Why Search, Drift, and Evidence pages in a browser. Record route/status results, not screenshots containing secrets or private source.
+7. Run the approved backup/recovery check and record whether recovery was validated, operator-guided, or not provided.
+8. Review the completed input for tokens, `.env` values, private keys, raw logs, private source, raw model output, and backup contents.
+9. Generate and archive the trial evidence:
+
+```powershell
+python scripts\ci\collect_real_external_host_trial_evidence.py `
+  --label customer-host-trial-<date> `
+  --version-label <package-version> `
+  --commit <package-commit> `
+  --host-input-json .\customer-host-trial.json `
+  --output-json .tmp\real-external-host-trial-evidence.json `
+  --output-markdown .tmp\real-external-host-trial-evidence.md `
+  --archive-history `
+  --archive-label customer-host-trial-<date>
+```
+
+The collector does not execute the checklist. It validates and summarizes operator-supplied facts. Local Docker or developer-workstation results remain `operator_guided`; do not use them as customer-host proof.
+
 ## Real Continuity Rehearsal
 
 The non-destructive backup/restore/upgrade verifier checks operator-submitted evidence. The real continuity rehearsal checks mechanics against isolated scratch state:
