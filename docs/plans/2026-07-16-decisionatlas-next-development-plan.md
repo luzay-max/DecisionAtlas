@@ -9,7 +9,7 @@ DecisionAtlas 已具备“可运行源码包”能力：交付包包含完整运
 ```text
 本机源码运行                 已完成
 本机隔离 package-copy 运行   已完成
-GitHub 独立 runner 回归       工作流已建立，待当前 PR 验证
+GitHub 独立 runner 回归       已完成，run 29483070983
 客户控制 VM/服务器运行        未完成
 2-3 个真实团队持续 pilot       未完成
 ```

@@ -38,7 +38,11 @@
 
 - 实现提交：`46027d0 Make self-hosted package independently runnable`
 - Readiness entry：`docs/evidence/readiness/2026-07-16-runnable-self-hosted-package/`
-- GitHub Actions：待本分支推送并创建 PR 后记录最终 run id 与结果。
+- Draft PR：`#4 Make self-hosted package independently runnable`。
+- GitHub Actions `CI` run `29483070963`：success；Node tests、typecheck、engine tests、benchmark fixture 和 browser smoke 全通过。
+- GitHub Actions `Self-Hosted Package Rehearsal` run `29483070983`：success；build、verify、isolated runtime、clean evidence 和 artifact upload 全通过。
+- Actions artifact：`self-hosted-package-rehearsal-29483070983`，已确认存在且未过期。
+- OpenSpec：主规格已同步，change 已归档到 `openspec/changes/archive/2026-07-16-make-self-hosted-package-runnable/`。
 
 ## 下一步
 

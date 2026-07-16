@@ -466,7 +466,7 @@ change：`make-benchmark-value-outcomes-monotonic`
 - readiness history 仍会显示 optional evidence `not_provided`，这是证据完整度提示，不是 benchmark 失败。
 - 下一刀回到真实客户闭环：独立 VM/测试服务器、私有仓库脱敏试用和客户反馈；暂不做 SaaS billing、多租户或 Marketplace。
 
-### P20：可运行自托管源码包（本轮完成，Actions 待最终确认）
+### P20：可运行自托管源码包（本轮完成）
 
 change：`make-self-hosted-package-runnable`
 
@@ -485,6 +485,8 @@ change：`make-self-hosted-package-runnable`
 - package verifier pass，276 files；runnable rehearsal 6/6 pass；clean rehearsal 0 blocker。
 - canonical pre-release 全通过：engine 409、Web 83、API 32、Playwright 12/12、OpenSpec strict 90/90。
 - readiness entry：`docs/evidence/readiness/2026-07-16-runnable-self-hosted-package/`。
+- GitHub Actions：普通 CI run `29483070963`、package rehearsal run `29483070983` 全部 success；独立 runner artifact 已上传。
+- OpenSpec change 已同步主规格并归档为 `2026-07-16-make-self-hosted-package-runnable`。
 
 边界与下一步：
 

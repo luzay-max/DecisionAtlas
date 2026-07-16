@@ -18,4 +18,4 @@
 ## 4. Evidence And Closeout
 
 - [x] 4.1 Generate package verification, clean install, runnable runtime, release/readiness, and independent-host evidence; archive a dated readiness entry and update the taskbook, dated update log, package docs, and next-development plan with honest customer-proof boundaries.
-- [ ] 4.2 Archive the OpenSpec change, commit only scoped files, push the dedicated branch, run and inspect both normal CI and the package rehearsal workflow, and report exact GitHub Actions results.
+- [x] 4.2 Archive the OpenSpec change, commit only scoped files, push the dedicated branch, run and inspect both normal CI and the package rehearsal workflow, and report exact GitHub Actions results.
