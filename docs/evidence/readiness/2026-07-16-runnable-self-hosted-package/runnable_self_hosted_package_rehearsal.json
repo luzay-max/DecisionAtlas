@@ -1,0 +1,146 @@
+{
+  "commands": [
+    {
+      "command": [
+        "pnpm",
+        "install",
+        "--frozen-lockfile"
+      ],
+      "cwd": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+      "duration_seconds": 6.334,
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "Scope: all 3 workspace projects\nLockfile is up to date, resolution step is skipped\nProgress: resolved 1, reused 0, downloaded 0, added 0\nPackages: +192\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\nProgress: resolved 192, reused 192, downloaded 0, added 115\nProgress: resolved 192, reused 192, downloaded 0, added 191\nProgress: resolved 192, reused 192, downloaded 0, added 192\nProgress: resolved 192, reused 192, downloaded 0, added 192, done\n\ndevDependencies:\n+ turbo 2.8.17\n\n\u256d Warning \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\u2502                                                                              \u2502\u2502   Ignored build scripts: esbuild, sharp.                                     \u2502\u2502   Run \"pnpm approve-builds\" to pick which dependencies should be allowed     \u2502\u2502   to run scripts.                                                            \u2502\u2502                                                                              \u2502\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\nDone in 6.1s using pnpm v10.6.0\n"
+    },
+    {
+      "command": [
+        "C:\\Users\\Max\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "-m",
+        "uv",
+        "sync",
+        "--project",
+        "services/engine",
+        "--frozen"
+      ],
+      "cwd": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+      "duration_seconds": 0.612,
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "Using CPython 3.13.3 interpreter at: C:\\Users\\Max\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\nCreating virtual environment at: services\\engine\\.venv\nInstalled 32 packages in 435ms\n + alembic==1.18.4\n + annotated-doc==0.0.4\n + annotated-types==0.7.0\n + anyio==4.12.1\n + certifi==2026.2.25\n + click==8.3.1\n + colorama==0.4.6\n + fastapi==0.135.1\n + greenlet==3.3.2\n + h11==0.16.0\n + httpcore==1.0.9\n + httpx==0.28.1\n + idna==3.11\n + iniconfig==2.3.0\n + mako==1.3.10\n + markupsafe==3.0.3\n + packaging==26.0\n + pluggy==1.6.0\n + psycopg==3.3.3\n + psycopg-binary==3.3.3\n + pydantic==2.12.5\n + pydantic-core==2.41.5\n + pydantic-settings==2.13.1\n + pygments==2.19.2\n + pytest==9.0.2\n + python-dotenv==1.2.2\n + sqlalchemy==2.0.48\n + starlette==0.52.1\n + typing-extensions==4.15.0\n + typing-inspection==0.4.2\n + tzdata==2025.3\n + uvicorn==0.42.0\n",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "pnpm",
+        "--filter",
+        "@decisionatlas/web",
+        "exec",
+        "playwright",
+        "install",
+        "chromium"
+      ],
+      "cwd": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+      "duration_seconds": 1.382,
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    },
+    {
+      "command": [
+        "pnpm",
+        "--filter",
+        "@decisionatlas/web",
+        "exec",
+        "playwright",
+        "test",
+        "tests-e2e/imported-workspace-core-loop.spec.ts",
+        "--workers=1"
+      ],
+      "cwd": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+      "duration_seconds": 32.967,
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": " Running upgrade 0001_initial_schema -> 0002_add_import_jobs, add import jobs\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO:     Started server process [26340]\n\u001b[2m[WebServer] \u001b[22mINFO:     Waiting for application startup.\n\u001b[2m[WebServer] \u001b[22mINFO:     Application startup complete.\n\u001b[2m[WebServer] \u001b[22mINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)\n",
+      "stdout_tail": "\nRunning 1 test using 1 worker\n\n  ok 1 tests-e2e\\imported-workspace-core-loop.spec.ts:5:5 \u203a imported workspace core loop browser rehearsal (7.5s)\n\n  1 passed (31.2s)\n"
+    }
+  ],
+  "commit": "working-tree",
+  "evidence_type": "runnable-self-hosted-package-rehearsal",
+  "generated_at": "2026-07-16T08:08:25.174227+00:00",
+  "host_profile": {
+    "host_class": "local-isolated-copy",
+    "is_customer_controlled": false,
+    "os_family": "windows"
+  },
+  "host_proof_level": "independent_host_package_smoke",
+  "label": "runnable-package-20260716",
+  "limitations": [
+    "Dependency installation downloads packages unless an operator supplies an approved cache or mirror.",
+    "GitHub-hosted and local isolated rehearsals prove package independence but are not customer-controlled-host proof.",
+    "Evidence stores only bounded command tails and does not store tokens, raw private source, databases, or raw model output."
+  ],
+  "package_copy": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+  "recommended_next_actions": [
+    "Repeat the same runnable package rehearsal on a sanitized customer-controlled host before clean customer claims."
+  ],
+  "repository": "githits-com/githits-cli",
+  "schema_version": 1,
+  "source_package": "<workspace>/.tmp/self-hosted-packages/runnable-preview-20260716",
+  "stages": [
+    {
+      "id": "copy_package",
+      "label": "Copy package into isolated runtime root",
+      "package_copy": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+      "source_package": "<workspace>/.tmp/self-hosted-packages/runnable-preview-20260716",
+      "status": "pass"
+    },
+    {
+      "blocker_ids": [],
+      "id": "verify_package",
+      "label": "Verify runnable package inputs",
+      "runnable_status": "pass",
+      "status": "pass"
+    },
+    {
+      "id": "install_dependencies",
+      "label": "Install exact Node and Python dependencies",
+      "requested": true,
+      "status": "pass"
+    },
+    {
+      "id": "install_browser",
+      "label": "Install Playwright Chromium",
+      "requested": true,
+      "status": "pass"
+    },
+    {
+      "duration_seconds": 32.967,
+      "id": "service_startup",
+      "label": "Start engine, API, and web with health gates",
+      "proof_mechanism": "playwright_web_server_health_gates",
+      "requested": true,
+      "status": "pass",
+      "urls": {
+        "api": "http://127.0.0.1:3001/health",
+        "engine": "http://127.0.0.1:8000/health",
+        "web": "http://127.0.0.1:3000"
+      }
+    },
+    {
+      "id": "browser_smoke",
+      "label": "Run imported-workspace browser smoke",
+      "repository": "githits-com/githits-cli",
+      "requested": true,
+      "status": "pass"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "blocking": 0,
+    "operator_guided": 0,
+    "pass": 6
+  },
+  "version_label": "2026-07-16-preview"
+}

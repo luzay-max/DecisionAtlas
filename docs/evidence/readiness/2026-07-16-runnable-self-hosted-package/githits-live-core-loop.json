@@ -1,0 +1,239 @@
+{
+  "accepted_baseline": {
+    "accepted_count": 0,
+    "accepted_sample_titles": [],
+    "candidate_count": 30,
+    "candidate_sample_titles": [
+      "Capability-gate code navigation feature",
+      "Improve search match highlighting",
+      "fix: prevent auth refresh token reuse races"
+    ],
+    "next_action": "review_candidates_into_accepted_baseline",
+    "status": "empty",
+    "strength": "none"
+  },
+  "base_url": "http://127.0.0.1:3001",
+  "evidence_type": "imported-workspace-core-loop-rehearsal",
+  "generated_at": "2026-07-16T07:24:26.081419+00:00",
+  "lane_reasons": {
+    "drift": [
+      {
+        "code": "missing_accepted_decision_evidence",
+        "evidence": {
+          "accepted_baseline_status": "empty",
+          "accepted_decision_count": 0,
+          "alert_count": 0,
+          "drift_state": "review_required",
+          "evaluation_request_status": "ok",
+          "evaluation_state": "review_required"
+        },
+        "lane": "drift",
+        "next_action": "evaluate_or_monitor_drift",
+        "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence."
+      }
+    ],
+    "why_search": [
+      {
+        "code": "missing_accepted_decision_evidence",
+        "evidence": {
+          "accepted_baseline_status": "empty",
+          "accepted_decision_count": 0,
+          "answer_status": "review_required",
+          "citation_count": 0,
+          "primary_decision_present": false,
+          "workspace_mode": "imported"
+        },
+        "lane": "why_search",
+        "next_action": "improve_accepted_decision_evidence",
+        "summary": "Why-search has no citations or primary decision to ground the answer."
+      }
+    ]
+  },
+  "lanes": {
+    "dashboard": {
+      "action_category": "pass",
+      "details": {
+        "accepted_decisions": 0,
+        "candidate_decisions": 30,
+        "drift_state": "review_required",
+        "github_repo": "githits-com/githits-cli",
+        "import_status": "succeeded",
+        "readiness_state": "review_ready",
+        "workspace_mode": "imported",
+        "workspace_slug": "github-githits-com-githits-cli"
+      },
+      "next_action": "review_candidates_or_ask_why",
+      "status": "pass",
+      "summary": "Dashboard summary loaded for imported workspace."
+    },
+    "drift": {
+      "action_category": "product_controlled",
+      "details": {
+        "alert_count": 0,
+        "drift_state": "review_required",
+        "evaluation": {
+          "can_evaluate": false,
+          "created_alerts": 0,
+          "evaluated_rules": 0,
+          "last_evaluated_at": "2026-07-16T07:24:24.862741+00:00",
+          "next_action": "review_candidates",
+          "state": "review_required"
+        },
+        "evaluation_error": null,
+        "evaluation_request_status": "ok"
+      },
+      "grounding": {
+        "reasons": [
+          {
+            "code": "missing_accepted_decision_evidence",
+            "evidence": {
+              "accepted_baseline_status": "empty",
+              "accepted_decision_count": 0,
+              "alert_count": 0,
+              "drift_state": "review_required",
+              "evaluation_request_status": "ok",
+              "evaluation_state": "review_required"
+            },
+            "lane": "drift",
+            "next_action": "evaluate_or_monitor_drift",
+            "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence."
+          }
+        ]
+      },
+      "next_action": "evaluate_or_monitor_drift",
+      "status": "warning",
+      "summary": "Drift lane returned `review_required` with 0 alert(s)."
+    },
+    "guardrail": {
+      "action_category": "product_controlled",
+      "details": {
+        "agent_status": "caution",
+        "diff_status": "pass",
+        "drift_status": "drift_detected",
+        "findings_count": 2,
+        "required_tests_count": 0
+      },
+      "next_action": "inspect_guardrail_findings",
+      "status": "warning",
+      "summary": "Guardrail returned `caution`."
+    },
+    "review": {
+      "action_category": "pass",
+      "details": {
+        "accepted_baseline": {
+          "accepted_count": 0,
+          "accepted_sample_titles": [],
+          "candidate_count": 30,
+          "candidate_sample_titles": [
+            "Capability-gate code navigation feature",
+            "Improve search match highlighting",
+            "fix: prevent auth refresh token reuse races"
+          ],
+          "next_action": "review_candidates_into_accepted_baseline",
+          "status": "empty",
+          "strength": "none"
+        },
+        "candidate_count": 30,
+        "sample_titles": [
+          "Capability-gate code navigation feature",
+          "Improve search match highlighting",
+          "fix: prevent auth refresh token reuse races"
+        ]
+      },
+      "next_action": "review_candidates",
+      "status": "pass",
+      "summary": "Review queue has candidate decisions."
+    },
+    "setup": {
+      "action_category": "pass",
+      "details": {
+        "repo": "githits-com/githits-cli",
+        "setup": {
+          "source": "explicit"
+        },
+        "workspace_slug": "github-githits-com-githits-cli"
+      },
+      "next_action": "probe_core_loop",
+      "status": "pass",
+      "summary": "Workspace setup source `explicit` reported `provided`."
+    },
+    "why_search": {
+      "action_category": "product_controlled",
+      "details": {
+        "answer_status": "review_required",
+        "citation_count": 0,
+        "primary_decision": null,
+        "question": "why does this repository organize its CLI this way",
+        "workspace_mode": "imported"
+      },
+      "grounding": {
+        "reasons": [
+          {
+            "code": "missing_accepted_decision_evidence",
+            "evidence": {
+              "accepted_baseline_status": "empty",
+              "accepted_decision_count": 0,
+              "answer_status": "review_required",
+              "citation_count": 0,
+              "primary_decision_present": false,
+              "workspace_mode": "imported"
+            },
+            "lane": "why_search",
+            "next_action": "improve_accepted_decision_evidence",
+            "summary": "Why-search has no citations or primary decision to ground the answer."
+          }
+        ]
+      },
+      "next_action": "improve_accepted_decision_evidence",
+      "status": "warning",
+      "summary": "Why-search returned `review_required`."
+    }
+  },
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "improve_accepted_decision_evidence",
+    "inspect_guardrail_findings",
+    "probe_core_loop",
+    "review_candidates",
+    "review_candidates_or_ask_why"
+  ],
+  "repository": {
+    "repo": "githits-com/githits-cli",
+    "workspace_slug": "github-githits-com-githits-cli"
+  },
+  "schema_version": 1,
+  "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output.",
+  "status": "warning",
+  "summary": {
+    "accepted_baseline": {
+      "accepted_count": 0,
+      "accepted_sample_titles": [],
+      "candidate_count": 30,
+      "candidate_sample_titles": [
+        "Capability-gate code navigation feature",
+        "Improve search match highlighting",
+        "fix: prevent auth refresh token reuse races"
+      ],
+      "next_action": "review_candidates_into_accepted_baseline",
+      "status": "empty",
+      "strength": "none"
+    },
+    "action_categories": {
+      "blocking": 0,
+      "external_dependency": 0,
+      "not_provided": 0,
+      "operator_setup": 0,
+      "product_controlled": 3
+    },
+    "blocking_lanes": 0,
+    "grounding_summary": {
+      "reason_codes": [
+        "missing_accepted_decision_evidence"
+      ],
+      "warning_lanes_with_grounding": 2
+    },
+    "pass_lanes": 3,
+    "setup_waiting": false,
+    "warning_lanes": 3
+  }
+}

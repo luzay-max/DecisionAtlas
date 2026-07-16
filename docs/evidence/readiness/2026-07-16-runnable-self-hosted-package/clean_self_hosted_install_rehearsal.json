@@ -1,0 +1,495 @@
+{
+  "blockers": [],
+  "checks": [
+    {
+      "details": {
+        "path": "<workspace>/.tmp/clean-self-hosted-install/clean-runnable-package-20260716/package-copy"
+      },
+      "id": "clean_package_copy",
+      "label": "Package copied into isolated clean workspace",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "manifest.json"
+      },
+      "id": "asset:manifest.json",
+      "label": "Required handoff asset manifest.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "README.md"
+      },
+      "id": "asset:README.md",
+      "label": "Required handoff asset README.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/self-hosted.env.example"
+      },
+      "id": "asset:templates/self-hosted.env.example",
+      "label": "Required handoff asset templates/self-hosted.env.example",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/self-hosted-entitlement.example.json"
+      },
+      "id": "asset:templates/self-hosted-entitlement.example.json",
+      "label": "Required handoff asset templates/self-hosted-entitlement.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-package-guide.md"
+      },
+      "id": "asset:docs/project/self-hosted-package-guide.md",
+      "label": "Required handoff asset docs/project/self-hosted-package-guide.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-operations-runbook.md"
+      },
+      "id": "asset:docs/project/self-hosted-operations-runbook.md",
+      "label": "Required handoff asset docs/project/self-hosted-operations-runbook.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-readiness-checklist.md"
+      },
+      "id": "asset:docs/project/self-hosted-readiness-checklist.md",
+      "label": "Required handoff asset docs/project/self-hosted-readiness-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-delivery-rehearsal.md"
+      },
+      "id": "asset:docs/project/self-hosted-delivery-rehearsal.md",
+      "label": "Required handoff asset docs/project/self-hosted-delivery-rehearsal.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-license-and-support-boundary.md"
+      },
+      "id": "asset:docs/project/self-hosted-license-and-support-boundary.md",
+      "label": "Required handoff asset docs/project/self-hosted-license-and-support-boundary.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/team-handoff-reporting.md"
+      },
+      "id": "asset:docs/project/team-handoff-reporting.md",
+      "label": "Required handoff asset docs/project/team-handoff-reporting.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/dev/start-real-stack.ps1"
+      },
+      "id": "asset:scripts/dev/start-real-stack.ps1",
+      "label": "Required handoff asset scripts/dev/start-real-stack.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/dev/start-real-stack.bat"
+      },
+      "id": "asset:scripts/dev/start-real-stack.bat",
+      "label": "Required handoff asset scripts/dev/start-real-stack.bat",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/verify_self_hosted_package.py"
+      },
+      "id": "asset:scripts/ci/verify_self_hosted_package.py",
+      "label": "Required handoff asset scripts/ci/verify_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/collect_team_handoff_report.py"
+      },
+      "id": "asset:scripts/ci/collect_team_handoff_report.py",
+      "label": "Required handoff asset scripts/ci/collect_team_handoff_report.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/collect_external_self_hosted_install_evidence.py"
+      },
+      "id": "asset:scripts/ci/collect_external_self_hosted_install_evidence.py",
+      "label": "Required handoff asset scripts/ci/collect_external_self_hosted_install_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/rehearse_runnable_self_hosted_package.py"
+      },
+      "id": "asset:scripts/ci/rehearse_runnable_self_hosted_package.py",
+      "label": "Required handoff asset scripts/ci/rehearse_runnable_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-engine-smoke.ps1"
+      },
+      "id": "asset:scripts/ci/start-engine-smoke.ps1",
+      "label": "Required handoff asset scripts/ci/start-engine-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-api-smoke.ps1"
+      },
+      "id": "asset:scripts/ci/start-api-smoke.ps1",
+      "label": "Required handoff asset scripts/ci/start-api-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-web-smoke.ps1"
+      },
+      "id": "asset:scripts/ci/start-web-smoke.ps1",
+      "label": "Required handoff asset scripts/ci/start-web-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "package.json"
+      },
+      "id": "asset:package.json",
+      "label": "Required handoff asset package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "pnpm-lock.yaml"
+      },
+      "id": "asset:pnpm-lock.yaml",
+      "label": "Required handoff asset pnpm-lock.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "pnpm-workspace.yaml"
+      },
+      "id": "asset:pnpm-workspace.yaml",
+      "label": "Required handoff asset pnpm-workspace.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docker-compose.yml"
+      },
+      "id": "asset:docker-compose.yml",
+      "label": "Required handoff asset docker-compose.yml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/api/package.json"
+      },
+      "id": "asset:apps/api/package.json",
+      "label": "Required handoff asset apps/api/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/api/src/server.ts"
+      },
+      "id": "asset:apps/api/src/server.ts",
+      "label": "Required handoff asset apps/api/src/server.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/package.json"
+      },
+      "id": "asset:apps/web/package.json",
+      "label": "Required handoff asset apps/web/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/app/page.tsx"
+      },
+      "id": "asset:apps/web/app/page.tsx",
+      "label": "Required handoff asset apps/web/app/page.tsx",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/playwright.config.ts"
+      },
+      "id": "asset:apps/web/playwright.config.ts",
+      "label": "Required handoff asset apps/web/playwright.config.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/pyproject.toml"
+      },
+      "id": "asset:services/engine/pyproject.toml",
+      "label": "Required handoff asset services/engine/pyproject.toml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/uv.lock"
+      },
+      "id": "asset:services/engine/uv.lock",
+      "label": "Required handoff asset services/engine/uv.lock",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/app/main.py"
+      },
+      "id": "asset:services/engine/app/main.py",
+      "label": "Required handoff asset services/engine/app/main.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/alembic/env.py"
+      },
+      "id": "asset:services/engine/alembic/env.py",
+      "label": "Required handoff asset services/engine/alembic/env.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "packages/prompts/decision-screening.md"
+      },
+      "id": "asset:packages/prompts/decision-screening.md",
+      "label": "Required handoff asset packages/prompts/decision-screening.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "packages/prompts/decision-extraction.md"
+      },
+      "id": "asset:packages/prompts/decision-extraction.md",
+      "label": "Required handoff asset packages/prompts/decision-extraction.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "infra/docker/postgres/init-extensions.sql"
+      },
+      "id": "asset:infra/docker/postgres/init-extensions.sql",
+      "label": "Required handoff asset infra/docker/postgres/init-extensions.sql",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "infra/docker/redis/redis.conf"
+      },
+      "id": "asset:infra/docker/redis/redis.conf",
+      "label": "Required handoff asset infra/docker/redis/redis.conf",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "needle": "rehearse_clean_self_hosted_install.py"
+      },
+      "id": "readme_reference:rehearse_clean_self_hosted_install.py",
+      "label": "README references rehearse_clean_self_hosted_install.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "needle": "verify_self_hosted_package.py"
+      },
+      "id": "readme_reference:verify_self_hosted_package.py",
+      "label": "README references verify_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "needle": "self-hosted.env.example"
+      },
+      "id": "readme_reference:self-hosted.env.example",
+      "label": "README references self-hosted.env.example",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "blocker_count": 0,
+        "checked_file_count": 276
+      },
+      "id": "copied_package_verification",
+      "label": "Copied package passes offline verifier",
+      "status": "pass"
+    }
+  ],
+  "clean_package_path": ".tmp/clean-self-hosted-install/clean-runnable-package-20260716/package-copy",
+  "clean_workspace_path": ".tmp/clean-self-hosted-install/clean-runnable-package-20260716",
+  "commit": "working-tree",
+  "deferred_product_lanes": [
+    "billing",
+    "hosted_multi_tenancy",
+    "marketplace_or_self_service_oauth",
+    "hosted_secret_vault",
+    "enterprise_sso",
+    "online_license_server",
+    "runtime_license_enforcement"
+  ],
+  "generated_at": "2026-07-16T08:09:03.103776+00:00",
+  "label": "clean-runnable-package-20260716",
+  "limitations": [
+    "This rehearsal validates a clean runnable package copy and evidence bundle, not a customer-server install unless separate customer-controlled evidence is attached.",
+    "External/customer-host install proof must be supplied separately through external install evidence.",
+    "A passing GitHub-hosted runner rehearsal proves package independence but remains is_customer_controlled=false.",
+    "Live URL probing is optional and must remain non-pass when URLs are not provided or unreachable.",
+    "Secrets, repository tokens, .env files, private repository dumps, and database backups are not included."
+  ],
+  "live_probes": [
+    {
+      "details": {
+        "reason": "probe_not_requested"
+      },
+      "id": "live_probe",
+      "label": "Live stack probing",
+      "status": "operator_guided"
+    }
+  ],
+  "package_path": ".tmp/self-hosted-packages/runnable-preview-20260716",
+  "recommended_next_actions": [
+    "Review non-pass evidence lanes and either rerun with the missing input or disclose the operator-guided limitation.",
+    "Archive clean install rehearsal evidence into readiness history before customer handoff."
+  ],
+  "schema_version": 1,
+  "source_evidence": [
+    {
+      "details": {
+        "generated_at": "2026-07-16T08:09:01.509607+00:00",
+        "overall_status": "warning"
+      },
+      "id": "release_evidence",
+      "label": "Release evidence",
+      "source_path": ".tmp/runnable-release-evidence.json",
+      "status": "warning"
+    },
+    {
+      "details": {
+        "generated_at": "2026-07-16T08:09:02.096257+00:00",
+        "overall_status": "operator_guided"
+      },
+      "id": "hosted_readiness",
+      "label": "Hosted/operator readiness",
+      "source_path": ".tmp/runnable-hosted-operator-readiness.json",
+      "status": "operator_guided"
+    },
+    {
+      "details": {
+        "generated_at": "2026-07-15T05:21:29.801665+00:00",
+        "summary": {
+          "improved": 0,
+          "operationally_blocked": 0,
+          "regressed": 0,
+          "release_evidence_ready": true,
+          "repositories": 5
+        }
+      },
+      "id": "benchmark_comparison",
+      "label": "Benchmark comparison",
+      "source_path": ".tmp/customer-host-trial-benchmark-comparison.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "generated_at": "2026-07-15T05:51:28.866896+00:00"
+      },
+      "id": "readiness_history",
+      "label": "Readiness evidence history",
+      "source_path": "docs/evidence/readiness/index.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "commit": "working-tree",
+        "generated_at": "2026-07-16T08:07:31.551180+00:00",
+        "package_label": "runnable-preview-20260716",
+        "package_path": "<workspace>/.tmp/self-hosted-packages/runnable-preview-20260716",
+        "runnable_status": "pass",
+        "status": "pass",
+        "version_label": "2026-07-16-preview"
+      },
+      "id": "package_verification",
+      "label": "Package verification",
+      "source_path": ".tmp/self-hosted-package-verification.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "generated_at": "2026-07-16T07:24:26.081419+00:00",
+        "status": "warning",
+        "summary": {}
+      },
+      "id": "public_github_import",
+      "label": "Public GitHub import rehearsal",
+      "source_path": ".tmp/githits-live-core-loop.json",
+      "status": "warning"
+    },
+    {
+      "details": {
+        "rerun_condition": "Provide --license-support-json."
+      },
+      "id": "license_support",
+      "label": "License and support boundary",
+      "source_path": null,
+      "status": "not_provided"
+    },
+    {
+      "details": {
+        "rerun_condition": "Provide --team-handoff-json."
+      },
+      "id": "team_handoff",
+      "label": "Team handoff report",
+      "source_path": null,
+      "status": "not_provided"
+    },
+    {
+      "details": {
+        "rerun_condition": "Provide --external-install-evidence-json."
+      },
+      "id": "external_install_evidence",
+      "label": "External self-hosted install evidence",
+      "source_path": null,
+      "status": "not_provided"
+    },
+    {
+      "details": {
+        "commit": "working-tree",
+        "generated_at": "2026-07-16T08:08:25.174227+00:00",
+        "host_profile": {
+          "host_class": "local-isolated-copy",
+          "is_customer_controlled": false,
+          "os_family": "windows"
+        },
+        "host_proof_level": "independent_host_package_smoke",
+        "label": "runnable-package-20260716",
+        "package_copy": "<temp>/decisionatlas-runnable-package-rehearsal/runnable-package-20260716/package-copy",
+        "status": "pass",
+        "summary": {},
+        "version_label": "2026-07-16-preview"
+      },
+      "id": "runnable_package_rehearsal",
+      "label": "Runnable package rehearsal",
+      "source_path": ".tmp/runnable-self-hosted-package-rehearsal.json",
+      "status": "pass"
+    }
+  ],
+  "status": "warning",
+  "version_label": "2026-07-16-preview",
+  "warning_count": 7
+}

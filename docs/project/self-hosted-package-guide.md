@@ -6,7 +6,7 @@
 
 Use this guide when preparing a DecisionAtlas package for a private server, paid pilot, or small-team self-hosted evaluation.
 
-The package is a source-tree handoff bundle, not a binary installer. It contains selected docs, startup and validation scripts, an environment template, and a machine-readable manifest. It does not include customer secrets, databases, imported repositories, node modules, virtual environments, or local scratch output.
+The package is a runnable source-tree handoff bundle, not a binary installer. It contains the pinned Node/Python workspace inputs, web/API/engine runtime source, migrations, prompts, Compose support, bounded smoke assets, operator docs, environment templates, and a machine-readable manifest. It does not include customer secrets, databases, imported repositories, node modules, virtual environments, browser binaries, dependency caches, or local scratch output.
 
 For external evaluation, start with [Pilot Customer Delivery Kit](pilot-customer-delivery-kit.md). It provides the one-page product explanation, demo script, deployment checklist, FAQ, tier comparison, and delivery email template that should accompany the technical package.
 
@@ -18,6 +18,19 @@ Expected layout:
 decisionatlas-self-hosted/
   manifest.json
   README.md
+  package.json
+  pnpm-lock.yaml
+  pnpm-workspace.yaml
+  docker-compose.yml
+  apps/
+    api/
+    web/
+  services/
+    engine/
+  packages/
+    prompts/
+  infra/
+    docker/
   templates/
     self-hosted.env.example
     self-hosted-entitlement.example.json
@@ -61,6 +74,10 @@ decisionatlas-self-hosted/
       verify_pilot_customer_delivery_kit.py
       verify_pilot_commercial_proposal_kit.py
       rehearse_clean_self_hosted_install.py
+      rehearse_runnable_self_hosted_package.py
+      start-engine-smoke.ps1
+      start-api-smoke.ps1
+      start-web-smoke.ps1
     demo/
       check_seeded_demo.py
       collect_hosted_readiness.py
@@ -96,7 +113,39 @@ python scripts\ci\verify_self_hosted_package.py `
   --output-markdown .tmp\self-hosted-package-verification.md
 ```
 
-The verifier checks package structure and manifest integrity. It does not start Docker, validate live credentials, import private repositories, run a live benchmark, or prove installation on a customer-controlled host. Those remain separate rehearsal evidence.
+The verifier checks package structure, runtime inventory, manifest integrity, and secret/cache exclusion. A legacy structure-only package remains readable but fails the runnable package claim. The verifier does not start services, validate live credentials, import private repositories, or prove installation on a customer-controlled host. Those remain separate rehearsal evidence.
+
+## Install And Run From The Package Copy
+
+The package requires Node.js, pnpm, Python, uv, Docker Desktop or equivalent PostgreSQL/Redis services, and network access to package registries unless the operator supplies an approved dependency cache.
+
+From the package root:
+
+```powershell
+pnpm install --frozen-lockfile
+uv sync --project services/engine --frozen
+Copy-Item templates\self-hosted.env.example .env
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
+```
+
+The startup script uses the fixed Compose project name `decisionatlas`, so a renamed package directory does not create conflicting PostgreSQL or Redis container identities.
+
+Run the bounded isolated-copy rehearsal from the maintainer or independent runner checkout:
+
+```powershell
+python scripts\ci\rehearse_runnable_self_hosted_package.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --host-class independent-runner `
+  --os-family windows `
+  --repo githits-com/githits-cli `
+  --install-dependencies `
+  --install-browser `
+  --run-smoke `
+  --output-json .tmp\runnable-self-hosted-package-rehearsal.json `
+  --output-markdown .tmp\runnable-self-hosted-package-rehearsal.md
+```
+
+The rehearsal copies the package outside the source checkout, verifies that copy, installs exact dependencies there, starts Engine/API/Web through Playwright health gates, and exercises an imported-workspace browser loop. A passing local isolated copy or GitHub-hosted runner proves package independence. It does not become customer-controlled-host proof unless a separate sanitized external trial says `is_customer_controlled=true`.
 
 Verify the pilot customer materials:
 
@@ -127,6 +176,7 @@ python scripts\ci\rehearse_clean_self_hosted_install.py `
   --readiness-history-json docs\evidence\readiness\index.json `
   --package-verification-json .tmp\self-hosted-package-verification.json `
   --public-github-import-json .tmp\public-github-import-rehearsal.json `
+  --runnable-package-rehearsal-json .tmp\runnable-self-hosted-package-rehearsal.json `
   --license-support-json templates\self-hosted-entitlement.example.json `
   --team-handoff-json .tmp\team-handoff-report.json `
   --external-install-evidence-json .tmp\external-self-hosted-install-evidence.json `
@@ -184,6 +234,7 @@ The collector validates the submitted observations but does not install software
 - Pilot customer delivery kit verification JSON/Markdown.
 - Pilot commercial proposal kit verification JSON/Markdown when paid pilot outreach is part of the handoff.
 - Clean self-hosted install rehearsal JSON/Markdown.
+- Runnable package rehearsal JSON/Markdown from a package copy outside the maintainer checkout.
 - OpenSpec strict validation.
 - Governance guardrail summary.
 - Canonical pre-release or explicitly accepted substitute.
