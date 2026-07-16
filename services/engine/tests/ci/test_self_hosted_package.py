@@ -79,9 +79,34 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "docs" / "project" / "external-self-hosted-install-evidence.md").exists()
     assert (package_dir / "scripts" / "ci" / "collect_external_self_hosted_install_evidence.py").exists()
     assert (package_dir / "scripts" / "ci" / "collect_real_external_host_trial_evidence.py").exists()
+    assert (package_dir / "scripts" / "ci" / "rehearse_runnable_self_hosted_package.py").exists()
+    assert (package_dir / "package.json").exists()
+    assert (package_dir / "pnpm-lock.yaml").exists()
+    assert (package_dir / "pnpm-workspace.yaml").exists()
+    assert (package_dir / "docker-compose.yml").exists()
+    assert (package_dir / "apps" / "web" / "tests-e2e" / "imported-workspace-core-loop.spec.ts").exists()
+    assert (package_dir / "apps" / "api" / "src" / "server.ts").exists()
+    assert (package_dir / "services" / "engine" / "app" / "main.py").exists()
+    assert (package_dir / "services" / "engine" / "alembic" / "env.py").exists()
+    assert (package_dir / "packages" / "prompts" / "decision-screening.md").exists()
+    assert (package_dir / "infra" / "docker" / "redis" / "redis.conf").exists()
+    assert "--project-name $composeProjectName" in (
+        package_dir / "scripts" / "dev" / "start-real-stack.ps1"
+    ).read_text(encoding="utf-8")
+    assert "--project-name $composeProjectName" in (
+        package_dir / "scripts" / "dev" / "stop-real-stack.ps1"
+    ).read_text(encoding="utf-8")
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert data["schema_version"] == 2
     assert data["version_label"] == "test-version"
+    assert data["runtime"]["package_type"] == "runnable_source_tree_handoff"
+    assert data["runtime"]["dependency_install_commands"] == [
+        "pnpm install --frozen-lockfile",
+        "uv sync --project services/engine --frozen",
+    ]
+    assert "--install-browser" in data["runtime"]["smoke_command"]
+    assert data["runtime"]["customer_controlled_host_proof"] == "requires_separate_sanitized_external_evidence"
     assert "runtime_license_enforcement" in data["unsupported_capabilities"]
     assert "offline_entitlement_template" in data["readiness_evidence_expectations"]
     assert "pilot_customer_delivery_kit_verification_json" in data["readiness_evidence_expectations"]
@@ -188,3 +213,50 @@ def test_self_hosted_package_verifier_blocks_secret_like_files() -> None:
 
     assert bundle["status"] == "blocking"
     assert any(blocker["id"] == "secret_exclusions" for blocker in bundle["blockers"])
+
+
+def test_runtime_copy_filter_excludes_local_state_and_build_outputs() -> None:
+    builder = _load_script("build_self_hosted_package")
+
+    for relative in (
+        Path("apps/web/node_modules/pkg/index.js"),
+        Path("apps/web/.next/server.js"),
+        Path("services/engine/.venv/pyvenv.cfg"),
+        Path("services/engine/app/__pycache__/main.pyc"),
+        Path("apps/api/.env.local"),
+        Path("apps/api/runtime.log"),
+        Path("services/engine/local.sqlite"),
+    ):
+        assert builder._is_excluded_runtime_path(relative)
+
+    assert not builder._is_excluded_runtime_path(Path("apps/web/app/page.tsx"))
+
+
+def test_self_hosted_package_verifier_blocks_legacy_doc_only_package() -> None:
+    builder = _load_script("build_self_hosted_package")
+    verifier = _load_script("verify_self_hosted_package")
+    root = Path(__file__).resolve().parents[4]
+    output_root = _scratch_dir("package-verifier-legacy-doc-only")
+    builder.build_package(
+        root=root,
+        output_root=output_root,
+        package_label="decisionatlas-self-hosted-test",
+        version_label="test-version",
+        commit="abc123",
+        generated_at="2026-06-08T00:00:00+00:00",
+    )
+
+    package_dir = output_root / "decisionatlas-self-hosted-test"
+    manifest_path = package_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.pop("runtime")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    (package_dir / "package.json").unlink()
+
+    bundle = verifier.verify_package(package_dir, generated_at="2026-06-08T00:00:00+00:00")
+    blocker_ids = {blocker["id"] for blocker in bundle["blockers"]}
+
+    assert bundle["status"] == "blocking"
+    assert bundle["runnable_status"] == "blocking"
+    assert "manifest_field:runtime" in blocker_ids
+    assert "file:package.json" in blocker_ids

@@ -9,6 +9,10 @@ if (-not (Test-Path $dbDir)) {
   New-Item -ItemType Directory -Path $dbDir | Out-Null
 }
 
+if (Test-Path $dbPath) {
+  Remove-Item -LiteralPath $dbPath -Force
+}
+
 function Invoke-Uv {
   param(
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -24,6 +28,8 @@ function Invoke-Uv {
 }
 
 $env:DATABASE_URL = "sqlite:///$($dbPath -replace '\\','/')"
+$env:DEFAULT_OWNER_SCOPE = "local-default"
+$env:AUTH_AUTO_BOOTSTRAP_LOCAL = "true"
 Set-Location $engineDir
 Invoke-Uv run alembic upgrade head
 Invoke-Uv run python ..\..\scripts\ci\seed_smoke_demo.py

@@ -428,3 +428,68 @@ def test_readiness_history_trend_preserves_non_clean_states(tmp_path: Path) -> N
     assert "Resolve full-chain random repo release rehearsal blockers" in markdown
     assert "Resolve real continuity rehearsal blockers" in markdown
     assert "Attach missing optional evidence" in markdown
+
+
+def test_readiness_history_archives_runnable_package_evidence_families(tmp_path: Path) -> None:
+    history = _load_history_module()
+    package = _write_json(
+        tmp_path / "package.json",
+        {"status": "pass", "runnable_status": "pass", "checked_file_count": 276, "blockers": []},
+    )
+    clean_install = _write_json(
+        tmp_path / "clean.json",
+        {
+            "status": "warning",
+            "warning_count": 2,
+            "blockers": [],
+            "source_evidence": [{"status": "operator_guided"}],
+        },
+    )
+    runnable = _write_json(
+        tmp_path / "runnable.json",
+        {
+            "status": "pass",
+            "host_proof_level": "independent_host_package_smoke",
+            "host_profile": {"is_customer_controlled": False},
+            "repository": "pallets/markupsafe",
+            "stages": [{"status": "pass"}],
+            "blockers": [],
+        },
+    )
+
+    entry = history.build_entry(
+        sources=[
+            history.EvidenceSource(history.FAMILY_PACKAGE_VERIFICATION, package, None),
+            history.EvidenceSource(history.FAMILY_CLEAN_INSTALL, clean_install, None),
+            history.EvidenceSource(history.FAMILY_RUNNABLE_PACKAGE, runnable, None),
+        ],
+        root=tmp_path,
+        history_root=tmp_path / "history",
+        label="runnable-package",
+        created_at="2026-07-16T00:00:00+00:00",
+    )
+
+    assert entry["status"] == "warning"
+    assert entry["families"][history.FAMILY_PACKAGE_VERIFICATION]["checked_file_count"] == 276
+    assert entry["families"][history.FAMILY_CLEAN_INSTALL]["warning_count"] == 2
+    assert entry["families"][history.FAMILY_RUNNABLE_PACKAGE]["status"] == "pass"
+    assert entry["families"][history.FAMILY_RUNNABLE_PACKAGE]["is_customer_controlled"] is False
+    assert entry["counts"]["operator_guided"] == 1
+    assert (tmp_path / "history" / "2026-07-16-runnable-package" / "runnable_self_hosted_package_rehearsal.json").exists()
+
+    args = history._build_parser().parse_args(
+        [
+            "archive",
+            "--label",
+            "runnable-package",
+            "--package-verification-json",
+            str(package),
+            "--clean-install-json",
+            str(clean_install),
+            "--runnable-package-json",
+            str(runnable),
+        ]
+    )
+    assert args.package_verification_json == str(package)
+    assert args.clean_install_json == str(clean_install)
+    assert args.runnable_package_json == str(runnable)

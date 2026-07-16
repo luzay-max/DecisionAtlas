@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DEFAULT_OUTPUT_ROOT = Path(".tmp/self-hosted-package")
 PACKAGE_ROOT_NAME = "decisionatlas-self-hosted"
 
@@ -59,11 +59,17 @@ SCRIPT_PATHS = [
     "scripts/ci/rehearse_real_backup_restore_upgrade.py",
     "scripts/ci/collect_external_self_hosted_install_evidence.py",
     "scripts/ci/collect_real_external_host_trial_evidence.py",
+    "scripts/ci/rehearse_runnable_self_hosted_package.py",
+    "scripts/ci/start-engine-smoke.ps1",
+    "scripts/ci/start-api-smoke.ps1",
+    "scripts/ci/start-web-smoke.ps1",
+    "scripts/ci/seed_smoke_demo.py",
     "scripts/ci/verify_pilot_customer_delivery_kit.py",
     "scripts/ci/verify_pilot_commercial_proposal_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
     "scripts/ci/verify_self_hosted_package.py",
     "scripts/demo/check_seeded_demo.py",
+    "scripts/demo/reset_seeded_demo.py",
     "scripts/demo/collect_hosted_readiness.py",
     "scripts/demo/health-check.ps1",
     "scripts/demo/smoke-check.ps1",
@@ -79,6 +85,64 @@ TEMPLATE_PATHS = [
     "templates/external-self-hosted-install-evidence.example.json",
     "templates/customer-host-trial.example.json",
 ]
+
+RUNTIME_ROOT_FILES = [
+    "LICENSE",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "docker-compose.yml",
+]
+
+RUNTIME_FILES = [
+    "apps/api/package.json",
+    "apps/api/tsconfig.json",
+    "apps/web/package.json",
+    "apps/web/tsconfig.json",
+    "apps/web/next-env.d.ts",
+    "apps/web/next.config.ts",
+    "apps/web/playwright.config.ts",
+    "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+    "services/engine/pyproject.toml",
+    "services/engine/uv.lock",
+    "services/engine/alembic.ini",
+]
+
+RUNTIME_TREES = [
+    "apps/api/src",
+    "apps/web/app",
+    "apps/web/components",
+    "apps/web/lib",
+    "services/engine/app",
+    "services/engine/alembic",
+    "packages/prompts",
+    "infra/docker",
+]
+
+RUNTIME_EXCLUDED_NAMES = {
+    ".next",
+    ".pytest_cache",
+    ".tmp",
+    ".turbo",
+    ".venv",
+    "__pycache__",
+    "coverage",
+    "dist",
+    "node_modules",
+    "playwright-report",
+    "test-results",
+}
+
+DEPENDENCY_INSTALL_COMMANDS = [
+    "pnpm install --frozen-lockfile",
+    "uv sync --project services/engine --frozen",
+]
+STARTUP_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-real-stack.ps1"
+SMOKE_COMMAND = (
+    "python scripts\\ci\\rehearse_runnable_self_hosted_package.py "
+    "--package . --install-dependencies --install-browser --run-smoke"
+)
 
 REQUIRED_SERVICES = [
     {"id": "postgres", "label": "PostgreSQL", "default_port": 5432, "required": True},
@@ -147,6 +211,42 @@ def _copy_allowlisted_files(root: Path, package_dir: Path, paths: list[str]) -> 
     return copied
 
 
+def _is_excluded_runtime_path(relative: Path) -> bool:
+    names = {part.casefold() for part in relative.parts}
+    filename = relative.name.casefold()
+    if names & {name.casefold() for name in RUNTIME_EXCLUDED_NAMES}:
+        return True
+    if filename == ".env" or filename.startswith(".env."):
+        return True
+    return filename.endswith((".db", ".sqlite", ".log", ".pyc", ".pyo", ".tsbuildinfo"))
+
+
+def _copy_allowlisted_trees(root: Path, package_dir: Path, paths: list[str]) -> list[CopiedAsset]:
+    copied: list[CopiedAsset] = []
+    for relative in paths:
+        source_root = root / relative
+        if not source_root.exists() or not source_root.is_dir():
+            raise FileNotFoundError(f"Required runtime tree does not exist: {relative}")
+        for source in sorted(source_root.rglob("*")):
+            source_relative = source.relative_to(root)
+            if _is_excluded_runtime_path(source_relative):
+                continue
+            if source.is_symlink():
+                raise ValueError(f"Runtime package refuses symbolic link: {source_relative.as_posix()}")
+            if not source.is_file():
+                continue
+            target = package_dir / source_relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, target)
+            copied.append(
+                CopiedAsset(
+                    source=source_relative.as_posix(),
+                    target=source_relative.as_posix(),
+                )
+            )
+    return copied
+
+
 def _git_commit(root: Path) -> str | None:
     try:
         result = subprocess.run(
@@ -170,10 +270,25 @@ def _write_package_readme(package_dir: Path, manifest: dict[str, Any]) -> None:
         f"- Commit: `{manifest['commit']}`",
         f"- Generated at: `{manifest['generated_at']}`",
         "",
+        "## Prerequisites",
+        "",
+        "- Node.js 22 and pnpm 10.6.0",
+        "- Python 3.13 and uv",
+        "- Docker Desktop or compatible Docker Compose runtime for PostgreSQL and Redis",
+        "",
+        "## Install Exact Dependencies",
+        "",
+    ]
+    for command in manifest["runtime"]["dependency_install_commands"]:
+        lines.extend(["```powershell", command, "```", ""])
+    lines.extend(
+        [
+        "Dependency installation downloads packages unless the operator supplies an approved local cache or mirror; this source package is transferable offline but is not a fully air-gapped dependency bundle.",
+        "",
         "## Start",
         "",
         "```powershell",
-        "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-real-stack.ps1",
+        manifest["runtime"]["startup_command"],
         "```",
         "",
         "On Windows, `scripts\\dev\\start-real-stack.bat` is the one-click launcher.",
@@ -182,10 +297,20 @@ def _write_package_readme(package_dir: Path, manifest: dict[str, Any]) -> None:
         "",
         "Copy `templates/self-hosted.env.example` to `.env` on the operator-controlled host and fill deployment-specific values.",
         "Do not commit or share real secrets, provider keys, repository tokens, database dumps, or private repository contents.",
+        "The package contains bounded application source and lockfiles, but no credentials, imported repository data, databases, dependency directories, or build output.",
+        "",
+        "## Runnable Package Smoke",
+        "",
+        "```powershell",
+        manifest["runtime"]["smoke_command"],
+        "```",
+        "",
+        "A clean GitHub-hosted runner proves independent package installation only. It is not a customer-controlled host and must not be reported as clean customer proof.",
         "",
         "## Validate",
         "",
-    ]
+        ]
+    )
     for command in manifest["validation_commands"]:
         lines.extend(["```powershell", command, "```", ""])
     lines.extend(
@@ -231,6 +356,18 @@ def build_manifest(
         "docs": [{"source": path, "target": path, "required": True} for path in DOC_PATHS],
         "scripts": [{"source": path, "target": path, "required": True} for path in SCRIPT_PATHS],
         "templates": [{"source": path, "target": path, "required": True} for path in TEMPLATE_PATHS],
+        "runtime": {
+            "package_type": "runnable_source_tree_handoff",
+            "root_files": [{"source": path, "target": path, "required": True} for path in RUNTIME_ROOT_FILES],
+            "files": [{"source": path, "target": path, "required": True} for path in RUNTIME_FILES],
+            "trees": [{"source": path, "target": path, "required": True} for path in RUNTIME_TREES],
+            "dependency_install_commands": DEPENDENCY_INSTALL_COMMANDS,
+            "startup_command": STARTUP_COMMAND,
+            "smoke_command": SMOKE_COMMAND,
+            "dependency_download_boundary": "online_download_or_operator_supplied_approved_cache",
+            "independent_host_proof": "supported",
+            "customer_controlled_host_proof": "requires_separate_sanitized_external_evidence",
+        },
         "required_services": REQUIRED_SERVICES,
         "default_urls": {
             "web": "http://127.0.0.1:3000",
@@ -240,8 +377,9 @@ def build_manifest(
         "validation_commands": VALIDATION_COMMANDS,
         "secret_exclusion_patterns": SECRET_EXCLUSION_PATTERNS,
         "support_boundary": {
-            "package_type": "source_tree_handoff",
+            "package_type": "runnable_source_tree_handoff",
             "secret_custody": "customer_controlled_host_only",
+            "dependency_download_boundary": "online_download_or_operator_supplied_approved_cache",
             "runtime_smoke_required_separately": True,
             "readiness_history_required_for_clean_customer_claims": True,
             "team_handoff_report_required_for_customer_handoff": True,
@@ -310,6 +448,9 @@ def build_package(
     _copy_allowlisted_files(root, package_dir, DOC_PATHS)
     _copy_allowlisted_files(root, package_dir, SCRIPT_PATHS)
     _copy_allowlisted_files(root, package_dir, TEMPLATE_PATHS)
+    _copy_allowlisted_files(root, package_dir, RUNTIME_ROOT_FILES)
+    _copy_allowlisted_files(root, package_dir, RUNTIME_FILES)
+    _copy_allowlisted_trees(root, package_dir, RUNTIME_TREES)
     (package_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
     return manifest | {"package_path": package_dir.as_posix()}

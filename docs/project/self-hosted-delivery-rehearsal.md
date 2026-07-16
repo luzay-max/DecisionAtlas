@@ -39,6 +39,7 @@ Classify every lane explicitly:
 | --- | --- | --- |
 | Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
+| Runnable package rehearsal | Yes for runnable handoff claims | `.tmp/runnable-self-hosted-package-rehearsal.json` and Markdown |
 | Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
 | External self-hosted install evidence | Required before customer-host install claims | `.tmp/external-self-hosted-install-evidence.json` and Markdown, or `not_provided` / `operator_guided` |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
@@ -61,19 +62,20 @@ Classify every lane explicitly:
 2. Start or verify the self-hosted stack. On Windows, prefer `scripts\dev\start-real-stack.bat` for one-click local startup.
 3. Probe Web, API, and Engine health.
 4. Build and verify the self-hosted package when claiming package handoff readiness.
-5. Run OpenSpec strict validation.
-6. Run governance guardrail summary and JSON output.
-7. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
-8. Run seeded demo readiness using the project Python environment when database dependencies are required.
-9. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
-10. Generate release evidence.
-11. Generate hosted/operator readiness evidence.
-12. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
-13. Generate, reuse, or explicitly omit benchmark comparison evidence.
-14. Archive selected artifacts into readiness evidence history.
-15. Prepare the rehearsal summary and Code Decision Audit handoff.
-16. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
-17. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
+5. Copy the package outside the source checkout, install exact dependencies, start Engine/API/Web, and run bounded browser smoke from that package copy.
+6. Run OpenSpec strict validation.
+7. Run governance guardrail summary and JSON output.
+8. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
+9. Run seeded demo readiness using the project Python environment when database dependencies are required.
+10. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
+11. Generate release evidence.
+12. Generate hosted/operator readiness evidence.
+13. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
+14. Generate, reuse, or explicitly omit benchmark comparison evidence.
+15. Archive selected artifacts into readiness evidence history.
+16. Prepare the rehearsal summary and Code Decision Audit handoff.
+17. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
+18. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
 
 ## Command Template
 
@@ -87,9 +89,20 @@ python scripts\ci\verify_self_hosted_package.py `
   --package .tmp\self-hosted-package\decisionatlas-self-hosted `
   --output-json .tmp\self-hosted-package-verification.json `
   --output-markdown .tmp\self-hosted-package-verification.md
+python scripts\ci\rehearse_runnable_self_hosted_package.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --host-class independent-runner `
+  --os-family windows `
+  --repo githits-com/githits-cli `
+  --install-dependencies `
+  --install-browser `
+  --run-smoke `
+  --output-json .tmp\runnable-self-hosted-package-rehearsal.json `
+  --output-markdown .tmp\runnable-self-hosted-package-rehearsal.md
 python scripts\ci\rehearse_clean_self_hosted_install.py `
   --package .tmp\self-hosted-package\decisionatlas-self-hosted `
   --package-verification-json .tmp\self-hosted-package-verification.json `
+  --runnable-package-rehearsal-json .tmp\runnable-self-hosted-package-rehearsal.json `
   --output-json .tmp\clean-self-hosted-install-rehearsal.json `
   --output-markdown .tmp\clean-self-hosted-install-rehearsal.md
 python scripts\ci\rehearse_backup_restore_upgrade.py `

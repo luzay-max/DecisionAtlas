@@ -1,0 +1,115 @@
+name: Self-Hosted Package Rehearsal
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/self-hosted-package-rehearsal.yml"
+      - "apps/api/**"
+      - "apps/web/**"
+      - "services/engine/**"
+      - "packages/prompts/**"
+      - "infra/docker/**"
+      - "scripts/ci/build_self_hosted_package.py"
+      - "scripts/ci/verify_self_hosted_package.py"
+      - "scripts/ci/rehearse_clean_self_hosted_install.py"
+      - "scripts/ci/rehearse_runnable_self_hosted_package.py"
+      - "scripts/ci/start-*-smoke.ps1"
+      - "scripts/ci/seed_smoke_demo.py"
+      - "scripts/dev/**"
+      - "docker-compose.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "turbo.json"
+
+jobs:
+  rehearse:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.6.0
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Build runnable package
+        run: >-
+          python scripts/ci/build_self_hosted_package.py
+          --label decisionatlas-self-hosted-ci
+          --version-label github-${{ github.sha }}
+          --commit ${{ github.sha }}
+          --output-root .tmp/self-hosted-package-ci
+          --output-json .tmp/self-hosted-package-manifest.json
+
+      - name: Verify package contract
+        run: >-
+          python scripts/ci/verify_self_hosted_package.py
+          --package .tmp/self-hosted-package-ci/decisionatlas-self-hosted-ci
+          --output-json .tmp/self-hosted-package-verification.json
+          --output-markdown .tmp/self-hosted-package-verification.md
+
+      - name: Rehearse isolated package runtime
+        run: >-
+          python scripts/ci/rehearse_runnable_self_hosted_package.py
+          --package .tmp/self-hosted-package-ci/decisionatlas-self-hosted-ci
+          --label github-hosted-windows-${{ github.run_id }}
+          --version-label github-${{ github.sha }}
+          --commit ${{ github.sha }}
+          --host-class github_hosted_windows_runner
+          --os-family windows
+          --repo pallets/markupsafe
+          --install-dependencies
+          --install-browser
+          --run-smoke
+          --output-json .tmp/runnable-self-hosted-package-rehearsal.json
+          --output-markdown .tmp/runnable-self-hosted-package-rehearsal.md
+
+      - name: Collect clean install evidence
+        run: >-
+          python scripts/ci/rehearse_clean_self_hosted_install.py
+          --package .tmp/self-hosted-package-ci/decisionatlas-self-hosted-ci
+          --label github-hosted-windows-${{ github.run_id }}
+          --version-label github-${{ github.sha }}
+          --commit ${{ github.sha }}
+          --package-verification-json .tmp/self-hosted-package-verification.json
+          --runnable-package-rehearsal-json .tmp/runnable-self-hosted-package-rehearsal.json
+          --output-json .tmp/clean-self-hosted-install-rehearsal.json
+          --output-markdown .tmp/clean-self-hosted-install-rehearsal.md
+
+      - name: Upload sanitized rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: self-hosted-package-rehearsal-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            .tmp/self-hosted-package-manifest.json
+            .tmp/self-hosted-package-verification.json
+            .tmp/self-hosted-package-verification.md
+            .tmp/runnable-self-hosted-package-rehearsal.json
+            .tmp/runnable-self-hosted-package-rehearsal.md
+            .tmp/clean-self-hosted-install-rehearsal.json
+            .tmp/clean-self-hosted-install-rehearsal.md

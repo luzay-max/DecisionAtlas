@@ -59,6 +59,27 @@ REQUIRED_PACKAGE_ASSETS = [
     "scripts/ci/verify_self_hosted_package.py",
     "scripts/ci/collect_team_handoff_report.py",
     "scripts/ci/collect_external_self_hosted_install_evidence.py",
+    "scripts/ci/rehearse_runnable_self_hosted_package.py",
+    "scripts/ci/start-engine-smoke.ps1",
+    "scripts/ci/start-api-smoke.ps1",
+    "scripts/ci/start-web-smoke.ps1",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "docker-compose.yml",
+    "apps/api/package.json",
+    "apps/api/src/server.ts",
+    "apps/web/package.json",
+    "apps/web/app/page.tsx",
+    "apps/web/playwright.config.ts",
+    "services/engine/pyproject.toml",
+    "services/engine/uv.lock",
+    "services/engine/app/main.py",
+    "services/engine/alembic/env.py",
+    "packages/prompts/decision-screening.md",
+    "packages/prompts/decision-extraction.md",
+    "infra/docker/postgres/init-extensions.sql",
+    "infra/docker/redis/redis.conf",
 ]
 
 DEFERRED_LANES = [
@@ -184,6 +205,9 @@ def _compact_evidence_details(data: dict[str, Any]) -> dict[str, Any]:
         "status",
         "result",
         "state",
+        "host_proof_level",
+        "runnable_status",
+        "package_copy",
     ):
         if data.get(key) is not None:
             details[key] = data.get(key)
@@ -192,6 +216,13 @@ def _compact_evidence_details(data: dict[str, Any]) -> dict[str, Any]:
         details["setup"] = {
             "outcome": setup.get("outcome"),
             "benchmark_ready": setup.get("benchmark_ready"),
+        }
+    host_profile = data.get("host_profile") if isinstance(data.get("host_profile"), dict) else None
+    if host_profile:
+        details["host_profile"] = {
+            "host_class": host_profile.get("host_class"),
+            "os_family": host_profile.get("os_family"),
+            "is_customer_controlled": bool(host_profile.get("is_customer_controlled")),
         }
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
     if summary:
@@ -344,6 +375,7 @@ def build_rehearsal(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         _source_summary("license_support", "License and support boundary", args.license_support_json, root),
         _source_summary("team_handoff", "Team handoff report", args.team_handoff_json, root),
         _source_summary("external_install_evidence", "External self-hosted install evidence", args.external_install_evidence_json, root),
+        _source_summary("runnable_package_rehearsal", "Runnable package rehearsal", args.runnable_package_rehearsal_json, root),
     ]
     live_probes = [
         _probe_url("web", args.web_url, args.probe_timeout),
@@ -379,8 +411,9 @@ def build_rehearsal(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         "deferred_product_lanes": DEFERRED_LANES,
         "recommended_next_actions": _recommended_next_actions(status, blockers, warnings),
         "limitations": [
-            "This rehearsal validates a clean package copy and evidence bundle, not a full VM or customer-server install.",
+            "This rehearsal validates a clean runnable package copy and evidence bundle, not a customer-server install unless separate customer-controlled evidence is attached.",
             "External/customer-host install proof must be supplied separately through external install evidence.",
+            "A passing GitHub-hosted runner rehearsal proves package independence but remains is_customer_controlled=false.",
             "Live URL probing is optional and must remain non-pass when URLs are not provided or unreachable.",
             "Secrets, repository tokens, .env files, private repository dumps, and database backups are not included.",
         ],
@@ -483,6 +516,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--license-support-json")
     parser.add_argument("--team-handoff-json")
     parser.add_argument("--external-install-evidence-json")
+    parser.add_argument("--runnable-package-rehearsal-json")
     parser.add_argument("--probe-live-stack", action="store_true")
     parser.add_argument("--web-url")
     parser.add_argument("--api-url")

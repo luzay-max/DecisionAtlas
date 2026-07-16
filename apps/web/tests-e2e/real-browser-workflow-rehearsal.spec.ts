@@ -66,7 +66,7 @@ test("real browser human workflow rehearsal with explicit public repo context", 
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Engineering decision memory/i })).toBeVisible();
-  await expect(page.getByText("Repository import flow")).toBeVisible();
+  await expect(page.getByRole("main").locator("#repository-import-flow").getByText("Repository import flow")).toBeVisible();
 
   await page.getByRole("link", { name: "Open import controls" }).click();
   await page.getByText("Advanced / Experimental").click();
@@ -78,27 +78,27 @@ test("real browser human workflow rehearsal with explicit public repo context", 
   await page.getByRole("link", { name: /Start guided demo/i }).click();
   await expect(page).toHaveURL(/\/workspaces\/demo-workspace/);
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
-  await expect(page.getByLabel("Active workspace context")).toContainText("Workspace dashboard");
+  await expect(page.getByLabel("Active workspace context", { exact: true }).last()).toContainText("Workspace dashboard");
   await expect(page.getByRole("link", { name: /Review candidates/i }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /Ask why/i }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /Inspect drift/i }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /Evidence/i }).first()).toBeVisible();
 
-  await page.getByRole("link", { name: /Review candidates/i }).first().click();
+  await page.locator(".global-sidebar").getByRole("link", { name: /Review$/ }).click();
   await expect(page).toHaveURL(/\/review\?workspace=demo-workspace/);
-  await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
+  await expect(page.getByLabel("Active workspace context", { exact: true }).last()).toContainText("Review queue");
   await expect(page.getByRole("heading", { name: /Candidate decisions waiting for review|All candidates reviewed/i })).toBeVisible();
 
   await page.getByRole("link", { name: "Why Search", exact: true }).click();
   await expect(page).toHaveURL(/\/search\?workspace=demo-workspace/);
-  await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
+  await expect(page.getByLabel("Active workspace context", { exact: true }).last()).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("Use Redis Cache: Use Redis as cache only.")).toBeVisible();
 
   await page.getByRole("link", { name: "Drift", exact: true }).click();
   await expect(page).toHaveURL(/\/drift\?workspace=demo-workspace/);
-  await expect(page.getByLabel("Active workspace context")).toContainText("Drift monitoring");
-  await expect(page.getByText(/possible[_ ]drift/i)).toBeVisible();
+  await expect(page.getByLabel("Active workspace context", { exact: true }).last()).toContainText("Drift monitoring");
+  await expect(page.getByText(/possible[_ ]drift/i).first()).toBeVisible();
 
   await page.getByRole("link", { name: /Evidence/i }).first().click();
   await expect(page).toHaveURL(/\/evidence/);

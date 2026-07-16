@@ -1,0 +1,155 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "commit": "25a4e25",
+  "comparison_basis": "Before is reconstructed from the live candidate payload using the pre-change confidence ordering; after is the precision-ranked API ordering. This is not a historical snapshot.",
+  "generated_at": "2026-07-16T07:33:16.103128+00:00",
+  "provider_mode": {
+    "embedding_provider_mode": "fake",
+    "is_live": true,
+    "llm_provider_mode": "openai_compatible",
+    "mode": "openai_compatible",
+    "override_active": false
+  },
+  "schema_version": 1,
+  "sensitive_material_note": "Evidence contains bounded IDs, titles, scores, and status only; no tokens or raw model output.",
+  "status": "pass",
+  "workspaces": [
+    {
+      "after": {
+        "decision_ids": [
+          584,
+          582,
+          581,
+          579,
+          578,
+          577,
+          576,
+          563,
+          562,
+          589,
+          575,
+          574,
+          573,
+          571,
+          570,
+          569,
+          568,
+          566,
+          565,
+          591,
+          590,
+          567,
+          586,
+          583,
+          580,
+          588,
+          572,
+          564
+        ],
+        "ordering": "precision_tier_score_confidence_id"
+      },
+      "before": {
+        "decision_ids": [
+          562,
+          563,
+          564,
+          565,
+          566,
+          567,
+          568,
+          569,
+          570,
+          571,
+          572,
+          573,
+          574,
+          575,
+          576,
+          577,
+          578,
+          579,
+          580,
+          581,
+          582,
+          583,
+          584,
+          586,
+          588,
+          589,
+          590,
+          591
+        ],
+        "ordering": "legacy_confidence_desc_id_asc"
+      },
+      "candidate_count": 28,
+      "duplicate_secondary_count": 0,
+      "ordering_delta": {
+        "moved_down": [
+          562,
+          563,
+          564,
+          565,
+          566,
+          567,
+          568,
+          569,
+          570,
+          571,
+          572,
+          573,
+          580,
+          583,
+          588
+        ],
+        "moved_up": [
+          584,
+          582,
+          581,
+          579,
+          578,
+          577,
+          576,
+          589,
+          575,
+          574,
+          591,
+          590,
+          586
+        ],
+        "top_changed": true
+      },
+      "tier_counts": {
+        "partial": 6,
+        "strong": 22,
+        "weak": 0
+      },
+      "top_candidate": {
+        "candidate_ranking": {
+          "artifact_family": "pull_request",
+          "cluster_id": null,
+          "cluster_size": 1,
+          "duplicate_of": null,
+          "is_representative": true,
+          "parser_salvaged": true,
+          "reasons": [
+            "multiple_source_refs",
+            "previewable_quote",
+            "artifact_provenance",
+            "source_url_available",
+            "low_confidence",
+            "decision_specificity",
+            "high_signal_artifact_family",
+            "parser_salvaged"
+          ],
+          "recovery": false,
+          "score": 79,
+          "sparse_recovery": false,
+          "tier": "strong"
+        },
+        "id": 584,
+        "title": "fix: prevent auth refresh token reuse races"
+      },
+      "workspace_slug": "github-githits-com-githits-cli"
+    }
+  ]
+}

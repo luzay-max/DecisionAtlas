@@ -1,0 +1,221 @@
+{
+  "blockers": [],
+  "generated_at": "2026-07-16T08:09:02.096257+00:00",
+  "hosted_urls": {
+    "api": null,
+    "engine": null,
+    "web": null
+  },
+  "lanes": [
+    {
+      "command": "scripts/demo/health-check.ps1 -WebBaseUrl <web>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "web_hosted_url",
+      "label": "Hosted web URL",
+      "recommended_next_action": "Run hosted health check against the web URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "scripts/demo/health-check.ps1 -ApiBaseUrl <api>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "api_hosted_url",
+      "label": "Hosted API URL",
+      "recommended_next_action": "Run hosted health check against the API URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "scripts/demo/health-check.ps1 -EngineBaseUrl <engine>",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "core_hosted_services",
+      "id": "engine_hosted_url",
+      "label": "Hosted engine URL",
+      "recommended_next_action": "Run hosted health check against the engine URL before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/health-check.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "group": "core_hosted_services",
+      "id": "hosted_health_check",
+      "label": "Hosted health check",
+      "recommended_next_action": "Run scripts/demo/health-check.ps1 with hosted URLs.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "pass"
+    },
+    {
+      "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/demo/smoke-check.ps1",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "group": "public_walkthrough",
+      "id": "hosted_smoke_check",
+      "label": "Hosted guided-demo smoke check",
+      "recommended_next_action": "Run scripts/demo/smoke-check.ps1 with hosted URLs.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "pass"
+    },
+    {
+      "command": "python scripts/demo/check_seeded_demo.py --json",
+      "details": {
+        "reason": "explicit_status"
+      },
+      "group": "public_walkthrough",
+      "id": "seeded_demo_readiness",
+      "label": "Seeded demo readiness",
+      "recommended_next_action": "Run python scripts/demo/check_seeded_demo.py --json before external preview.",
+      "required_for_public_walkthrough": true,
+      "source_path": null,
+      "status": "pass"
+    },
+    {
+      "command": "scripts/demo/reset-demo.ps1 or scripts/demo/reseed-demo.ps1",
+      "details": {
+        "reason": "no_status_or_source_path_provided"
+      },
+      "group": "recovery",
+      "id": "recovery_drill",
+      "label": "Reset/reseed recovery drill",
+      "recommended_next_action": "Record whether reset/reseed recovery was rehearsed or intentionally deferred.",
+      "required_for_public_walkthrough": false,
+      "source_path": null,
+      "status": "operator_guided"
+    },
+    {
+      "command": "python scripts/governance/agent_guardrail.py --summary",
+      "details": {
+        "agent_status": "caution",
+        "handoff_summary": {
+          "advisory_only": true,
+          "agent_status": "caution",
+          "diff_status": "pass",
+          "drift_status": "drift_detected",
+          "human_questions": [],
+          "recommended_next_actions": [
+            "3.1 Add deterministic tests for runtime inclusion, secret/cache exclusion, legacy package blocking, missing runtime assets, isolated-copy command roots, and independent-runner boundary classification.",
+            "Review the historical issue before repeating the same implementation pattern."
+          ],
+          "required_tests": [
+            "3.1 Add deterministic tests for runtime inclusion, secret/cache exclusion, legacy package blocking, missing runtime assets, isolated-copy command roots, and independent-runner boundary classification.",
+            "3.2 Run focused package tests, full engine/API/web tests, typecheck, benchmark fixture validation, guardrail, and OpenSpec strict validation.",
+            "Run or add targeted tests for changed behavior."
+          ]
+        },
+        "summary": "Governance guardrail found advisory concerns; the agent may continue only after addressing recommended actions."
+      },
+      "group": "governance",
+      "id": "governance_guardrail",
+      "label": "Governance guardrail",
+      "recommended_next_action": "Run and disclose guardrail caution or pause evidence if showing the governance lane.",
+      "required_for_public_walkthrough": false,
+      "source_path": ".tmp/agent-guardrail.json",
+      "status": "non_blocking"
+    },
+    {
+      "command": "python scripts/ci/collect_release_evidence.py",
+      "details": {
+        "missing_inputs": [
+          {
+            "id": "trend_comparison",
+            "label": "Release trend comparison",
+            "required": false,
+            "status": "not_provided"
+          }
+        ],
+        "overall_status": "warning",
+        "warnings": []
+      },
+      "group": "release_evidence",
+      "id": "release_evidence",
+      "label": "Release evidence bundle",
+      "recommended_next_action": "Attach release evidence when using hosted readiness for release or preview handoff.",
+      "required_for_public_walkthrough": false,
+      "source_path": ".tmp/runnable-release-evidence.json",
+      "status": "non_blocking"
+    },
+    {
+      "command": "python scripts/ci/run_benchmark.py --live-real-repos or --benchmark-compare-*",
+      "details": {
+        "comparison_type": null,
+        "failed": 0,
+        "operationally_blocked": 0,
+        "regressed": 0,
+        "repositories": null
+      },
+      "group": "optional_credibility",
+      "id": "real_repo_evidence",
+      "label": "Real-repo benchmark evidence",
+      "recommended_next_action": "Attach dated real-repo benchmark evidence only when the optional credibility lane is shown.",
+      "required_for_public_walkthrough": false,
+      "source_path": ".tmp/githits-live-core-loop.json",
+      "status": "pass"
+    }
+  ],
+  "missing_inputs": [
+    {
+      "id": "web_hosted_url",
+      "label": "Hosted web URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    },
+    {
+      "id": "api_hosted_url",
+      "label": "Hosted API URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    },
+    {
+      "id": "engine_hosted_url",
+      "label": "Hosted engine URL",
+      "required_for_public_walkthrough": true,
+      "status": "operator_guided"
+    },
+    {
+      "id": "recovery_drill",
+      "label": "Reset/reseed recovery drill",
+      "required_for_public_walkthrough": false,
+      "status": "operator_guided"
+    }
+  ],
+  "overall_status": "operator_guided",
+  "public_walkthrough_decision": "operator_review_required",
+  "public_walkthrough_status": "operator_guided",
+  "recommended_next_actions": [
+    "Attach dated real-repo benchmark evidence only when the optional credibility lane is shown.",
+    "Attach release evidence when using hosted readiness for release or preview handoff.",
+    "Record whether reset/reseed recovery was rehearsed or intentionally deferred.",
+    "Run and disclose guardrail caution or pause evidence if showing the governance lane.",
+    "Run hosted health check against the API URL before external preview.",
+    "Run hosted health check against the engine URL before external preview.",
+    "Run hosted health check against the web URL before external preview.",
+    "Run python scripts/demo/check_seeded_demo.py --json before external preview.",
+    "Run scripts/demo/health-check.ps1 with hosted URLs.",
+    "Run scripts/demo/smoke-check.ps1 with hosted URLs."
+  ],
+  "recovery_scope": "Default reset/reseed recovery is scoped to demo-workspace and does not implicitly delete imported workspaces or governance history.",
+  "release_gate_note": "Hosted readiness is operator-guided evidence for a running environment and does not replace scripts/ci/pre-release.ps1.",
+  "schema_version": 1,
+  "source_paths": {
+    "governance_guardrail": ".tmp/agent-guardrail.json",
+    "real_repo_evidence": ".tmp/githits-live-core-loop.json",
+    "release_evidence": ".tmp/runnable-release-evidence.json"
+  },
+  "warnings": []
+}

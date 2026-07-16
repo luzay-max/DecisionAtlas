@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-07-16T07:31:54.604Z",
+  "browser": "Google Chrome",
+  "headless": false,
+  "workspace": "github-githits-com-githits-cli",
+  "steps": [
+    {
+      "id": "review_accept",
+      "status": "pass",
+      "accepted_title": "Improve search match highlighting"
+    },
+    {
+      "id": "why_search",
+      "status": "pass",
+      "answer_status": "ok",
+      "citation_count": 2
+    },
+    {
+      "id": "drift",
+      "status": "pass",
+      "evaluation_status": "pass"
+    },
+    {
+      "id": "evidence_navigation",
+      "status": "pass",
+      "url": "http://127.0.0.1:3000/evidence"
+    }
+  ],
+  "sensitive_material_note": "Only compact UI statuses are stored; no credentials, repository source, or raw model output are recorded.",
+  "status": "pass"
+}

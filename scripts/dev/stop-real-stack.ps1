@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $statePath = Join-Path $repoRoot ".tmp\real-stack.json"
 $targetPorts = @(3000, 3001, 8000)
+$composeProjectName = "decisionatlas"
 
 function Stop-ManagedPid {
   param([int]$ProcessId)
@@ -45,6 +46,6 @@ if (Test-Path $statePath) {
 
 Stop-PortListeners -Ports $targetPorts
 Set-Location $repoRoot
-docker compose stop postgres redis | Out-Null
+docker compose --project-name $composeProjectName stop postgres redis | Out-Null
 
 Write-Host "DecisionAtlas real stack stopped." -ForegroundColor Green

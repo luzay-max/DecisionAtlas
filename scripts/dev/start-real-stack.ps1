@@ -10,6 +10,7 @@ $stateDir = Join-Path $repoRoot ".tmp"
 $logDir = Join-Path $stateDir "real-stack"
 $statePath = Join-Path $stateDir "real-stack.json"
 $powerShellPath = (Get-Process -Id $PID).Path
+$composeProjectName = "decisionatlas"
 
 function Ensure-Directory {
   param([string]$Path)
@@ -170,7 +171,7 @@ Write-Host "Stopping any existing real stack processes first..." -ForegroundColo
 Set-Location $repoRoot
 
 Write-Host "Starting Docker postgres and redis..." -ForegroundColor Cyan
-docker compose up -d postgres redis | Out-Null
+docker compose --project-name $composeProjectName up -d postgres redis | Out-Null
 
 Assert-DockerPostgresProxy
 

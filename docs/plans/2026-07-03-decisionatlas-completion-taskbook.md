@@ -465,3 +465,31 @@ change：`make-benchmark-value-outcomes-monotonic`
 - 本 change 只修正 benchmark/reporting 语义，不降低候选质量、Why、Drift 或导入门槛。
 - readiness history 仍会显示 optional evidence `not_provided`，这是证据完整度提示，不是 benchmark 失败。
 - 下一刀回到真实客户闭环：独立 VM/测试服务器、私有仓库脱敏试用和客户反馈；暂不做 SaaS billing、多租户或 Marketplace。
+
+### P20：可运行自托管源码包（本轮完成）
+
+change：`make-self-hosted-package-runnable`
+
+完成内容：
+
+- self-hosted package 从文档/脚本 handoff 升级为 runnable source-tree handoff，显式包含 Node workspace、Web/API、engine、migrations、prompts、Compose 和 bounded browser smoke。
+- verifier 对缺失运行资产和 legacy structure-only package fail closed，并继续排除 secrets、cache、database、build output 和本机 scratch。
+- package 在 Windows 系统临时目录外部副本完成冻结依赖安装、Chromium 安装、Engine/API/Web 启动和 imported workspace 浏览器链路。
+- 新增 GitHub-hosted Windows package rehearsal workflow；readiness history 纳入 package verification、clean install 和 runnable package evidence。
+- Playwright smoke 改为默认自建隔离服务和新数据库，修复复用本地旧服务导致的非确定性。
+
+真实证据：
+
+- 随机公开仓库 `githits-com/githits-cli`：98 artifacts、37 screened in、30 candidates。
+- 可见 Chrome 完成 review、Why、Drift、Evidence；Why 2 citations，浏览器报告 pass。
+- package verifier pass，276 files；runnable rehearsal 6/6 pass；clean rehearsal 0 blocker。
+- canonical pre-release 全通过：engine 409、Web 83、API 32、Playwright 12/12、OpenSpec strict 90/90。
+- readiness entry：`docs/evidence/readiness/2026-07-16-runnable-self-hosted-package/`。
+- GitHub Actions：普通 CI run `29483070963`、package rehearsal run `29483070983` 全部 success；独立 runner artifact 已上传。
+- OpenSpec change 已同步主规格并归档为 `2026-07-16-make-self-hosted-package-runnable`。
+
+边界与下一步：
+
+- 当前 proof 为 `independent_host_package_smoke`，不是 customer-controlled-host proof。
+- 依赖默认需要联网下载，尚未生成签名压缩包、checksum 或 SBOM。
+- 下一刀按 `2026-07-16-decisionatlas-next-development-plan.md` 先做客户控制主机真实安装，再做正式 release artifact 和离线缓存。

@@ -24,6 +24,7 @@ REQUIRED_MANIFEST_FIELDS = [
     "docs",
     "scripts",
     "templates",
+    "runtime",
     "required_services",
     "default_urls",
     "validation_commands",
@@ -75,6 +76,36 @@ REQUIRED_PACKAGE_FILES = [
     "scripts/ci/verify_pilot_commercial_proposal_kit.py",
     "scripts/ci/verify_private_repo_pilot_evidence.py",
     "scripts/ci/collect_team_handoff_report.py",
+    "scripts/ci/rehearse_runnable_self_hosted_package.py",
+    "scripts/ci/start-engine-smoke.ps1",
+    "scripts/ci/start-api-smoke.ps1",
+    "scripts/ci/start-web-smoke.ps1",
+    "scripts/ci/seed_smoke_demo.py",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    "docker-compose.yml",
+    "apps/api/package.json",
+    "apps/api/tsconfig.json",
+    "apps/api/src/server.ts",
+    "apps/web/package.json",
+    "apps/web/tsconfig.json",
+    "apps/web/next.config.ts",
+    "apps/web/playwright.config.ts",
+    "apps/web/app/page.tsx",
+    "apps/web/components/navigation/global-sidebar.tsx",
+    "apps/web/lib/api.ts",
+    "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+    "services/engine/pyproject.toml",
+    "services/engine/uv.lock",
+    "services/engine/alembic.ini",
+    "services/engine/alembic/env.py",
+    "services/engine/app/main.py",
+    "packages/prompts/decision-screening.md",
+    "packages/prompts/decision-extraction.md",
+    "infra/docker/postgres/init-extensions.sql",
+    "infra/docker/redis/redis.conf",
 ]
 
 FORBIDDEN_PACKAGE_PATHS = [
@@ -84,6 +115,11 @@ FORBIDDEN_PACKAGE_PATHS = [
     ".venv",
     "__pycache__",
     ".pytest_cache",
+    ".next",
+    ".turbo",
+    "dist",
+    "playwright-report",
+    "test-results",
 ]
 
 OPTIONAL_RUNTIME_LANES = [
@@ -244,7 +280,9 @@ def _check_forbidden_paths(files: set[str]) -> list[dict[str, Any]]:
         parts = set(relative.split("/"))
         if parts & set(FORBIDDEN_PACKAGE_PATHS):
             violations.append(relative)
-        if relative.endswith((".db", ".sqlite", ".log")):
+        if any(part == ".env" or part.startswith(".env.") for part in parts):
+            violations.append(relative)
+        if relative.endswith((".db", ".sqlite", ".log", ".pyc", ".pyo", ".tsbuildinfo")):
             violations.append(relative)
     checks.append(
         {
@@ -284,6 +322,74 @@ def _check_manifest_references(manifest: dict[str, Any] | None, files: set[str])
                     "details": {"target": target},
                 }
             )
+    runtime = manifest.get("runtime")
+    if not isinstance(runtime, dict):
+        return checks
+    for group in ("root_files", "files"):
+        assets = runtime.get(group)
+        if not isinstance(assets, list):
+            checks.append(
+                {
+                    "id": f"manifest_runtime:{group}",
+                    "label": f"Manifest runtime {group} assets are listed",
+                    "status": STATUS_BLOCKING,
+                    "details": {"reason": "not_a_list"},
+                }
+            )
+            continue
+        for index, asset in enumerate(assets):
+            target = asset.get("target") if isinstance(asset, dict) else None
+            present = isinstance(target, str) and target in files
+            checks.append(
+                {
+                    "id": f"manifest_runtime_asset:{group}:{index}",
+                    "label": f"Manifest runtime {group} asset {target or index}",
+                    "status": STATUS_PASS if present else STATUS_BLOCKING,
+                    "details": {"target": target},
+                }
+            )
+    trees = runtime.get("trees")
+    if not isinstance(trees, list):
+        checks.append(
+            {
+                "id": "manifest_runtime:trees",
+                "label": "Manifest runtime trees are listed",
+                "status": STATUS_BLOCKING,
+                "details": {"reason": "not_a_list"},
+            }
+        )
+    else:
+        for index, asset in enumerate(trees):
+            target = asset.get("target") if isinstance(asset, dict) else None
+            prefix = f"{target.rstrip('/')}/" if isinstance(target, str) else ""
+            present = bool(prefix) and any(relative.startswith(prefix) for relative in files)
+            checks.append(
+                {
+                    "id": f"manifest_runtime_tree:{index}",
+                    "label": f"Manifest runtime tree {target or index}",
+                    "status": STATUS_PASS if present else STATUS_BLOCKING,
+                    "details": {"target": target},
+                }
+            )
+    for field in (
+        "package_type",
+        "dependency_install_commands",
+        "startup_command",
+        "smoke_command",
+        "dependency_download_boundary",
+        "independent_host_proof",
+        "customer_controlled_host_proof",
+    ):
+        value = runtime.get(field)
+        present = value not in (None, "", [])
+        checks.append(
+            {
+                "id": f"manifest_runtime_field:{field}",
+                "label": f"Manifest runtime field {field}",
+                "status": STATUS_PASS if present else STATUS_BLOCKING,
+                "details": {"field": field},
+            }
+        )
     return checks
 
 
@@ -339,14 +445,16 @@ def verify_package(package_dir: Path, *, generated_at: str | None = None) -> dic
         "version_label": manifest.get("version_label") if manifest else None,
         "commit": manifest.get("commit") if manifest else None,
         "status": status,
+        "runnable_status": status,
         "checked_file_count": len(files),
         "checks": checks,
         "non_pass_lanes": OPTIONAL_RUNTIME_LANES,
         "blockers": [check for check in checks if check["status"] == STATUS_BLOCKING],
         "notes": [
-            "Package verification is offline and checks handoff structure only.",
+            "Package verification is offline and checks runnable handoff inputs; execute runnable-package rehearsal separately to prove service startup.",
             "Clean install rehearsal, runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
             "Package verification and local clean install rehearsal are not proof of installation on a customer-controlled host; attach external self-hosted install evidence for that claim.",
+            "A GitHub-hosted runner can prove independent package installation but remains is_customer_controlled=false.",
             "Non-destructive continuity verifier evidence is not proof that backup/restore/upgrade mechanics were exercised; attach real scratch continuity rehearsal evidence for that claim.",
         ],
     }
@@ -371,6 +479,7 @@ def render_markdown(bundle: dict[str, Any]) -> str:
         f"- Version: `{bundle.get('version_label')}`",
         f"- Commit: `{bundle.get('commit')}`",
         f"- Status: `{bundle.get('status')}`",
+        f"- Runnable package: `{bundle.get('runnable_status')}`",
         "",
         "## Checks",
         "",
