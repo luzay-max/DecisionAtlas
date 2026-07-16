@@ -513,6 +513,8 @@ change：`publish-versioned-self-hosted-artifacts`
 - 可见 Google Chrome headed 流程通过，保留 Playwright trace；Chrome 插件初始化失败，因此不把插件控制声明为通过。
 - Canonical pre-release 通过：engine 424、Web 83、API 32、Playwright 12/12；OpenSpec strict 90/90；专项 release artifact tests 14 passed。
 - readiness entry：`docs/evidence/readiness/2026-07-16-versioned-self-hosted-release-artifacts/`，release artifact 0 blocker。
+- GitHub Actions：CI run `29486627701`、Self-Hosted Package Rehearsal run `29486627752` 均成功；artifact `self-hosted-package-rehearsal-29486627752` 已上传且未过期。
+- OpenSpec 主规格已同步，change 已归档为 `2026-07-16-publish-versioned-self-hosted-artifacts`。
 
 边界与下一步：
 

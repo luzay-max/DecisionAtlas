@@ -9,7 +9,7 @@ DecisionAtlas 已具备“可运行源码包 + 版本化发布物”能力：交
 ```text
 本机源码运行                 已完成
 本机隔离 package-copy 运行   已完成
-GitHub 独立 runner 回归       已完成，run 29483070983
+GitHub 独立 runner 回归       已完成，package run 29486627752
 版本化 ZIP/tar/checksum/SBOM  已完成，commit 3cc30a2
 客户控制 VM/服务器运行        未完成
 2-3 个真实团队持续 pilot       未完成
@@ -51,7 +51,7 @@ change：`publish-versioned-self-hosted-artifacts`
 - 发布物不含 `.env`、token、数据库、缓存、测试结果和本机路径。
 - readiness history 保存 manifest/checksum/SBOM 和验证结果；GitHub Actions 保留本次发布物。
 
-完成证据：实现提交 `3cc30a2`；278 files；CycloneDX 311 components；随机仓库 `aristanetworks/j2lint`；可见 Chrome 核心链路通过。签名、离线缓存和长期 artifact retention 仍是后续边界。
+完成证据：实现提交 `3cc30a2`；278 files；CycloneDX 311 components；随机仓库 `aristanetworks/j2lint`；可见 Chrome 核心链路通过；CI `29486627701` 与 package rehearsal `29486627752` 成功。签名、离线缓存和长期 artifact retention 仍是后续边界。
 
 ## P2：受限网络与离线依赖边界
 

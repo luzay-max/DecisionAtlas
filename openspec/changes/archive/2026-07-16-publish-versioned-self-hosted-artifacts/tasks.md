@@ -22,4 +22,4 @@
 - [x] 4.2 Run focused tests, full engine/API/web tests, typecheck, canonical pre-release, benchmark fixture validation, guardrail, and OpenSpec strict validation.
 - [x] 4.3 Build the runnable package and release bundle, choose a fresh random public GitHub repository, verify and extract the downloaded-style artifact outside the source checkout, and complete real visible Chrome/browser/computer review, Why, Drift, and Evidence navigation from the extracted package.
 - [x] 4.4 Archive bounded publication/verification evidence, update the completion taskbook, dated update log, readiness history, and next-development plan without committing ZIP/tar.gz binaries.
-- [ ] 4.5 Archive the OpenSpec change, commit only scoped files, push the dedicated branch, create a stacked draft PR, and run and inspect both normal CI and package rehearsal GitHub Actions on the final SHA.
+- [x] 4.5 Archive the OpenSpec change, commit only scoped files, push the dedicated branch, create a stacked draft PR, and run and inspect both normal CI and package rehearsal GitHub Actions on the final SHA.

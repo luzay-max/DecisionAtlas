@@ -21,6 +21,9 @@
 - Canonical pre-release：engine 424、Web 83、API 32、Playwright 12/12，typecheck 和 benchmark fixture 通过。
 - OpenSpec strict：90/90；guardrail 为 advisory `caution`，`would_block=false`。
 - readiness entry：`docs/evidence/readiness/2026-07-16-versioned-self-hosted-release-artifacts/`，release artifact blockers 为 0。
+- GitHub Actions：CI run `29486627701` 和 Self-Hosted Package Rehearsal run `29486627752` 均为 `success`。
+- Actions artifact：`self-hosted-package-rehearsal-29486627752`，约 906 KB，包含版本化发布物与脱敏报告，检查时未过期。
+- OpenSpec 主规格已同步，change 已归档到 `openspec/changes/archive/2026-07-16-publish-versioned-self-hosted-artifacts/`。
 
 ## 真实仓库与浏览器
 
