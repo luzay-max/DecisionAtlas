@@ -1,0 +1,221 @@
+{
+  "archive_root": "decisionatlas-self-hosted-0.4.0-artifact-preview",
+  "blockers": [],
+  "checks": [
+    {
+      "details": {
+        "path": "release-artifacts.json"
+      },
+      "id": "json:release-artifacts.json",
+      "label": "Release artifact manifest is readable",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "entry_count": 4
+      },
+      "id": "checksums",
+      "label": "SHA256SUMS is well formed",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "version": "0.4.0-artifact-preview"
+      },
+      "id": "manifest_identity",
+      "label": "Release manifest identity is valid",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "value": "decisionatlas-self-hosted-0.4.0-artifact-preview"
+      },
+      "id": "archive_root",
+      "label": "Archive root is versioned and safe",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "kinds": [
+          "cyclonedx_sbom",
+          "tar_gz",
+          "zip"
+        ]
+      },
+      "id": "artifact_kinds",
+      "label": "Required release artifact kinds are listed",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json",
+        "size": 62730
+      },
+      "id": "artifact:cyclonedx_sbom",
+      "label": "Artifact cyclonedx_sbom hash and size match",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.tar.gz",
+        "size": 382920
+      },
+      "id": "artifact:tar_gz",
+      "label": "Artifact tar_gz hash and size match",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.zip",
+        "size": 537321
+      },
+      "id": "artifact:zip",
+      "label": "Artifact zip hash and size match",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "files": [
+          "decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json",
+          "decisionatlas-self-hosted-0.4.0-artifact-preview.tar.gz",
+          "decisionatlas-self-hosted-0.4.0-artifact-preview.zip",
+          "release-artifacts.json"
+        ]
+      },
+      "id": "checksum_coverage",
+      "label": "Checksums cover exactly the release artifacts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json"
+      },
+      "id": "json:decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json",
+      "label": "CycloneDX SBOM is readable",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "component_count": 311
+      },
+      "id": "sbom_structure",
+      "label": "CycloneDX SBOM structure is valid",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "member_count": 278
+      },
+      "id": "zip_safety",
+      "label": "ZIP members are safe",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "member_count": 278
+      },
+      "id": "tar_safety",
+      "label": "tar.gz members are safe",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "member_count": 278
+      },
+      "id": "member_parity",
+      "label": "ZIP and tar.gz contain identical members",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "file_count": 278,
+        "uncompressed_size": 1728618
+      },
+      "id": "archive_metadata",
+      "label": "Archive member counts and uncompressed sizes match the release manifest",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "file_count": 278
+      },
+      "id": "content:zip",
+      "label": "Extracted zip package content matches manifest",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "checked_file_count": 278
+      },
+      "id": "package:zip",
+      "label": "Extracted zip package passes verifier",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "file_count": 278
+      },
+      "id": "content:tar_gz",
+      "label": "Extracted tar_gz package content matches manifest",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "checked_file_count": 278
+      },
+      "id": "package:tar_gz",
+      "label": "Extracted tar_gz package passes verifier",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "package_root": "<operator-selected>/decisionatlas-self-hosted-0.4.0-artifact-preview"
+      },
+      "id": "retained_extraction",
+      "label": "Verified ZIP was safely extracted to the operator-selected directory",
+      "status": "pass"
+    }
+  ],
+  "commit": "3cc30a2c783073c7d2d62b389ef8c50cf4628119",
+  "generated_at": "2026-07-16T09:15:25.707872+00:00",
+  "host_proof_level": "independent_runner_release_artifact",
+  "is_customer_controlled": false,
+  "package_content_sha256": "8bba734e99aea01fe11c484bf50c1907c9166eaade9714224112861f51e8112f",
+  "package_verification": [
+    {
+      "archive_kind": "zip",
+      "blocker_count": 0,
+      "checked_file_count": 278,
+      "runnable_status": "pass",
+      "status": "pass"
+    },
+    {
+      "archive_kind": "tar_gz",
+      "blocker_count": 0,
+      "checked_file_count": 278,
+      "runnable_status": "pass",
+      "status": "pass"
+    }
+  ],
+  "proof_boundary": {
+    "cryptographic_signing": "not_provided",
+    "customer_host_installation": "requires_separate_sanitized_external_evidence",
+    "dependency_cache": "not_included",
+    "host_proof_level": "release_artifact_publication",
+    "is_customer_controlled": false,
+    "vulnerability_analysis": "not_provided"
+  },
+  "release_directory": "<operator-selected-release-dir>",
+  "sbom": {
+    "components": 311,
+    "npm": 278,
+    "pypi": 33
+  },
+  "schema_version": 1,
+  "status": "pass",
+  "version_label": "0.4.0-artifact-preview",
+  "warnings": [
+    "SHA-256 does not authenticate the publisher; cryptographic signing is not provided.",
+    "Independent release-artifact verification is not customer-controlled-host installation proof."
+  ]
+}

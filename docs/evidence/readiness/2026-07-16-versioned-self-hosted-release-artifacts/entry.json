@@ -1,0 +1,352 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": "benchmark_comparison.json",
+      "markdown": "benchmark_comparison.md",
+      "source_json_path": ".tmp/customer-host-trial-benchmark-comparison.json",
+      "source_markdown_path": ".tmp/customer-host-trial-benchmark-comparison.md",
+      "supplementary": {}
+    },
+    "clean_self_hosted_install_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "hosted_readiness": {
+      "json": "hosted_readiness.json",
+      "markdown": "hosted_readiness.md",
+      "source_json_path": ".tmp/release-artifacts-hosted-readiness.json",
+      "source_markdown_path": ".tmp/release-artifacts-hosted-readiness.md",
+      "supplementary": {}
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "real_continuity_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "real_external_host_trial_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/release-artifacts-release-evidence.json",
+      "source_markdown_path": ".tmp/release-artifacts-release-evidence.md",
+      "supplementary": {}
+    },
+    "runnable_self_hosted_package_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "self_hosted_package_verification": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "team_handoff": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "versioned_self_hosted_release_artifacts": {
+      "json": "versioned_self_hosted_release_artifacts.json",
+      "markdown": "versioned_self_hosted_release_artifacts.md",
+      "source_json_path": ".tmp/release-artifact-verification.json",
+      "source_markdown_path": ".tmp/release-artifact-verification.md",
+      "supplementary": {
+        "release_artifact.cdx.json": "release_artifact.cdx.json",
+        "release_artifact_SHA256SUMS": "release_artifact_SHA256SUMS",
+        "release_artifact_publication.json": "release_artifact_publication.json",
+        "release_artifact_publication.md": "release_artifact_publication.md"
+      }
+    }
+  },
+  "commit": "3cc30a2c783073c7d2d62b389ef8c50cf4628119",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "fresh_public_repo_import_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 15,
+    "operator_guided": 5,
+    "random_repo_warning_classified_lanes": 0,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 0,
+    "release_artifact_blockers": 0,
+    "warnings": 2
+  },
+  "created_at": "2026-07-16T09:20:00+00:00",
+  "entry_id": "2026-07-16-versioned-self-hosted-release-artifacts",
+  "families": {
+    "benchmark_comparison": {
+      "comparison_type": "real-repo-benchmark-regression",
+      "generated_at": "2026-07-15T05:21:29.801665+00:00",
+      "improved": 0,
+      "label": "Benchmark comparison",
+      "movements": {
+        "improved": 0,
+        "missing-from-current": 0,
+        "needs-review": 0,
+        "newly-evaluated": 4,
+        "operationally-blocked": 0,
+        "product-limited": 0,
+        "regressed": 0,
+        "unchanged": 1
+      },
+      "operationally_blocked": 0,
+      "regressed": 0,
+      "release_evidence_ready": true,
+      "repositories": 5,
+      "source_markdown_path": ".tmp/customer-host-trial-benchmark-comparison.md",
+      "source_path": ".tmp/customer-host-trial-benchmark-comparison.json",
+      "sparse_improved": 0,
+      "sparse_not_provided": 5,
+      "sparse_operationally_blocked": 0,
+      "sparse_regressed": 0,
+      "status": "passed"
+    },
+    "clean_self_hosted_install_rehearsal": {
+      "label": "Clean self-hosted install rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "fresh_import": false,
+      "label": "Fresh public repo import rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "label": "Full-chain random repo release rehearsal",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "hosted_readiness": {
+      "blocker_count": 0,
+      "blockers": [],
+      "generated_at": "2026-07-16T09:11:45.962466+00:00",
+      "known_limitation_count": 0,
+      "known_limitation_lanes": [],
+      "label": "Hosted readiness",
+      "lane_statuses": {
+        "api_hosted_url": "operator_guided",
+        "engine_hosted_url": "operator_guided",
+        "governance_guardrail": "non_blocking",
+        "hosted_health_check": "pass",
+        "hosted_smoke_check": "pass",
+        "real_repo_evidence": "pass",
+        "recovery_drill": "operator_guided",
+        "release_evidence": "non_blocking",
+        "seeded_demo_readiness": "operator_guided",
+        "web_hosted_url": "operator_guided"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 5,
+      "operator_guided_lanes": [
+        "web_hosted_url",
+        "api_hosted_url",
+        "engine_hosted_url",
+        "seeded_demo_readiness",
+        "recovery_drill"
+      ],
+      "public_walkthrough_decision": "operator_review_required",
+      "public_walkthrough_status": "operator_guided",
+      "source_markdown_path": ".tmp/release-artifacts-hosted-readiness.md",
+      "source_path": ".tmp/release-artifacts-hosted-readiness.json",
+      "status": "operator_guided",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "random_repo_warning_lane_reduction": {
+      "label": "Random repo warning lane reduction",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_continuity_rehearsal": {
+      "label": "Real continuity rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_external_host_trial_evidence": {
+      "host_proof_level": "not_provided",
+      "label": "Real external host trial evidence",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "caution",
+        "real_repo_benchmark_comparison": "passed",
+        "targeted_tests": "passed",
+        "trend_comparison": "not_provided"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-07-16T09:11:45.865899+00:00",
+      "label": "Release evidence",
+      "missing_input_count": 1,
+      "missing_inputs": [
+        {
+          "id": "trend_comparison",
+          "label": "Release trend comparison",
+          "required": false,
+          "status": "not_provided"
+        }
+      ],
+      "not_provided_count": 1,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/release-artifacts-release-evidence.md",
+      "source_path": ".tmp/release-artifacts-release-evidence.json",
+      "status": "warning",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "runnable_self_hosted_package_rehearsal": {
+      "label": "Runnable self-hosted package rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "self_hosted_package_verification": {
+      "label": "Self-hosted package verification",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "team_handoff": {
+      "label": "Team handoff",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "versioned_self_hosted_release_artifacts": {
+      "archive_root": "decisionatlas-self-hosted-0.4.0-artifact-preview",
+      "blocker_count": 0,
+      "commit": "3cc30a2c783073c7d2d62b389ef8c50cf4628119",
+      "cryptographic_signing": "not_provided",
+      "customer_host_installation": "requires_separate_sanitized_external_evidence",
+      "generated_at": "2026-07-16T09:15:25.707872+00:00",
+      "host_proof_level": "independent_runner_release_artifact",
+      "is_customer_controlled": false,
+      "label": "Versioned self-hosted release artifacts",
+      "not_provided_count": 2,
+      "operator_guided_count": 0,
+      "package_archive_statuses": {
+        "tar_gz": "pass",
+        "zip": "pass"
+      },
+      "package_content_sha256": "8bba734e99aea01fe11c484bf50c1907c9166eaade9714224112861f51e8112f",
+      "sbom_component_count": 311,
+      "sbom_npm_component_count": 278,
+      "sbom_pypi_component_count": 33,
+      "source_markdown_path": ".tmp/release-artifact-verification.md",
+      "source_path": ".tmp/release-artifact-verification.json",
+      "status": "pass",
+      "version_label": "0.4.0-artifact-preview",
+      "warning_count": 2
+    }
+  },
+  "label": "versioned-self-hosted-release-artifacts",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "0.4.0-artifact-preview",
+  "warnings": []
+}

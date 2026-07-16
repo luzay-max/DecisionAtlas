@@ -1,0 +1,52 @@
+{
+  "archive_root": "decisionatlas-self-hosted-0.4.0-artifact-preview",
+  "artifacts": [
+    {
+      "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.zip",
+      "kind": "zip",
+      "sha256": "e8144755709f5e22eaab1cf4e743db17ebd5f1f95d0efd41ddcb90fb122b6b25",
+      "size": 537321
+    },
+    {
+      "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.tar.gz",
+      "kind": "tar_gz",
+      "sha256": "212b26f1ca719a337dc1054c5b1f64979ddcebdc57754f4728ae59406eade125",
+      "size": 382920
+    },
+    {
+      "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json",
+      "kind": "cyclonedx_sbom",
+      "sha256": "c0b228046f68f75169e3e0cc7ff25bc988657d333748df3f1abc309bfa0def9a",
+      "size": 62730
+    }
+  ],
+  "blockers": [],
+  "checksum_filename": "SHA256SUMS",
+  "commit": "3cc30a2c783073c7d2d62b389ef8c50cf4628119",
+  "generated_at": "2026-07-16T09:15:23.798234+00:00",
+  "host_proof_level": "release_artifact_publication",
+  "is_customer_controlled": false,
+  "output_directory": ".tmp/release-artifact-final/releases/0.4.0-artifact-preview",
+  "package_content_sha256": "8bba734e99aea01fe11c484bf50c1907c9166eaade9714224112861f51e8112f",
+  "package_file_count": 278,
+  "package_uncompressed_size": 1728618,
+  "release_manifest_filename": "release-artifacts.json",
+  "sbom": {
+    "component_count": 311,
+    "filename": "decisionatlas-self-hosted-0.4.0-artifact-preview.cdx.json",
+    "npm_component_count": 278,
+    "pypi_component_count": 33
+  },
+  "schema_version": 1,
+  "source_date_epoch": 1784193289,
+  "status": "pass",
+  "toolchain": {
+    "platform": "windows",
+    "python": "3.13.3"
+  },
+  "version_label": "0.4.0-artifact-preview",
+  "warnings": [
+    "Cryptographic signing is not provided.",
+    "Dependency caches and customer-controlled-host installation proof are not included."
+  ]
+}
