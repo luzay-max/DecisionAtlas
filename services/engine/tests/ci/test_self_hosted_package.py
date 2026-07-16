@@ -80,6 +80,8 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert (package_dir / "scripts" / "ci" / "collect_external_self_hosted_install_evidence.py").exists()
     assert (package_dir / "scripts" / "ci" / "collect_real_external_host_trial_evidence.py").exists()
     assert (package_dir / "scripts" / "ci" / "rehearse_runnable_self_hosted_package.py").exists()
+    assert (package_dir / "scripts" / "ci" / "publish_self_hosted_release_artifacts.py").exists()
+    assert (package_dir / "scripts" / "ci" / "verify_self_hosted_release_artifacts.py").exists()
     assert (package_dir / "package.json").exists()
     assert (package_dir / "pnpm-lock.yaml").exists()
     assert (package_dir / "pnpm-workspace.yaml").exists()
@@ -99,6 +101,7 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
 
     data = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert data["schema_version"] == 2
+    assert data["package_path"] == "."
     assert data["version_label"] == "test-version"
     assert data["runtime"]["package_type"] == "runnable_source_tree_handoff"
     assert data["runtime"]["dependency_install_commands"] == [
@@ -117,11 +120,14 @@ def test_self_hosted_package_builder_writes_manifest_and_allowlisted_assets() ->
     assert "real_backup_restore_upgrade_rehearsal_json" in data["readiness_evidence_expectations"]
     assert "external_self_hosted_install_evidence_json" in data["readiness_evidence_expectations"]
     assert "commercial_sales_enablement_kit" in data["readiness_evidence_expectations"]
+    assert "versioned_release_artifact_verification_json" in data["readiness_evidence_expectations"]
     assert "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>" in data["validation_commands"]
     assert any("rehearse_clean_self_hosted_install.py" in command for command in data["validation_commands"])
     assert any("rehearse_backup_restore_upgrade.py" in command for command in data["validation_commands"])
     assert any("verify_pilot_customer_delivery_kit.py" in command for command in data["validation_commands"])
     assert any("verify_pilot_commercial_proposal_kit.py" in command for command in data["validation_commands"])
+    assert any("publish_self_hosted_release_artifacts.py" in command for command in data["validation_commands"])
+    assert any("verify_self_hosted_release_artifacts.py" in command for command in data["validation_commands"])
 
 
 def test_self_hosted_package_verifier_passes_valid_package() -> None:

@@ -140,6 +140,9 @@ python scripts/ci/collect_readiness_evidence_history.py summarize
 - [ ] disclose deferred capabilities: billing, full SaaS org management, hosted multi-tenancy, Marketplace/self-service OAuth, hosted secret vault, permanent buyout licensing, and hosted managed service operations
 - [ ] disclose that product/support tier boundaries do not imply runtime license enforcement in the current baseline
 - [ ] preserve `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states in customer-facing evidence
+- [ ] publish versioned ZIP and tar.gz from a verified runnable package; do not distribute an ad hoc mutable folder as the release artifact
+- [ ] verify `SHA256SUMS`, release manifest, archive safety/member parity, CycloneDX SBOM, and both extracted package copies before handoff
+- [ ] disclose that SHA-256 is integrity evidence rather than publisher authentication, signing is not provided, and dependency caches/customer-host proof remain separate
 
 Default Code Decision Audit report command:
 
