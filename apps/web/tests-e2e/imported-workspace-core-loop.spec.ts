@@ -4,6 +4,8 @@ const REAL_PUBLIC_REPO = process.env.PLAYWRIGHT_REAL_PUBLIC_REPO ?? "pallets/mar
 
 test("imported workspace core loop browser rehearsal", async ({ page }) => {
   const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:3001";
+  const activeWorkspaceContext = () =>
+    page.getByRole("region", { name: "Active workspace context", exact: true }).last();
   const importResponse = await fetch(`${apiBaseUrl}/imports/github`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -53,7 +55,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   });
 
   await page.goto(`/workspaces/${encodeURIComponent(workspaceSlug)}`);
-  await expect(page.getByLabel("Active workspace context")).toContainText("Workspace dashboard");
+  await expect(activeWorkspaceContext()).toContainText("Workspace dashboard");
   await expect(page.getByRole("heading", { name: workspaceSlug })).toBeVisible();
   await expect(page.getByText('Repo: ' + REAL_PUBLIC_REPO, { exact: true })).toBeVisible();
 
@@ -75,7 +77,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   if ((dashboardSummary.decision_counts?.candidate ?? 0) > 0 && !importIsRunning) {
     await reviewLink.click();
     await expect(page).toHaveURL(new RegExp("/review\\?workspace=" + workspaceSlug));
-    await expect(page.getByLabel("Active workspace context")).toContainText("Review queue");
+    await expect(activeWorkspaceContext()).toContainText("Review queue");
     const precisionSummary = page.getByLabel("Candidate precision summary");
     if (await precisionSummary.count()) {
       await expect(precisionSummary).toContainText(/Queue precision:/i);
@@ -88,7 +90,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
   await expect(whySearchLink).toBeVisible();
   await whySearchLink.click();
   await expect(page).toHaveURL(new RegExp(`/search\\?workspace=${workspaceSlug}`), { timeout: 15_000 });
-  await expect(page.getByLabel("Active workspace context")).toContainText("Why Search");
+  await expect(activeWorkspaceContext()).toContainText("Why Search");
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page.getByText(/real public GitHub repository reference/i)).toBeVisible();
   const repositoryCitation = page.getByRole("link", {
@@ -100,7 +102,7 @@ test("imported workspace core loop browser rehearsal", async ({ page }) => {
 
   await page.getByRole("link", { name: "Drift", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/drift\\?workspace=${workspaceSlug}`));
-  await expect(page.getByLabel("Active workspace context")).toContainText("Drift monitoring");
+  await expect(activeWorkspaceContext()).toContainText("Drift monitoring");
 
   await page.getByRole("link", { name: /Evidence/i }).first().click();
   await expect(page).toHaveURL(/\/evidence/);

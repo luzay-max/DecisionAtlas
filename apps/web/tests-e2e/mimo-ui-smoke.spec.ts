@@ -123,7 +123,7 @@ test.describe("Demo workspace flow", () => {
     await expect(page.getByText("Use Redis Cache: Use Redis as cache only.")).toBeVisible();
 
     await page.goto("/drift?workspace=demo-workspace");
-    await expect(page.getByText(/possible[_ ]drift/i)).toBeVisible();
+    await expect(page.getByText(/possible[_ ]drift/i).first()).toBeVisible();
   });
 });
 

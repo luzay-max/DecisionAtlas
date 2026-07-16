@@ -38,6 +38,19 @@ def test_clean_rehearsal_generates_json_and_markdown(tmp_path: Path) -> None:
     release = _write_json(tmp_path / "release.json", {"overall_status": "passed", "generated_at": "2026-06-09T00:00:00+00:00"})
     hosted = _write_json(tmp_path / "hosted.json", {"overall_status": "operator_guided", "lanes": []})
     package_verification = _write_json(tmp_path / "package.json", {"status": "pass", "package_label": "decisionatlas-self-hosted-test"})
+    runnable_rehearsal = _write_json(
+        tmp_path / "runnable.json",
+        {
+            "status": "pass",
+            "host_proof_level": "independent_host_package_smoke",
+            "package_copy": "C:/isolated/package-copy",
+            "host_profile": {
+                "host_class": "github_hosted_windows_runner",
+                "os_family": "windows",
+                "is_customer_controlled": False,
+            },
+        },
+    )
 
     args = rehearsal.parse_args(
         [
@@ -57,6 +70,8 @@ def test_clean_rehearsal_generates_json_and_markdown(tmp_path: Path) -> None:
             str(hosted),
             "--package-verification-json",
             str(package_verification),
+            "--runnable-package-rehearsal-json",
+            str(runnable_rehearsal),
         ]
     )
     bundle = rehearsal.build_rehearsal(args, root)
@@ -68,6 +83,10 @@ def test_clean_rehearsal_generates_json_and_markdown(tmp_path: Path) -> None:
     assert any(check["id"] == "copied_package_verification" and check["status"] == "pass" for check in bundle["checks"])
     assert bundle["source_evidence"][0]["status"] == "pass"
     assert bundle["source_evidence"][1]["status"] == "operator_guided"
+    runnable = next(item for item in bundle["source_evidence"] if item["id"] == "runnable_package_rehearsal")
+    assert runnable["status"] == "pass"
+    assert runnable["details"]["host_proof_level"] == "independent_host_package_smoke"
+    assert runnable["details"]["host_profile"]["is_customer_controlled"] is False
     assert "Clean Self-Hosted Install Rehearsal" in markdown
     assert "operator_guided" in markdown
 

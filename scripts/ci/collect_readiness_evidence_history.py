@@ -25,6 +25,9 @@ FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION = "random_repo_warning_lane_reduction"
 FAMILY_REAL_CONTINUITY = "real_continuity_rehearsal"
 FAMILY_TEAM_HANDOFF = "team_handoff"
 FAMILY_CODE_DECISION_AUDIT = "code_decision_audit"
+FAMILY_PACKAGE_VERIFICATION = "self_hosted_package_verification"
+FAMILY_CLEAN_INSTALL = "clean_self_hosted_install_rehearsal"
+FAMILY_RUNNABLE_PACKAGE = "runnable_self_hosted_package_rehearsal"
 FAMILY_LABELS = {
     FAMILY_RELEASE: "Release evidence",
     FAMILY_HOSTED: "Hosted readiness",
@@ -38,6 +41,9 @@ FAMILY_LABELS = {
     FAMILY_REAL_CONTINUITY: "Real continuity rehearsal",
     FAMILY_TEAM_HANDOFF: "Team handoff",
     FAMILY_CODE_DECISION_AUDIT: "Code Decision Audit",
+    FAMILY_PACKAGE_VERIFICATION: "Self-hosted package verification",
+    FAMILY_CLEAN_INSTALL: "Clean self-hosted install rehearsal",
+    FAMILY_RUNNABLE_PACKAGE: "Runnable self-hosted package rehearsal",
 }
 NON_CLEAN_STATUSES = {
     "blocked",
@@ -112,6 +118,33 @@ def _safe_copy(source: Path | None, entry_dir: Path, target_name: str) -> tuple[
 
 def _count_status(items: list[dict[str, Any]], statuses: set[str]) -> int:
     return sum(1 for item in items if str(item.get("status") or "").lower() in statuses)
+
+
+def _summarize_package_evidence(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided"}
+    status = str(data.get("status") or data.get("overall_status") or "unknown").lower()
+    blockers = data.get("blockers") if isinstance(data.get("blockers"), list) else []
+    status_items = [
+        item
+        for key in ("checks", "source_evidence", "live_probes", "stages")
+        for item in (data.get(key) if isinstance(data.get(key), list) else [])
+        if isinstance(item, dict)
+    ]
+    host_profile = data.get("host_profile") if isinstance(data.get("host_profile"), dict) else {}
+    return {
+        "status": status,
+        "runnable_status": data.get("runnable_status"),
+        "host_proof_level": data.get("host_proof_level"),
+        "is_customer_controlled": host_profile.get("is_customer_controlled"),
+        "repository": data.get("repository"),
+        "checked_file_count": data.get("checked_file_count"),
+        "warning_count": int(data.get("warning_count") or _count_status(status_items, {"warning", "caution"})),
+        "blocker_count": len(blockers) or _count_status(status_items, {"blocked", "blocking", "failed", "failure", "error"}),
+        "operator_guided_count": _count_status(status_items, {"operator_guided"}),
+        "known_limitation_count": _count_status(status_items, {"known_limitation"}),
+        "not_provided_count": _count_status(status_items, {"not_provided"}),
+    }
 
 
 def _summarize_release(data: dict[str, Any] | None) -> dict[str, Any]:
@@ -416,6 +449,8 @@ def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
         return _summarize_team_handoff(data)
     if family == FAMILY_CODE_DECISION_AUDIT:
         return _summarize_code_decision_audit(data)
+    if family in {FAMILY_PACKAGE_VERIFICATION, FAMILY_CLEAN_INSTALL, FAMILY_RUNNABLE_PACKAGE}:
+        return _summarize_package_evidence(data)
     raise ValueError(f"Unsupported evidence family: {family}")
 
 
@@ -576,8 +611,8 @@ def render_index_markdown(index: dict[str, Any]) -> str:
         f"- Generated at: `{index.get('generated_at')}`",
         f"- Entries: `{len(index.get('entries') or [])}`",
         "",
-        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Blockers | Benchmark movement |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Warnings | Blockers | Benchmark movement |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in index.get("entries") or []:
         statuses = entry.get("family_statuses") or {}
@@ -607,6 +642,9 @@ def render_index_markdown(index: dict[str, Any]) -> str:
                     statuses.get(FAMILY_REAL_CONTINUITY),
                     statuses.get(FAMILY_TEAM_HANDOFF),
                     statuses.get(FAMILY_CODE_DECISION_AUDIT),
+                    statuses.get(FAMILY_PACKAGE_VERIFICATION),
+                    statuses.get(FAMILY_CLEAN_INSTALL),
+                    statuses.get(FAMILY_RUNNABLE_PACKAGE),
                     counts.get("warnings", 0),
                     counts.get("blockers", 0),
                     movement,
@@ -642,8 +680,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
 
     lines.extend(
         [
-            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Warnings | Operator-guided | Not provided |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Warnings | Operator-guided | Not provided |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for entry in selected:
@@ -660,6 +698,9 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         continuity = (families.get(FAMILY_REAL_CONTINUITY) or {}).get("status")
         handoff = (families.get(FAMILY_TEAM_HANDOFF) or {}).get("status")
         audit = (families.get(FAMILY_CODE_DECISION_AUDIT) or {}).get("status")
+        package = (families.get(FAMILY_PACKAGE_VERIFICATION) or {}).get("status")
+        clean_install = (families.get(FAMILY_CLEAN_INSTALL) or {}).get("status")
+        runnable_package = (families.get(FAMILY_RUNNABLE_PACKAGE) or {}).get("status")
         lines.append(
             "| "
             + " | ".join(
@@ -680,6 +721,9 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
                     continuity,
                     handoff,
                     audit,
+                    package,
+                    clean_install,
+                    runnable_package,
                     counts.get("warnings", 0),
                     counts.get("operator_guided", 0),
                     counts.get("not_provided", 0),
@@ -752,6 +796,9 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         EvidenceSource(FAMILY_REAL_CONTINUITY, Path(args.real_continuity_rehearsal_json) if args.real_continuity_rehearsal_json else None, Path(args.real_continuity_rehearsal_markdown) if args.real_continuity_rehearsal_markdown else None),
         EvidenceSource(FAMILY_TEAM_HANDOFF, Path(args.team_handoff_json) if args.team_handoff_json else None, Path(args.team_handoff_markdown) if args.team_handoff_markdown else None),
         EvidenceSource(FAMILY_CODE_DECISION_AUDIT, Path(args.code_decision_audit_json) if args.code_decision_audit_json else None, Path(args.code_decision_audit_markdown) if args.code_decision_audit_markdown else None),
+        EvidenceSource(FAMILY_PACKAGE_VERIFICATION, Path(args.package_verification_json) if args.package_verification_json else None, Path(args.package_verification_markdown) if args.package_verification_markdown else None),
+        EvidenceSource(FAMILY_CLEAN_INSTALL, Path(args.clean_install_json) if args.clean_install_json else None, Path(args.clean_install_markdown) if args.clean_install_markdown else None),
+        EvidenceSource(FAMILY_RUNNABLE_PACKAGE, Path(args.runnable_package_json) if args.runnable_package_json else None, Path(args.runnable_package_markdown) if args.runnable_package_markdown else None),
     ]
     entry = build_entry(
         sources=sources,
@@ -820,6 +867,12 @@ def _build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--team-handoff-markdown", help="Explicit team handoff Markdown path.")
     archive.add_argument("--code-decision-audit-json", help="Explicit Code Decision Audit JSON path.")
     archive.add_argument("--code-decision-audit-markdown", help="Explicit Code Decision Audit Markdown path.")
+    archive.add_argument("--package-verification-json", help="Explicit self-hosted package verification JSON path.")
+    archive.add_argument("--package-verification-markdown", help="Explicit self-hosted package verification Markdown path.")
+    archive.add_argument("--clean-install-json", help="Explicit clean self-hosted install rehearsal JSON path.")
+    archive.add_argument("--clean-install-markdown", help="Explicit clean self-hosted install rehearsal Markdown path.")
+    archive.add_argument("--runnable-package-json", help="Explicit runnable package rehearsal JSON path.")
+    archive.add_argument("--runnable-package-markdown", help="Explicit runnable package rehearsal Markdown path.")
 
     summarize = subparsers.add_parser("summarize", help="Regenerate index and trend summary from archived entries.")
     summarize.add_argument("--trend-output", help="Optional path for trend Markdown output.")
