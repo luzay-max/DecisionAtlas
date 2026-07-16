@@ -4,6 +4,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -60,6 +61,8 @@ SCRIPT_PATHS = [
     "scripts/ci/collect_external_self_hosted_install_evidence.py",
     "scripts/ci/collect_real_external_host_trial_evidence.py",
     "scripts/ci/rehearse_runnable_self_hosted_package.py",
+    "scripts/ci/publish_self_hosted_release_artifacts.py",
+    "scripts/ci/verify_self_hosted_release_artifacts.py",
     "scripts/ci/start-engine-smoke.ps1",
     "scripts/ci/start-api-smoke.ps1",
     "scripts/ci/start-web-smoke.ps1",
@@ -157,6 +160,8 @@ VALIDATION_COMMANDS = [
     "python scripts\\governance\\agent_guardrail.py --summary",
     "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\ci\\pre-release.ps1",
     "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>",
+    "python scripts\\ci\\publish_self_hosted_release_artifacts.py --package <package-path> --output-root .tmp\\self-hosted-release-artifacts",
+    "python scripts\\ci\\verify_self_hosted_release_artifacts.py --release-dir <release-artifact-directory>",
     "python scripts\\ci\\rehearse_clean_self_hosted_install.py --package <package-path> --output-json .tmp\\clean-self-hosted-install-rehearsal.json --output-markdown .tmp\\clean-self-hosted-install-rehearsal.md",
     "python scripts\\ci\\rehearse_backup_restore_upgrade.py --input-json templates\\backup-restore-upgrade-rehearsal.example.json --output-json .tmp\\backup-restore-upgrade-rehearsal.json --output-markdown .tmp\\backup-restore-upgrade-rehearsal.md",
     "python scripts\\ci\\rehearse_real_backup_restore_upgrade.py --label real-continuity-rehearsal --previous-version <previous> --target-version <target> --output-json .tmp\\real-backup-restore-upgrade-rehearsal.json --output-markdown .tmp\\real-backup-restore-upgrade-rehearsal.md",
@@ -351,7 +356,7 @@ def build_manifest(
         "version_label": version_label,
         "commit": resolved_commit,
         "generated_at": generated_at or datetime.now(UTC).isoformat(),
-        "package_path": package_dir.as_posix(),
+        "package_path": ".",
         "package_root_name": PACKAGE_ROOT_NAME,
         "docs": [{"source": path, "target": path, "required": True} for path in DOC_PATHS],
         "scripts": [{"source": path, "target": path, "required": True} for path in SCRIPT_PATHS],
@@ -401,6 +406,10 @@ def build_manifest(
             "team_handoff_report_markdown",
             "clean_self_hosted_install_rehearsal_json",
             "clean_self_hosted_install_rehearsal_markdown",
+            "versioned_release_artifact_publication_json",
+            "versioned_release_artifact_verification_json",
+            "versioned_release_artifact_checksums",
+            "versioned_release_artifact_cyclonedx_sbom",
             "pilot_customer_delivery_kit_verification_json",
             "pilot_customer_delivery_kit_verification_markdown",
             "pilot_commercial_proposal_kit_verification_json",
@@ -453,7 +462,7 @@ def build_package(
     _copy_allowlisted_trees(root, package_dir, RUNTIME_TREES)
     (package_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
 
-    return manifest | {"package_path": package_dir.as_posix()}
+    return manifest
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -476,10 +485,12 @@ def main(argv: list[str] | None = None) -> int:
         version_label=args.version_label,
         commit=args.commit,
     )
+    package_output = root / args.output_root / args.label
     if args.output_json is not None:
         output_json = args.output_json if args.output_json.is_absolute() else root / args.output_json
         output_json.parent.mkdir(parents=True, exist_ok=True)
         output_json.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    print(f"Package written to {package_output}", file=sys.stderr)
     print(json.dumps(manifest, indent=2, sort_keys=True))
     return 0
 

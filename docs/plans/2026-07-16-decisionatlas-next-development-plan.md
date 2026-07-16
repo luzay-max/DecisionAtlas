@@ -2,14 +2,15 @@
 
 ## 当前里程碑
 
-DecisionAtlas 已具备“可运行源码包”能力：交付包包含完整运行输入，可在维护者仓库之外安装依赖、启动 Engine/API/Web，并用真实公开仓库执行浏览器核心链路。当前缺口不再是“能否运行”，而是“能否被陌生客户稳定拿走、安装、升级和长期维护”。
+DecisionAtlas 已具备“可运行源码包 + 版本化发布物”能力：交付包包含完整运行输入，可确定性生成 ZIP/tar.gz、SHA-256、文件清单和 CycloneDX SBOM，并在维护者仓库之外完成校验、解压、依赖安装、Engine/API/Web 启动和真实公开仓库浏览器核心链路。当前缺口不再是“能否形成发布物”，而是“能否在客户控制环境稳定安装、受限网络运行、升级和长期维护”。
 
 当前证据等级：
 
 ```text
 本机源码运行                 已完成
 本机隔离 package-copy 运行   已完成
-GitHub 独立 runner 回归       已完成，run 29483070983
+GitHub 独立 runner 回归       已完成，package run 29486627752
+版本化 ZIP/tar/checksum/SBOM  已完成，commit 3cc30a2
 客户控制 VM/服务器运行        未完成
 2-3 个真实团队持续 pilot       未完成
 ```
@@ -33,24 +34,24 @@ GitHub 独立 runner 回归       已完成，run 29483070983
 
 难度：高。代码量中等，主要风险是环境、操作员协作和证据真实性。
 
-## P1：正式可分发 Release Artifact
+## P1：正式可分发 Release Artifact（已完成）
 
-建议 change：`publish-versioned-self-hosted-artifacts`
+change：`publish-versioned-self-hosted-artifacts`
 
 目标：
 
 - 从 allowlist package 生成版本化 zip/tar.gz。
 - 生成 SHA-256、文件清单、SBOM 和版本/commit 信息。
-- 在 GitHub Release 或受控交付目录发布，不要求客户 clone Git 仓库。
-- 验证解压路径含空格、非默认盘符和目录改名。
+- 在受控交付目录和 GitHub Actions artifact 发布，不要求客户 clone Git 仓库；暂不自动创建公开 GitHub Release。
+- 支持先校验后安全保留解压，并在系统临时目录完成 downloaded-style 验证。
 
 验收：
 
-- 下载、checksum 校验、解压、启动、smoke 全链路自动化。
+- 下载式目录、checksum 校验、解压、启动、smoke 全链路自动化。
 - 发布物不含 `.env`、token、数据库、缓存、测试结果和本机路径。
-- 回滚时能重新取得上一版本发布物。
+- readiness history 保存 manifest/checksum/SBOM 和验证结果；GitHub Actions 保留本次发布物。
 
-难度：中等。技术确定性高，但安全清单和发布可重复性要求严格。
+完成证据：实现提交 `3cc30a2`；278 files；CycloneDX 311 components；随机仓库 `aristanetworks/j2lint`；可见 Chrome 核心链路通过；CI `29486627701` 与 package rehearsal `29486627752` 成功。签名、离线缓存和长期 artifact retention 仍是后续边界。
 
 ## P2：受限网络与离线依赖边界
 
@@ -118,7 +119,6 @@ GitHub 独立 runner 回归       已完成，run 29483070983
 
 ```text
 客户主机证明
-  -> 版本化发布物/checksum/SBOM
   -> 受限网络离线缓存
   -> 小团队私有仓库 pilot
   -> 升级/回滚/诊断产品化

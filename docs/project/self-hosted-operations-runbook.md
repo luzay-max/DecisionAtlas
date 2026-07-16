@@ -80,15 +80,16 @@ Upgrade order:
 
 1. Record current package version, commit, and evidence state.
 2. Back up PostgreSQL and `.env`.
-3. Unpack or deploy the new package revision.
-4. Review `manifest.json` and release notes.
-5. Apply environment template changes manually; never overwrite live secrets blindly.
-6. Start services and run migrations.
-7. Run package verification, OpenSpec validation, pre-release checks, and readiness evidence.
-8. Run browser/operator smoke for team workflow and critical review/drift flows.
-9. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
-10. Run clean self-hosted install rehearsal against the package copy and attach `.tmp/clean-self-hosted-install-rehearsal.json/md`.
-11. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
+3. Verify `SHA256SUMS`, archive safety, ZIP/tar member parity, CycloneDX SBOM, and extracted package contract with `verify_self_hosted_release_artifacts.py`.
+4. Unpack or deploy the verified new package revision.
+5. Review `manifest.json`, `release-artifacts.json`, SBOM scope, and release notes.
+6. Apply environment template changes manually; never overwrite live secrets blindly.
+7. Start services and run migrations.
+8. Run package verification, OpenSpec validation, pre-release checks, and readiness evidence.
+9. Run browser/operator smoke for team workflow and critical review/drift flows.
+10. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
+11. Run clean self-hosted install rehearsal against the package copy and attach `.tmp/clean-self-hosted-install-rehearsal.json/md`.
+12. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
 
 ## Rollback
 

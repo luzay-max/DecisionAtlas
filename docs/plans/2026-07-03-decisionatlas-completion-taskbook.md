@@ -493,3 +493,31 @@ change：`make-self-hosted-package-runnable`
 - 当前 proof 为 `independent_host_package_smoke`，不是 customer-controlled-host proof。
 - 依赖默认需要联网下载，尚未生成签名压缩包、checksum 或 SBOM。
 - 下一刀按 `2026-07-16-decisionatlas-next-development-plan.md` 先做客户控制主机真实安装，再做正式 release artifact 和离线缓存。
+
+### P21：版本化自托管 Release Artifact（本轮完成）
+
+change：`publish-versioned-self-hosted-artifacts`
+
+完成内容：
+
+- 从 allowlist runnable package 确定性生成单一版本根目录的 ZIP 与 tar.gz，并生成 `release-artifacts.json`、`SHA256SUMS` 和 CycloneDX 1.6 SBOM。
+- verifier 在解压前 fail closed 校验 checksum、size、成员一致性、重复/大小写冲突、路径穿越、绝对路径、反斜杠、symlink/special file、禁止目录和 SBOM 结构。
+- ZIP 与 tar.gz 均在隔离临时目录解压并再次通过 package verifier；`--extract-verified-to` 只在全部校验通过后保留安全 ZIP 解压结果。
+- GitHub Windows package rehearsal workflow 生成并上传版本化发布物和脱敏 JSON/Markdown 证据，不自动创建公开 GitHub Release。
+- readiness history 新增 `versioned_self_hosted_release_artifacts` 证据族，并保存 checksum、SBOM、publication 和 verification 报告。
+
+真实证据：
+
+- 实现提交 `3cc30a2`，版本 `0.4.0-artifact-preview`，278 files，CycloneDX 311 components（npm 278、PyPI 33）。
+- 随机公开仓库 `aristanetworks/j2lint`；从下载式外部临时目录完成 verify、safe extract、依赖安装、Engine/API/Web 启动和 imported workspace 核心链路。
+- 可见 Google Chrome headed 流程通过，保留 Playwright trace；Chrome 插件初始化失败，因此不把插件控制声明为通过。
+- Canonical pre-release 通过：engine 424、Web 83、API 32、Playwright 12/12；OpenSpec strict 90/90；专项 release artifact tests 14 passed。
+- readiness entry：`docs/evidence/readiness/2026-07-16-versioned-self-hosted-release-artifacts/`，release artifact 0 blocker。
+- GitHub Actions：CI run `29486627701`、Self-Hosted Package Rehearsal run `29486627752` 均成功；artifact `self-hosted-package-rehearsal-29486627752` 已上传且未过期。
+- OpenSpec 主规格已同步，change 已归档为 `2026-07-16-publish-versioned-self-hosted-artifacts`。
+
+边界与下一步：
+
+- checksum 只证明相对可信 manifest 的完整性，尚无 cryptographic signing 和 vulnerability analysis。
+- 发布物不含依赖缓存，受限网络/离线安装仍需 approved cache change。
+- 当前 proof 为 `independent_runner_release_artifact`，`is_customer_controlled=false`；下一步仍优先补真实客户控制 VM/服务器证据。

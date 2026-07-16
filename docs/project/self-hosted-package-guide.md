@@ -102,6 +102,47 @@ Default output:
 .tmp/self-hosted-package/decisionatlas-self-hosted/
 ```
 
+## Publish Versioned Release Artifacts
+
+After the package directory passes verification, create portable release files:
+
+```powershell
+python scripts\ci\publish_self_hosted_release_artifacts.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --output-root .tmp\self-hosted-release-artifacts `
+  --output-json .tmp\self-hosted-release-publication.json `
+  --output-markdown .tmp\self-hosted-release-publication.md
+```
+
+The version label in `manifest.json` becomes the release directory and archive suffix. The output contains:
+
+```text
+<version>/
+  decisionatlas-self-hosted-<version>.zip
+  decisionatlas-self-hosted-<version>.tar.gz
+  decisionatlas-self-hosted-<version>.cdx.json
+  release-artifacts.json
+  SHA256SUMS
+```
+
+ZIP and tar.gz contain the same files under one `decisionatlas-self-hosted-<version>/` root. `SOURCE_DATE_EPOCH` or `--source-date-epoch` controls normalized archive timestamps for repeatable builds.
+
+Verify checksums, archive safety, member parity, SBOM structure, and both extracted package copies before unpacking for normal use:
+
+```powershell
+python scripts\ci\verify_self_hosted_release_artifacts.py `
+  --release-dir .tmp\self-hosted-release-artifacts\<version> `
+  --extract-verified-to C:\DecisionAtlas\verified-<version> `
+  --output-json .tmp\self-hosted-release-artifact-verification.json `
+  --output-markdown .tmp\self-hosted-release-artifact-verification.md
+```
+
+The `--extract-verified-to` destination must be empty or absent. The verifier writes the retained ZIP extraction only after every checksum, archive, SBOM, parity, and package check passes, then verifies the retained package again.
+
+Do not use `Expand-Archive`, `tar -xf`, or a GUI extractor on an unverified bundle. The verifier rejects absolute paths, traversal, backslashes, duplicate members, symlinks, special files, unexpected roots, forbidden secret/cache paths, checksum mismatches, and ZIP/tar member differences before extraction.
+
+`SHA256SUMS` proves integrity relative to a trusted manifest source; it does not authenticate the publisher. Cryptographic signing is not included yet. The CycloneDX SBOM covers locked Node and Python dependencies, not OS packages, container images, runtime plugins, or vulnerability analysis. Archives also exclude dependency caches, so install still requires network access or an approved operator-supplied cache.
+
 ## Verify Package
 
 Run the offline package verifier:
@@ -235,6 +276,7 @@ The collector validates the submitted observations but does not install software
 - Pilot commercial proposal kit verification JSON/Markdown when paid pilot outreach is part of the handoff.
 - Clean self-hosted install rehearsal JSON/Markdown.
 - Runnable package rehearsal JSON/Markdown from a package copy outside the maintainer checkout.
+- Versioned ZIP/tar.gz publication report, `SHA256SUMS`, CycloneDX SBOM, and release-artifact verification JSON/Markdown.
 - OpenSpec strict validation.
 - Governance guardrail summary.
 - Canonical pre-release or explicitly accepted substitute.

@@ -40,6 +40,7 @@ Classify every lane explicitly:
 | Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
 | Runnable package rehearsal | Yes for runnable handoff claims | `.tmp/runnable-self-hosted-package-rehearsal.json` and Markdown |
+| Versioned release artifacts | Yes before distributing downloadable artifacts | ZIP, tar.gz, `SHA256SUMS`, CycloneDX SBOM, publication and verification JSON/Markdown |
 | Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
 | External self-hosted install evidence | Required before customer-host install claims | `.tmp/external-self-hosted-install-evidence.json` and Markdown, or `not_provided` / `operator_guided` |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
@@ -63,19 +64,20 @@ Classify every lane explicitly:
 3. Probe Web, API, and Engine health.
 4. Build and verify the self-hosted package when claiming package handoff readiness.
 5. Copy the package outside the source checkout, install exact dependencies, start Engine/API/Web, and run bounded browser smoke from that package copy.
-6. Run OpenSpec strict validation.
-7. Run governance guardrail summary and JSON output.
-8. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
-9. Run seeded demo readiness using the project Python environment when database dependencies are required.
-10. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
-11. Generate release evidence.
-12. Generate hosted/operator readiness evidence.
-13. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
-14. Generate, reuse, or explicitly omit benchmark comparison evidence.
-15. Archive selected artifacts into readiness evidence history.
-16. Prepare the rehearsal summary and Code Decision Audit handoff.
-17. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
-18. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
+6. Publish ZIP and tar.gz, generate checksums/SBOM, then verify both archive formats before distribution.
+7. Run OpenSpec strict validation.
+8. Run governance guardrail summary and JSON output.
+9. Run the canonical pre-release baseline, or record the exact blocker and accepted substitute evidence.
+10. Run seeded demo readiness using the project Python environment when database dependencies are required.
+11. Run the Team Self-hosted browser rehearsal when claiming small-team account/permission readiness.
+12. Generate release evidence.
+13. Generate hosted/operator readiness evidence.
+14. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
+15. Generate, reuse, or explicitly omit benchmark comparison evidence.
+16. Archive selected artifacts into readiness evidence history.
+17. Prepare the rehearsal summary and Code Decision Audit handoff.
+18. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
+19. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
 
 ## Command Template
 
@@ -99,6 +101,15 @@ python scripts\ci\rehearse_runnable_self_hosted_package.py `
   --run-smoke `
   --output-json .tmp\runnable-self-hosted-package-rehearsal.json `
   --output-markdown .tmp\runnable-self-hosted-package-rehearsal.md
+python scripts\ci\publish_self_hosted_release_artifacts.py `
+  --package .tmp\self-hosted-package\decisionatlas-self-hosted `
+  --output-root .tmp\self-hosted-release-artifacts `
+  --output-json .tmp\self-hosted-release-publication.json `
+  --output-markdown .tmp\self-hosted-release-publication.md
+python scripts\ci\verify_self_hosted_release_artifacts.py `
+  --release-dir .tmp\self-hosted-release-artifacts\self-hosted-rehearsal-$Date `
+  --output-json .tmp\self-hosted-release-artifact-verification.json `
+  --output-markdown .tmp\self-hosted-release-artifact-verification.md
 python scripts\ci\rehearse_clean_self_hosted_install.py `
   --package .tmp\self-hosted-package\decisionatlas-self-hosted `
   --package-verification-json .tmp\self-hosted-package-verification.json `
@@ -162,7 +173,13 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
   --team-handoff-json .tmp/team-handoff-report.json `
   --team-handoff-markdown .tmp/team-handoff-report.md `
   --code-decision-audit-json .tmp/code-decision-audit-report.json `
-  --code-decision-audit-markdown .tmp/code-decision-audit-report.md
+  --code-decision-audit-markdown .tmp/code-decision-audit-report.md `
+  --release-artifact-verification-json .tmp/self-hosted-release-artifact-verification.json `
+  --release-artifact-verification-markdown .tmp/self-hosted-release-artifact-verification.md `
+  --release-artifact-publication-json .tmp/self-hosted-release-publication.json `
+  --release-artifact-publication-markdown .tmp/self-hosted-release-publication.md `
+  --release-artifact-checksums .tmp/self-hosted-release-artifacts/self-hosted-rehearsal-$Date/SHA256SUMS `
+  --release-artifact-sbom .tmp/self-hosted-release-artifacts/self-hosted-rehearsal-$Date/decisionatlas-self-hosted-self-hosted-rehearsal-$Date.cdx.json
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.

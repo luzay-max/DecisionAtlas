@@ -493,3 +493,95 @@ def test_readiness_history_archives_runnable_package_evidence_families(tmp_path:
     assert args.package_verification_json == str(package)
     assert args.clean_install_json == str(clean_install)
     assert args.runnable_package_json == str(runnable)
+
+
+def test_readiness_history_archives_versioned_release_artifact_evidence(tmp_path: Path) -> None:
+    history = _load_history_module()
+    verification = _write_json(
+        tmp_path / "release-artifact-verification.json",
+        {
+            "status": "pass",
+            "version_label": "0.4.0-test",
+            "commit": "abc123",
+            "archive_root": "decisionatlas-self-hosted-0.4.0-test",
+            "package_content_sha256": "a" * 64,
+            "host_proof_level": "independent_runner_release_artifact",
+            "is_customer_controlled": False,
+            "proof_boundary": {
+                "cryptographic_signing": "not_provided",
+                "customer_host_installation": "requires_separate_sanitized_external_evidence",
+            },
+            "sbom": {"components": 321, "npm": 250, "pypi": 71},
+            "package_verification": [
+                {"archive_kind": "zip", "status": "pass"},
+                {"archive_kind": "tar_gz", "status": "pass"},
+            ],
+            "blockers": [],
+            "warnings": ["Signing is not provided."],
+        },
+    )
+    verification_md = tmp_path / "release-artifact-verification.md"
+    verification_md.write_text("# Verification\n", encoding="utf-8")
+    publication = _write_json(tmp_path / "publication.json", {"status": "pass"})
+    publication_md = tmp_path / "publication.md"
+    publication_md.write_text("# Publication\n", encoding="utf-8")
+    checksums = tmp_path / "SHA256SUMS"
+    checksums.write_text(f"{'a' * 64}  artifact.zip\n", encoding="utf-8")
+    sbom = _write_json(tmp_path / "artifact.cdx.json", {"bomFormat": "CycloneDX"})
+
+    entry = history.build_entry(
+        sources=[
+            history.EvidenceSource(
+                history.FAMILY_RELEASE_ARTIFACTS,
+                verification,
+                verification_md,
+                supplementary=(
+                    ("release_artifact_publication.json", publication),
+                    ("release_artifact_publication.md", publication_md),
+                    ("release_artifact_SHA256SUMS", checksums),
+                    ("release_artifact.cdx.json", sbom),
+                ),
+            )
+        ],
+        root=tmp_path,
+        history_root=tmp_path / "history",
+        label="release-artifacts",
+        created_at="2026-07-16T00:00:00+00:00",
+    )
+
+    family = entry["families"][history.FAMILY_RELEASE_ARTIFACTS]
+    assert entry["status"] == "passed"
+    assert family["status"] == "pass"
+    assert family["host_proof_level"] == "independent_runner_release_artifact"
+    assert family["is_customer_controlled"] is False
+    assert family["sbom_component_count"] == 321
+    assert family["package_archive_statuses"] == {"zip": "pass", "tar_gz": "pass"}
+    assert entry["counts"]["release_artifact_blockers"] == 0
+    entry_dir = tmp_path / "history" / "2026-07-16-release-artifacts"
+    assert (entry_dir / "versioned_self_hosted_release_artifacts.json").exists()
+    assert (entry_dir / "release_artifact_SHA256SUMS").exists()
+    assert (entry_dir / "release_artifact.cdx.json").exists()
+    index_markdown = history.render_index_markdown({"generated_at": "now", "entries": [history._index_entry(entry)]})
+    trend_markdown = history.render_trend_markdown([entry], limit=5)
+    assert "Release artifacts" in index_markdown
+    assert "Release artifacts" in trend_markdown
+
+    args = history._build_parser().parse_args(
+        [
+            "archive",
+            "--label",
+            "release-artifacts",
+            "--release-artifact-verification-json",
+            str(verification),
+            "--release-artifact-publication-json",
+            str(publication),
+            "--release-artifact-checksums",
+            str(checksums),
+            "--release-artifact-sbom",
+            str(sbom),
+        ]
+    )
+    assert args.release_artifact_verification_json == str(verification)
+    assert args.release_artifact_publication_json == str(publication)
+    assert args.release_artifact_checksums == str(checksums)
+    assert args.release_artifact_sbom == str(sbom)
