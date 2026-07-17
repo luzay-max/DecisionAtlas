@@ -1,0 +1,1691 @@
+{
+  "blockers": [],
+  "checked_file_count": 284,
+  "checks": [
+    {
+      "details": {
+        "path": "C:/Users/Max/Desktop/DecisionAtlas/.tmp/offline-real-v2/packages/decisionatlas-self-hosted-offline-v2"
+      },
+      "id": "package_dir",
+      "label": "Package directory exists",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "schema_version"
+      },
+      "id": "manifest_field:schema_version",
+      "label": "Manifest field schema_version",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "project"
+      },
+      "id": "manifest_field:project",
+      "label": "Manifest field project",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "package_label"
+      },
+      "id": "manifest_field:package_label",
+      "label": "Manifest field package_label",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "version_label"
+      },
+      "id": "manifest_field:version_label",
+      "label": "Manifest field version_label",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "commit"
+      },
+      "id": "manifest_field:commit",
+      "label": "Manifest field commit",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "generated_at"
+      },
+      "id": "manifest_field:generated_at",
+      "label": "Manifest field generated_at",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "docs"
+      },
+      "id": "manifest_field:docs",
+      "label": "Manifest field docs",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "scripts"
+      },
+      "id": "manifest_field:scripts",
+      "label": "Manifest field scripts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "templates"
+      },
+      "id": "manifest_field:templates",
+      "label": "Manifest field templates",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "runtime"
+      },
+      "id": "manifest_field:runtime",
+      "label": "Manifest field runtime",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "required_services"
+      },
+      "id": "manifest_field:required_services",
+      "label": "Manifest field required_services",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "default_urls"
+      },
+      "id": "manifest_field:default_urls",
+      "label": "Manifest field default_urls",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "validation_commands"
+      },
+      "id": "manifest_field:validation_commands",
+      "label": "Manifest field validation_commands",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "secret_exclusion_patterns"
+      },
+      "id": "manifest_field:secret_exclusion_patterns",
+      "label": "Manifest field secret_exclusion_patterns",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "support_boundary"
+      },
+      "id": "manifest_field:support_boundary",
+      "label": "Manifest field support_boundary",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "unsupported_capabilities"
+      },
+      "id": "manifest_field:unsupported_capabilities",
+      "label": "Manifest field unsupported_capabilities",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "readiness_evidence_expectations"
+      },
+      "id": "manifest_field:readiness_evidence_expectations",
+      "label": "Manifest field readiness_evidence_expectations",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "manifest.json"
+      },
+      "id": "file:manifest.json",
+      "label": "Required file manifest.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "README.md"
+      },
+      "id": "file:README.md",
+      "label": "Required file README.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/self-hosted.env.example"
+      },
+      "id": "file:templates/self-hosted.env.example",
+      "label": "Required file templates/self-hosted.env.example",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/self-hosted-entitlement.example.json"
+      },
+      "id": "file:templates/self-hosted-entitlement.example.json",
+      "label": "Required file templates/self-hosted-entitlement.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/private-repo-pilot-evidence.example.json"
+      },
+      "id": "file:templates/private-repo-pilot-evidence.example.json",
+      "label": "Required file templates/private-repo-pilot-evidence.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/backup-restore-upgrade-rehearsal.example.json"
+      },
+      "id": "file:templates/backup-restore-upgrade-rehearsal.example.json",
+      "label": "Required file templates/backup-restore-upgrade-rehearsal.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "templates/external-self-hosted-install-evidence.example.json"
+      },
+      "id": "file:templates/external-self-hosted-install-evidence.example.json",
+      "label": "Required file templates/external-self-hosted-install-evidence.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-package-guide.md"
+      },
+      "id": "file:docs/project/self-hosted-package-guide.md",
+      "label": "Required file docs/project/self-hosted-package-guide.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-operations-runbook.md"
+      },
+      "id": "file:docs/project/self-hosted-operations-runbook.md",
+      "label": "Required file docs/project/self-hosted-operations-runbook.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-readiness-checklist.md"
+      },
+      "id": "file:docs/project/self-hosted-readiness-checklist.md",
+      "label": "Required file docs/project/self-hosted-readiness-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-delivery-rehearsal.md"
+      },
+      "id": "file:docs/project/self-hosted-delivery-rehearsal.md",
+      "label": "Required file docs/project/self-hosted-delivery-rehearsal.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-customer-delivery-kit.md"
+      },
+      "id": "file:docs/project/pilot-customer-delivery-kit.md",
+      "label": "Required file docs/project/pilot-customer-delivery-kit.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-demo-script.md"
+      },
+      "id": "file:docs/project/pilot-demo-script.md",
+      "label": "Required file docs/project/pilot-demo-script.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-deployment-checklist.md"
+      },
+      "id": "file:docs/project/pilot-deployment-checklist.md",
+      "label": "Required file docs/project/pilot-deployment-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-customer-faq.md"
+      },
+      "id": "file:docs/project/pilot-customer-faq.md",
+      "label": "Required file docs/project/pilot-customer-faq.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-tier-comparison.md"
+      },
+      "id": "file:docs/project/pilot-tier-comparison.md",
+      "label": "Required file docs/project/pilot-tier-comparison.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-delivery-email-template.md"
+      },
+      "id": "file:docs/project/pilot-delivery-email-template.md",
+      "label": "Required file docs/project/pilot-delivery-email-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-commercial-proposal-kit.md"
+      },
+      "id": "file:docs/project/pilot-commercial-proposal-kit.md",
+      "label": "Required file docs/project/pilot-commercial-proposal-kit.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-paid-quote-template.md"
+      },
+      "id": "file:docs/project/pilot-paid-quote-template.md",
+      "label": "Required file docs/project/pilot-paid-quote-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-acceptance-checklist.md"
+      },
+      "id": "file:docs/project/pilot-acceptance-checklist.md",
+      "label": "Required file docs/project/pilot-acceptance-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/pilot-support-renewal-upgrade-boundary.md"
+      },
+      "id": "file:docs/project/pilot-support-renewal-upgrade-boundary.md",
+      "label": "Required file docs/project/pilot-support-renewal-upgrade-boundary.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/commercial-sales-page-draft.md"
+      },
+      "id": "file:docs/project/commercial-sales-page-draft.md",
+      "label": "Required file docs/project/commercial-sales-page-draft.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/commercial-one-page-brief.md"
+      },
+      "id": "file:docs/project/commercial-one-page-brief.md",
+      "label": "Required file docs/project/commercial-one-page-brief.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/commercial-use-cases.md"
+      },
+      "id": "file:docs/project/commercial-use-cases.md",
+      "label": "Required file docs/project/commercial-use-cases.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/private-repo-pilot-evidence-template.md"
+      },
+      "id": "file:docs/project/private-repo-pilot-evidence-template.md",
+      "label": "Required file docs/project/private-repo-pilot-evidence-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/private-repo-pilot-evidence-example.md"
+      },
+      "id": "file:docs/project/private-repo-pilot-evidence-example.md",
+      "label": "Required file docs/project/private-repo-pilot-evidence-example.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/backup-restore-upgrade-rehearsal.md"
+      },
+      "id": "file:docs/project/backup-restore-upgrade-rehearsal.md",
+      "label": "Required file docs/project/backup-restore-upgrade-rehearsal.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/external-self-hosted-install-evidence.md"
+      },
+      "id": "file:docs/project/external-self-hosted-install-evidence.md",
+      "label": "Required file docs/project/external-self-hosted-install-evidence.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docs/project/self-hosted-license-and-support-boundary.md"
+      },
+      "id": "file:docs/project/self-hosted-license-and-support-boundary.md",
+      "label": "Required file docs/project/self-hosted-license-and-support-boundary.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/dev/start-real-stack.ps1"
+      },
+      "id": "file:scripts/dev/start-real-stack.ps1",
+      "label": "Required file scripts/dev/start-real-stack.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/dev/start-real-stack.bat"
+      },
+      "id": "file:scripts/dev/start-real-stack.bat",
+      "label": "Required file scripts/dev/start-real-stack.bat",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/dev/stop-real-stack.ps1"
+      },
+      "id": "file:scripts/dev/stop-real-stack.ps1",
+      "label": "Required file scripts/dev/stop-real-stack.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/pre-release.ps1"
+      },
+      "id": "file:scripts/ci/pre-release.ps1",
+      "label": "Required file scripts/ci/pre-release.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/rehearse_clean_self_hosted_install.py"
+      },
+      "id": "file:scripts/ci/rehearse_clean_self_hosted_install.py",
+      "label": "Required file scripts/ci/rehearse_clean_self_hosted_install.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/rehearse_backup_restore_upgrade.py"
+      },
+      "id": "file:scripts/ci/rehearse_backup_restore_upgrade.py",
+      "label": "Required file scripts/ci/rehearse_backup_restore_upgrade.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/rehearse_real_backup_restore_upgrade.py"
+      },
+      "id": "file:scripts/ci/rehearse_real_backup_restore_upgrade.py",
+      "label": "Required file scripts/ci/rehearse_real_backup_restore_upgrade.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/collect_external_self_hosted_install_evidence.py"
+      },
+      "id": "file:scripts/ci/collect_external_self_hosted_install_evidence.py",
+      "label": "Required file scripts/ci/collect_external_self_hosted_install_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/verify_pilot_customer_delivery_kit.py"
+      },
+      "id": "file:scripts/ci/verify_pilot_customer_delivery_kit.py",
+      "label": "Required file scripts/ci/verify_pilot_customer_delivery_kit.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/verify_pilot_commercial_proposal_kit.py"
+      },
+      "id": "file:scripts/ci/verify_pilot_commercial_proposal_kit.py",
+      "label": "Required file scripts/ci/verify_pilot_commercial_proposal_kit.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/verify_private_repo_pilot_evidence.py"
+      },
+      "id": "file:scripts/ci/verify_private_repo_pilot_evidence.py",
+      "label": "Required file scripts/ci/verify_private_repo_pilot_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/collect_team_handoff_report.py"
+      },
+      "id": "file:scripts/ci/collect_team_handoff_report.py",
+      "label": "Required file scripts/ci/collect_team_handoff_report.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/rehearse_runnable_self_hosted_package.py"
+      },
+      "id": "file:scripts/ci/rehearse_runnable_self_hosted_package.py",
+      "label": "Required file scripts/ci/rehearse_runnable_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-engine-smoke.ps1"
+      },
+      "id": "file:scripts/ci/start-engine-smoke.ps1",
+      "label": "Required file scripts/ci/start-engine-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-api-smoke.ps1"
+      },
+      "id": "file:scripts/ci/start-api-smoke.ps1",
+      "label": "Required file scripts/ci/start-api-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/start-web-smoke.ps1"
+      },
+      "id": "file:scripts/ci/start-web-smoke.ps1",
+      "label": "Required file scripts/ci/start-web-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "scripts/ci/seed_smoke_demo.py"
+      },
+      "id": "file:scripts/ci/seed_smoke_demo.py",
+      "label": "Required file scripts/ci/seed_smoke_demo.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "package.json"
+      },
+      "id": "file:package.json",
+      "label": "Required file package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "pnpm-lock.yaml"
+      },
+      "id": "file:pnpm-lock.yaml",
+      "label": "Required file pnpm-lock.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "pnpm-workspace.yaml"
+      },
+      "id": "file:pnpm-workspace.yaml",
+      "label": "Required file pnpm-workspace.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "turbo.json"
+      },
+      "id": "file:turbo.json",
+      "label": "Required file turbo.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "docker-compose.yml"
+      },
+      "id": "file:docker-compose.yml",
+      "label": "Required file docker-compose.yml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/api/package.json"
+      },
+      "id": "file:apps/api/package.json",
+      "label": "Required file apps/api/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/api/tsconfig.json"
+      },
+      "id": "file:apps/api/tsconfig.json",
+      "label": "Required file apps/api/tsconfig.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/api/src/server.ts"
+      },
+      "id": "file:apps/api/src/server.ts",
+      "label": "Required file apps/api/src/server.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/package.json"
+      },
+      "id": "file:apps/web/package.json",
+      "label": "Required file apps/web/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/tsconfig.json"
+      },
+      "id": "file:apps/web/tsconfig.json",
+      "label": "Required file apps/web/tsconfig.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/next.config.ts"
+      },
+      "id": "file:apps/web/next.config.ts",
+      "label": "Required file apps/web/next.config.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/playwright.config.ts"
+      },
+      "id": "file:apps/web/playwright.config.ts",
+      "label": "Required file apps/web/playwright.config.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/app/page.tsx"
+      },
+      "id": "file:apps/web/app/page.tsx",
+      "label": "Required file apps/web/app/page.tsx",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/components/navigation/global-sidebar.tsx"
+      },
+      "id": "file:apps/web/components/navigation/global-sidebar.tsx",
+      "label": "Required file apps/web/components/navigation/global-sidebar.tsx",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/lib/api.ts"
+      },
+      "id": "file:apps/web/lib/api.ts",
+      "label": "Required file apps/web/lib/api.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts"
+      },
+      "id": "file:apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+      "label": "Required file apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/pyproject.toml"
+      },
+      "id": "file:services/engine/pyproject.toml",
+      "label": "Required file services/engine/pyproject.toml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/uv.lock"
+      },
+      "id": "file:services/engine/uv.lock",
+      "label": "Required file services/engine/uv.lock",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/alembic.ini"
+      },
+      "id": "file:services/engine/alembic.ini",
+      "label": "Required file services/engine/alembic.ini",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/alembic/env.py"
+      },
+      "id": "file:services/engine/alembic/env.py",
+      "label": "Required file services/engine/alembic/env.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "services/engine/app/main.py"
+      },
+      "id": "file:services/engine/app/main.py",
+      "label": "Required file services/engine/app/main.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "packages/prompts/decision-screening.md"
+      },
+      "id": "file:packages/prompts/decision-screening.md",
+      "label": "Required file packages/prompts/decision-screening.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "packages/prompts/decision-extraction.md"
+      },
+      "id": "file:packages/prompts/decision-extraction.md",
+      "label": "Required file packages/prompts/decision-extraction.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "infra/docker/postgres/init-extensions.sql"
+      },
+      "id": "file:infra/docker/postgres/init-extensions.sql",
+      "label": "Required file infra/docker/postgres/init-extensions.sql",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": "infra/docker/redis/redis.conf"
+      },
+      "id": "file:infra/docker/redis/redis.conf",
+      "label": "Required file infra/docker/redis/redis.conf",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "key": "DATABASE_URL"
+      },
+      "id": "env_template:DATABASE_URL",
+      "label": "Environment template includes DATABASE_URL",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "key": "REDIS_URL"
+      },
+      "id": "env_template:REDIS_URL",
+      "label": "Environment template includes REDIS_URL",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "key": "ENGINE_BASE_URL"
+      },
+      "id": "env_template:ENGINE_BASE_URL",
+      "label": "Environment template includes ENGINE_BASE_URL",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "key": "API_BASE_URL"
+      },
+      "id": "env_template:API_BASE_URL",
+      "label": "Environment template includes API_BASE_URL",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "key": "AUTO_BOOTSTRAP_AUTH"
+      },
+      "id": "env_template:AUTO_BOOTSTRAP_AUTH",
+      "label": "Environment template includes AUTO_BOOTSTRAP_AUTH",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "violations": []
+      },
+      "id": "secret_exclusions",
+      "label": "Forbidden local state and secret-like files are excluded",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/quick-start.md"
+      },
+      "id": "manifest_asset:docs:0",
+      "label": "Manifest docs asset docs/project/quick-start.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/deployment.md"
+      },
+      "id": "manifest_asset:docs:1",
+      "label": "Manifest docs asset docs/project/deployment.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-package-guide.md"
+      },
+      "id": "manifest_asset:docs:2",
+      "label": "Manifest docs asset docs/project/self-hosted-package-guide.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-operations-runbook.md"
+      },
+      "id": "manifest_asset:docs:3",
+      "label": "Manifest docs asset docs/project/self-hosted-operations-runbook.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-readiness-checklist.md"
+      },
+      "id": "manifest_asset:docs:4",
+      "label": "Manifest docs asset docs/project/self-hosted-readiness-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-delivery-rehearsal.md"
+      },
+      "id": "manifest_asset:docs:5",
+      "label": "Manifest docs asset docs/project/self-hosted-delivery-rehearsal.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-commercial-baseline.md"
+      },
+      "id": "manifest_asset:docs:6",
+      "label": "Manifest docs asset docs/project/self-hosted-commercial-baseline.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-customer-delivery-kit.md"
+      },
+      "id": "manifest_asset:docs:7",
+      "label": "Manifest docs asset docs/project/pilot-customer-delivery-kit.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-demo-script.md"
+      },
+      "id": "manifest_asset:docs:8",
+      "label": "Manifest docs asset docs/project/pilot-demo-script.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-deployment-checklist.md"
+      },
+      "id": "manifest_asset:docs:9",
+      "label": "Manifest docs asset docs/project/pilot-deployment-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-customer-faq.md"
+      },
+      "id": "manifest_asset:docs:10",
+      "label": "Manifest docs asset docs/project/pilot-customer-faq.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-tier-comparison.md"
+      },
+      "id": "manifest_asset:docs:11",
+      "label": "Manifest docs asset docs/project/pilot-tier-comparison.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-delivery-email-template.md"
+      },
+      "id": "manifest_asset:docs:12",
+      "label": "Manifest docs asset docs/project/pilot-delivery-email-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-commercial-proposal-kit.md"
+      },
+      "id": "manifest_asset:docs:13",
+      "label": "Manifest docs asset docs/project/pilot-commercial-proposal-kit.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-paid-quote-template.md"
+      },
+      "id": "manifest_asset:docs:14",
+      "label": "Manifest docs asset docs/project/pilot-paid-quote-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-acceptance-checklist.md"
+      },
+      "id": "manifest_asset:docs:15",
+      "label": "Manifest docs asset docs/project/pilot-acceptance-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/pilot-support-renewal-upgrade-boundary.md"
+      },
+      "id": "manifest_asset:docs:16",
+      "label": "Manifest docs asset docs/project/pilot-support-renewal-upgrade-boundary.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/commercial-sales-page-draft.md"
+      },
+      "id": "manifest_asset:docs:17",
+      "label": "Manifest docs asset docs/project/commercial-sales-page-draft.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/commercial-one-page-brief.md"
+      },
+      "id": "manifest_asset:docs:18",
+      "label": "Manifest docs asset docs/project/commercial-one-page-brief.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/commercial-use-cases.md"
+      },
+      "id": "manifest_asset:docs:19",
+      "label": "Manifest docs asset docs/project/commercial-use-cases.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/private-repo-pilot-evidence-template.md"
+      },
+      "id": "manifest_asset:docs:20",
+      "label": "Manifest docs asset docs/project/private-repo-pilot-evidence-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/private-repo-pilot-evidence-example.md"
+      },
+      "id": "manifest_asset:docs:21",
+      "label": "Manifest docs asset docs/project/private-repo-pilot-evidence-example.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/backup-restore-upgrade-rehearsal.md"
+      },
+      "id": "manifest_asset:docs:22",
+      "label": "Manifest docs asset docs/project/backup-restore-upgrade-rehearsal.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/external-self-hosted-install-evidence.md"
+      },
+      "id": "manifest_asset:docs:23",
+      "label": "Manifest docs asset docs/project/external-self-hosted-install-evidence.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/team-handoff-reporting.md"
+      },
+      "id": "manifest_asset:docs:24",
+      "label": "Manifest docs asset docs/project/team-handoff-reporting.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/self-hosted-license-and-support-boundary.md"
+      },
+      "id": "manifest_asset:docs:25",
+      "label": "Manifest docs asset docs/project/self-hosted-license-and-support-boundary.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/release-checklist.md"
+      },
+      "id": "manifest_asset:docs:26",
+      "label": "Manifest docs asset docs/project/release-checklist.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/code-decision-audit-template.md"
+      },
+      "id": "manifest_asset:docs:27",
+      "label": "Manifest docs asset docs/project/code-decision-audit-template.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docs/project/offline-dependency-bundle-guide.md"
+      },
+      "id": "manifest_asset:docs:28",
+      "label": "Manifest docs asset docs/project/offline-dependency-bundle-guide.md",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/dev/start-real-stack.ps1"
+      },
+      "id": "manifest_asset:scripts:0",
+      "label": "Manifest scripts asset scripts/dev/start-real-stack.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/dev/start-real-stack.bat"
+      },
+      "id": "manifest_asset:scripts:1",
+      "label": "Manifest scripts asset scripts/dev/start-real-stack.bat",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/dev/stop-real-stack.ps1"
+      },
+      "id": "manifest_asset:scripts:2",
+      "label": "Manifest scripts asset scripts/dev/stop-real-stack.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/dev/stop-real-stack.bat"
+      },
+      "id": "manifest_asset:scripts:3",
+      "label": "Manifest scripts asset scripts/dev/stop-real-stack.bat",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/pre-release.ps1"
+      },
+      "id": "manifest_asset:scripts:4",
+      "label": "Manifest scripts asset scripts/ci/pre-release.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/collect_release_evidence.py"
+      },
+      "id": "manifest_asset:scripts:5",
+      "label": "Manifest scripts asset scripts/ci/collect_release_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/collect_readiness_evidence_history.py"
+      },
+      "id": "manifest_asset:scripts:6",
+      "label": "Manifest scripts asset scripts/ci/collect_readiness_evidence_history.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/collect_team_handoff_report.py"
+      },
+      "id": "manifest_asset:scripts:7",
+      "label": "Manifest scripts asset scripts/ci/collect_team_handoff_report.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/rehearse_clean_self_hosted_install.py"
+      },
+      "id": "manifest_asset:scripts:8",
+      "label": "Manifest scripts asset scripts/ci/rehearse_clean_self_hosted_install.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/rehearse_backup_restore_upgrade.py"
+      },
+      "id": "manifest_asset:scripts:9",
+      "label": "Manifest scripts asset scripts/ci/rehearse_backup_restore_upgrade.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/rehearse_real_backup_restore_upgrade.py"
+      },
+      "id": "manifest_asset:scripts:10",
+      "label": "Manifest scripts asset scripts/ci/rehearse_real_backup_restore_upgrade.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/collect_external_self_hosted_install_evidence.py"
+      },
+      "id": "manifest_asset:scripts:11",
+      "label": "Manifest scripts asset scripts/ci/collect_external_self_hosted_install_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/collect_real_external_host_trial_evidence.py"
+      },
+      "id": "manifest_asset:scripts:12",
+      "label": "Manifest scripts asset scripts/ci/collect_real_external_host_trial_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/rehearse_runnable_self_hosted_package.py"
+      },
+      "id": "manifest_asset:scripts:13",
+      "label": "Manifest scripts asset scripts/ci/rehearse_runnable_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/publish_self_hosted_release_artifacts.py"
+      },
+      "id": "manifest_asset:scripts:14",
+      "label": "Manifest scripts asset scripts/ci/publish_self_hosted_release_artifacts.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_self_hosted_release_artifacts.py"
+      },
+      "id": "manifest_asset:scripts:15",
+      "label": "Manifest scripts asset scripts/ci/verify_self_hosted_release_artifacts.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/offline_dependency_bundle.py"
+      },
+      "id": "manifest_asset:scripts:16",
+      "label": "Manifest scripts asset scripts/ci/offline_dependency_bundle.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/prepare_offline_dependency_bundle.py"
+      },
+      "id": "manifest_asset:scripts:17",
+      "label": "Manifest scripts asset scripts/ci/prepare_offline_dependency_bundle.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_offline_dependency_bundle.py"
+      },
+      "id": "manifest_asset:scripts:18",
+      "label": "Manifest scripts asset scripts/ci/verify_offline_dependency_bundle.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/rehearse_offline_self_hosted_install.py"
+      },
+      "id": "manifest_asset:scripts:19",
+      "label": "Manifest scripts asset scripts/ci/rehearse_offline_self_hosted_install.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/start-engine-smoke.ps1"
+      },
+      "id": "manifest_asset:scripts:20",
+      "label": "Manifest scripts asset scripts/ci/start-engine-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/start-api-smoke.ps1"
+      },
+      "id": "manifest_asset:scripts:21",
+      "label": "Manifest scripts asset scripts/ci/start-api-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/start-web-smoke.ps1"
+      },
+      "id": "manifest_asset:scripts:22",
+      "label": "Manifest scripts asset scripts/ci/start-web-smoke.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/seed_smoke_demo.py"
+      },
+      "id": "manifest_asset:scripts:23",
+      "label": "Manifest scripts asset scripts/ci/seed_smoke_demo.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_pilot_customer_delivery_kit.py"
+      },
+      "id": "manifest_asset:scripts:24",
+      "label": "Manifest scripts asset scripts/ci/verify_pilot_customer_delivery_kit.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_pilot_commercial_proposal_kit.py"
+      },
+      "id": "manifest_asset:scripts:25",
+      "label": "Manifest scripts asset scripts/ci/verify_pilot_commercial_proposal_kit.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_private_repo_pilot_evidence.py"
+      },
+      "id": "manifest_asset:scripts:26",
+      "label": "Manifest scripts asset scripts/ci/verify_private_repo_pilot_evidence.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/ci/verify_self_hosted_package.py"
+      },
+      "id": "manifest_asset:scripts:27",
+      "label": "Manifest scripts asset scripts/ci/verify_self_hosted_package.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/check_seeded_demo.py"
+      },
+      "id": "manifest_asset:scripts:28",
+      "label": "Manifest scripts asset scripts/demo/check_seeded_demo.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/reset_seeded_demo.py"
+      },
+      "id": "manifest_asset:scripts:29",
+      "label": "Manifest scripts asset scripts/demo/reset_seeded_demo.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/collect_hosted_readiness.py"
+      },
+      "id": "manifest_asset:scripts:30",
+      "label": "Manifest scripts asset scripts/demo/collect_hosted_readiness.py",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/health-check.ps1"
+      },
+      "id": "manifest_asset:scripts:31",
+      "label": "Manifest scripts asset scripts/demo/health-check.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/smoke-check.ps1"
+      },
+      "id": "manifest_asset:scripts:32",
+      "label": "Manifest scripts asset scripts/demo/smoke-check.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/reset-demo.ps1"
+      },
+      "id": "manifest_asset:scripts:33",
+      "label": "Manifest scripts asset scripts/demo/reset-demo.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "scripts/demo/reseed-demo.ps1"
+      },
+      "id": "manifest_asset:scripts:34",
+      "label": "Manifest scripts asset scripts/demo/reseed-demo.ps1",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/self-hosted.env.example"
+      },
+      "id": "manifest_asset:templates:0",
+      "label": "Manifest templates asset templates/self-hosted.env.example",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/self-hosted-entitlement.example.json"
+      },
+      "id": "manifest_asset:templates:1",
+      "label": "Manifest templates asset templates/self-hosted-entitlement.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/private-repo-pilot-evidence.example.json"
+      },
+      "id": "manifest_asset:templates:2",
+      "label": "Manifest templates asset templates/private-repo-pilot-evidence.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/backup-restore-upgrade-rehearsal.example.json"
+      },
+      "id": "manifest_asset:templates:3",
+      "label": "Manifest templates asset templates/backup-restore-upgrade-rehearsal.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/external-self-hosted-install-evidence.example.json"
+      },
+      "id": "manifest_asset:templates:4",
+      "label": "Manifest templates asset templates/external-self-hosted-install-evidence.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "templates/customer-host-trial.example.json"
+      },
+      "id": "manifest_asset:templates:5",
+      "label": "Manifest templates asset templates/customer-host-trial.example.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "LICENSE"
+      },
+      "id": "manifest_runtime_asset:root_files:0",
+      "label": "Manifest runtime root_files asset LICENSE",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "package.json"
+      },
+      "id": "manifest_runtime_asset:root_files:1",
+      "label": "Manifest runtime root_files asset package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "pnpm-lock.yaml"
+      },
+      "id": "manifest_runtime_asset:root_files:2",
+      "label": "Manifest runtime root_files asset pnpm-lock.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "pnpm-workspace.yaml"
+      },
+      "id": "manifest_runtime_asset:root_files:3",
+      "label": "Manifest runtime root_files asset pnpm-workspace.yaml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "turbo.json"
+      },
+      "id": "manifest_runtime_asset:root_files:4",
+      "label": "Manifest runtime root_files asset turbo.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "docker-compose.yml"
+      },
+      "id": "manifest_runtime_asset:root_files:5",
+      "label": "Manifest runtime root_files asset docker-compose.yml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/api/package.json"
+      },
+      "id": "manifest_runtime_asset:files:0",
+      "label": "Manifest runtime files asset apps/api/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/api/tsconfig.json"
+      },
+      "id": "manifest_runtime_asset:files:1",
+      "label": "Manifest runtime files asset apps/api/tsconfig.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/package.json"
+      },
+      "id": "manifest_runtime_asset:files:2",
+      "label": "Manifest runtime files asset apps/web/package.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/tsconfig.json"
+      },
+      "id": "manifest_runtime_asset:files:3",
+      "label": "Manifest runtime files asset apps/web/tsconfig.json",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/next-env.d.ts"
+      },
+      "id": "manifest_runtime_asset:files:4",
+      "label": "Manifest runtime files asset apps/web/next-env.d.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/next.config.ts"
+      },
+      "id": "manifest_runtime_asset:files:5",
+      "label": "Manifest runtime files asset apps/web/next.config.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/playwright.config.ts"
+      },
+      "id": "manifest_runtime_asset:files:6",
+      "label": "Manifest runtime files asset apps/web/playwright.config.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts"
+      },
+      "id": "manifest_runtime_asset:files:7",
+      "label": "Manifest runtime files asset apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/tests-e2e/offline-package-shell.spec.ts"
+      },
+      "id": "manifest_runtime_asset:files:8",
+      "label": "Manifest runtime files asset apps/web/tests-e2e/offline-package-shell.spec.ts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "services/engine/pyproject.toml"
+      },
+      "id": "manifest_runtime_asset:files:9",
+      "label": "Manifest runtime files asset services/engine/pyproject.toml",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "services/engine/uv.lock"
+      },
+      "id": "manifest_runtime_asset:files:10",
+      "label": "Manifest runtime files asset services/engine/uv.lock",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "services/engine/alembic.ini"
+      },
+      "id": "manifest_runtime_asset:files:11",
+      "label": "Manifest runtime files asset services/engine/alembic.ini",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/api/src"
+      },
+      "id": "manifest_runtime_tree:0",
+      "label": "Manifest runtime tree apps/api/src",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/app"
+      },
+      "id": "manifest_runtime_tree:1",
+      "label": "Manifest runtime tree apps/web/app",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/components"
+      },
+      "id": "manifest_runtime_tree:2",
+      "label": "Manifest runtime tree apps/web/components",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "apps/web/lib"
+      },
+      "id": "manifest_runtime_tree:3",
+      "label": "Manifest runtime tree apps/web/lib",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "services/engine/app"
+      },
+      "id": "manifest_runtime_tree:4",
+      "label": "Manifest runtime tree services/engine/app",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "services/engine/alembic"
+      },
+      "id": "manifest_runtime_tree:5",
+      "label": "Manifest runtime tree services/engine/alembic",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "packages/prompts"
+      },
+      "id": "manifest_runtime_tree:6",
+      "label": "Manifest runtime tree packages/prompts",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "target": "infra/docker"
+      },
+      "id": "manifest_runtime_tree:7",
+      "label": "Manifest runtime tree infra/docker",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "package_type"
+      },
+      "id": "manifest_runtime_field:package_type",
+      "label": "Manifest runtime field package_type",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "dependency_install_commands"
+      },
+      "id": "manifest_runtime_field:dependency_install_commands",
+      "label": "Manifest runtime field dependency_install_commands",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "startup_command"
+      },
+      "id": "manifest_runtime_field:startup_command",
+      "label": "Manifest runtime field startup_command",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "smoke_command"
+      },
+      "id": "manifest_runtime_field:smoke_command",
+      "label": "Manifest runtime field smoke_command",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "dependency_download_boundary"
+      },
+      "id": "manifest_runtime_field:dependency_download_boundary",
+      "label": "Manifest runtime field dependency_download_boundary",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "independent_host_proof"
+      },
+      "id": "manifest_runtime_field:independent_host_proof",
+      "label": "Manifest runtime field independent_host_proof",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "field": "customer_controlled_host_proof"
+      },
+      "id": "manifest_runtime_field:customer_controlled_host_proof",
+      "label": "Manifest runtime field customer_controlled_host_proof",
+      "status": "pass"
+    }
+  ],
+  "commit": "fa420c5",
+  "generated_at": "2026-07-17T01:36:52.501405+00:00",
+  "non_pass_lanes": [
+    {
+      "id": "runtime_smoke",
+      "label": "Runtime smoke",
+      "reason": "Package verifier is offline; run real-stack smoke separately.",
+      "status": "operator_guided"
+    },
+    {
+      "id": "private_repository_token_validation",
+      "label": "Private repository token validation",
+      "reason": "Customer token must remain on operator-controlled host and is not included in the package.",
+      "status": "operator_guided"
+    },
+    {
+      "id": "private_repo_pilot_evidence",
+      "label": "Private repo pilot evidence",
+      "reason": "Package includes the sanitized template and verifier; actual private-repo proof must be generated on the customer-controlled host.",
+      "status": "operator_guided"
+    },
+    {
+      "id": "live_benchmark",
+      "label": "Live public repository benchmark",
+      "reason": "Run public GitHub import rehearsal and benchmark comparison separately before claiming this lane.",
+      "status": "not_provided"
+    },
+    {
+      "id": "readiness_history",
+      "label": "Readiness evidence history",
+      "reason": "Archive generated evidence into docs/evidence/readiness separately.",
+      "status": "not_provided"
+    },
+    {
+      "id": "clean_self_hosted_install_rehearsal",
+      "label": "Clean self-hosted install rehearsal",
+      "reason": "Run rehearse_clean_self_hosted_install.py separately before claiming external operator trial readiness.",
+      "status": "not_provided"
+    },
+    {
+      "id": "backup_restore_upgrade_rehearsal",
+      "label": "Backup restore upgrade rehearsal",
+      "reason": "Run rehearse_backup_restore_upgrade.py and attach continuity evidence before clean long-term self-hosted operation claims.",
+      "status": "not_provided"
+    },
+    {
+      "id": "real_backup_restore_upgrade_rehearsal",
+      "label": "Real backup restore upgrade rehearsal",
+      "reason": "Run rehearse_real_backup_restore_upgrade.py in scratch mode before claiming tested backup/restore/upgrade mechanics.",
+      "status": "not_provided"
+    },
+    {
+      "id": "external_self_hosted_install_evidence",
+      "label": "External self-hosted install evidence",
+      "reason": "Run collect_external_self_hosted_install_evidence.py with operator-filled evidence from a clean VM or customer-controlled host before claiming customer-host proof.",
+      "status": "not_provided"
+    },
+    {
+      "id": "pilot_customer_delivery_kit",
+      "label": "Pilot customer delivery kit",
+      "reason": "Run verify_pilot_customer_delivery_kit.py and attach customer-readable pilot materials before external evaluation.",
+      "status": "not_provided"
+    },
+    {
+      "id": "pilot_commercial_proposal_kit",
+      "label": "Pilot commercial proposal kit",
+      "reason": "Run verify_pilot_commercial_proposal_kit.py and attach proposal, quote assumptions, acceptance, support, renewal, and upgrade materials before paid pilot outreach.",
+      "status": "not_provided"
+    },
+    {
+      "id": "commercial_sales_enablement_kit",
+      "label": "Commercial sales enablement kit",
+      "reason": "Package includes sales page, one-page brief, and use-case materials; attach reviewed buyer-facing versions before paid outreach.",
+      "status": "not_provided"
+    },
+    {
+      "id": "team_handoff_report",
+      "label": "Team handoff report",
+      "reason": "Generate JSON/Markdown handoff evidence after release, readiness, benchmark, and package evidence are available.",
+      "status": "not_provided"
+    },
+    {
+      "id": "license_support_boundary",
+      "label": "License and support boundary",
+      "reason": "Package includes boundary docs and an entitlement template; attach customer-specific entitlement separately for paid handoff.",
+      "status": "operator_guided"
+    }
+  ],
+  "notes": [
+    "Package verification is offline and checks runnable handoff inputs; execute runnable-package rehearsal separately to prove service startup.",
+    "Clean install rehearsal, runtime smoke, private repository token validation, live benchmark, readiness history, team handoff, and customer-specific entitlement evidence must be generated separately before clean customer claims.",
+    "Package verification and local clean install rehearsal are not proof of installation on a customer-controlled host; attach external self-hosted install evidence for that claim.",
+    "A GitHub-hosted runner can prove independent package installation but remains is_customer_controlled=false.",
+    "Non-destructive continuity verifier evidence is not proof that backup/restore/upgrade mechanics were exercised; attach real scratch continuity rehearsal evidence for that claim."
+  ],
+  "package_label": "decisionatlas-self-hosted-offline-v2",
+  "package_path": "C:/Users/Max/Desktop/DecisionAtlas/.tmp/offline-real-v2/packages/decisionatlas-self-hosted-offline-v2",
+  "runnable_status": "pass",
+  "schema_version": 1,
+  "status": "pass",
+  "version_label": "0.4.0-offline-dependencies"
+}

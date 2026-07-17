@@ -683,12 +683,21 @@ def _index_entry(entry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_index(history_root: Path) -> dict[str, Any]:
+def _portable_history_root(history_root: Path, root: Path | None = None) -> str:
+    if root is not None:
+        try:
+            return history_root.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            pass
+    return history_root.name
+
+
+def build_index(history_root: Path, *, root: Path | None = None) -> dict[str, Any]:
     entries = [_index_entry(entry) for entry in _load_entries(history_root)]
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(UTC).isoformat(),
-        "history_root": str(history_root),
+        "history_root": _portable_history_root(history_root, root),
         "entries": entries,
     }
 
@@ -932,7 +941,7 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         commit=args.commit,
         version_label=args.version_label,
     )
-    index = build_index(history_root)
+    index = build_index(history_root, root=root)
     _write_json(history_root / "index.json", index)
     (history_root / "index.md").write_text(render_index_markdown(index), encoding="utf-8")
     trend_markdown = render_trend_markdown(_load_entries(history_root), args.trend_limit)
@@ -942,7 +951,7 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
 
 def summarize_history(args: argparse.Namespace, root: Path) -> str:
     history_root = _resolve_path(Path(args.history_root), root) or (root / DEFAULT_HISTORY_ROOT)
-    index = build_index(history_root)
+    index = build_index(history_root, root=root)
     _write_json(history_root / "index.json", index)
     index_markdown = render_index_markdown(index)
     (history_root / "index.md").write_text(index_markdown, encoding="utf-8")

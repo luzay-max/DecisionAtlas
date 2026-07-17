@@ -358,10 +358,12 @@ def test_readiness_history_copies_explicit_artifacts_and_generates_index_markdow
         label="second",
         created_at="2026-05-10T10:00:00+00:00",
     )
-    index = history.build_index(history_root)
+    index = history.build_index(history_root, root=tmp_path)
     markdown = history.render_index_markdown(index)
 
     assert [entry["entry_id"] for entry in index["entries"]] == ["2026-05-09-first", "2026-05-10-second"]
+    assert index["history_root"] == "history"
+    assert str(tmp_path) not in json.dumps(index)
     assert (history_root / "2026-05-09-first" / "release_evidence.json").exists()
     assert (history_root / "2026-05-09-first" / "release_evidence.md").exists()
     assert "Readiness Evidence History" in markdown

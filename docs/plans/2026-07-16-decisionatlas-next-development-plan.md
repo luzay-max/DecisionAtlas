@@ -2,7 +2,7 @@
 
 ## 当前里程碑
 
-DecisionAtlas 已具备“可运行源码包 + 版本化发布物”能力：交付包包含完整运行输入，可确定性生成 ZIP/tar.gz、SHA-256、文件清单和 CycloneDX SBOM，并在维护者仓库之外完成校验、解压、依赖安装、Engine/API/Web 启动和真实公开仓库浏览器核心链路。当前缺口不再是“能否形成发布物”，而是“能否在客户控制环境稳定安装、受限网络运行、升级和长期维护”。
+DecisionAtlas 已具备“可运行源码包 + 版本化发布物 + 批准式离线依赖包”能力：交付包可确定性生成 ZIP/tar.gz、SHA-256、文件清单和 CycloneDX SBOM；配套依赖包可在联网环境准备，并在 registry 访问被拒绝时完成校验、安装、Engine/API/Web 启动和真实公开仓库浏览器核心链路。当前首要缺口不再是发布物或依赖缓存，而是客户控制环境的真实交付证明和持续团队使用。
 
 当前证据等级：
 
@@ -11,6 +11,7 @@ DecisionAtlas 已具备“可运行源码包 + 版本化发布物”能力：交
 本机隔离 package-copy 运行   已完成
 GitHub 独立 runner 回归       已完成，package run 29486627752
 版本化 ZIP/tar/checksum/SBOM  已完成，commit 3cc30a2
+批准式离线依赖包             已完成，commit fa420c5
 客户控制 VM/服务器运行        未完成
 2-3 个真实团队持续 pilot       未完成
 ```
@@ -53,9 +54,9 @@ change：`publish-versioned-self-hosted-artifacts`
 
 完成证据：实现提交 `3cc30a2`；278 files；CycloneDX 311 components；随机仓库 `aristanetworks/j2lint`；可见 Chrome 核心链路通过；CI `29486627701` 与 package rehearsal `29486627752` 成功。签名、离线缓存和长期 artifact retention 仍是后续边界。
 
-## P2：受限网络与离线依赖边界
+## P2：受限网络与离线依赖边界（已完成）
 
-建议 change：`support-approved-offline-dependency-cache`
+change：`support-approved-offline-dependency-cache`
 
 目标：
 
@@ -69,7 +70,7 @@ change：`publish-versioned-self-hosted-artifacts`
 - 缓存有 checksum/SBOM，缺失依赖时 fail closed 并给出准确诊断。
 - 在线源码包和离线增强包使用同一运行 manifest。
 
-难度：中高。主要风险是 Windows/Python/Node/浏览器/容器多套依赖体系的一致性。
+完成证据：实现提交 `fa420c5`；17,676 files、约 1.68 GB、315 SBOM components、2 个容器镜像；bundle verification 12/12、离线 rehearsal 7/7 通过；随机仓库 `cokice/List-of-genshin-University` 和可见 Google Chrome 核心链路通过。当前仅证明 Windows/amd64 的 process-enforced offline install，不是客户控制主机、内核级断网、签名或漏洞扫描证明。
 
 ## P3：3-10 人真实团队 Pilot
 
@@ -118,8 +119,8 @@ change：`publish-versioned-self-hosted-artifacts`
 ## 执行顺序
 
 ```text
-客户主机证明
-  -> 受限网络离线缓存
+受限网络离线缓存（已完成）
+  -> 客户主机证明
   -> 小团队私有仓库 pilot
   -> 升级/回滚/诊断产品化
 ```

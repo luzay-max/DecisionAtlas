@@ -1,0 +1,377 @@
+{
+  "artifacts": {
+    "approved_offline_dependency_bundle": {
+      "json": "approved_offline_dependency_bundle.json",
+      "markdown": "approved_offline_dependency_bundle.md",
+      "source_json_path": ".tmp/offline-real-v2-rehearsal.json",
+      "source_markdown_path": ".tmp/offline-real-v2-rehearsal.md",
+      "supplementary": {
+        "offline_bundle.cdx.json": "offline_bundle.cdx.json",
+        "offline_bundle_SHA256SUMS": "offline_bundle_SHA256SUMS",
+        "offline_bundle_preparation.json": "offline_bundle_preparation.json",
+        "offline_bundle_preparation.md": "offline_bundle_preparation.md",
+        "offline_bundle_verification.json": "offline_bundle_verification.json",
+        "offline_bundle_verification.md": "offline_bundle_verification.md"
+      }
+    },
+    "benchmark_comparison": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "clean_self_hosted_install_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "hosted_readiness": {
+      "json": "hosted_readiness.json",
+      "markdown": "hosted_readiness.md",
+      "source_json_path": ".tmp/offline-real-v2-hosted-readiness.json",
+      "source_markdown_path": ".tmp/offline-real-v2-hosted-readiness.md",
+      "supplementary": {}
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "real_continuity_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "real_external_host_trial_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/offline-real-v2-release-evidence.json",
+      "source_markdown_path": ".tmp/offline-real-v2-release-evidence.md",
+      "supplementary": {}
+    },
+    "runnable_self_hosted_package_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "self_hosted_package_verification": {
+      "json": "self_hosted_package_verification.json",
+      "markdown": "self_hosted_package_verification.md",
+      "source_json_path": ".tmp/offline-real-v2-package-verification.json",
+      "source_markdown_path": ".tmp/offline-real-v2-package-verification.md",
+      "supplementary": {}
+    },
+    "team_handoff": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {}
+    },
+    "versioned_self_hosted_release_artifacts": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null,
+      "supplementary": {
+        "release_artifact.cdx.json": null,
+        "release_artifact_SHA256SUMS": null,
+        "release_artifact_publication.json": null,
+        "release_artifact_publication.md": null
+      }
+    }
+  },
+  "commit": "fa420c5",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "fresh_public_repo_import_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 16,
+    "offline_dependency_blockers": 0,
+    "operator_guided": 7,
+    "random_repo_warning_classified_lanes": 0,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 0,
+    "release_artifact_blockers": 0,
+    "warnings": 2
+  },
+  "created_at": "2026-07-17T01:38:58.437793+00:00",
+  "entry_id": "2026-07-17-approved-offline-dependency-cache",
+  "families": {
+    "approved_offline_dependency_bundle": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-17T01:21:01.897541+00:00",
+      "host_proof_level": "process_enforced_offline_install",
+      "is_customer_controlled": false,
+      "label": "Approved offline dependency bundle",
+      "not_provided_count": 0,
+      "offline_controls": {
+        "container_pull_policy": "never",
+        "kernel_network_namespace": false,
+        "localhost_exempt": true,
+        "pnpm_offline": true,
+        "uv_offline": true
+      },
+      "operator_guided_count": 0,
+      "package_commit": "fa420c5",
+      "package_version": "0.4.0-offline-dependencies",
+      "repository": "cokice/List-of-genshin-University",
+      "source_markdown_path": ".tmp/offline-real-v2-rehearsal.md",
+      "source_path": ".tmp/offline-real-v2-rehearsal.json",
+      "stage_statuses": {
+        "container_images": "pass",
+        "copy_inputs": "pass",
+        "live_repository_browser": "pass",
+        "offline_browser_shell": "pass",
+        "pnpm_offline_install": "pass",
+        "uv_offline_sync": "pass",
+        "verify_bundle": "pass"
+      },
+      "status": "pass",
+      "warning_count": 2
+    },
+    "benchmark_comparison": {
+      "label": "Benchmark comparison",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "clean_self_hosted_install_rehearsal": {
+      "label": "Clean self-hosted install rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "fresh_import": false,
+      "label": "Fresh public repo import rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "label": "Full-chain random repo release rehearsal",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "hosted_readiness": {
+      "blocker_count": 0,
+      "blockers": [],
+      "generated_at": "2026-07-17T01:36:38.797143+00:00",
+      "known_limitation_count": 0,
+      "known_limitation_lanes": [],
+      "label": "Hosted readiness",
+      "lane_statuses": {
+        "api_hosted_url": "operator_guided",
+        "engine_hosted_url": "operator_guided",
+        "governance_guardrail": "not_provided",
+        "hosted_health_check": "operator_guided",
+        "hosted_smoke_check": "operator_guided",
+        "real_repo_evidence": "pass",
+        "recovery_drill": "operator_guided",
+        "release_evidence": "non_blocking",
+        "seeded_demo_readiness": "operator_guided",
+        "web_hosted_url": "operator_guided"
+      },
+      "not_provided_count": 1,
+      "operator_guided_count": 7,
+      "operator_guided_lanes": [
+        "web_hosted_url",
+        "api_hosted_url",
+        "engine_hosted_url",
+        "hosted_health_check",
+        "hosted_smoke_check",
+        "seeded_demo_readiness",
+        "recovery_drill"
+      ],
+      "public_walkthrough_decision": "operator_review_required",
+      "public_walkthrough_status": "operator_guided",
+      "source_markdown_path": ".tmp/offline-real-v2-hosted-readiness.md",
+      "source_path": ".tmp/offline-real-v2-hosted-readiness.json",
+      "status": "operator_guided",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "random_repo_warning_lane_reduction": {
+      "label": "Random repo warning lane reduction",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_continuity_rehearsal": {
+      "label": "Real continuity rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_external_host_trial_evidence": {
+      "host_proof_level": "not_provided",
+      "label": "Real external host trial evidence",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "caution",
+        "real_repo_benchmark_comparison": "not_provided",
+        "targeted_tests": "passed",
+        "trend_comparison": "not_provided"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-07-17T01:35:44.859621+00:00",
+      "label": "Release evidence",
+      "missing_input_count": 2,
+      "missing_inputs": [
+        {
+          "id": "real_repo_benchmark_comparison",
+          "label": "Real-repo benchmark comparison",
+          "required": false,
+          "status": "not_provided"
+        },
+        {
+          "id": "trend_comparison",
+          "label": "Release trend comparison",
+          "required": false,
+          "status": "not_provided"
+        }
+      ],
+      "not_provided_count": 2,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/offline-real-v2-release-evidence.md",
+      "source_path": ".tmp/offline-real-v2-release-evidence.json",
+      "status": "warning",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "runnable_self_hosted_package_rehearsal": {
+      "label": "Runnable self-hosted package rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "self_hosted_package_verification": {
+      "blocker_count": 0,
+      "checked_file_count": 284,
+      "host_proof_level": null,
+      "is_customer_controlled": null,
+      "known_limitation_count": 0,
+      "label": "Self-hosted package verification",
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "repository": null,
+      "runnable_status": "pass",
+      "source_markdown_path": ".tmp/offline-real-v2-package-verification.md",
+      "source_path": ".tmp/offline-real-v2-package-verification.json",
+      "status": "pass",
+      "warning_count": 0
+    },
+    "team_handoff": {
+      "label": "Team handoff",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "versioned_self_hosted_release_artifacts": {
+      "host_proof_level": "not_provided",
+      "label": "Versioned self-hosted release artifacts",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    }
+  },
+  "label": "approved-offline-dependency-cache",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "0.4.0-offline-dependencies",
+  "warnings": []
+}

@@ -521,3 +521,30 @@ change：`publish-versioned-self-hosted-artifacts`
 - checksum 只证明相对可信 manifest 的完整性，尚无 cryptographic signing 和 vulnerability analysis。
 - 发布物不含依赖缓存，受限网络/离线安装仍需 approved cache change。
 - 当前 proof 为 `independent_runner_release_artifact`，`is_customer_controlled=false`；下一步仍优先补真实客户控制 VM/服务器证据。
+
+### P22：批准式离线依赖包（本轮完成）
+
+change：`support-approved-offline-dependency-cache`
+
+完成内容：
+
+- 建立“联网准备、离线校验、隔离消费”三段式依赖包流程，覆盖 pnpm store、uv cache、Playwright Chromium 和 allowlisted Compose images。
+- 离线包绑定 self-hosted package 的 commit、version、运行 manifest 和 lockfile，并生成精确 `SHA256SUMS` 与 CycloneDX 1.6 SBOM。
+- verifier 对文件覆盖、路径安全、大小写冲突、特殊文件、平台/工具链、容器镜像身份和缺失依赖 fail closed。
+- rehearsal 使用 pnpm/uv offline flags、黑洞 registry proxy、`pull_policy=never` 和独立浏览器目录，live GitHub 仓库 lane 与离线必需 lane 分离。
+- readiness history 新增 approved offline dependency bundle 证据族；索引只保存仓库相对路径，不写入开发者工作站绝对路径。
+
+真实证据：
+
+- 实现提交 `fa420c5`，版本 `0.4.0-offline-dependencies`；离线包 17,676 files、约 1.68 GB、315 SBOM components、2 个容器镜像。
+- package verification `pass`；bundle verification 12/12；离线 rehearsal 7/7 stages `pass`，pnpm 显示 `downloaded 0`，Docker image ID 与 manifest 精确匹配。
+- fresh 随机公开仓库 `cokice/List-of-genshin-University` 完成 imported workspace 核心链路；安装的 Google Chrome headed 模式复跑通过并保留本地 trace。
+- Canonical pre-release 通过：engine 437、Web 83、API 32、Playwright 13/13；typecheck、benchmark fixture 和 OpenSpec strict 通过。
+- readiness entry：`docs/evidence/readiness/2026-07-17-approved-offline-dependency-cache/`；离线依赖 blocker 为 0。
+
+边界与下一步：
+
+- 当前 proof 为 `process_enforced_offline_install`，`is_customer_controlled=false`；Windows/amd64 单平台，不宣称 kernel network namespace、签名或漏洞扫描。
+- live GitHub 随机仓库只验证产品链路，不能覆盖离线失败；缓存 payload、trace 和 HAR 不进入 Git。
+- release evidence 的 warning 来自 advisory guardrail 历史和可选 trend/benchmark 未提供，三个 required gates 均通过。
+- 下一步仍是 P0 客户控制 VM/服务器真实安装证明，随后进入 3-10 人私有仓库 pilot。

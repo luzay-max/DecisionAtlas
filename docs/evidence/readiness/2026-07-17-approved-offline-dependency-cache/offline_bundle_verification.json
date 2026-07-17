@@ -1,0 +1,177 @@
+{
+  "blockers": [],
+  "bundle_path": "<operator-selected-offline-bundle>",
+  "categories": {
+    "container_images": {
+      "file_count": 1,
+      "path": "payload/containers/images.tar",
+      "size": 490422272
+    },
+    "playwright_browsers": {
+      "file_count": 610,
+      "path": "payload/playwright/browsers",
+      "size": 686538373
+    },
+    "pnpm_store": {
+      "file_count": 14699,
+      "path": "payload/pnpm/store",
+      "size": 458675797
+    },
+    "uv_cache": {
+      "file_count": 2366,
+      "path": "payload/uv/cache",
+      "size": 44099279
+    }
+  },
+  "checks": [
+    {
+      "details": {},
+      "id": "package_verification",
+      "label": "Selected package passes verifier",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "file_count": 17679
+      },
+      "id": "bundle_paths",
+      "label": "Bundle paths are safe",
+      "status": "pass"
+    },
+    {
+      "details": {},
+      "id": "manifest_json",
+      "label": "Bundle manifest is readable",
+      "status": "pass"
+    },
+    {
+      "details": {},
+      "id": "sbom_json",
+      "label": "Bundle SBOM is readable",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "entry_count": 17678
+      },
+      "id": "checksums_parse",
+      "label": "SHA256SUMS is readable",
+      "status": "pass"
+    },
+    {
+      "details": {},
+      "id": "manifest_identity",
+      "label": "Bundle manifest identity is valid",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "entry_count": 17678
+      },
+      "id": "checksum_coverage",
+      "label": "Checksums cover exactly every retained file",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "file_count": 17676,
+        "size": 1679735721
+      },
+      "id": "payload_inventory",
+      "label": "Payload inventory matches manifest",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "categories": [
+          "container_images",
+          "playwright_browsers",
+          "pnpm_store",
+          "uv_cache"
+        ]
+      },
+      "id": "category_completeness",
+      "label": "All approved cache categories are present",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "files": [
+          "apps/web/package.json",
+          "docker-compose.yml",
+          "manifest.json",
+          "pnpm-lock.yaml",
+          "services/engine/uv.lock"
+        ]
+      },
+      "id": "package_bindings",
+      "label": "Bundle is bound to selected package",
+      "status": "pass"
+    },
+    {
+      "details": {},
+      "id": "platform_contract",
+      "label": "Consumer platform matches bundle",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "components": 315,
+        "containers": 2,
+        "npm": 280,
+        "pypi": 33
+      },
+      "id": "sbom_structure",
+      "label": "CycloneDX SBOM is valid",
+      "status": "pass"
+    }
+  ],
+  "container_images": [
+    {
+      "image_id": "sha256:ca46538882b0ab2dcbd6fd51fd918602200e48df7fae5cb079efaadba739fcd6",
+      "reference": "pgvector/pgvector:pg17",
+      "repo_digests": [
+        "pgvector/pgvector@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0"
+      ]
+    },
+    {
+      "image_id": "sha256:487efc0616382465781b8fdc3d6d1db449e6fd80ae23bf48432a2da6b6929908",
+      "reference": "redis:7.4-alpine",
+      "repo_digests": [
+        "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+      ]
+    }
+  ],
+  "evidence_type": "offline-dependency-bundle-verification",
+  "generated_at": "2026-07-17T01:17:15.438099+00:00",
+  "host_proof_level": "offline_dependency_bundle_verified",
+  "is_customer_controlled": false,
+  "package_commit": "fa420c5",
+  "package_path": "<operator-selected-self-hosted-package>",
+  "package_version": "0.4.0-offline-dependencies",
+  "payload_content_sha256": "c22b9f35666ee4b52d7f7a1532179bc8225bdf9d27cddfd90aff9c1a3d4706e8",
+  "payload_file_count": 17676,
+  "payload_size": 1679735721,
+  "platform_contract": {
+    "architecture": "amd64",
+    "docker": "29.2.1",
+    "node": "22",
+    "os": "windows",
+    "playwright": "1.58.2",
+    "pnpm": "10.6.0",
+    "python": "3.13",
+    "uv": "0.10.6"
+  },
+  "sbom": {
+    "components": 315,
+    "containers": 2,
+    "npm": 280,
+    "pypi": 33
+  },
+  "schema_version": 1,
+  "status": "pass",
+  "warnings": [
+    "Process-enforced offline installation is not physical air-gap or customer-controlled-host proof.",
+    "Checksums do not authenticate the publisher; signing and vulnerability analysis are not provided."
+  ]
+}
