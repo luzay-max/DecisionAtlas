@@ -105,6 +105,14 @@ If upgrade validation fails:
 
 Rollback is a human operator decision. The package verifier does not perform rollback automatically.
 
+## Restricted-Network Dependency Bundle
+
+Prepare the offline dependency bundle on a trusted networked machine by following `docs/project/offline-dependency-bundle-guide.md`. Retain the bundle manifest, `SHA256SUMS`, SBOM, package version/commit, and platform contract together.
+
+Before every use, rerun `verify_offline_dependency_bundle.py` against the exact package. Rebuild instead of repairing or merging a bundle when a lockfile, tool version, browser revision, Compose image, OS, or architecture changes. Keep the large pnpm/uv/browser/image payload outside Git and delete superseded bundles according to the operator artifact-retention policy.
+
+An offline rehearsal marked `process_enforced_offline_install` proves package-manager offline flags and a blackhole registry proxy on that host. It is not physical air-gap or customer-controlled-host proof.
+
 ## Clean Install Rehearsal
 
 Use clean install rehearsal when validating that the package can be understood and inspected outside the live development tree:

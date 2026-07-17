@@ -12,6 +12,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "5.2.8",
+    "@fontsource-variable/plus-jakarta-sans": "5.2.8",
     "next": "^15.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

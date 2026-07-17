@@ -44,6 +44,7 @@ DOC_PATHS = [
     "docs/project/self-hosted-license-and-support-boundary.md",
     "docs/project/release-checklist.md",
     "docs/project/code-decision-audit-template.md",
+    "docs/project/offline-dependency-bundle-guide.md",
 ]
 
 SCRIPT_PATHS = [
@@ -63,6 +64,10 @@ SCRIPT_PATHS = [
     "scripts/ci/rehearse_runnable_self_hosted_package.py",
     "scripts/ci/publish_self_hosted_release_artifacts.py",
     "scripts/ci/verify_self_hosted_release_artifacts.py",
+    "scripts/ci/offline_dependency_bundle.py",
+    "scripts/ci/prepare_offline_dependency_bundle.py",
+    "scripts/ci/verify_offline_dependency_bundle.py",
+    "scripts/ci/rehearse_offline_self_hosted_install.py",
     "scripts/ci/start-engine-smoke.ps1",
     "scripts/ci/start-api-smoke.ps1",
     "scripts/ci/start-web-smoke.ps1",
@@ -107,6 +112,7 @@ RUNTIME_FILES = [
     "apps/web/next.config.ts",
     "apps/web/playwright.config.ts",
     "apps/web/tests-e2e/imported-workspace-core-loop.spec.ts",
+    "apps/web/tests-e2e/offline-package-shell.spec.ts",
     "services/engine/pyproject.toml",
     "services/engine/uv.lock",
     "services/engine/alembic.ini",
@@ -141,6 +147,11 @@ DEPENDENCY_INSTALL_COMMANDS = [
     "pnpm install --frozen-lockfile",
     "uv sync --project services/engine --frozen",
 ]
+OFFLINE_DEPENDENCY_COMMANDS = {
+    "prepare": "python scripts\\ci\\prepare_offline_dependency_bundle.py --package . --output-dir <offline-bundle>",
+    "verify": "python scripts\\ci\\verify_offline_dependency_bundle.py --package . --bundle <offline-bundle>",
+    "consume": "python scripts\\ci\\rehearse_offline_self_hosted_install.py --package . --bundle <offline-bundle>",
+}
 STARTUP_COMMAND = "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-real-stack.ps1"
 SMOKE_COMMAND = (
     "python scripts\\ci\\rehearse_runnable_self_hosted_package.py "
@@ -162,6 +173,9 @@ VALIDATION_COMMANDS = [
     "python scripts\\ci\\verify_self_hosted_package.py --package <package-path>",
     "python scripts\\ci\\publish_self_hosted_release_artifacts.py --package <package-path> --output-root .tmp\\self-hosted-release-artifacts",
     "python scripts\\ci\\verify_self_hosted_release_artifacts.py --release-dir <release-artifact-directory>",
+    "python scripts\\ci\\prepare_offline_dependency_bundle.py --package <package-path> --output-dir <offline-bundle-directory>",
+    "python scripts\\ci\\verify_offline_dependency_bundle.py --package <package-path> --bundle <offline-bundle-directory>",
+    "python scripts\\ci\\rehearse_offline_self_hosted_install.py --package <package-path> --bundle <offline-bundle-directory>",
     "python scripts\\ci\\rehearse_clean_self_hosted_install.py --package <package-path> --output-json .tmp\\clean-self-hosted-install-rehearsal.json --output-markdown .tmp\\clean-self-hosted-install-rehearsal.md",
     "python scripts\\ci\\rehearse_backup_restore_upgrade.py --input-json templates\\backup-restore-upgrade-rehearsal.example.json --output-json .tmp\\backup-restore-upgrade-rehearsal.json --output-markdown .tmp\\backup-restore-upgrade-rehearsal.md",
     "python scripts\\ci\\rehearse_real_backup_restore_upgrade.py --label real-continuity-rehearsal --previous-version <previous> --target-version <target> --output-json .tmp\\real-backup-restore-upgrade-rehearsal.json --output-markdown .tmp\\real-backup-restore-upgrade-rehearsal.md",
@@ -289,6 +303,7 @@ def _write_package_readme(package_dir: Path, manifest: dict[str, Any]) -> None:
     lines.extend(
         [
         "Dependency installation downloads packages unless the operator supplies an approved local cache or mirror; this source package is transferable offline but is not a fully air-gapped dependency bundle.",
+        "Use `docs/project/offline-dependency-bundle-guide.md` and the manifest offline commands to prepare and verify a platform-specific dependency bundle before entering a restricted network.",
         "",
         "## Start",
         "",
@@ -367,6 +382,7 @@ def build_manifest(
             "files": [{"source": path, "target": path, "required": True} for path in RUNTIME_FILES],
             "trees": [{"source": path, "target": path, "required": True} for path in RUNTIME_TREES],
             "dependency_install_commands": DEPENDENCY_INSTALL_COMMANDS,
+            "offline_dependency_commands": OFFLINE_DEPENDENCY_COMMANDS,
             "startup_command": STARTUP_COMMAND,
             "smoke_command": SMOKE_COMMAND,
             "dependency_download_boundary": "online_download_or_operator_supplied_approved_cache",
@@ -410,6 +426,9 @@ def build_manifest(
             "versioned_release_artifact_verification_json",
             "versioned_release_artifact_checksums",
             "versioned_release_artifact_cyclonedx_sbom",
+            "offline_dependency_bundle_preparation_json",
+            "offline_dependency_bundle_verification_json",
+            "offline_self_hosted_install_rehearsal_json",
             "pilot_customer_delivery_kit_verification_json",
             "pilot_customer_delivery_kit_verification_markdown",
             "pilot_commercial_proposal_kit_verification_json",

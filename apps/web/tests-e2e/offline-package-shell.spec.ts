@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-test("demo smoke flow", async ({ page }) => {
+test("offline package shell stays local and exposes the core evidence flow", async ({ page }) => {
+  const externalRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname)) {
+      externalRequests.push(request.url());
+    }
+  });
+
   await page.route("**/query/why", async (route) => {
     await route.fulfill({
       status: 200,
@@ -11,7 +19,7 @@ test("demo smoke flow", async ({ page }) => {
         answer: "Use Redis Cache: Use Redis as cache only.",
         answer_context: {
           workspace_mode: "demo",
-          source_summary: "This workspace is using seeded demo data for a guided product walkthrough."
+          source_summary: "Offline shell proof uses only local seeded evidence."
         },
         citations: [
           {
@@ -25,11 +33,12 @@ test("demo smoke flow", async ({ page }) => {
 
   await page.goto("/workspaces/demo-workspace");
   await expect(page.getByRole("heading", { name: "demo-workspace" })).toBeVisible();
-  await expect(page.getByRole("main").getByText("Guided Demo", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Review candidates|Ask why/ }).first()).toBeVisible();
+  await expect(page.getByText("Guided Demo", { exact: true })).toBeVisible();
 
   await page.goto("/review?workspace=demo-workspace");
-  await expect(page.getByRole("heading", { name: /Candidate decisions waiting for review|All candidates reviewed/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Candidate decisions waiting for review|All candidates reviewed/i })
+  ).toBeVisible();
 
   await page.goto("/search?workspace=demo-workspace");
   await page.getByRole("button", { name: "Search" }).click();
@@ -37,4 +46,8 @@ test("demo smoke flow", async ({ page }) => {
 
   await page.goto("/drift?workspace=demo-workspace");
   await expect(page.getByText(/possible[_ ]drift/i).first()).toBeVisible();
+
+  await page.getByRole("link", { name: /Evidence/i }).first().click();
+  await expect(page.getByRole("heading", { name: "Evidence Dashboard" })).toBeVisible();
+  expect(externalRequests).toEqual([]);
 });

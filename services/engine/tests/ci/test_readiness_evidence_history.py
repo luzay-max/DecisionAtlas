@@ -585,3 +585,104 @@ def test_readiness_history_archives_versioned_release_artifact_evidence(tmp_path
     assert args.release_artifact_publication_json == str(publication)
     assert args.release_artifact_checksums == str(checksums)
     assert args.release_artifact_sbom == str(sbom)
+
+
+def test_readiness_history_archives_offline_dependency_bundle_evidence(tmp_path: Path) -> None:
+    history = _load_history_module()
+    rehearsal = _write_json(
+        tmp_path / "offline-rehearsal.json",
+        {
+            "status": "pass",
+            "generated_at": "2026-07-16T00:00:00+00:00",
+            "package_version": "0.4.0-offline",
+            "package_commit": "abc123",
+            "repository": "fresh/example",
+            "host_proof_level": "process_enforced_offline_install",
+            "is_customer_controlled": False,
+            "offline_controls": {
+                "pnpm_offline": True,
+                "uv_offline": True,
+                "localhost_exempt": True,
+                "container_pull_policy": "never",
+                "kernel_network_namespace": False,
+            },
+            "stages": [
+                {"id": "pnpm_offline_install", "status": "pass"},
+                {"id": "uv_offline_sync", "status": "pass"},
+                {"id": "offline_browser_shell", "status": "pass"},
+                {"id": "live_repository_browser", "status": "pass"},
+            ],
+            "blockers": [],
+            "warnings": ["Process-level controls are not a physical air gap."],
+        },
+    )
+    rehearsal_md = tmp_path / "offline-rehearsal.md"
+    rehearsal_md.write_text("# Offline rehearsal\n", encoding="utf-8")
+    preparation = _write_json(tmp_path / "preparation.json", {"status": "pass"})
+    preparation_md = tmp_path / "preparation.md"
+    preparation_md.write_text("# Preparation\n", encoding="utf-8")
+    verification = _write_json(tmp_path / "verification.json", {"status": "pass"})
+    verification_md = tmp_path / "verification.md"
+    verification_md.write_text("# Verification\n", encoding="utf-8")
+    checksums = tmp_path / "SHA256SUMS"
+    checksums.write_text("a" * 64 + "  fixture\n", encoding="utf-8")
+    sbom = _write_json(tmp_path / "offline.cdx.json", {"bomFormat": "CycloneDX"})
+
+    entry = history.build_entry(
+        sources=[
+            history.EvidenceSource(
+                history.FAMILY_OFFLINE_DEPENDENCIES,
+                rehearsal,
+                rehearsal_md,
+                supplementary=(
+                    ("offline_bundle_preparation.json", preparation),
+                    ("offline_bundle_preparation.md", preparation_md),
+                    ("offline_bundle_verification.json", verification),
+                    ("offline_bundle_verification.md", verification_md),
+                    ("offline_bundle_SHA256SUMS", checksums),
+                    ("offline_bundle.cdx.json", sbom),
+                ),
+            )
+        ],
+        root=tmp_path,
+        history_root=tmp_path / "history",
+        label="offline-dependencies",
+        created_at="2026-07-16T00:00:00+00:00",
+    )
+
+    family = entry["families"][history.FAMILY_OFFLINE_DEPENDENCIES]
+    assert entry["status"] == "passed"
+    assert family["status"] == "pass"
+    assert family["host_proof_level"] == "process_enforced_offline_install"
+    assert family["is_customer_controlled"] is False
+    assert family["offline_controls"]["kernel_network_namespace"] is False
+    assert entry["counts"]["offline_dependency_blockers"] == 0
+    entry_dir = tmp_path / "history/2026-07-16-offline-dependencies"
+    assert (entry_dir / "approved_offline_dependency_bundle.json").exists()
+    assert (entry_dir / "offline_bundle_SHA256SUMS").exists()
+    assert (entry_dir / "offline_bundle.cdx.json").exists()
+    assert "Offline dependencies" in history.render_index_markdown({"generated_at": "now", "entries": [history._index_entry(entry)]})
+    assert "Offline dependencies" in history.render_trend_markdown([entry], limit=5)
+
+    args = history._build_parser().parse_args(
+        [
+            "archive",
+            "--label",
+            "offline-dependencies",
+            "--offline-install-rehearsal-json",
+            str(rehearsal),
+            "--offline-bundle-preparation-json",
+            str(preparation),
+            "--offline-bundle-verification-json",
+            str(verification),
+            "--offline-bundle-checksums",
+            str(checksums),
+            "--offline-bundle-sbom",
+            str(sbom),
+        ]
+    )
+    assert args.offline_install_rehearsal_json == str(rehearsal)
+    assert args.offline_bundle_preparation_json == str(preparation)
+    assert args.offline_bundle_verification_json == str(verification)
+    assert args.offline_bundle_checksums == str(checksums)
+    assert args.offline_bundle_sbom == str(sbom)

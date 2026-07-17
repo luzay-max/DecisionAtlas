@@ -143,6 +143,9 @@ python scripts/ci/collect_readiness_evidence_history.py summarize
 - [ ] publish versioned ZIP and tar.gz from a verified runnable package; do not distribute an ad hoc mutable folder as the release artifact
 - [ ] verify `SHA256SUMS`, release manifest, archive safety/member parity, CycloneDX SBOM, and both extracted package copies before handoff
 - [ ] disclose that SHA-256 is integrity evidence rather than publisher authentication, signing is not provided, and dependency caches/customer-host proof remain separate
+- [ ] if restricted-network installation is claimed, verify the offline dependency bundle against the exact package manifest, lockfiles, platform, toolchain, browser, and container identities
+- [ ] attach offline bundle `SHA256SUMS`, CycloneDX SBOM, verification report, and process-enforced offline rehearsal; do not commit large cache payloads
+- [ ] keep physical air-gap and customer-host claims false unless separately proven on the target environment
 
 Default Code Decision Audit report command:
 

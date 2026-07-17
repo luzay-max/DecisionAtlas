@@ -160,6 +160,8 @@ The verifier checks package structure, runtime inventory, manifest integrity, an
 
 The package requires Node.js, pnpm, Python, uv, Docker Desktop or equivalent PostgreSQL/Redis services, and network access to package registries unless the operator supplies an approved dependency cache.
 
+For restricted-network installation, use [Offline Dependency Bundle Guide](offline-dependency-bundle-guide.md). The online preparation step creates a separate package-bound bundle for pnpm, uv, Playwright Chromium, and the allowlisted Compose images. Verify both the source package and bundle before transfer; do not merge global developer caches into the delivery.
+
 From the package root:
 
 ```powershell
