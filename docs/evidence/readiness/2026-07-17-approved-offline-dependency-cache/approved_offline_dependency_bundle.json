@@ -1,0 +1,132 @@
+{
+  "blockers": [],
+  "bundle_path": "<isolated-offline-dependency-bundle>",
+  "commands": [
+    {
+      "duration_seconds": 39.699,
+      "id": "load_container_images",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "Loaded image: pgvector/pgvector:pg17\nLoaded image: redis:7.4-alpine\n"
+    },
+    {
+      "duration_seconds": 0.07,
+      "id": "inspect_container:pgvector/pgvector:pg17",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "sha256:ca46538882b0ab2dcbd6fd51fd918602200e48df7fae5cb079efaadba739fcd6\n"
+    },
+    {
+      "duration_seconds": 0.066,
+      "id": "inspect_container:redis:7.4-alpine",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "sha256:487efc0616382465781b8fdc3d6d1db449e6fd80ae23bf48432a2da6b6929908\n"
+    },
+    {
+      "duration_seconds": 3.936,
+      "id": "pnpm_offline_install",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "Scope: all 3 workspace projects\nLockfile is up to date, resolution step is skipped\nProgress: resolved 1, reused 0, downloaded 0, added 0\nPackages: +194\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\nProgress: resolved 194, reused 194, downloaded 0, added 186\nProgress: resolved 194, reused 194, downloaded 0, added 193\nProgress: resolved 194, reused 194, downloaded 0, added 194\nProgress: resolved 194, reused 194, downloaded 0, added 194, done\n\ndevDependencies:\n+ turbo 2.8.17\n\n\u256d Warning \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\u2502                                                                              \u2502\u2502   Ignored build scripts: esbuild, sharp.                                     \u2502\u2502   Run \"pnpm approve-builds\" to pick which dependencies should be allowed     \u2502\u2502   to run scripts.                                                            \u2502\u2502                                                                              \u2502\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\nDone in 3.7s using pnpm v10.6.0\n"
+    },
+    {
+      "duration_seconds": 0.515,
+      "id": "uv_offline_sync",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "Using CPython 3.13.3 interpreter at: C:\\Users\\Max\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\nCreating virtual environment at: services\\engine\\.venv\nInstalled 32 packages in 357ms\n + alembic==1.18.4\n + annotated-doc==0.0.4\n + annotated-types==0.7.0\n + anyio==4.12.1\n + certifi==2026.2.25\n + click==8.3.1\n + colorama==0.4.6\n + fastapi==0.135.1\n + greenlet==3.3.2\n + h11==0.16.0\n + httpcore==1.0.9\n + httpx==0.28.1\n + idna==3.11\n + iniconfig==2.3.0\n + mako==1.3.10\n + markupsafe==3.0.3\n + packaging==26.0\n + pluggy==1.6.0\n + psycopg==3.3.3\n + psycopg-binary==3.3.3\n + pydantic==2.12.5\n + pydantic-core==2.41.5\n + pydantic-settings==2.13.1\n + pygments==2.19.2\n + pytest==9.0.2\n + python-dotenv==1.2.2\n + sqlalchemy==2.0.48\n + starlette==0.52.1\n + typing-extensions==4.15.0\n + typing-inspection==0.4.2\n + tzdata==2025.3\n + uvicorn==0.42.0\n",
+      "stdout_tail": ""
+    },
+    {
+      "duration_seconds": 33.472,
+      "id": "offline_browser_shell",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": " Running upgrade 0001_initial_schema -> 0002_add_import_jobs, add import jobs\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO:     Started server process [14176]\n\u001b[2m[WebServer] \u001b[22mINFO:     Waiting for application startup.\n\u001b[2m[WebServer] \u001b[22mINFO:     Application startup complete.\n\u001b[2m[WebServer] \u001b[22mINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)\n",
+      "stdout_tail": "\nRunning 1 test using 1 worker\n\n  ok 1 tests-e2e\\offline-package-shell.spec.ts:3:5 \u203a offline package shell stays local and exposes the core evidence flow (5.9s)\n\n  1 passed (31.6s)\n"
+    },
+    {
+      "duration_seconds": 27.069,
+      "id": "live_repository_browser",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": " Running upgrade 0001_initial_schema -> 0002_add_import_jobs, add import jobs\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0002_add_import_jobs -> 0003_add_import_job_summary, add import job summary\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0003_add_import_job_summary -> 0004_add_artifact_chunk_metadata, add artifact chunk metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0004_add_artifact_chunk_metadata -> 0005_add_github_app_sync_models, add github app sync models\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0005_add_github_app_sync_models -> 0006_private_repo_access_sources, add private repo access sources\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0006_private_repo_access_sources -> 0007_auth_sessions_roles, add auth sessions and owner memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0007_auth_sessions_roles -> 0008_governance_ingest, add governance markdown ingest\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0008_governance_ingest -> 0009_governance_rule_quality, add governance rule quality metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0009_governance_rule_quality -> 0010_rule_lifecycle_rationale, add governance rule lifecycle rationale\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0010_rule_lifecycle_rationale -> 0011_team_accounts_workspaces, add team account status and workspace memberships\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0011_team_accounts_workspaces -> 0012_review_audit_events, add review audit events\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO  [alembic.runtime.migration] Running upgrade 0012_review_audit_events -> 0013_candidate_metadata, add bounded candidate extraction metadata\n\u001b[2m[WebServer] \u001b[22mINFO:     Started server process [15464]\n\u001b[2m[WebServer] \u001b[22mINFO:     Waiting for application startup.\n\u001b[2m[WebServer] \u001b[22mINFO:     Application startup complete.\n\u001b[2m[WebServer] \u001b[22mINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)\n",
+      "stdout_tail": "\nRunning 1 test using 1 worker\n\n  ok 1 tests-e2e\\imported-workspace-core-loop.spec.ts:5:5 \u203a imported workspace core loop browser rehearsal (7.0s)\n\n  1 passed (25.3s)\n"
+    }
+  ],
+  "evidence_type": "offline-self-hosted-install-rehearsal",
+  "generated_at": "2026-07-17T01:21:01.897541+00:00",
+  "host_proof_level": "process_enforced_offline_install",
+  "is_customer_controlled": false,
+  "label": "offline-real-v2-20260717",
+  "offline_controls": {
+    "blackhole_proxy": "http://127.0.0.1:9",
+    "container_pull_policy": "never",
+    "kernel_network_namespace": false,
+    "localhost_exempt": true,
+    "playwright_browser_path": "<isolated-offline-bundle>/payload/playwright/browsers",
+    "pnpm_offline": true,
+    "uv_offline": true
+  },
+  "package_commit": "fa420c5",
+  "package_path": "<isolated-self-hosted-package>",
+  "package_version": "0.4.0-offline-dependencies",
+  "repository": "cokice/List-of-genshin-University",
+  "schema_version": 1,
+  "stages": [
+    {
+      "id": "copy_inputs",
+      "label": "Copy package and offline bundle into isolated root",
+      "status": "pass"
+    },
+    {
+      "blocker_ids": [],
+      "id": "verify_bundle",
+      "label": "Verify copied package and offline dependency bundle",
+      "status": "pass"
+    },
+    {
+      "id": "container_images",
+      "image_count": 2,
+      "label": "Load and inspect bundled container images without registry pulls",
+      "pull_policy": "never",
+      "status": "pass"
+    },
+    {
+      "id": "pnpm_offline_install",
+      "label": "Install Node dependencies from bundled pnpm store",
+      "offline_flag": true,
+      "status": "pass"
+    },
+    {
+      "id": "uv_offline_sync",
+      "label": "Install Python dependencies from bundled uv cache",
+      "offline_flag": true,
+      "status": "pass"
+    },
+    {
+      "external_browser_requests_allowed": false,
+      "id": "offline_browser_shell",
+      "label": "Start Engine/API/Web and run local-only browser shell",
+      "network_control": "package_manager_offline_flags_and_blackhole_proxy",
+      "status": "pass"
+    },
+    {
+      "id": "live_repository_browser",
+      "label": "Run separately labelled live-network public repository core loop",
+      "repository": "cokice/List-of-genshin-University",
+      "requested": true,
+      "status": "pass"
+    }
+  ],
+  "status": "pass",
+  "warnings": [
+    "Windows process-level offline controls are not proof of a physical air gap.",
+    "Maintainer or CI rehearsal is not customer-controlled-host proof."
+  ]
+}

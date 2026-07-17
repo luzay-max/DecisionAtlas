@@ -1,0 +1,143 @@
+{
+  "blockers": [],
+  "bundle_created": true,
+  "bundle_path": "<operator-selected-offline-bundle>",
+  "categories": {
+    "container_images": {
+      "file_count": 1,
+      "path": "payload/containers/images.tar",
+      "size": 490422272
+    },
+    "playwright_browsers": {
+      "file_count": 610,
+      "path": "payload/playwright/browsers",
+      "size": 686538373
+    },
+    "pnpm_store": {
+      "file_count": 14699,
+      "path": "payload/pnpm/store",
+      "size": 458675797
+    },
+    "uv_cache": {
+      "file_count": 2366,
+      "path": "payload/uv/cache",
+      "size": 44099279
+    }
+  },
+  "commands": [
+    {
+      "duration_seconds": 313.943,
+      "id": "pnpm_fetch",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "Importing packages to virtual store\nAlready up to date\nProgress: resolved 1, reused 0, downloaded 0, added 0\nProgress: resolved 194, reused 0, downloaded 0, added 0\nProgress: resolved 194, reused 0, downloaded 3, added 3\nProgress: resolved 194, reused 0, downloaded 19, added 19\nProgress: resolved 194, reused 0, downloaded 27, added 27\nProgress: resolved 194, reused 0, downloaded 38, added 35\nProgress: resolved 194, reused 0, downloaded 46, added 46\nProgress: resolved 194, reused 0, downloaded 51, added 51\nProgress: resolved 194, reused 0, downloaded 55, added 55\nProgress: resolved 194, reused 0, downloaded 61, added 58\nProgress: resolved 194, reused 0, downloaded 68, added 67\nProgress: resolved 194, reused 0, downloaded 74, added 74\nProgress: resolved 194, reused 0, downloaded 83, added 81\nProgress: resolved 194, reused 0, downloaded 92, added 92\nProgress: resolved 194, reused 0, downloaded 98, added 98\nProgress: resolved 194, reused 0, downloaded 103, added 102\nProgress: resolved 194, reused 0, downloaded 110, added 110\nProgress: resolved 194, reused 0, downloaded 117, added 117\nProgress: resolved 194, reused 0, downloaded 125, added 125\nProgress: resolved 194, reused 0, downloaded 134, added 134\nProgress: resolved 194, reused 0, downloaded 135, added 135\nProgress: resolved 194, reused 0, downloaded 142, added 141\nProgress: resolved 194, reused 0, downloaded 144, added 144\nProgress: resolved 194, reused 0, downloaded 149, added 149\nProgress: resolved 194, reused 0, downloaded 151, added 151\nProgress: resolved 194, reused 0, downloaded 153, added 153\nProgress: resolved 194, reused 0, downloaded 155, added 155\nProgress: resolved 194, reused 0, downloaded 159, added 159\nProgress: resolved 194, reused 0, downloaded 162, added 162\nProgress: resolved 194, reused 0, downloaded 167, added 167\nProgress: resolved 194, reused 0, downloaded 169, added 169\nProgress: resolved 194, reused 0, downloaded 170, added 170\nProgress: resolved 194, reused 0, downloaded 175, added 174\nProgress: resolved 194, reused 0, downloaded 180, added 180\nProgress: resolved 194, reused 0, downloaded 182, added 182\nProgress: resolved 194, reused 0, downloaded 183, added 182\nProgress: resolved 194, reused 0, downloaded 185, added 185\nProgress: resolved 194, reused 0, downloaded 187, added 186\nProgress: resolved 194, reused 0, downloaded 187, added 187\nProgress: resolved 194, reused 0, downloaded 188, added 187\nProgress: resolved 194, reused 0, downloaded 188, added 188\nProgress: resolved 194, reused 0, downloaded 190, added 189\nProgress: resolved 194, reused 0, downloaded 190, added 190\nProgress: resolved 194, reused 0, downloaded 191, added 190\nProgress: resolved 194, reused 0, downloaded 191, added 191\nProgress: resolved 194, reused 0, downloaded 192, added 191\nProgress: resolved 194, reused 0, downloaded 192, added 192\nProgress: resolved 194, reused 0, downloaded 193, added 192\nProgress: resolved 194, reused 0, downloaded 193, added 193\nProgress: resolved 194, reused 0, downloaded 194, added 193\nProgress: resolved 194, reused 0, downloaded 194, added 194\nProgress: resolved 194, reused 0, downloaded 194, added 194, done\n\n\u256d Warning \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\u2502                                                                              \u2502\u2502   Ignored build scripts: esbuild, sharp.                                     \u2502\u2502   Run \"pnpm approve-builds\" to pick which dependencies should be allowed     \u2502\u2502   to run scripts.                                                            \u2502\u2502                                                                              \u2502\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\n"
+    },
+    {
+      "duration_seconds": 0.907,
+      "id": "pnpm_prepare_install",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "Scope: all 3 workspace projects\nLockfile is up to date, resolution step is skipped\nAlready up to date\n\ndevDependencies:\n+ turbo 2.8.17\n\n\u256d Warning \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256e\u2502                                                                              \u2502\u2502   Ignored build scripts: esbuild, sharp.                                     \u2502\u2502   Run \"pnpm approve-builds\" to pick which dependencies should be allowed     \u2502\u2502   to run scripts.                                                            \u2502\u2502                                                                              \u2502\u2570\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u256f\n\nDone in 768ms using pnpm v10.6.0\n"
+    },
+    {
+      "duration_seconds": 2.936,
+      "id": "uv_sync_cache",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "Using CPython 3.13.3 interpreter at: C:\\Users\\Max\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\nCreating virtual environment at: <offline-bundle-staging>\\.prepare-venv\nDownloading pygments (1.2MiB)\nDownloading sqlalchemy (2.0MiB)\nDownloading psycopg-binary (3.4MiB)\nDownloading pydantic-core (1.9MiB)\n Downloaded pygments\n Downloaded pydantic-core\n Downloaded sqlalchemy\n Downloaded psycopg-binary\nPrepared 32 packages in 1.99s\nInstalled 32 packages in 589ms\n + alembic==1.18.4\n + annotated-doc==0.0.4\n + annotated-types==0.7.0\n + anyio==4.12.1\n + certifi==2026.2.25\n + click==8.3.1\n + colorama==0.4.6\n + fastapi==0.135.1\n + greenlet==3.3.2\n + h11==0.16.0\n + httpcore==1.0.9\n + httpx==0.28.1\n + idna==3.11\n + iniconfig==2.3.0\n + mako==1.3.10\n + markupsafe==3.0.3\n + packaging==26.0\n + pluggy==1.6.0\n + psycopg==3.3.3\n + psycopg-binary==3.3.3\n + pydantic==2.12.5\n + pydantic-core==2.41.5\n + pydantic-settings==2.13.1\n + pygments==2.19.2\n + pytest==9.0.2\n + python-dotenv==1.2.2\n + sqlalchemy==2.0.48\n + starlette==0.52.1\n + typing-extensions==4.15.0\n + typing-inspection==0.4.2\n + tzdata==2025.3\n + uvicorn==0.42.0\n",
+      "stdout_tail": ""
+    },
+    {
+      "duration_seconds": 29.925,
+      "id": "playwright_install",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "wright ffmpeg v1011)\u001b[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-win64.zip\u001b[22m\n|                                                                                |   1% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                        |  10% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                |  20% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                        |  30% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                |  40% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                        |  51% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                |  60% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                        |  70% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                |  80% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0        |  90% of 1.3 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0| 100% of 1.3 MiB\nFFmpeg (playwright ffmpeg v1011) downloaded to <offline-bundle-staging>\\payload\\playwright\\browsers\\ffmpeg-1011\nDownloading Chrome Headless Shell 145.0.7632.6 (playwright chromium-headless-shell v1208)\u001b[2m from https://cdn.playwright.dev/builds/cft/145.0.7632.6/win64/chrome-headless-shell-win64.zip\u001b[22m\n|                                                                                |   0% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                        |  10% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                |  20% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                        |  30% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                |  40% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                        |  50% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                |  60% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                        |  70% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                |  80% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0        |  90% of 108.8 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0| 100% of 108.8 MiB\nChrome Headless Shell 145.0.7632.6 (playwright chromium-headless-shell v1208) downloaded to <offline-bundle-staging>\\payload\\playwright\\browsers\\chromium_headless_shell-1208\nDownloading Winldd (playwright winldd v1007)\u001b[2m from https://cdn.playwright.dev/dbazure/download/playwright/builds/winldd/1007/winldd-win64.zip\u001b[22m\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                        |  12% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                                |  25% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                                        |  38% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                        |  50% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                                |  63% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                        |  76% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0                |  89% of 0.1 MiB\n|\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0\u25a0| 100% of 0.1 MiB\nWinldd (playwright winldd v1007) downloaded to <offline-bundle-staging>\\payload\\playwright\\browsers\\winldd-1007\n"
+    },
+    {
+      "duration_seconds": 2.163,
+      "id": "pull_container:pgvector/pgvector:pg17",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "pg17: Pulling from pgvector/pgvector\nDigest: sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0\nStatus: Image is up to date for pgvector/pgvector:pg17\ndocker.io/pgvector/pgvector:pg17\n"
+    },
+    {
+      "duration_seconds": 0.07,
+      "id": "inspect_container:pgvector/pgvector:pg17",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "{\"Id\":\"sha256:ca46538882b0ab2dcbd6fd51fd918602200e48df7fae5cb079efaadba739fcd6\",\"RepoDigests\":[\"pgvector/pgvector@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0\"]}\n"
+    },
+    {
+      "duration_seconds": 1.314,
+      "id": "pull_container:redis:7.4-alpine",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "7.4-alpine: Pulling from library/redis\nDigest: sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99\nStatus: Image is up to date for redis:7.4-alpine\ndocker.io/library/redis:7.4-alpine\n"
+    },
+    {
+      "duration_seconds": 0.07,
+      "id": "inspect_container:redis:7.4-alpine",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": "{\"Id\":\"sha256:487efc0616382465781b8fdc3d6d1db449e6fd80ae23bf48432a2da6b6929908\",\"RepoDigests\":[\"redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99\"]}\n"
+    },
+    {
+      "duration_seconds": 7.269,
+      "id": "save_container_images",
+      "returncode": 0,
+      "status": "pass",
+      "stderr_tail": "",
+      "stdout_tail": ""
+    }
+  ],
+  "container_images": [
+    {
+      "image_id": "sha256:ca46538882b0ab2dcbd6fd51fd918602200e48df7fae5cb079efaadba739fcd6",
+      "reference": "pgvector/pgvector:pg17",
+      "repo_digests": [
+        "pgvector/pgvector@sha256:d2ef61f42ef767baa5a1475393303cc235bcd92febd9d7014eddb48b41f3bad0"
+      ]
+    },
+    {
+      "image_id": "sha256:487efc0616382465781b8fdc3d6d1db449e6fd80ae23bf48432a2da6b6929908",
+      "reference": "redis:7.4-alpine",
+      "repo_digests": [
+        "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+      ]
+    }
+  ],
+  "evidence_type": "offline-dependency-bundle-preparation",
+  "generated_at": "2026-07-17T01:16:09.557243+00:00",
+  "host_proof_level": "offline_dependency_bundle_prepared",
+  "is_customer_controlled": false,
+  "package_commit": "fa420c5",
+  "package_version": "0.4.0-offline-dependencies",
+  "payload_content_sha256": "c22b9f35666ee4b52d7f7a1532179bc8225bdf9d27cddfd90aff9c1a3d4706e8",
+  "payload_file_count": 17676,
+  "payload_size": 1679735721,
+  "platform_contract": {
+    "architecture": "amd64",
+    "docker": "29.2.1",
+    "node": "22",
+    "os": "windows",
+    "playwright": "1.58.2",
+    "pnpm": "10.6.0",
+    "python": "3.13",
+    "uv": "0.10.6"
+  },
+  "sbom_component_count": 315,
+  "schema_version": 1,
+  "status": "pass",
+  "warnings": [
+    "The bundle is platform/toolchain specific and does not include Node, Python, pnpm, uv, Docker, or the operating system.",
+    "Checksums do not authenticate the publisher; signing and vulnerability analysis are not provided."
+  ]
+}

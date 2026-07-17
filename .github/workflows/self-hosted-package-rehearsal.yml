@@ -16,6 +16,10 @@ on:
       - "scripts/ci/rehearse_runnable_self_hosted_package.py"
       - "scripts/ci/publish_self_hosted_release_artifacts.py"
       - "scripts/ci/verify_self_hosted_release_artifacts.py"
+      - "scripts/ci/offline_dependency_bundle.py"
+      - "scripts/ci/prepare_offline_dependency_bundle.py"
+      - "scripts/ci/verify_offline_dependency_bundle.py"
+      - "scripts/ci/rehearse_offline_self_hosted_install.py"
       - "scripts/ci/start-*-smoke.ps1"
       - "scripts/ci/seed_smoke_demo.py"
       - "scripts/dev/**"
@@ -55,6 +59,14 @@ jobs:
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v8.2.0
+
+      - name: Validate offline dependency bundle contracts
+        run: >-
+          uv run --project services/engine pytest
+          services/engine/tests/ci/test_offline_dependency_bundle.py
+          services/engine/tests/ci/test_offline_self_hosted_install_rehearsal.py
+          --junitxml=.tmp/offline-dependency-contract-tests.xml
+          -q
 
       - name: Build runnable package
         run: >-
@@ -139,3 +151,4 @@ jobs:
             .tmp/self-hosted-release-publication.md
             .tmp/self-hosted-release-artifact-verification.json
             .tmp/self-hosted-release-artifact-verification.md
+            .tmp/offline-dependency-contract-tests.xml

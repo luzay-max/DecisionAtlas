@@ -41,6 +41,7 @@ Classify every lane explicitly:
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
 | Runnable package rehearsal | Yes for runnable handoff claims | `.tmp/runnable-self-hosted-package-rehearsal.json` and Markdown |
 | Versioned release artifacts | Yes before distributing downloadable artifacts | ZIP, tar.gz, `SHA256SUMS`, CycloneDX SBOM, publication and verification JSON/Markdown |
+| Offline dependency bundle | Yes for restricted-network claims | preparation, verification, checksum, SBOM, and offline install rehearsal JSON/Markdown |
 | Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
 | External self-hosted install evidence | Required before customer-host install claims | `.tmp/external-self-hosted-install-evidence.json` and Markdown, or `not_provided` / `operator_guided` |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
@@ -75,9 +76,10 @@ Classify every lane explicitly:
 14. Run public GitHub import rehearsal before claiming live public-repository benchmark evidence.
 15. Generate, reuse, or explicitly omit benchmark comparison evidence.
 16. Archive selected artifacts into readiness evidence history.
-17. Prepare the rehearsal summary and Code Decision Audit handoff.
-18. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
-19. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
+17. For restricted-network delivery, prepare and verify the approved offline dependency bundle and run its isolated offline install rehearsal.
+18. Prepare the rehearsal summary and Code Decision Audit handoff.
+19. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
+20. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
 
 ## Command Template
 

@@ -29,6 +29,7 @@ FAMILY_PACKAGE_VERIFICATION = "self_hosted_package_verification"
 FAMILY_CLEAN_INSTALL = "clean_self_hosted_install_rehearsal"
 FAMILY_RUNNABLE_PACKAGE = "runnable_self_hosted_package_rehearsal"
 FAMILY_RELEASE_ARTIFACTS = "versioned_self_hosted_release_artifacts"
+FAMILY_OFFLINE_DEPENDENCIES = "approved_offline_dependency_bundle"
 FAMILY_LABELS = {
     FAMILY_RELEASE: "Release evidence",
     FAMILY_HOSTED: "Hosted readiness",
@@ -46,6 +47,7 @@ FAMILY_LABELS = {
     FAMILY_CLEAN_INSTALL: "Clean self-hosted install rehearsal",
     FAMILY_RUNNABLE_PACKAGE: "Runnable self-hosted package rehearsal",
     FAMILY_RELEASE_ARTIFACTS: "Versioned self-hosted release artifacts",
+    FAMILY_OFFLINE_DEPENDENCIES: "Approved offline dependency bundle",
 }
 NON_CLEAN_STATUSES = {
     "blocked",
@@ -183,6 +185,40 @@ def _summarize_release_artifacts(data: dict[str, Any] | None) -> dict[str, Any]:
         "not_provided_count": sum(
             1 for value in boundary.values() if str(value).lower() == "not_provided"
         ),
+    }
+
+
+def _summarize_offline_dependencies(data: dict[str, Any] | None) -> dict[str, Any]:
+    if data is None:
+        return {"status": "not_provided", "host_proof_level": "not_provided"}
+    blockers = data.get("blockers") if isinstance(data.get("blockers"), list) else []
+    warnings = data.get("warnings") if isinstance(data.get("warnings"), list) else []
+    stages = data.get("stages") if isinstance(data.get("stages"), list) else []
+    controls = data.get("offline_controls") if isinstance(data.get("offline_controls"), dict) else {}
+    return {
+        "status": str(data.get("status") or "unknown").lower(),
+        "generated_at": data.get("generated_at"),
+        "package_version": data.get("package_version"),
+        "package_commit": data.get("package_commit"),
+        "repository": data.get("repository"),
+        "host_proof_level": data.get("host_proof_level"),
+        "is_customer_controlled": data.get("is_customer_controlled"),
+        "stage_statuses": {
+            str(item.get("id")): item.get("status")
+            for item in stages
+            if isinstance(item, dict) and item.get("id")
+        },
+        "offline_controls": {
+            "pnpm_offline": controls.get("pnpm_offline"),
+            "uv_offline": controls.get("uv_offline"),
+            "localhost_exempt": controls.get("localhost_exempt"),
+            "container_pull_policy": controls.get("container_pull_policy"),
+            "kernel_network_namespace": controls.get("kernel_network_namespace"),
+        },
+        "warning_count": len(warnings),
+        "blocker_count": len(blockers),
+        "operator_guided_count": _count_status(stages, {"operator_guided"}),
+        "not_provided_count": _count_status(stages, {"not_provided", "not_requested"}),
     }
 
 
@@ -492,6 +528,8 @@ def _family_summary(family: str, data: dict[str, Any] | None) -> dict[str, Any]:
         return _summarize_package_evidence(data)
     if family == FAMILY_RELEASE_ARTIFACTS:
         return _summarize_release_artifacts(data)
+    if family == FAMILY_OFFLINE_DEPENDENCIES:
+        return _summarize_offline_dependencies(data)
     raise ValueError(f"Unsupported evidence family: {family}")
 
 
@@ -529,6 +567,7 @@ def _entry_counts(families: dict[str, dict[str, Any]]) -> dict[str, int]:
         "random_repo_warning_classified_lanes": int(families.get(FAMILY_RANDOM_REPO_WARNING_LANE_REDUCTION, {}).get("classified_lanes") or 0),
         "real_continuity_blockers": int(families.get(FAMILY_REAL_CONTINUITY, {}).get("blocker_count") or 0),
         "release_artifact_blockers": int(families.get(FAMILY_RELEASE_ARTIFACTS, {}).get("blocker_count") or 0),
+        "offline_dependency_blockers": int(families.get(FAMILY_OFFLINE_DEPENDENCIES, {}).get("blocker_count") or 0),
     }
 
 
@@ -644,12 +683,21 @@ def _index_entry(entry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_index(history_root: Path) -> dict[str, Any]:
+def _portable_history_root(history_root: Path, root: Path | None = None) -> str:
+    if root is not None:
+        try:
+            return history_root.resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            pass
+    return history_root.name
+
+
+def build_index(history_root: Path, *, root: Path | None = None) -> dict[str, Any]:
     entries = [_index_entry(entry) for entry in _load_entries(history_root)]
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(UTC).isoformat(),
-        "history_root": str(history_root),
+        "history_root": _portable_history_root(history_root, root),
         "entries": entries,
     }
 
@@ -661,8 +709,8 @@ def render_index_markdown(index: dict[str, Any]) -> str:
         f"- Generated at: `{index.get('generated_at')}`",
         f"- Entries: `{len(index.get('entries') or [])}`",
         "",
-        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Release artifacts | Warnings | Blockers | Benchmark movement |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| Entry | Created | Status | Release | Hosted | Benchmark | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Release artifacts | Offline dependencies | Warnings | Blockers | Benchmark movement |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for entry in index.get("entries") or []:
         statuses = entry.get("family_statuses") or {}
@@ -696,6 +744,7 @@ def render_index_markdown(index: dict[str, Any]) -> str:
                     statuses.get(FAMILY_CLEAN_INSTALL),
                     statuses.get(FAMILY_RUNNABLE_PACKAGE),
                     statuses.get(FAMILY_RELEASE_ARTIFACTS),
+                    statuses.get(FAMILY_OFFLINE_DEPENDENCIES),
                     counts.get("warnings", 0),
                     counts.get("blockers", 0),
                     movement,
@@ -731,8 +780,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
 
     lines.extend(
         [
-            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Release artifacts | Warnings | Operator-guided | Not provided |",
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+            "| Entry | Status | Release | Hosted walkthrough | Benchmark regressions | Benchmark blockers | External install | Customer host v2 | Full chain | Fresh import | Real external host | Warning reduction | Real continuity | Handoff | Audit | Package | Clean install | Runnable package | Release artifacts | Offline dependencies | Warnings | Operator-guided | Not provided |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         ]
     )
     for entry in selected:
@@ -753,6 +802,7 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         clean_install = (families.get(FAMILY_CLEAN_INSTALL) or {}).get("status")
         runnable_package = (families.get(FAMILY_RUNNABLE_PACKAGE) or {}).get("status")
         release_artifacts = (families.get(FAMILY_RELEASE_ARTIFACTS) or {}).get("status")
+        offline_dependencies = (families.get(FAMILY_OFFLINE_DEPENDENCIES) or {}).get("status")
         lines.append(
             "| "
             + " | ".join(
@@ -777,6 +827,7 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
                     clean_install,
                     runnable_package,
                     release_artifacts,
+                    offline_dependencies,
                     counts.get("warnings", 0),
                     counts.get("operator_guided", 0),
                     counts.get("not_provided", 0),
@@ -810,6 +861,8 @@ def render_trend_markdown(entries: list[dict[str, Any]], limit: int) -> str:
         follow_up.append("Resolve real continuity rehearsal blockers before backup/restore/upgrade claims.")
     if counts.get("release_artifact_blockers"):
         follow_up.append("Resolve versioned release artifact integrity blockers before distributing the self-hosted package.")
+    if counts.get("offline_dependency_blockers"):
+        follow_up.append("Resolve offline dependency bundle or consumption blockers before restricted-network installation claims.")
     if counts.get("operator_guided"):
         follow_up.append("Complete operator-guided hosted readiness lanes before external preview.")
     if counts.get("not_provided"):
@@ -865,6 +918,19 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
                 ("release_artifact.cdx.json", Path(args.release_artifact_sbom) if args.release_artifact_sbom else None),
             ),
         ),
+        EvidenceSource(
+            FAMILY_OFFLINE_DEPENDENCIES,
+            Path(args.offline_install_rehearsal_json) if args.offline_install_rehearsal_json else None,
+            Path(args.offline_install_rehearsal_markdown) if args.offline_install_rehearsal_markdown else None,
+            supplementary=(
+                ("offline_bundle_preparation.json", Path(args.offline_bundle_preparation_json) if args.offline_bundle_preparation_json else None),
+                ("offline_bundle_preparation.md", Path(args.offline_bundle_preparation_markdown) if args.offline_bundle_preparation_markdown else None),
+                ("offline_bundle_verification.json", Path(args.offline_bundle_verification_json) if args.offline_bundle_verification_json else None),
+                ("offline_bundle_verification.md", Path(args.offline_bundle_verification_markdown) if args.offline_bundle_verification_markdown else None),
+                ("offline_bundle_SHA256SUMS", Path(args.offline_bundle_checksums) if args.offline_bundle_checksums else None),
+                ("offline_bundle.cdx.json", Path(args.offline_bundle_sbom) if args.offline_bundle_sbom else None),
+            ),
+        ),
     ]
     entry = build_entry(
         sources=sources,
@@ -875,7 +941,7 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         commit=args.commit,
         version_label=args.version_label,
     )
-    index = build_index(history_root)
+    index = build_index(history_root, root=root)
     _write_json(history_root / "index.json", index)
     (history_root / "index.md").write_text(render_index_markdown(index), encoding="utf-8")
     trend_markdown = render_trend_markdown(_load_entries(history_root), args.trend_limit)
@@ -885,7 +951,7 @@ def archive_history(args: argparse.Namespace, root: Path) -> dict[str, Any]:
 
 def summarize_history(args: argparse.Namespace, root: Path) -> str:
     history_root = _resolve_path(Path(args.history_root), root) or (root / DEFAULT_HISTORY_ROOT)
-    index = build_index(history_root)
+    index = build_index(history_root, root=root)
     _write_json(history_root / "index.json", index)
     index_markdown = render_index_markdown(index)
     (history_root / "index.md").write_text(index_markdown, encoding="utf-8")
@@ -945,6 +1011,14 @@ def _build_parser() -> argparse.ArgumentParser:
     archive.add_argument("--release-artifact-publication-markdown", help="Explicit release artifact publication Markdown path.")
     archive.add_argument("--release-artifact-checksums", help="Explicit SHA256SUMS path for the versioned artifact bundle.")
     archive.add_argument("--release-artifact-sbom", help="Explicit CycloneDX SBOM path for the versioned artifact bundle.")
+    archive.add_argument("--offline-install-rehearsal-json", help="Explicit offline self-hosted install rehearsal JSON path.")
+    archive.add_argument("--offline-install-rehearsal-markdown", help="Explicit offline self-hosted install rehearsal Markdown path.")
+    archive.add_argument("--offline-bundle-preparation-json", help="Explicit offline dependency preparation JSON path.")
+    archive.add_argument("--offline-bundle-preparation-markdown", help="Explicit offline dependency preparation Markdown path.")
+    archive.add_argument("--offline-bundle-verification-json", help="Explicit offline dependency verification JSON path.")
+    archive.add_argument("--offline-bundle-verification-markdown", help="Explicit offline dependency verification Markdown path.")
+    archive.add_argument("--offline-bundle-checksums", help="Explicit SHA256SUMS path for the offline dependency bundle.")
+    archive.add_argument("--offline-bundle-sbom", help="Explicit CycloneDX SBOM path for the offline dependency bundle.")
 
     summarize = subparsers.add_parser("summarize", help="Regenerate index and trend summary from archived entries.")
     summarize.add_argument("--trend-output", help="Optional path for trend Markdown output.")
