@@ -29,4 +29,4 @@
 - [x] 5.2 Run focused and full engine/API/web tests, typecheck, canonical pre-release, benchmark fixture, guardrail, and OpenSpec strict validation.
 - [x] 5.3 Build a real offline bundle, consume it from an isolated package copy with registry access denied, start the stack, and complete visible Chrome local-shell plus fresh random GitHub repository core-loop evidence.
 - [x] 5.4 Archive bounded evidence, update the completion taskbook, dated update log, readiness history, and next-development plan without committing cache payloads or local paths.
-- [ ] 5.5 Archive the OpenSpec change, commit scoped files, push the stacked branch, create a draft PR, and inspect normal CI plus package/offline rehearsal GitHub Actions on the final SHA.
+- [x] 5.5 Archive the OpenSpec change, commit scoped files, push the stacked branch, create a draft PR, and inspect normal CI plus package/offline rehearsal GitHub Actions on the final SHA.

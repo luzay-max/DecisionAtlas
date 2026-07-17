@@ -21,6 +21,9 @@
 - 安装的 Google Chrome headed 模式复跑 1 passed；Chrome/Computer Use 插件初始化仍失败，因此只声明 Playwright 驱动真实 Chrome 通过。
 - Canonical pre-release：engine 437、Web 83、API 32、Playwright 13/13；typecheck、benchmark fixture 和 OpenSpec strict 通过。
 - readiness entry：`docs/evidence/readiness/2026-07-17-approved-offline-dependency-cache/`，离线依赖与 package verification 均为 `pass`、0 blocker。
+- draft PR：`#6`；SHA `672cdf2` 的 CI run `29548155828` 和 Self-Hosted Package Rehearsal run `29548155821` 均为 `success`。
+- Actions artifact：`self-hosted-package-rehearsal-29548155821`，945,592 bytes，检查时未过期。
+- OpenSpec 主规格已同步，change 已归档到 `openspec/changes/archive/2026-07-17-support-approved-offline-dependency-cache/`。
 
 ## 状态解释
 

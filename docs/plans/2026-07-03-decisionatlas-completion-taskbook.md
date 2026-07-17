@@ -541,6 +541,8 @@ change：`support-approved-offline-dependency-cache`
 - fresh 随机公开仓库 `cokice/List-of-genshin-University` 完成 imported workspace 核心链路；安装的 Google Chrome headed 模式复跑通过并保留本地 trace。
 - Canonical pre-release 通过：engine 437、Web 83、API 32、Playwright 13/13；typecheck、benchmark fixture 和 OpenSpec strict 通过。
 - readiness entry：`docs/evidence/readiness/2026-07-17-approved-offline-dependency-cache/`；离线依赖 blocker 为 0。
+- draft PR `#6` 已创建；SHA `672cdf2` 的 CI run `29548155828` 和 Self-Hosted Package Rehearsal run `29548155821` 均成功，artifact `self-hosted-package-rehearsal-29548155821` 已上传。
+- 主规格已同步，change 已归档为 `2026-07-17-support-approved-offline-dependency-cache`。
 
 边界与下一步：
 
