@@ -1,38 +1,105 @@
-# DecisionAtlas
+# DecisionAtlas · 工程决策记忆与 AI 治理平台
 
-[English](README.md) | [中文](README_zh-CN.md)
+**让工程决策可追溯，让 AI 编程更了解项目的技术方向。**
 
-**DecisionAtlas** 将工程仓库上下文转化为带有引用、漂移告警和 AI 可读取治理护栏的可搜索决策记忆。它会分析仓库工件，提取候选工程决策，让人类确认可沉淀的决策，并帮助 AI agent 检查新的代码变更是否仍符合项目方向。
+DecisionAtlas 可以将分散在 **GitHub Issues、Pull Requests、Commits、ADR 和工程文档**中的信息，整理成**可搜索、可追溯且经过人工审核的工程决策记忆**。团队可以查询“当初为什么这样设计”，检查代码是否偏离既有架构决策，并为 AI 编程助手提供有依据的治理建议。
 
-## 🌟 核心特性
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Self-hosted](https://img.shields.io/badge/Deployment-Self--hosted-2b6cb0)](docs/project/deployment_zh-CN.md)
+[![AI Agent Guardrails](https://img.shields.io/badge/AI%20Agents-Governance%20Guardrails-6554c0)](docs/project/governance-agent-guardrail.md)
 
-- **自动化知识提取**：导入 GitHub issues、PRs、commits、markdown、ADR 和纯文本笔记，从中提取候选决策。
-- **引用优先搜索**：通过“引用优先”的回答机制、支持度评级以及基于代码块的证据支撑，精准回答“为什么”这类问题。
-- **漂移检测**：通过保守的导入漂移语义，在人工评估后标记出基于规则和语义的漂移告警。
-- **人工审核循环**：允许审核者接受、拒绝或取代提取出的决策。
-- **实时仓库分析**：通过导入的工作区，支持对公共 GitHub 仓库进行一次性实时分析，并支持增量同步。
-- **Owner Scope 产品流程**：支持本地/bootstrap 登录、owner scope 切换、基于角色的工作区操作、GitHub App 安装绑定和私有仓库访问绑定。
-- **治理知识层**：导入 Markdown 形式的开发标准、路线图、复盘、检查清单和人工决策，并转化为可审核的治理规则草稿。
-- **AI Agent 协议级 CLI 接口**：规范化 `scripts/governance/agent_guardrail.py` 命令行工具，支持 `--agent` 参数，返回结构化的 JSON 数据负载和精确的状态码（`0` 继续，`5` 警告，`10` 拦截暂停），以便外部 AI 编程助手（如 Cursor、Antigravity）完美集成。
-- **极致视觉美学与双色主题切换**：支持炫酷的暗黑霓虹与 **"Crystal Aurora"（水晶极光）** 清透毛玻璃浅色模式。全面适配 SVG **决策网络拓扑图 (DecisionTopologyMap)** 与 **AI 治理看板 (GuardrailPauseBanner)** 等核心视觉元素，将主视界扩容至 **`1160px`** 宽屏布局，为大屏幕带来极佳的视觉呼吸感。
-- **AI Agent 治理护栏**：聚合当前 diff 检查和长期治理漂移报告，输出面向 AI 开发流程的 advisory `continue`、`caution` 或 `pause` 结果。
-- **灵活的模型提供商支持**：支持使用伪提供商（Fake Provider）的本地模式，或兼容 OpenAI 的实时 LLM 模式。
+[English](README.md) · **简体中文** · [快速开始](docs/project/quick-start_zh-CN.md) · [项目架构](docs/plans/2026-03-18-decisionatlas-project-blueprint.md) · [完整文档](#-文档)
 
-## 🏗 架构
+> **项目现状：** 持续开发中的本地优先 / 可自托管平台，目前具有 v0.3 RC 阶段的能力基础。AI 治理检查默认是**建议性（advisory）**的；项目目前还不是完整的多租户 SaaS 服务。
 
-平台主要由以下三个核心组件构成：
+## 🎯 为什么需要 DecisionAtlas？
 
-- `apps/web`: 基于 Next.js 的前端 UI，用于审核、搜索、时间线、仪表盘和漂移检测。
-- `apps/api`: Fastify 边缘 API、session 恢复和 owner-scoped auth 边界。
-- `services/engine`: FastAPI 引擎，负责数据摄取、提取、检索、漂移计算和治理检查。
-- `scripts/governance`: 本地治理检查、漂移报告和 AI-agent guardrail 入口。
-- **数据层**：`PostgreSQL + pgvector` 用于持久化存储和向量搜索，`Redis` 用于后台任务协调。
+开发者通常可以在 Git 中找到“改了什么”，却难以快速知道“**为什么这么改**”。理由可能散落在 PR 讨论、Issue、ADR 或 Markdown 规范里。AI 编程助手也面临相同的问题，容易在不了解历史决策的情况下提出与原定架构相冲突的修改。
+
+DecisionAtlas 希望在历史代码和新变更之间，建立一层**可审核的工程决策知识层**：
+
+- **记住决策依据**：记录工程决策，并保留对应的原始证据。
+- **解释设计原因**：通过引用优先的搜索回答“为什么这样设计”。
+- **发现技术漂移**：识别代码或方案与既定决策之间的潜在偏差。
+- **辅助 AI 编程**：输出 `continue`、`caution`、`pause` 等结构化建议，保留人工审核环节。
+
+## ✨ 核心能力
+
+| 能力 | 作用 |
+| --- | --- |
+| **仓库知识摄取** | 导入 GitHub Issues、PR、Commit、Markdown、ADR 和工程笔记，支持增量同步。 |
+| **决策提取和审核** | 提取候选决策，并由人工接受、拒绝或替代；候选决策不会自动变成可信规则。 |
+| **有引用的智能搜索** | 查询项目的技术决策背景，并查看支撑结论的来源。 |
+| **架构 / 治理漂移检测** | 通过规则和语义信号提示潜在偏差，采用保守的告警策略。 |
+| **AI Agent 治理护栏** | 对代码变更执行治理检查，输出机器可读取的 JSON、状态和退出码。 |
+| **多工作区与权限边界** | 支持本地登录、Owner Scope、角色操作，以及管理员操作的 GitHub App / 私有仓库绑定。 |
+| **可视化工作台** | 提供决策审核、搜索、时间线、仪表盘、拓扑图和漂移视图，支持深浅色主题。 |
+| **灵活模型接入** | 可用 Fake Provider 进行本地演示，也可配置兼容 OpenAI 的模型提供商。 |
+
+## 🔄 工作原理
+
+```mermaid
+flowchart LR
+    A["GitHub Issues / PR / Commit<br/>ADR / Markdown"] --> B["证据导入与决策提取"]
+    B --> C["候选工程决策"]
+    C --> D["人工审核"]
+    D --> E["已接受的决策记忆"]
+    E --> F["带来源引用的搜索 / 为什么查询"]
+    E --> G["漂移检测与 Agent 治理"]
+    G --> H["continue / caution / pause"]
+```
+
+**项目不会把自动提取的结果直接当成权威规则。** 候选决策仍需人工审核；AI Agent 治理默认提供建议，不会自行改写项目代码或强制阻断 CI。
+
+## 🏗 技术架构
+
+```mermaid
+flowchart TB
+    UI["Next.js 前端<br/>apps/web"] --> API["Fastify API<br/>apps/api"]
+    API --> ENG["FastAPI 引擎<br/>services/engine"]
+    ENG --> DB[("PostgreSQL + pgvector<br/>或 SQLite Demo")]
+    ENG --> REDIS["Redis<br/>后台任务协调"]
+    GOV["AI 治理 CLI<br/>scripts/governance"] --> ENG
+```
+
+| 模块 | 技术 | 职责 |
+| --- | --- | --- |
+| Web | Next.js | 决策审核、搜索、仪表盘、时间线、漂移和拓扑 |
+| API | Fastify | Session、鉴权边界、Owner Scope |
+| Engine | Python / FastAPI | 数据摄取、提取、检索、漂移检测、治理 |
+| 数据层 | PostgreSQL + pgvector / SQLite Demo | 持久化数据和向量检索 |
+| 后台协调 | Redis | 完整本地栈中的任务协调 |
+| AI Agent 接口 | Python CLI | 机器可读的治理结果、状态码 |
+
+仓库还包含 OpenSpec 变更管理、测试与部署脚本。详见[部署说明](docs/project/deployment_zh-CN.md)。
+
+## 💬 可以解决哪些实际问题？
+
+- *当初为什么选择 PostgreSQL 作为主数据库？*
+- *哪一次 PR 或 ADR 记录了当前鉴权架构的设计理由？*
+- *最近的代码修改是否与已接受的架构决策冲突？*
+- *AI 编程助手在实施本次变更前，应该复查哪些约束？*
+
+## ⚡ 最快体验方式
+
+以下为 **Windows PowerShell 本地 Demo**。安装所需工具后，在终端执行：
+
+```powershell
+git clone https://github.com/luzay-max/DecisionAtlas.git
+cd DecisionAtlas
+pnpm install
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+Demo 使用**隔离的 SQLite 工作区和 Fake LLM / Embedding Provider**；在 Fake Provider 路径下不需要真实模型 API Key。启动后访问 [http://localhost:3000](http://localhost:3000)。
+
+如需 PostgreSQL、Redis 和完整服务，请参考[快速开始文档](docs/project/quick-start_zh-CN.md)及后续启动说明。
 
 ## 🚀 快速开始
 
 ### 前置条件
 - Node.js (v18+) & pnpm
-- Python (v3.10+) & uv
+- Python (3.11+) & uv
 - Docker Desktop (用于 PostgreSQL & Redis)
 
 ### 单命令 Demo Stack
