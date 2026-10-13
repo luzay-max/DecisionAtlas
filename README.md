@@ -1,34 +1,105 @@
 # DecisionAtlas
 
-[English](README.md) | [中文](README_zh-CN.md)
+**Engineering decision memory for humans and AI coding agents.**
 
-**DecisionAtlas** turns engineering repo context into searchable decision memory with citations, drift alerts, and AI-readable governance guardrails. It analyzes repository artifacts to extract candidate engineering decisions, lets humans accept the durable decisions, and helps AI agents check whether new changes still follow project direction.
+Turn scattered GitHub issues, pull requests, commits, ADRs, and engineering notes into **searchable, evidence-backed architectural decisions**. DecisionAtlas helps teams understand *why* code looks the way it does, review which decisions become trusted, detect drift, and give AI coding agents project-specific governance guidance.
 
-## 🌟 Key Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Self-hosted](https://img.shields.io/badge/Deployment-Self--hosted-2b6cb0)](docs/project/deployment.md)
+[![AI Agent Guardrails](https://img.shields.io/badge/AI%20Agents-Governance%20Guardrails-6554c0)](docs/project/governance-agent-guardrail.md)
 
-- **Automated Knowledge Extraction**: Imports GitHub issues, PRs, commits, markdown, ADRs, and text notes to extract candidate decisions.
-- **Citation-First Search**: Answers "why" questions with citation-first responses, support grading, and chunk-backed supporting evidence.
-- **Drift Detection**: Flags rule-first and semantic drift alerts after manual evaluation with conservative imported drift semantics.
-- **Human-in-the-Loop Review**: Lets a reviewer accept, reject, or supersede extracted decisions.
-- **Live Repository Analysis**: Supports one-off live analysis runs for public GitHub repositories through imported workspaces with incremental sync.
-- **Owner-Scoped Product Flows**: Provides local/bootstrap login, owner scope switching, role-gated workspace actions, GitHub App installation binding, and private repository access binding.
-- **Governance Knowledge Layer**: Imports Markdown standards, roadmap notes, postmortems, checklists, and human decisions into reviewable governance rule drafts.
-- **AI Agent Protocol-Level CLI**: Standardizes `scripts/governance/agent_guardrail.py` with an `--agent` flag, returning structured JSON payloads and exact status codes (`0` for continue, `5` for caution, `10` for pause/blocking review) for seamless IDE integration (e.g., Cursor, Antigravity).
-- **Premium Aesthetics & Dark/Light Themes**: Supports high-end dark-neon and **"Crystal Aurora"** translucent light mode themes. Fully adapts spatial `DecisionTopologyMap` and `GuardrailPauseBanner` elements with CSS variables, expanding the visual canvas bounds to `1160px` for optimal clarity on wider screens.
-- **AI Agent Governance Guardrails**: Aggregates current diff checks and long-term governance drift reports into advisory `continue`, `caution`, or `pause` results for AI development workflows.
-- **Flexible Provider Support**: Works in local mode with fake providers or live mode with OpenAI-compatible LLMs.
+**English** · [简体中文](README_zh-CN.md) · [Quick start](docs/project/quick-start.md) · [Architecture](docs/plans/2026-03-18-decisionatlas-project-blueprint.md) · [Documentation](#-documentation)
 
-- `apps/web`: Next.js UI for review, search, timeline, dashboard, and drift.
-- `apps/api`: Fastify edge API, session recovery, and owner-scoped auth boundary.
-- `services/engine`: FastAPI engine for ingest, extraction, retrieval, drift, and governance checks.
-- `scripts/governance`: Local governance checker, drift report, and AI-agent guardrail entrypoints.
-- **Data Layer**: `PostgreSQL + pgvector` for durable storage and vector search, `Redis` for background coordination.
+> **Project status:** An actively developed, local-first/self-hosted platform with a v0.3 release-candidate baseline. Governance checks are **advisory by default**, and this is not yet a fully managed, multi-tenant SaaS product.
+
+## 🎯 Why DecisionAtlas?
+
+Engineering teams often know **what** changed but lose track of **why**: the reasoning lives across PR conversations, issue discussions, ADRs, and internal notes. AI coding assistants face the same problem and can propose changes that unintentionally conflict with established decisions.
+
+DecisionAtlas provides a reviewable decision layer between repository history and new work:
+
+- **Remember the rationale** — preserve engineering decisions along with supporting source evidence.
+- **Ask “why?”** — search decisions and retrieve citation-first, evidence-backed answers.
+- **Detect drift** — flag potential mismatches between current changes and documented intent.
+- **Guide AI coding agents** — give assistants structured `continue`, `caution`, or `pause` advice, while keeping human approval central.
+
+## ✨ What you can do
+
+| Capability | What it means |
+| --- | --- |
+| **Repository intelligence** | Import and incrementally sync GitHub issues, PRs, commits, Markdown, ADRs, and notes into a workspace. |
+| **Decision extraction and review** | Generate candidate decisions and let reviewers accept, reject, or supersede them; candidates are not automatically trusted. |
+| **Evidence-first search** | Ask architecture “why” questions with source citations and supporting context. |
+| **Drift detection** | Evaluate rule-based and semantic drift signals, with conservative alert semantics. |
+| **AI-agent guardrails** | Run governance checks against a change/diff and return structured JSON plus advisory status codes. |
+| **Owner-scoped workflows** | Use local/bootstrap login, role-gated workspaces, and admin/operator GitHub App or private-repository bindings. |
+| **Visual exploration** | Review decisions, timelines, search results, topology, and drift in a Next.js dashboard with dark/light themes. |
+| **Flexible model setup** | Run an isolated demo with fake providers or configure an OpenAI-compatible LLM for live workflows. |
+
+## 🔄 How it works
+
+```mermaid
+flowchart LR
+    A["GitHub Issues / PRs / Commits<br/>ADRs / Markdown"] --> B["Ingest & extract evidence"]
+    B --> C["Candidate decisions"]
+    C --> D["Human review"]
+    D --> E["Accepted decision memory"]
+    E --> F["Citation-first search / why-queries"]
+    E --> G["Drift checks & AI agent guardrails"]
+    G --> H["continue / caution / pause"]
+```
+
+The key distinction: **extraction produces candidates, not policy by decree**. Humans review decisions, and agent-facing governance reports default to advice rather than silently rewriting code or blocking CI.
+
+## 🏗 Architecture
+
+```mermaid
+flowchart TB
+    UI["Next.js Web UI<br/>apps/web"] --> API["Fastify API<br/>apps/api"]
+    API --> ENG["FastAPI Engine<br/>services/engine"]
+    ENG --> DB[("PostgreSQL + pgvector<br/>or SQLite demo")]
+    ENG --> REDIS["Redis<br/>background coordination"]
+    GOV["Agent governance CLI<br/>scripts/governance"] --> ENG
+```
+
+| Layer | Technology | Responsibility |
+| --- | --- | --- |
+| Web | Next.js | Decision review, search, dashboards, timeline, drift, and topology |
+| API | Fastify | Session/auth boundaries and owner-scoped actions |
+| Engine | FastAPI / Python | Repository ingestion, extraction, retrieval, drift, and governance |
+| Storage | PostgreSQL + pgvector / SQLite demo | Durable workspace data and vector retrieval |
+| Background coordination | Redis | Full-stack background coordination |
+| Agent integration | Python CLI | Machine-readable governance results and exit codes |
+
+The repository also includes OpenSpec change management, automated tests, and a local setup workflow. See [deployment architecture](docs/project/deployment.md).
+
+## 💬 Questions it helps answer
+
+- *Why did we choose Redis as a cache rather than the primary database?*
+- *Which PR or ADR explains our current authentication design?*
+- *Does this new code change conflict with an accepted architecture decision?*
+- *What should an AI coding agent review before making this change?*
+
+## ⚡ Fastest way to try it
+
+For a **Windows PowerShell local demo**, clone the repo, install the prerequisites below, and run:
+
+```powershell
+git clone https://github.com/luzay-max/DecisionAtlas.git
+cd DecisionAtlas
+pnpm install
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+The demo uses a **local SQLite workspace and fake LLM/embedding providers**; no real model API key is required for the fake-provider path. Once started, open [http://localhost:3000](http://localhost:3000).
+
+For PostgreSQL/Redis and live-service development, use the [full-stack guide](docs/project/quick-start.md) and the commands below. Startup times and local prerequisites vary by machine.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v18+) & pnpm
-- Python (v3.10+) & uv
+- Python (3.11+) & uv
 - Docker Desktop (for PostgreSQL & Redis)
 
 ### One-Command Demo Stack
