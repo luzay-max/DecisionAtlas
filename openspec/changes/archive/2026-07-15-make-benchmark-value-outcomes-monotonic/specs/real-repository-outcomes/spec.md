@@ -1,0 +1,34 @@
+## MODIFIED Requirements
+
+### Requirement: Curated real-repository validation classifies product value
+The system SHALL classify curated real-repository benchmark outcomes so validation reports can distinguish useful product behavior, bounded product limitations, and operational blockers, and SHALL treat configured ranked product outcomes as a minimum acceptable floor rather than requiring exact membership when the observed product outcome is stronger.
+
+#### Scenario: Repository is useful now
+- **WHEN** a curated imported repository has reviewable or accepted decisions, acceptable candidate quality, and focused why or drift cases that meet their bounded expectations
+- **THEN** validation output SHALL classify the repository as useful for the benchmarked DecisionAtlas workflow
+
+#### Scenario: Repository is reviewable but limited
+- **WHEN** a curated imported repository has reviewable candidates but weak grounding, thin-candidate pressure, missing provenance, or limited downstream why/drift usefulness
+- **THEN** validation output SHALL classify the repository as reviewable with explicit limitations rather than treating it as fully successful or failed
+
+#### Scenario: Repository is conversion or evidence limited
+- **WHEN** a curated imported repository produces enough import evidence to analyze but cannot produce useful reviewable decisions or downstream support
+- **THEN** validation output SHALL classify the limitation as conversion-limited or evidence-limited with bounded supporting metrics
+
+#### Scenario: Repository is operationally blocked
+- **WHEN** validation cannot evaluate a curated repository because of missing workspace state, API availability, provider configuration, GitHub/network failure, or another setup issue
+- **THEN** validation output SHALL classify the result as missing-workspace or operationally blocked rather than as product evidence
+
+#### Scenario: Stronger product outcome exceeds the configured floor
+- **WHEN** the observed product value outcome has a higher configured rank than the weakest ranked product outcome declared by the repository profile
+- **THEN** validation SHALL mark the value outcome as allowed
+- **AND** the report SHALL identify the assessment as `exceeds_floor` and preserve the configured minimum product-value floor
+
+#### Scenario: Weaker product outcome remains below the configured floor
+- **WHEN** the observed ranked product value outcome is lower than the weakest ranked product outcome declared by the repository profile
+- **THEN** validation SHALL mark the value outcome as not allowed
+- **AND** the report SHALL identify the assessment as `below_floor`
+
+#### Scenario: Value classification remains benchmark-only
+- **WHEN** value classification is computed for curated real-repository validation
+- **THEN** the classification SHALL remain part of benchmark/reporting behavior and SHALL NOT introduce repository-specific product runtime behavior

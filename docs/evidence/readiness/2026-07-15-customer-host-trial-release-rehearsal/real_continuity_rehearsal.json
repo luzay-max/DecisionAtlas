@@ -1,0 +1,141 @@
+{
+  "blockers": [],
+  "continuity_lanes": [
+    {
+      "details": {
+        "path": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity"
+      },
+      "id": "scratch_workspace",
+      "label": "Scratch workspace",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "backup_artifact": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/backup/state-backup.json",
+        "source_sha256": "491b498f0c857847f282bf4175c00e4f4805aabd145af0d408a95721f0e3a00b"
+      },
+      "id": "database_backup",
+      "label": "Scratch state backup",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "matches_source": true,
+        "restored_sha256": "491b498f0c857847f282bf4175c00e4f4805aabd145af0d408a95721f0e3a00b",
+        "restored_state": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/restore/state.json"
+      },
+      "id": "restore_validation",
+      "label": "Scratch restore validation",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "previous_version": "customer-host-trial-before",
+        "target_version": "customer-host-trial-2026-07-15"
+      },
+      "id": "upgrade_transition",
+      "label": "Upgrade transition metadata",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "status_source": "argument"
+      },
+      "id": "post_upgrade_validation",
+      "label": "Post-upgrade validation",
+      "status": "operator_guided"
+    },
+    {
+      "details": {
+        "status_source": "argument"
+      },
+      "id": "rollback_plan",
+      "label": "Rollback plan",
+      "status": "operator_guided"
+    },
+    {
+      "details": {
+        "path": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity",
+        "scratch_root": ".tmp/real-backup-restore-upgrade-rehearsal"
+      },
+      "id": "path_safety:rehearsal_dir",
+      "label": "rehearsal_dir path stays inside owned scratch root",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/source/state.json",
+        "scratch_root": ".tmp/real-backup-restore-upgrade-rehearsal"
+      },
+      "id": "path_safety:source_state",
+      "label": "source_state path stays inside owned scratch root",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/backup/state-backup.json",
+        "scratch_root": ".tmp/real-backup-restore-upgrade-rehearsal"
+      },
+      "id": "path_safety:backup_artifact",
+      "label": "backup_artifact path stays inside owned scratch root",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "path": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/restore/state.json",
+        "scratch_root": ".tmp/real-backup-restore-upgrade-rehearsal"
+      },
+      "id": "path_safety:restore_state",
+      "label": "restore_state path stays inside owned scratch root",
+      "status": "pass"
+    },
+    {
+      "details": {
+        "finding_count": 0
+      },
+      "id": "redaction",
+      "label": "Sensitive material scan",
+      "status": "pass"
+    }
+  ],
+  "evidence_type": "real_backup_restore_upgrade_rehearsal",
+  "generated_at": "2026-07-15T05:03:22.415371+00:00",
+  "integrity": {
+    "restore_matches_source": true,
+    "restored_record_count": 2,
+    "restored_sha256": "491b498f0c857847f282bf4175c00e4f4805aabd145af0d408a95721f0e3a00b",
+    "source_record_count": 2,
+    "source_sha256": "491b498f0c857847f282bf4175c00e4f4805aabd145af0d408a95721f0e3a00b"
+  },
+  "label": "customer-host-trial-continuity",
+  "limitations": [
+    "This rehearsal proves backup/restore mechanics only for explicit scratch state, not production customer data.",
+    "Raw database dumps, .env files, provider keys, repository tokens, and private repository content remain outside generated evidence.",
+    "Full Web/API/Engine post-upgrade smoke must be attached separately when customer-facing upgrade readiness is claimed."
+  ],
+  "recommended_next_actions": [
+    "Review operator-guided continuity lanes and attach post-upgrade smoke evidence before customer handoff.",
+    "Archive real continuity evidence into readiness history when making durable self-hosted claims."
+  ],
+  "redaction_findings": [],
+  "rollback": {
+    "rollback_notes": null,
+    "rollback_plan_status": "operator_guided"
+  },
+  "schema_version": 1,
+  "scratch_scope": {
+    "backup_artifact": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/backup/state-backup.json",
+    "rehearsal_dir": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity",
+    "restored_state": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/restore/state.json",
+    "scratch_only": true,
+    "scratch_root": ".tmp/real-backup-restore-upgrade-rehearsal",
+    "source_state": ".tmp/real-backup-restore-upgrade-rehearsal/customer-host-trial-continuity/source/state.json"
+  },
+  "status": "warning",
+  "upgrade": {
+    "post_upgrade_status": "operator_guided",
+    "previous_version": "customer-host-trial-before",
+    "target_version": "customer-host-trial-2026-07-15",
+    "upgrade_notes": null
+  }
+}

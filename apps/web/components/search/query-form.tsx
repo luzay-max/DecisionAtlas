@@ -78,7 +78,7 @@ export function QueryForm({
       </form>
       {!result && !error ? <p>{isGuidedDemoWorkspace ? messages.search.intro : messages.search.importedIntro}</p> : null}
       {error ? <p>{error}</p> : null}
-      {result ? <SearchResults result={result} /> : null}
+      {result ? <SearchResults result={result} workspaceSlug={workspaceSlug} /> : null}
       {result && renderedNextActionHref && nextActionLabel ? (
         <div className="action-row">
           <Link href={renderedNextActionHref} className="action-link action-link-primary">

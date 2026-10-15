@@ -1,0 +1,216 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": "full_chain_random_repo_release_rehearsal.json",
+      "markdown": "full_chain_random_repo_release_rehearsal.md",
+      "source_json_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "source_markdown_path": ".tmp/full-chain-random-repo-release-rehearsal.md"
+    },
+    "hosted_readiness": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": "random_repo_warning_lane_reduction.json",
+      "markdown": "random_repo_warning_lane_reduction.md",
+      "source_json_path": ".tmp/random-repo-warning-lane-reduction.json",
+      "source_markdown_path": ".tmp/random-repo-warning-lane-reduction.md"
+    },
+    "real_continuity_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_external_host_trial_evidence": {
+      "json": "real_external_host_trial_evidence.json",
+      "markdown": "real_external_host_trial_evidence.md",
+      "source_json_path": ".tmp/real-external-host-trial-evidence.json",
+      "source_markdown_path": ".tmp/real-external-host-trial-evidence.md"
+    },
+    "release_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "team_handoff": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    }
+  },
+  "commit": null,
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 8,
+    "operator_guided": 11,
+    "random_repo_warning_classified_lanes": 14,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 3,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 8,
+    "warnings": 21
+  },
+  "created_at": "2026-07-08T00:32:00+08:00",
+  "entry_id": "2026-07-08-why-drift-grounding-smoke",
+  "families": {
+    "benchmark_comparison": {
+      "label": "Benchmark comparison",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-08T00:24:00+08:00",
+      "label": "Full-chain random repo release rehearsal",
+      "lane_statuses": {
+        "browser_rehearsal": "pass",
+        "customer_host_v2": "warning",
+        "multi_repo_diagnosis": "warning",
+        "readiness_history": "warning",
+        "release_rehearsal": "warning"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "selected_repo_ids": [
+        "n8n",
+        "rich"
+      ],
+      "source_markdown_path": ".tmp/full-chain-random-repo-release-rehearsal.md",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "warning_count": 4
+    },
+    "hosted_readiness": {
+      "label": "Hosted readiness",
+      "public_walkthrough_status": "not_provided",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "random_repo_warning_lane_reduction": {
+      "blocker_count": 0,
+      "classified_lanes": 14,
+      "external_dependency_count": 0,
+      "generated_at": "2026-07-08T00:26:00+08:00",
+      "label": "Random repo warning lane reduction",
+      "not_provided_count": 0,
+      "operator_guided_count": 11,
+      "product_controlled_count": 3,
+      "selected_repo_ids": [
+        "n8n",
+        "rich"
+      ],
+      "source_markdown_path": ".tmp/random-repo-warning-lane-reduction.md",
+      "source_path": ".tmp/random-repo-warning-lane-reduction.json",
+      "status": "warning",
+      "warning_count": 14
+    },
+    "real_continuity_rehearsal": {
+      "label": "Real continuity rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_external_host_trial_evidence": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-04T00:16:00+00:00",
+      "host_input_path": "templates/external-customer-host-rehearsal-v2.example.json",
+      "host_proof_level": "template_or_placeholder",
+      "label": "Real external host trial evidence",
+      "lane_statuses": {
+        "customer_host_v2": "warning",
+        "full_chain_random_repo_release": "warning",
+        "host_input": "pass",
+        "placeholder_review": "warning",
+        "required_host_review": "pass"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "placeholder_finding_count": 8,
+      "redaction_finding_count": 0,
+      "selected_repo_ids": [
+        "n8n",
+        "rich"
+      ],
+      "source_markdown_path": ".tmp/real-external-host-trial-evidence.md",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "warning_count": 3
+    },
+    "release_evidence": {
+      "label": "Release evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "team_handoff": {
+      "label": "Team handoff",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    }
+  },
+  "label": "why-drift-grounding-smoke",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": null,
+  "warnings": []
+}

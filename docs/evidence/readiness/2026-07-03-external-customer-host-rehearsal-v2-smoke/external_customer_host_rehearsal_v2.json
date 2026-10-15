@@ -1,0 +1,148 @@
+{
+  "blockers": [],
+  "evidence_type": "external-customer-host-rehearsal-v2",
+  "generated_at": "2026-07-03T06:27:54.442227+00:00",
+  "host_input_path": "templates/external-customer-host-rehearsal-v2.example.json",
+  "host_profile": {
+    "deployment_mode": "docker-compose",
+    "host_class": "customer-vm",
+    "is_customer_controlled": true,
+    "operator": "customer-or-operator-name",
+    "os_family": "Windows Server or Linux",
+    "os_version": "fill-me"
+  },
+  "host_proof_level": "customer_controlled_with_browser_smoke",
+  "label": "external-customer-host-rehearsal-v2-smoke",
+  "lanes": [
+    {
+      "id": "customer_host_template",
+      "label": "Customer host template",
+      "source_path": "templates/external-customer-host-rehearsal-v2.example.json",
+      "status": "pass",
+      "summary": {
+        "deployment_mode": "docker-compose",
+        "host_class": "customer-vm",
+        "is_customer_controlled": true,
+        "operator": "customer-or-operator-name",
+        "os_family": "Windows Server or Linux",
+        "redaction_acknowledged": true
+      },
+      "warnings": []
+    },
+    {
+      "id": "package_verification",
+      "label": "Package verification",
+      "source_path": ".tmp/self-hosted-package-verification.json",
+      "status": "pass",
+      "summary": {
+        "commit": "bd481c85b88adf3cf41d9f9473dae651b3f70780",
+        "generated_at": "2026-06-08T07:49:34.497822+00:00",
+        "package_label": "decisionatlas-self-hosted",
+        "package_path": "C:/Users/Max/Desktop/DecisionAtlas/.tmp/self-hosted-package/decisionatlas-self-hosted",
+        "status": "pass",
+        "version_label": "self-hosted-preview-2026-06-08"
+      },
+      "warnings": []
+    },
+    {
+      "id": "clean_install",
+      "label": "Clean install rehearsal",
+      "source_path": ".tmp/clean-self-hosted-install-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "commit": "c00f65e",
+        "generated_at": "2026-06-09T01:24:45.954699+00:00",
+        "label": "clean-self-hosted-install-2026-06-09",
+        "package_path": ".tmp/self-hosted-package/decisionatlas-self-hosted",
+        "status": "warning",
+        "version_label": "clean-self-hosted-install-2026-06-09"
+      },
+      "warnings": []
+    },
+    {
+      "id": "external_install",
+      "label": "External install evidence",
+      "source_path": ".tmp/external-self-hosted-install-evidence.json",
+      "status": "warning",
+      "summary": {
+        "generated_at": "2026-07-02T05:46:56.429683+00:00",
+        "label": "external-self-hosted-install-example",
+        "status": "warning"
+      },
+      "warnings": []
+    },
+    {
+      "id": "browser_smoke",
+      "label": "Browser smoke",
+      "source_path": null,
+      "status": "pass",
+      "summary": {
+        "operator": "customer-or-operator-name",
+        "pages": [
+          "/",
+          "/team",
+          "/review?workspace=demo-workspace",
+          "/evidence"
+        ],
+        "summary": "Opened home, team, review, evidence, and workspace pages."
+      },
+      "warnings": []
+    },
+    {
+      "id": "release_rehearsal",
+      "label": "Release rehearsal bundle",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "evidence_type": "release-rehearsal-one-command-evidence",
+        "generated_at": "2026-07-03T01:53:43.418128+00:00",
+        "label": "release-rehearsal-one-command",
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "missing_lanes": 0,
+          "operator_guided_lanes": 1,
+          "pass": 2,
+          "warning": 5
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "readiness_history",
+      "label": "Readiness history",
+      "source_path": "docs/evidence/readiness/index.json",
+      "status": "unknown",
+      "summary": {
+        "generated_at": "2026-07-03T06:25:26.229988+00:00"
+      },
+      "warnings": []
+    }
+  ],
+  "limitations": [
+    "Replace this sample with real customer-host observations before handoff.",
+    "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+  ],
+  "package_identity": {
+    "commit": "fill-me",
+    "package_label": "decisionatlas-self-hosted",
+    "package_manifest_sha256": "optional",
+    "version_label": "fill-me"
+  },
+  "recommended_next_actions": [
+    "Rerun or explicitly disclose non-pass customer-host lanes: clean_install, external_install, release_rehearsal, readiness_history.",
+    "Archive customer-host v2 evidence into readiness history before customer handoff."
+  ],
+  "redaction_findings": [],
+  "schema_version": 1,
+  "sensitive_material_note": "Do not include tokens, .env files, private repository contents, raw database backups, or raw customer logs in this evidence.",
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 7,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "pass": 3,
+    "warning": 4
+  }
+}

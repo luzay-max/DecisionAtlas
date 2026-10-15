@@ -81,3 +81,33 @@ Team handoff reports SHALL be usable as source evidence for customer-readable Co
 #### Scenario: Handoff evidence is omitted
 - **WHEN** handoff evidence is not supplied
 - **THEN** the audit report MUST preserve handoff evidence as `not_provided`
+
+### Requirement: Handoff report references external install evidence
+Team handoff reports SHALL disclose external or customer-controlled host install evidence when provided.
+
+#### Scenario: External install evidence is included
+- **WHEN** handoff report generation receives external install evidence
+- **THEN** the report SHALL summarize external install status, host class, package identity, lane statuses, blockers, limitations, and recommended next actions
+
+#### Scenario: External install evidence is missing
+- **WHEN** handoff report generation does not receive external install evidence
+- **THEN** the report SHALL mark customer-controlled host install evidence as `not_provided` or `operator_guided` rather than omitting the section
+
+#### Scenario: External install evidence contains sensitive material
+- **WHEN** external install evidence includes raw tokens, `.env` secrets, private source content, raw backup material, or unbounded customer logs
+- **THEN** handoff report generation SHALL reject the evidence or preserve a `blocked` status without copying sensitive content into the report
+
+### Requirement: Handoff report references real continuity rehearsal
+Team handoff reports SHALL disclose real backup/restore/upgrade rehearsal evidence when provided.
+
+#### Scenario: Real continuity evidence is included
+- **WHEN** handoff report generation receives real continuity rehearsal evidence
+- **THEN** the report SHALL summarize continuity status, scratch scope, restore validation status, post-upgrade status, rollback plan status, blockers, limitations, and recommended next actions
+
+#### Scenario: Real continuity evidence is missing
+- **WHEN** handoff report generation does not receive real continuity rehearsal evidence
+- **THEN** the report SHALL mark tested continuity evidence as `not_provided` or `operator_guided` rather than omitting the section
+
+#### Scenario: Real continuity evidence contains sensitive material
+- **WHEN** real continuity evidence includes raw backups, `.env` secrets, credential material, private source content, or unbounded local logs
+- **THEN** handoff report generation SHALL reject the evidence or preserve a `blocking` status without copying sensitive content into the report

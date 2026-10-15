@@ -150,3 +150,44 @@ The live-analysis setup flow SHALL preserve provider and access-mode context whe
 #### Scenario: Local path is selected
 - **WHEN** an admin selects local-path import
 - **THEN** live analysis SHALL treat the source as server-operator-guided and SHALL NOT expose arbitrary server path details to non-admin users
+
+### Requirement: Live repository context is visible in browser rehearsal
+The live repository analysis flow SHALL expose real repository context in browser-level rehearsal evidence when repository import or reuse behavior is tested.
+
+#### Scenario: Public repository context appears in UI
+- **WHEN** a browser rehearsal exercises public repository import, reuse, or imported workspace guidance
+- **THEN** the UI SHALL display a real public GitHub repository reference or owner/name that can be traced to the tested scenario.
+
+#### Scenario: Browser rehearsal does not replace live benchmark evidence
+- **WHEN** browser rehearsal uses mocked repository responses or seeded workspace data
+- **THEN** live repository benchmark and readiness evidence SHALL remain the source of truth for claims about actual GitHub import quality.
+
+### Requirement: Imported repository analysis can feed core-loop rehearsal
+Live repository analysis SHALL provide enough repository and workspace context for imported workspace core-loop rehearsal.
+
+#### Scenario: Import rehearsal produced a workspace
+- **WHEN** public GitHub import rehearsal returns a created or reused workspace
+- **THEN** imported workspace core-loop rehearsal SHALL be able to use that workspace slug and repository identity as input.
+
+#### Scenario: Import rehearsal is not ready
+- **WHEN** public GitHub import rehearsal reports provider failure, local stack failure, operator-guided, or missing workspace
+- **THEN** imported workspace core-loop rehearsal SHALL preserve that setup state and SHALL NOT claim the core loop passed.
+
+### Requirement: Public import validates optional global credentials
+The live repository analysis flow SHALL allow a configured global GitHub token for public imports and SHALL retry with anonymous public access only when that token receives a 401 or 403 response.
+
+#### Scenario: Valid global token exists during public import
+- **WHEN** a public workspace starts a GitHub import with a global token that GitHub accepts
+- **THEN** the import SHALL continue using that token for bounded provider access.
+
+#### Scenario: Stale global token exists during public import
+- **WHEN** a public workspace validates an optional global token and GitHub returns 401 or 403
+- **THEN** the import SHALL retry with bounded anonymous public access instead of failing because the optional credential is unauthorized.
+
+#### Scenario: Owner-scoped token-backed repository imports
+- **WHEN** a workspace is explicitly bound to an owner-scoped GitHub token access source
+- **THEN** the import SHALL continue using that bound token and SHALL NOT fall back to anonymous public access.
+
+#### Scenario: Installation-backed repository imports
+- **WHEN** a workspace is explicitly installation-backed
+- **THEN** the import SHALL preserve the installation-backed credential path rather than treating the workspace as anonymous public access.

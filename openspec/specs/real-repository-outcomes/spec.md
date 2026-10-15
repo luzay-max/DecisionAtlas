@@ -106,25 +106,8 @@ The system SHALL evaluate imported real-repository outcomes not only by readines
 - **WHEN** a curated imported repository has an accepted baseline and real-repository why cases
 - **THEN** validation output SHALL record expected status, observed status, citation count, expected term matches, and primary-thread match evidence where available
 
-## ADDED Requirements
-
-### Requirement: First accepted imported baseline is treated as a product milestone
-The system SHALL treat the first accepted imported decision as the first durable product milestone after candidate review, SHALL make the review path to that milestone clear when imported candidates are available, and SHALL use that milestone to upgrade imported workflow guidance without implying that all downstream questions are now fully supported.
-
-#### Scenario: First accepted milestone changes imported next-step messaging
-- **WHEN** an imported workspace transitions from zero accepted decisions to one accepted decision
-- **THEN** the product SHALL be able to explain that the workspace now has a durable baseline and can support grounded why usage for matching questions
-
-#### Scenario: Review queue explains milestone before first acceptance
-- **WHEN** an imported workspace has reviewable candidate decisions and no accepted imported decision
-- **THEN** the review experience SHALL explain that accepting a well-supported candidate establishes the first baseline for downstream why/drift usage
-
-#### Scenario: Review acceptance does not overstate downstream trust
-- **WHEN** the first imported candidate is accepted
-- **THEN** downstream guidance SHALL still distinguish grounded matching why questions from unrelated questions that remain review-required or evidence-limited
-
 ### Requirement: Curated real-repository validation classifies product value
-The system SHALL classify curated real-repository benchmark outcomes so validation reports can distinguish useful product behavior, bounded product limitations, and operational blockers.
+The system SHALL classify curated real-repository benchmark outcomes so validation reports can distinguish useful product behavior, bounded product limitations, and operational blockers, and SHALL treat configured ranked product outcomes as a minimum acceptable floor rather than requiring exact membership when the observed product outcome is stronger.
 
 #### Scenario: Repository is useful now
 - **WHEN** a curated imported repository has reviewable or accepted decisions, acceptable candidate quality, and focused why or drift cases that meet their bounded expectations
@@ -142,9 +125,36 @@ The system SHALL classify curated real-repository benchmark outcomes so validati
 - **WHEN** validation cannot evaluate a curated repository because of missing workspace state, API availability, provider configuration, GitHub/network failure, or another setup issue
 - **THEN** validation output SHALL classify the result as missing-workspace or operationally blocked rather than as product evidence
 
+#### Scenario: Stronger product outcome exceeds the configured floor
+- **WHEN** the observed product value outcome has a higher configured rank than the weakest ranked product outcome declared by the repository profile
+- **THEN** validation SHALL mark the value outcome as allowed
+- **AND** the report SHALL identify the assessment as `exceeds_floor` and preserve the configured minimum product-value floor
+
+#### Scenario: Weaker product outcome remains below the configured floor
+- **WHEN** the observed ranked product value outcome is lower than the weakest ranked product outcome declared by the repository profile
+- **THEN** validation SHALL mark the value outcome as not allowed
+- **AND** the report SHALL identify the assessment as `below_floor`
+
 #### Scenario: Value classification remains benchmark-only
 - **WHEN** value classification is computed for curated real-repository validation
 - **THEN** the classification SHALL remain part of benchmark/reporting behavior and SHALL NOT introduce repository-specific product runtime behavior
+
+## ADDED Requirements
+
+### Requirement: First accepted imported baseline is treated as a product milestone
+The system SHALL treat the first accepted imported decision as the first durable product milestone after candidate review, SHALL make the review path to that milestone clear when imported candidates are available, and SHALL use that milestone to upgrade imported workflow guidance without implying that all downstream questions are now fully supported.
+
+#### Scenario: First accepted milestone changes imported next-step messaging
+- **WHEN** an imported workspace transitions from zero accepted decisions to one accepted decision
+- **THEN** the product SHALL be able to explain that the workspace now has a durable baseline and can support grounded why usage for matching questions
+
+#### Scenario: Review queue explains milestone before first acceptance
+- **WHEN** an imported workspace has reviewable candidate decisions and no accepted imported decision
+- **THEN** the review experience SHALL explain that accepting a well-supported candidate establishes the first baseline for downstream why/drift usage
+
+#### Scenario: Review acceptance does not overstate downstream trust
+- **WHEN** the first imported candidate is accepted
+- **THEN** downstream guidance SHALL still distinguish grounded matching why questions from unrelated questions that remain review-required or evidence-limited
 
 ### Requirement: Curated real-repository outcomes are comparable over time
 The system SHALL allow curated real-repository validation outcomes to be compared across dated benchmark runs so maintainers can identify product-value regressions separately from operational blockers.

@@ -1,0 +1,217 @@
+{
+  "blockers": [],
+  "commit": "b613033",
+  "evidence_type": "real-external-host-trial-evidence",
+  "generated_at": "2026-07-15T13:30:00+08:00",
+  "host_input_path": ".tmp/customer-host-trial-input.json",
+  "host_proof_level": "external_template_not_customer_controlled",
+  "label": "customer-host-trial-isolated",
+  "lanes": [
+    {
+      "id": "host_input",
+      "label": "Sanitized host input",
+      "source_path": ".tmp/customer-host-trial-input.json",
+      "status": "warning",
+      "summary": {
+        "browser_smoke_status": "pass",
+        "commit": "b613033",
+        "deployment_mode": "docker-compose",
+        "host_class": "isolated-local-docker",
+        "is_customer_controlled": false,
+        "operator": "local-operator",
+        "os_family": "Windows",
+        "package_label": "decisionatlas-self-hosted",
+        "required_finding_count": 1,
+        "version_label": "customer-host-trial-2026-07-15"
+      },
+      "warnings": [
+        "host_not_customer_controlled"
+      ]
+    },
+    {
+      "id": "startup",
+      "label": "Stack startup",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Managed real stack started successfully on the isolated host.",
+      "warnings": []
+    },
+    {
+      "id": "health",
+      "label": "Service health",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Web, API, and engine health checks returned healthy responses.",
+      "warnings": []
+    },
+    {
+      "id": "admin_login",
+      "label": "Administrator login",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Local administrator bootstrap session reached the workspace UI without recording credentials.",
+      "warnings": []
+    },
+    {
+      "id": "team_workspace",
+      "label": "Team and workspace setup",
+      "source_path": null,
+      "status": "operator_guided",
+      "summary": "Team control plane is reachable; reviewer/viewer account assignment remains a customer-operator step.",
+      "warnings": [
+        "lane_not_clean"
+      ]
+    },
+    {
+      "id": "repository_import",
+      "label": "Repository import",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Fresh public GitHub repository hynek/structlog imported successfully with 1,169 objects and 26 candidates.",
+      "warnings": []
+    },
+    {
+      "id": "review",
+      "label": "Candidate review",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Review queue rendered 26 imported candidates in the real browser.",
+      "warnings": []
+    },
+    {
+      "id": "why",
+      "label": "Why search",
+      "source_path": null,
+      "status": "warning",
+      "summary": "Why Search executed and failed closed with review_required and zero citations before accepted baseline creation.",
+      "warnings": [
+        "lane_not_clean"
+      ]
+    },
+    {
+      "id": "drift",
+      "label": "Drift evaluation",
+      "source_path": null,
+      "status": "warning",
+      "summary": "Drift evaluation completed with review_required and zero alerts because accepted baseline is empty.",
+      "warnings": [
+        "lane_not_clean"
+      ]
+    },
+    {
+      "id": "continuity",
+      "label": "Backup and recovery",
+      "source_path": null,
+      "status": "operator_guided",
+      "summary": "Backup, restore, and upgrade rehearsal completed as operator-guided evidence on the isolated host.",
+      "warnings": [
+        "lane_not_clean"
+      ]
+    },
+    {
+      "id": "browser_smoke",
+      "label": "Browser smoke",
+      "source_path": null,
+      "status": "pass",
+      "summary": "Chrome verified home, team, settings, evidence, workspace dashboard, review, Why, timeline, and Drift routes.",
+      "warnings": []
+    },
+    {
+      "id": "placeholder_review",
+      "label": "Placeholder/template review",
+      "source_path": null,
+      "status": "pass",
+      "summary": {
+        "finding_count": 0,
+        "finding_ids": []
+      },
+      "warnings": []
+    },
+    {
+      "id": "required_host_review",
+      "label": "Required host field review",
+      "source_path": null,
+      "status": "warning",
+      "summary": {
+        "finding_count": 1,
+        "finding_ids": [
+          "host_not_customer_controlled"
+        ]
+      },
+      "warnings": [
+        "host_not_customer_controlled"
+      ]
+    },
+    {
+      "id": "customer_host_v2",
+      "label": "Customer-host v2",
+      "source_path": null,
+      "status": "not_provided",
+      "summary": {
+        "host_proof_level": "not_provided",
+        "status": "not_provided"
+      },
+      "warnings": [
+        "source_not_provided"
+      ]
+    },
+    {
+      "id": "full_chain_random_repo_release",
+      "label": "Full-chain random repo release",
+      "source_path": ".tmp/customer-host-trial-fresh-repo.json",
+      "status": "warning",
+      "summary": {
+        "blocker_count": 0,
+        "blocking": null,
+        "limitations": [
+          "A seeded bounded pool is random and reproducible but is not an unbounded sample of GitHub.",
+          "GitHub and the real local stack are external runtime dependencies.",
+          "A successful import can still yield evidence-limited decision quality.",
+          "Evidence excludes credentials, raw private source, raw model output, and unbounded logs."
+        ],
+        "not_provided": null,
+        "operator_guided": null,
+        "pass": null,
+        "selected_repo_ids": [],
+        "status": "warning",
+        "warning": null
+      },
+      "warnings": []
+    }
+  ],
+  "limitations": [
+    "This evidence validates sanitized operator-supplied facts; it does not embed raw customer logs or secrets.",
+    "A clean pass requires real non-template external/customer-controlled host input and clean source evidence.",
+    "Local smoke or example-template evidence remains useful for pipeline testing but is not customer proof."
+  ],
+  "placeholder_findings": [],
+  "recommended_next_actions": [
+    "Resolve or explicitly disclose non-clean trial lanes: host_input, team_workspace, why, drift, continuity, required_host_review, customer_host_v2, full_chain_random_repo_release.",
+    "Archive this evidence into readiness history only after confirming the boundary is acceptable."
+  ],
+  "redaction_findings": [],
+  "required_host_findings": [
+    {
+      "id": "host_not_customer_controlled",
+      "path": "$.host_profile.is_customer_controlled",
+      "status": "warning"
+    }
+  ],
+  "schema_version": 1,
+  "selected_repo_ids": [],
+  "sensitive_material_note": "Do not include tokens, .env files, private repository contents, raw database backups, raw model output, or raw customer logs in this evidence.",
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 15,
+    "not_provided": 1,
+    "operator_guided": 2,
+    "pass": 7,
+    "placeholder_findings": 0,
+    "redaction_findings": 0,
+    "required_findings": 1,
+    "selected_repositories": 0,
+    "warning": 8
+  },
+  "version_label": "customer-host-trial-2026-07-15"
+}

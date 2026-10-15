@@ -1,0 +1,12 @@
+[
+  {
+    "repo": "hynek/structlog",
+    "role": "structured_logging_library",
+    "benchmark_purpose": "Exercise sparse conversion across design documentation, release notes, pull requests, and compatibility trade-offs."
+  },
+  {
+    "repo": "jazzband/pip-tools",
+    "role": "dependency_workflow_tool",
+    "benchmark_purpose": "Exercise decision conversion across resolver changes, reproducibility trade-offs, migration notes, issues, and pull requests."
+  }
+]

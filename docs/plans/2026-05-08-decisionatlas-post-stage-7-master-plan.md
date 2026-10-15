@@ -107,3 +107,13 @@ DecisionAtlas 已经从“搭建能力”进入“优化可靠性、可解释性
 - self-hosted 部署可以按文档在非本人机器上跑通。
 - 对外销售边界清楚：Community 免费试用、Team 年度授权、Enterprise 私有部署和支持。
 - 后续计划是“优化主线”，不是重复上一轮阶段目标。
+
+## 2026-07-15 实施校准
+
+本计划中“收敛对外交付”和“固化真实验证”已经推进到本地隔离宿主试用阶段，但尚未完成客户控制主机证明：
+
+- 已完成真实公共仓库导入、Chrome 核心页面链路、release evidence、hosted readiness、benchmark comparison 和 readiness history 的可重复输出。
+- hosted URL、客户控制 VM、真实团队账号分工、私有仓库 token、外部恢复演练仍是未完成的交付条件。
+- 因此下一阶段不是扩展 billing、多租户或 Marketplace，而是用独立 VM/测试服务器完成一次不带模板标记的 external customer-host proof。
+- 新鲜仓库尚无 accepted baseline，Why/Drift 的 `review_required` 是预期保护行为；应先接受少量高质量决策，再测 warning reduction。
+- live benchmark 仍存在 n8n 失败 profile，必须先定位原因再决定修复或阈值调整。

@@ -1,0 +1,226 @@
+{
+  "artifacts": {
+    "benchmark_comparison": {
+      "json": "benchmark_comparison.json",
+      "markdown": "benchmark_comparison.md",
+      "source_json_path": ".tmp/monotonic-value-outcomes-comparison.json",
+      "source_markdown_path": ".tmp/monotonic-value-outcomes-comparison.md"
+    },
+    "code_decision_audit": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_customer_host_rehearsal_v2": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "external_install_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "hosted_readiness": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "random_repo_warning_lane_reduction": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_continuity_rehearsal": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "real_external_host_trial_evidence": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    },
+    "release_evidence": {
+      "json": "release_evidence.json",
+      "markdown": "release_evidence.md",
+      "source_json_path": ".tmp/monotonic-value-outcomes-release-evidence.json",
+      "source_markdown_path": ".tmp/monotonic-value-outcomes-release-evidence.md"
+    },
+    "team_handoff": {
+      "json": null,
+      "markdown": null,
+      "source_json_path": null,
+      "source_markdown_path": null
+    }
+  },
+  "commit": "ae9b7b8",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "fresh_public_repo_import_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 10,
+    "operator_guided": 0,
+    "random_repo_warning_classified_lanes": 0,
+    "random_repo_warning_external_dependency": 0,
+    "random_repo_warning_product_controlled": 0,
+    "real_continuity_blockers": 0,
+    "real_external_host_trial_blockers": 0,
+    "real_external_host_trial_placeholder_findings": 0,
+    "warnings": 0
+  },
+  "created_at": "2026-07-15T14:26:00+08:00",
+  "entry_id": "2026-07-15-monotonic-value-outcomes",
+  "families": {
+    "benchmark_comparison": {
+      "comparison_type": "real-repo-benchmark-regression",
+      "generated_at": "2026-07-15T05:48:07.031026+00:00",
+      "improved": 0,
+      "label": "Benchmark comparison",
+      "movements": {
+        "improved": 0,
+        "missing-from-current": 0,
+        "needs-review": 0,
+        "newly-evaluated": 4,
+        "operationally-blocked": 0,
+        "product-limited": 0,
+        "regressed": 0,
+        "unchanged": 1
+      },
+      "operationally_blocked": 0,
+      "regressed": 0,
+      "release_evidence_ready": true,
+      "repositories": 5,
+      "source_markdown_path": ".tmp/monotonic-value-outcomes-comparison.md",
+      "source_path": ".tmp/monotonic-value-outcomes-comparison.json",
+      "sparse_improved": 0,
+      "sparse_not_provided": 5,
+      "sparse_operationally_blocked": 0,
+      "sparse_regressed": 0,
+      "status": "passed"
+    },
+    "code_decision_audit": {
+      "label": "Code Decision Audit",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_customer_host_rehearsal_v2": {
+      "host_proof_level": "not_provided",
+      "label": "External customer-host rehearsal v2",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "external_install_evidence": {
+      "label": "External install evidence",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "fresh_public_repo_import_rehearsal": {
+      "fresh_import": false,
+      "label": "Fresh public repo import rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "full_chain_random_repo_release_rehearsal": {
+      "label": "Full-chain random repo release rehearsal",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "hosted_readiness": {
+      "label": "Hosted readiness",
+      "public_walkthrough_status": "not_provided",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "random_repo_warning_lane_reduction": {
+      "label": "Random repo warning lane reduction",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_continuity_rehearsal": {
+      "label": "Real continuity rehearsal",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "real_external_host_trial_evidence": {
+      "host_proof_level": "not_provided",
+      "label": "Real external host trial evidence",
+      "selected_repo_ids": [],
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    },
+    "release_evidence": {
+      "advisory_signal_statuses": {
+        "governance_guardrail": "passed",
+        "real_repo_benchmark_comparison": "passed",
+        "targeted_tests": "passed",
+        "trend_comparison": "passed"
+      },
+      "blocker_count": 0,
+      "generated_at": "2026-07-15T14:25:00+08:00",
+      "label": "Release evidence",
+      "missing_input_count": 0,
+      "missing_inputs": [],
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "required_gate_statuses": {
+        "canonical_pre_release": "passed",
+        "offline_benchmark_validation": "passed",
+        "openspec_strict_validation": "passed"
+      },
+      "source_markdown_path": ".tmp/monotonic-value-outcomes-release-evidence.md",
+      "source_path": ".tmp/monotonic-value-outcomes-release-evidence.json",
+      "status": "passed",
+      "warning_count": 0,
+      "warnings": []
+    },
+    "team_handoff": {
+      "label": "Team handoff",
+      "source_markdown_path": null,
+      "source_path": null,
+      "status": "not_provided"
+    }
+  },
+  "label": "monotonic-value-outcomes",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "benchmark-value-outcomes-2026-07-15",
+  "warnings": []
+}

@@ -95,7 +95,7 @@ export function LiveAnalysisForm() {
   }
 
   return (
-    <form className="stack" onSubmit={handleSubmit}>
+    <form className="stack repository-import-flow" onSubmit={handleSubmit}>
       <label htmlFor="live-analysis-repo">
         <strong>{messages.liveAnalysis.label}</strong>
       </label>
@@ -111,8 +111,20 @@ export function LiveAnalysisForm() {
       </button>
       <p>{messages.liveAnalysis.helper}</p>
       {lookupLoading ? <p>{messages.liveAnalysis.lookupLoading}</p> : null}
+      {lookup && !lookup.workspace_exists ? (
+        <div className="card">
+          <p className="eyebrow">Access check</p>
+          <h3>{lookup.access_source_label ?? lookup.repo}</h3>
+          <p className="muted">
+            {lookupAccessStatus ? `Access source status: ${lookupAccessStatus}` : "No existing workspace found. Ready for first import when access requirements are satisfied."}
+          </p>
+          {lookupAccessRequirement ? <p>{lookupAccessRequirement}</p> : null}
+          {lookup.access_requirement_detail ? <p>{lookup.access_requirement_detail}</p> : null}
+        </div>
+      ) : null}
       {lookup?.workspace_exists && lookup.workspace_slug ? (
         <div className="stack" style={{ border: "1px solid currentColor", borderRadius: "1rem", padding: "1rem" }}>
+          <p className="eyebrow">Existing workspace</p>
           <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
             {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
@@ -147,8 +159,6 @@ export function LiveAnalysisForm() {
           </div>
         </div>
       ) : null}
-      {!lookup?.workspace_exists && lookupAccessRequirement ? <p>{lookupAccessRequirement}</p> : null}
-      {!lookup?.workspace_exists && lookup?.access_requirement_detail ? <p>{lookup.access_requirement_detail}</p> : null}
       {message ? <p>{message}</p> : null}
     </form>
   );

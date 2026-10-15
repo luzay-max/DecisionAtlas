@@ -23,6 +23,7 @@ describe("QueryForm", () => {
         supporting_context: [],
         citations: [
           {
+            decision_id: 1,
             quote: "We decided to use Redis as cache",
             url: "https://github.com/org/repo/issues/1"
           }
@@ -41,6 +42,10 @@ describe("QueryForm", () => {
     expect(screen.getByText(/Demo Workspace/i)).toBeInTheDocument();
     expect(screen.getByText("Status:")).toBeInTheDocument();
     expect(screen.getByText("We decided to use Redis as cache")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open decision detail" })).toHaveAttribute(
+      "href",
+      "/decisions/1?workspace=demo-workspace"
+    );
     expect(screen.getByRole("link", { name: "Continue to timeline" })).toHaveAttribute(
       "href",
       "/timeline?workspace=demo-workspace"

@@ -11,6 +11,7 @@ import {
 } from "../../lib/api";
 import { AdminOnly, ReviewOnly } from "../auth/role-gate";
 import { useI18n } from "../i18n/language-provider";
+import { GlobalSidebar } from "../navigation/global-sidebar";
 
 const documentTypes = [
   "standard",
@@ -131,8 +132,10 @@ export function GovernancePageContent({
   }
 
   return (
-    <main className="home">
-      <div className="panel stack">
+    <>
+      <GlobalSidebar />
+      <main className="page-with-sidebar">
+        <div className="panel stack">
         <p className="eyebrow">{messages.governance.eyebrow}</p>
         <h1>{messages.governance.title}</h1>
         <p className="lede">{messages.governance.lede}</p>
@@ -255,7 +258,8 @@ export function GovernancePageContent({
           })}
         </section>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

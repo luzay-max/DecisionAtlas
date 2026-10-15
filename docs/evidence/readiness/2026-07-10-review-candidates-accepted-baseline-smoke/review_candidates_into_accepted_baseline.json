@@ -1,0 +1,59 @@
+{
+  "accepted_decisions": [
+    {
+      "candidate_quality": null,
+      "confidence": 0.95,
+      "id": 241,
+      "review_state": "accepted",
+      "title": "Don't use windows legacy terminal support when ctypes is not available"
+    }
+  ],
+  "after": {
+    "accepted_count": 1,
+    "candidate_count": 34
+  },
+  "base_url": "http://127.0.0.1:3001",
+  "before": {
+    "accepted_count": 0,
+    "candidate_count": 35
+  },
+  "errors": [],
+  "evidence_type": "review-candidates-into-accepted-baseline",
+  "generated_at": "2026-07-10T09:14:16.0717494+08:00",
+  "limitations": [
+    "Dry-run mode does not mutate review state.",
+    "Confirmed mode accepts only the bounded candidate prefix returned by the existing review API order.",
+    "This evidence stores decision IDs/titles and bounded metadata only; do not include secrets or raw private source."
+  ],
+  "max_accept": 1,
+  "mode": "confirmed_accept",
+  "next_action": "rerun_core_loop_baseline_evidence",
+  "review_rationale": "Accepted as a source-backed baseline seed for rich why/drift validation.",
+  "schema_version": 1,
+  "selected_candidates": [
+    {
+      "candidate_quality": {
+        "confidence_bucket": "high",
+        "has_primary_artifact": true,
+        "has_source_url": true,
+        "label": "strong",
+        "previewable_source_ref_count": 3,
+        "reasons": [
+          "multiple_source_refs",
+          "previewable_quote",
+          "artifact_provenance",
+          "source_url_available",
+          "high_confidence"
+        ],
+        "source_ref_count": 3,
+        "summary": "Multiple grounded refs with previewable evidence, provenance, and source URL support."
+      },
+      "confidence": 0.95,
+      "id": 241,
+      "review_state": "candidate",
+      "title": "Don't use windows legacy terminal support when ctypes is not available"
+    }
+  ],
+  "status": "pass",
+  "workspace_slug": "github-textualize-rich"
+}
