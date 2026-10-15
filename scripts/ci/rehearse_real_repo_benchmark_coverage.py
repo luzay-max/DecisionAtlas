@@ -7,6 +7,7 @@ from pathlib import Path
 import random
 import sys
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -45,6 +46,18 @@ def _display_path(path: Path, root: Path) -> str:
         return path.resolve().relative_to(root.resolve()).as_posix()
     except ValueError:
         return str(path)
+
+
+def _safe_base_url(value: str) -> str:
+    parsed = urlsplit(value)
+    if not parsed.scheme or not parsed.hostname:
+        return "not_provided"
+    host = f"[{parsed.hostname}]" if ":" in parsed.hostname else parsed.hostname
+    try:
+        port = f":{parsed.port}" if parsed.port is not None else ""
+    except ValueError:
+        port = ""
+    return urlunsplit((parsed.scheme, f"{host}{port}", parsed.path.rstrip("/"), "", ""))
 
 
 def _markdown_cell(value: Any) -> str:
@@ -216,7 +229,7 @@ def build_rehearsal(
         "label": label,
         "status": status,
         "mode": "live" if live else "offline",
-        "base_url": base_url if live else None,
+        "base_url": _safe_base_url(base_url) if live else None,
         "selected_repo_ids": selected_repo_ids,
         "random_selection": {"enabled": random_count is not None, "count": random_count, "seed": random_seed},
         "live_status": live_status,
@@ -237,6 +250,10 @@ def build_rehearsal(
             "missing_repositories": trend.get("summary", {}).get("missing_repositories", 0),
             "regressed": trend.get("summary", {}).get("regressed", 0),
             "operationally_blocked": trend.get("summary", {}).get("operationally_blocked", 0),
+            "sparse_improved": trend.get("summary", {}).get("sparse_improved", 0),
+            "sparse_regressed": trend.get("summary", {}).get("sparse_regressed", 0),
+            "sparse_operationally_blocked": trend.get("summary", {}).get("sparse_operationally_blocked", 0),
+            "sparse_not_provided": trend.get("summary", {}).get("sparse_not_provided", 0),
             "operator_guided_repositories": trend.get("summary", {}).get("operator_guided_repositories", 0),
         },
         "comparison_summary": comparison.get("summary") or {},
@@ -269,6 +286,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Missing repositories: `{summary.get('missing_repositories', 0)}`",
         f"- Regressed: `{summary.get('regressed', 0)}`",
         f"- Operationally blocked: `{summary.get('operationally_blocked', 0)}`",
+        f"- Sparse improved/regressed/blocked/not provided: `{summary.get('sparse_improved', 0)}/{summary.get('sparse_regressed', 0)}/{summary.get('sparse_operationally_blocked', 0)}/{summary.get('sparse_not_provided', 0)}`",
         "",
         "## Artifacts",
         "",

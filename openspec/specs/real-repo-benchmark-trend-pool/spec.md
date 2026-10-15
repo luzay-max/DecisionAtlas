@@ -3,9 +3,7 @@
 ## Purpose
 
 Fixed-pool real repository benchmark trend evidence for release rehearsals and team handoff.
-
 ## Requirements
-
 ### Requirement: Fixed real repository trend pool
 The system SHALL define a source-controlled fixed real repository trend pool that identifies the public repositories expected in release benchmark trend evidence.
 
@@ -15,7 +13,7 @@ The system SHALL define a source-controlled fixed real repository trend pool tha
 
 #### Scenario: Pool records release intent
 - **WHEN** an operator opens the fixed trend pool
-- **THEN** each repository entry MUST include a stable id, repository name, workspace slug, release role, benchmark purpose, priority, and operator setup status
+- **THEN** each repository entry MUST include a stable id, repository name, workspace slug, release role, benchmark purpose, priority, operator setup status, a bounded repository profile, and sparse-conversion expectations
 
 ### Requirement: Benchmark trend evidence generation
 The system SHALL generate benchmark trend evidence from the fixed repository pool and an optional benchmark comparison JSON file.
@@ -60,3 +58,14 @@ Fixed-pool benchmark trend evidence SHALL be usable as the final evidence layer 
 #### Scenario: Rehearsal summarizes trend warning
 - **WHEN** the generated trend evidence has warning status
 - **THEN** the rehearsal summary MUST preserve that warning and include trend follow-up guidance
+
+### Requirement: Benchmark trend pool supports diagnosis rotation
+The real-repo benchmark trend pool SHALL be usable for multi-repo live diagnosis selection.
+
+#### Scenario: Diagnosis reads the pool
+- **WHEN** the diagnosis script loads the trend pool
+- **THEN** it SHALL use repository id, repo identity, workspace slug, priority, and setup status to select and label real repository diagnosis rows.
+
+#### Scenario: Unknown repository is requested
+- **WHEN** an operator requests a repository id not present in the pool
+- **THEN** the diagnosis SHALL fail with a clear error instead of silently skipping it.

@@ -1,0 +1,190 @@
+{
+  "blockers": [],
+  "commit": null,
+  "evidence_type": "real-external-host-trial-evidence",
+  "generated_at": "2026-07-04T00:16:00+00:00",
+  "host_input_path": "templates/external-customer-host-rehearsal-v2.example.json",
+  "host_proof_level": "template_or_placeholder",
+  "label": "2026-07-04-real-repo-core-loop-quality-smoke",
+  "lanes": [
+    {
+      "id": "host_input",
+      "label": "Sanitized host input",
+      "source_path": "templates/external-customer-host-rehearsal-v2.example.json",
+      "status": "pass",
+      "summary": {
+        "browser_smoke_status": "pass",
+        "commit": "fill-me",
+        "deployment_mode": "docker-compose",
+        "host_class": "customer-vm",
+        "is_customer_controlled": true,
+        "operator": "customer-or-operator-name",
+        "os_family": "Windows Server or Linux",
+        "package_label": "decisionatlas-self-hosted",
+        "required_finding_count": 0,
+        "version_label": "fill-me"
+      },
+      "warnings": []
+    },
+    {
+      "id": "placeholder_review",
+      "label": "Placeholder/template review",
+      "source_path": null,
+      "status": "warning",
+      "summary": {
+        "finding_count": 8,
+        "finding_ids": [
+          "fill_me",
+          "customer_or_operator_name",
+          "fill_me",
+          "fill_me",
+          "optional_placeholder",
+          "customer_or_operator_name",
+          "customer_or_operator_name",
+          "replace_sample"
+        ]
+      },
+      "warnings": [
+        "fill_me",
+        "customer_or_operator_name",
+        "fill_me",
+        "fill_me",
+        "optional_placeholder",
+        "customer_or_operator_name",
+        "customer_or_operator_name",
+        "replace_sample"
+      ]
+    },
+    {
+      "id": "required_host_review",
+      "label": "Required host field review",
+      "source_path": null,
+      "status": "pass",
+      "summary": {
+        "finding_count": 0,
+        "finding_ids": []
+      },
+      "warnings": []
+    },
+    {
+      "id": "customer_host_v2",
+      "label": "Customer-host v2",
+      "source_path": ".tmp/external-customer-host-rehearsal-v2.json",
+      "status": "warning",
+      "summary": {
+        "blocker_count": 0,
+        "blocking": 0,
+        "host_proof_level": "customer_controlled_with_browser_smoke",
+        "limitations": [
+          "Replace this sample with real customer-host observations before handoff.",
+          "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+        ],
+        "not_provided": 0,
+        "operator_guided": 0,
+        "pass": 3,
+        "status": "warning",
+        "warning": 4
+      },
+      "warnings": []
+    },
+    {
+      "id": "full_chain_random_repo_release",
+      "label": "Full-chain random repo release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "blocker_count": 0,
+        "blocking": 0,
+        "limitations": [
+          "This bundle composes bounded evidence; it does not embed raw logs, secrets, or private repository content.",
+          "Random real repository diagnosis depends on local stack, GitHub, and provider availability.",
+          "Customer-host proof is only as strong as the supplied customer-host v2 evidence."
+        ],
+        "not_provided": 0,
+        "operator_guided": 0,
+        "pass": 1,
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "status": "warning",
+        "warning": 4
+      },
+      "warnings": []
+    }
+  ],
+  "limitations": [
+    "This evidence validates sanitized operator-supplied facts; it does not embed raw customer logs or secrets.",
+    "A clean pass requires real non-template external/customer-controlled host input and clean source evidence.",
+    "Local smoke or example-template evidence remains useful for pipeline testing but is not customer proof."
+  ],
+  "placeholder_findings": [
+    {
+      "id": "fill_me",
+      "path": "$.host_profile.os_version",
+      "status": "warning"
+    },
+    {
+      "id": "customer_or_operator_name",
+      "path": "$.host_profile.operator",
+      "status": "warning"
+    },
+    {
+      "id": "fill_me",
+      "path": "$.package_identity.version_label",
+      "status": "warning"
+    },
+    {
+      "id": "fill_me",
+      "path": "$.package_identity.commit",
+      "status": "warning"
+    },
+    {
+      "id": "optional_placeholder",
+      "path": "$.package_identity.package_manifest_sha256",
+      "status": "warning"
+    },
+    {
+      "id": "customer_or_operator_name",
+      "path": "$.browser_smoke.operator",
+      "status": "warning"
+    },
+    {
+      "id": "customer_or_operator_name",
+      "path": "$.redaction_acknowledgement.reviewer",
+      "status": "warning"
+    },
+    {
+      "id": "replace_sample",
+      "path": "$.limitations[0]",
+      "status": "warning"
+    }
+  ],
+  "recommended_next_actions": [
+    "Replace example/template placeholder values with real sanitized external host observations.",
+    "Resolve or explicitly disclose non-clean trial lanes: placeholder_review, customer_host_v2, full_chain_random_repo_release.",
+    "Archive this evidence into readiness history only after confirming the boundary is acceptable."
+  ],
+  "redaction_findings": [],
+  "required_host_findings": [],
+  "schema_version": 1,
+  "selected_repo_ids": [
+    "n8n",
+    "rich"
+  ],
+  "sensitive_material_note": "Do not include tokens, .env files, private repository contents, raw database backups, raw model output, or raw customer logs in this evidence.",
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 5,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "pass": 2,
+    "placeholder_findings": 8,
+    "redaction_findings": 0,
+    "required_findings": 0,
+    "selected_repositories": 2,
+    "warning": 3
+  },
+  "version_label": null
+}

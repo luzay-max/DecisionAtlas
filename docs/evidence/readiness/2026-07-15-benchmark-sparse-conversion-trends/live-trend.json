@@ -1,0 +1,448 @@
+{
+  "commit": "b2d1874",
+  "comparison_source": {
+    "baseline_generated_at": "2026-05-08T00:00:00+00:00",
+    "comparison_type": "real-repo-benchmark-regression",
+    "current_generated_at": "2026-07-15T04:15:25.165705+00:00",
+    "generated_at": "2026-07-15T04:16:12.950158+00:00",
+    "provided": true
+  },
+  "extra_comparison_repository_ids": [
+    "browser-use"
+  ],
+  "generated_at": "2026-07-15T10:00:00+00:00",
+  "label": "fresh four-profile live sparse conversion",
+  "pool_errors": [],
+  "recommended_follow_up": [
+    "Fixed-pool benchmark trend evidence is clean for the supplied comparison."
+  ],
+  "repositories": [
+    {
+      "baseline_bounded_outcome": null,
+      "baseline_value_outcome": null,
+      "benchmark_purpose": "Compare live sparse conversion behavior for small_sparse.",
+      "coverage_status": "covered",
+      "current_bounded_outcome": "evidence_limited",
+      "current_value_outcome": "evidence_limited",
+      "id": "drisspg-transformer-nuggets",
+      "movement": "newly-evaluated",
+      "operator_setup_status": "ready",
+      "priority": "core",
+      "profile": "small_sparse",
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot.",
+        "New sparse rejection reasons: null_decision"
+      ],
+      "release_role": "fresh small_sparse live benchmark profile",
+      "repo": "drisspg/transformer_nuggets",
+      "sparse_conversion": {
+        "baseline_status": null,
+        "metric_deltas": {
+          "candidate_yield": {
+            "baseline": null,
+            "current": 0.0,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "baseline": null,
+            "current": 26,
+            "delta": null
+          },
+          "normal_attempts": {
+            "baseline": null,
+            "current": 3,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "baseline": null,
+            "current": 0.0,
+            "delta": null
+          },
+          "normal_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "baseline": null,
+            "current": 1,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "baseline": null,
+            "current": 1,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "baseline": null,
+            "current": 1,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "baseline": null,
+            "current": 0.0,
+            "delta": null
+          }
+        },
+        "movement": "newly-evaluated",
+        "reasons": [
+          "New sparse rejection reasons: null_decision"
+        ],
+        "rejection_reason_deltas": {
+          "added": [
+            "null_decision"
+          ],
+          "baseline": [],
+          "current": [
+            "null_decision"
+          ],
+          "removed": []
+        },
+        "status": "exhausted"
+      },
+      "sparse_expectations": {
+        "allow_zero_candidates": true,
+        "expected_statuses": [
+          "skipped",
+          "attempted",
+          "recovered",
+          "exhausted",
+          "not_evaluated"
+        ],
+        "expects_sparse_recovery": true
+      },
+      "workspace_slug": "github-drisspg-transformer-nuggets"
+    },
+    {
+      "baseline_bounded_outcome": null,
+      "baseline_value_outcome": null,
+      "benchmark_purpose": "Compare live sparse conversion behavior for docs_heavy.",
+      "coverage_status": "covered",
+      "current_bounded_outcome": "review_ready",
+      "current_value_outcome": "useful_now",
+      "id": "harbor-framework-terminal-bench-science",
+      "movement": "newly-evaluated",
+      "operator_setup_status": "ready",
+      "priority": "core",
+      "profile": "docs_heavy",
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ],
+      "release_role": "fresh docs_heavy live benchmark profile",
+      "repo": "harbor-framework/terminal-bench-science",
+      "sparse_conversion": {
+        "baseline_status": null,
+        "metric_deltas": {
+          "candidate_yield": {
+            "baseline": null,
+            "current": 0.6744,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "baseline": null,
+            "current": 690,
+            "delta": null
+          },
+          "normal_attempts": {
+            "baseline": null,
+            "current": 43,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "baseline": null,
+            "current": 0.5349,
+            "delta": null
+          },
+          "normal_candidates": {
+            "baseline": null,
+            "current": 23,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "baseline": null,
+            "current": 6,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "baseline": null,
+            "current": null,
+            "delta": null
+          }
+        },
+        "movement": "newly-evaluated",
+        "reasons": [],
+        "rejection_reason_deltas": {
+          "added": [],
+          "baseline": [],
+          "current": [],
+          "removed": []
+        },
+        "status": "skipped"
+      },
+      "sparse_expectations": {
+        "allow_zero_candidates": true,
+        "expected_statuses": [
+          "skipped",
+          "attempted",
+          "recovered",
+          "exhausted",
+          "not_evaluated"
+        ],
+        "expects_sparse_recovery": false
+      },
+      "workspace_slug": "github-harbor-framework-terminal-bench-science"
+    },
+    {
+      "baseline_bounded_outcome": null,
+      "baseline_value_outcome": null,
+      "benchmark_purpose": "Compare live sparse conversion behavior for medium_decision_rich.",
+      "coverage_status": "covered",
+      "current_bounded_outcome": "review_ready",
+      "current_value_outcome": "useful_now",
+      "id": "sirkirby-unifi-mcp",
+      "movement": "newly-evaluated",
+      "operator_setup_status": "ready",
+      "priority": "core",
+      "profile": "medium_decision_rich",
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ],
+      "release_role": "fresh medium_decision_rich live benchmark profile",
+      "repo": "sirkirby/unifi-mcp",
+      "sparse_conversion": {
+        "baseline_status": null,
+        "metric_deltas": {
+          "candidate_yield": {
+            "baseline": null,
+            "current": 0.6892,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "baseline": null,
+            "current": 772,
+            "delta": null
+          },
+          "normal_attempts": {
+            "baseline": null,
+            "current": 74,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "baseline": null,
+            "current": 0.5135,
+            "delta": null
+          },
+          "normal_candidates": {
+            "baseline": null,
+            "current": 38,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "baseline": null,
+            "current": 13,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "baseline": null,
+            "current": null,
+            "delta": null
+          }
+        },
+        "movement": "newly-evaluated",
+        "reasons": [],
+        "rejection_reason_deltas": {
+          "added": [],
+          "baseline": [],
+          "current": [],
+          "removed": []
+        },
+        "status": "skipped"
+      },
+      "sparse_expectations": {
+        "allow_zero_candidates": true,
+        "expected_statuses": [
+          "skipped",
+          "attempted",
+          "recovered",
+          "exhausted",
+          "not_evaluated"
+        ],
+        "expects_sparse_recovery": false
+      },
+      "workspace_slug": "github-sirkirby-unifi-mcp"
+    },
+    {
+      "baseline_bounded_outcome": null,
+      "baseline_value_outcome": null,
+      "benchmark_purpose": "Compare live sparse conversion behavior for stress.",
+      "coverage_status": "covered",
+      "current_bounded_outcome": "evidence_limited",
+      "current_value_outcome": "evidence_limited",
+      "id": "lipu-jpg-openwrite",
+      "movement": "newly-evaluated",
+      "operator_setup_status": "ready",
+      "priority": "stress",
+      "profile": "stress",
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ],
+      "release_role": "fresh stress live benchmark profile",
+      "repo": "LiPu-jpg/Openwrite",
+      "sparse_conversion": {
+        "baseline_status": null,
+        "metric_deltas": {
+          "candidate_yield": {
+            "baseline": null,
+            "current": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "normal_attempts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "baseline": null,
+            "current": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "baseline": null,
+            "current": 0,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "baseline": null,
+            "current": null,
+            "delta": null
+          }
+        },
+        "movement": "newly-evaluated",
+        "reasons": [],
+        "rejection_reason_deltas": {
+          "added": [],
+          "baseline": [],
+          "current": [],
+          "removed": []
+        },
+        "status": "skipped"
+      },
+      "sparse_expectations": {
+        "allow_zero_candidates": true,
+        "expected_statuses": [
+          "skipped",
+          "attempted",
+          "recovered",
+          "exhausted",
+          "not_evaluated"
+        ],
+        "expects_sparse_recovery": true
+      },
+      "workspace_slug": "github-lipu-jpg-openwrite"
+    }
+  ],
+  "schema_version": 1,
+  "sensitive_material_note": "Do not include secrets, private repository contents, raw model output, or unnecessary local-only logs in benchmark trend evidence.",
+  "status": "pass",
+  "summary": {
+    "covered_repositories": 4,
+    "extra_comparison_repositories": 1,
+    "improved": 0,
+    "missing_from_current": 0,
+    "missing_repositories": 0,
+    "movements": {
+      "newly-evaluated": 4
+    },
+    "not_provided_repositories": 0,
+    "operationally_blocked": 0,
+    "operator_guided_repositories": 0,
+    "regressed": 0,
+    "release_evidence_ready": true,
+    "repositories": 4,
+    "sparse_improved": 0,
+    "sparse_not_provided": 0,
+    "sparse_operationally_blocked": 0,
+    "sparse_regressed": 0
+  },
+  "version_label": "2026-07-15-live"
+}

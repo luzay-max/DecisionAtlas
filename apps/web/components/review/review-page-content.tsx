@@ -4,9 +4,11 @@ import React from "react";
 
 import { ReviewDecision } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
-import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
+import { GlobalSidebar } from "../navigation/global-sidebar";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
+import { ReviewAuditPanel } from "./review-audit-panel";
 import { ReviewList } from "./review-list";
+import { WorkspaceContextBanner } from "../navigation/workspace-context-banner";
 import { useI18n } from "../i18n/language-provider";
 
 export function ReviewPageContent({
@@ -19,32 +21,62 @@ export function ReviewPageContent({
   const { messages } = useI18n();
   const inferredWorkspaceMode = workspaceSlug === "demo-workspace" ? "demo" : "imported";
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
+  const precisionCounts = decisions.reduce(
+    (counts, decision) => {
+      const tier = decision.candidate_ranking?.tier;
+      if (tier === "strong" || tier === "partial" || tier === "weak") {
+        counts[tier] += 1;
+      }
+      if (decision.candidate_ranking && !decision.candidate_ranking.is_representative) {
+        counts.duplicates += 1;
+      }
+      return counts;
+    },
+    { strong: 0, partial: 0, weak: 0, duplicates: 0 }
+  );
 
   return (
-    <main className="page-shell">
-      <section className="panel">
-        <DemoWorkspaceNav workspaceSlug={workspaceSlug} currentPath="/review" />
-        <p className="eyebrow">{messages.review.eyebrow}</p>
-        <h1>{messages.review.title}</h1>
-        <p>{messages.review.lede}</p>
-        <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} />
-        {isGuidedDemoWorkspace ? (
-          <GuidedDemoPanel
-            step={2}
-            total={messages.guidedDemo.steps.length}
-            title={messages.guidedDemo.reviewTitle}
-            description={messages.guidedDemo.reviewDescription}
-            steps={messages.guidedDemo.steps}
-            status={messages.review.contextDemo}
+    <>
+      <GlobalSidebar workspaceSlug={workspaceSlug} />
+      <main className="page-with-sidebar">
+        <section className="panel">
+          <WorkspaceContextBanner
+            workspaceSlug={workspaceSlug}
+            current="Review queue"
+            description="Candidate decisions that need human acceptance, rejection, or supersession."
           />
-        ) : decisions.length > 0 ? (
-          <div className="callout">
-            <p className="eyebrow">{messages.review.candidateDecision}</p>
-            <p>{messages.review.importedGuidance}</p>
-          </div>
-        ) : null}
-        <ReviewList decisions={decisions} workspaceSlug={workspaceSlug} />
-      </section>
-    </main>
+          <p className="eyebrow">{messages.review.eyebrow}</p>
+          <h1>{messages.review.title}</h1>
+          <p>{messages.review.lede}</p>
+          <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} />
+          {!isGuidedDemoWorkspace && decisions.length > 0 ? (
+            <div className="callout" aria-label="Candidate precision summary">
+              <p>{messages.review.precisionSummary
+                .replace("{strong}", String(precisionCounts.strong))
+                .replace("{partial}", String(precisionCounts.partial))
+                .replace("{weak}", String(precisionCounts.weak))
+                .replace("{duplicates}", String(precisionCounts.duplicates))}</p>
+            </div>
+          ) : null}
+          <ReviewAuditPanel decisions={decisions} />
+          {isGuidedDemoWorkspace ? (
+            <GuidedDemoPanel
+              step={2}
+              total={messages.guidedDemo.steps.length}
+              title={messages.guidedDemo.reviewTitle}
+              description={messages.guidedDemo.reviewDescription}
+              steps={messages.guidedDemo.steps}
+              status={messages.review.contextDemo}
+            />
+          ) : decisions.length > 0 ? (
+            <div className="callout">
+              <p className="eyebrow">{messages.review.candidateDecision}</p>
+              <p>{messages.review.importedGuidance}</p>
+            </div>
+          ) : null}
+          <ReviewList decisions={decisions} workspaceSlug={workspaceSlug} />
+        </section>
+      </main>
+    </>
   );
 }

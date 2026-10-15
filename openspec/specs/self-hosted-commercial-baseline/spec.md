@@ -1,7 +1,7 @@
 # self-hosted-commercial-baseline Specification
 
 ## Purpose
-TBD - created by archiving change package-self-hosted-commercial-baseline. Update Purpose after archive.
+Documents the self-hosted product tier boundaries, deployment setup path, credential handling, support expectations, and commercial handoff requirements for Community, Team, and Enterprise self-hosted customers.
 ## Requirements
 ### Requirement: Self-hosted product tiers are documented
 The system SHALL document a self-hosted product packaging baseline with clear Community, Team Self-hosted, and Enterprise Self-hosted boundaries.

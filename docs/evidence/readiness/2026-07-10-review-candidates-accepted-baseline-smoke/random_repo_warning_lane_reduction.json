@@ -1,0 +1,787 @@
+{
+  "classified_lanes": [
+    {
+      "accepted_baseline": {
+        "accepted_count": 7,
+        "accepted_sample_titles": [
+          "Narrow QueryFailedError handling to only duplicate-key violations in addWebhooks()",
+          "Use GitHub App token for release candidate branch operations",
+          "Remove prerelease tag manually when promoting GitHub releases to latest"
+        ],
+        "candidate_count": 72,
+        "candidate_sample_titles": [
+          "Add consistent basePath handling for subpath deployments",
+          "Execute sub-agent engine requests in-process with recursion limits",
+          "Rename 'fs-proxy' and 'Local Gateway' to 'Computer Use'"
+        ],
+        "next_action": "accepted_baseline_ready",
+        "status": "present",
+        "strength": "established"
+      },
+      "category": "product_controlled",
+      "grounding": {
+        "reason_codes": [],
+        "warning_lanes_with_grounding": 0
+      },
+      "id": "multi_repo_diagnosis:n8n",
+      "label": "n8n",
+      "lane_id": "n8n",
+      "rationale": "source action categories include product-controlled core-loop work",
+      "source_id": "multi_repo_diagnosis",
+      "source_path": ".tmp/multi-repo-live-diagnosis.json",
+      "status": "warning",
+      "summary": {
+        "accepted_baseline": {
+          "accepted_count": 7,
+          "accepted_sample_titles": [
+            "Narrow QueryFailedError handling to only duplicate-key violations in addWebhooks()",
+            "Use GitHub App token for release candidate branch operations",
+            "Remove prerelease tag manually when promoting GitHub releases to latest"
+          ],
+          "candidate_count": 72,
+          "candidate_sample_titles": [
+            "Add consistent basePath handling for subpath deployments",
+            "Execute sub-agent engine requests in-process with recursion limits",
+            "Rename 'fs-proxy' and 'Local Gateway' to 'Computer Use'"
+          ],
+          "next_action": "accepted_baseline_ready",
+          "status": "present",
+          "strength": "established"
+        },
+        "action_categories": {
+          "blocking": 0,
+          "external_dependency": 0,
+          "not_provided": 0,
+          "operator_setup": 0,
+          "product_controlled": 1
+        },
+        "core_loop_status": "warning",
+        "core_loop_summary": {
+          "accepted_baseline": {
+            "accepted_count": 7,
+            "accepted_sample_titles": [
+              "Narrow QueryFailedError handling to only duplicate-key violations in addWebhooks()",
+              "Use GitHub App token for release candidate branch operations",
+              "Remove prerelease tag manually when promoting GitHub releases to latest"
+            ],
+            "candidate_count": 72,
+            "candidate_sample_titles": [
+              "Add consistent basePath handling for subpath deployments",
+              "Execute sub-agent engine requests in-process with recursion limits",
+              "Rename 'fs-proxy' and 'Local Gateway' to 'Computer Use'"
+            ],
+            "next_action": "accepted_baseline_ready",
+            "status": "present",
+            "strength": "established"
+          },
+          "action_categories": {
+            "blocking": 0,
+            "external_dependency": 0,
+            "not_provided": 0,
+            "operator_setup": 0,
+            "product_controlled": 1
+          },
+          "blocking_lanes": 0,
+          "grounding_summary": {
+            "reason_codes": [],
+            "warning_lanes_with_grounding": 0
+          },
+          "pass_lanes": 5,
+          "setup_waiting": false,
+          "warning_lanes": 1
+        },
+        "grounding_summary": {
+          "reason_codes": [],
+          "warning_lanes_with_grounding": 0
+        },
+        "id": "n8n",
+        "import_rehearsal": {
+          "error": null,
+          "setup": {
+            "benchmark_ready": true,
+            "next_action": "run_benchmark",
+            "outcome": "reused"
+          }
+        },
+        "lane_reasons": {},
+        "lane_statuses": {
+          "dashboard": "pass",
+          "drift": "pass",
+          "guardrail": "warning",
+          "review": "pass",
+          "setup": "pass",
+          "why_search": "pass"
+        },
+        "operator_setup_status": "operator_guided",
+        "priority": "stress",
+        "recommended_next_actions": [
+          "evaluate_or_monitor_drift",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "repo": "n8n-io/n8n",
+        "setup_outcome": "reused",
+        "status": "warning",
+        "workspace_slug": "github-n8n-io-n8n"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": {
+        "accepted_count": 1,
+        "accepted_sample_titles": [
+          "Don't use windows legacy terminal support when ctypes is not available"
+        ],
+        "candidate_count": 34,
+        "candidate_sample_titles": [
+          "Fix infinite loop in split_graphemes with ANSI escape sequences",
+          "Fix FORCE_COLOR making console interactive in CI environments",
+          "Added customization to the illegal_choice_message"
+        ],
+        "next_action": "accepted_baseline_ready",
+        "status": "present",
+        "strength": "thin"
+      },
+      "category": "product_controlled",
+      "grounding": {
+        "reason_codes": [
+          "weak_why_support"
+        ],
+        "warning_lanes_with_grounding": 1
+      },
+      "id": "multi_repo_diagnosis:rich",
+      "label": "rich",
+      "lane_id": "rich",
+      "rationale": "source action categories include product-controlled core-loop work",
+      "source_id": "multi_repo_diagnosis",
+      "source_path": ".tmp/multi-repo-live-diagnosis.json",
+      "status": "warning",
+      "summary": {
+        "accepted_baseline": {
+          "accepted_count": 1,
+          "accepted_sample_titles": [
+            "Don't use windows legacy terminal support when ctypes is not available"
+          ],
+          "candidate_count": 34,
+          "candidate_sample_titles": [
+            "Fix infinite loop in split_graphemes with ANSI escape sequences",
+            "Fix FORCE_COLOR making console interactive in CI environments",
+            "Added customization to the illegal_choice_message"
+          ],
+          "next_action": "accepted_baseline_ready",
+          "status": "present",
+          "strength": "thin"
+        },
+        "action_categories": {
+          "blocking": 0,
+          "external_dependency": 0,
+          "not_provided": 0,
+          "operator_setup": 0,
+          "product_controlled": 2
+        },
+        "core_loop_status": "warning",
+        "core_loop_summary": {
+          "accepted_baseline": {
+            "accepted_count": 1,
+            "accepted_sample_titles": [
+              "Don't use windows legacy terminal support when ctypes is not available"
+            ],
+            "candidate_count": 34,
+            "candidate_sample_titles": [
+              "Fix infinite loop in split_graphemes with ANSI escape sequences",
+              "Fix FORCE_COLOR making console interactive in CI environments",
+              "Added customization to the illegal_choice_message"
+            ],
+            "next_action": "accepted_baseline_ready",
+            "status": "present",
+            "strength": "thin"
+          },
+          "action_categories": {
+            "blocking": 0,
+            "external_dependency": 0,
+            "not_provided": 0,
+            "operator_setup": 0,
+            "product_controlled": 2
+          },
+          "blocking_lanes": 0,
+          "grounding_summary": {
+            "reason_codes": [
+              "weak_why_support"
+            ],
+            "warning_lanes_with_grounding": 1
+          },
+          "pass_lanes": 4,
+          "setup_waiting": false,
+          "warning_lanes": 2
+        },
+        "grounding_summary": {
+          "reason_codes": [
+            "weak_why_support"
+          ],
+          "warning_lanes_with_grounding": 1
+        },
+        "id": "rich",
+        "import_rehearsal": {
+          "error": null,
+          "setup": {
+            "benchmark_ready": true,
+            "next_action": "run_benchmark",
+            "outcome": "reused"
+          }
+        },
+        "lane_reasons": {
+          "why_search": [
+            {
+              "code": "weak_why_support",
+              "evidence": {
+                "accepted_baseline_status": "present",
+                "accepted_decision_count": 1,
+                "answer_status": "evidence_limited",
+                "citation_count": 0,
+                "primary_decision_present": true,
+                "workspace_mode": "imported"
+              },
+              "lane": "why_search",
+              "next_action": "improve_accepted_decision_evidence",
+              "summary": "Why-search returned weak support or insufficient citations."
+            }
+          ]
+        },
+        "lane_statuses": {
+          "dashboard": "pass",
+          "drift": "pass",
+          "guardrail": "warning",
+          "review": "pass",
+          "setup": "pass",
+          "why_search": "warning"
+        },
+        "operator_setup_status": "operator_guided",
+        "priority": "secondary",
+        "recommended_next_actions": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "repo": "Textualize/rich",
+        "setup_outcome": "reused",
+        "status": "warning",
+        "workspace_slug": "github-textualize-rich"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "full_chain_random_repo_release:multi_repo_diagnosis",
+      "label": "Random real GitHub repositories",
+      "lane_id": "multi_repo_diagnosis",
+      "rationale": "aggregate release lane duplicates multi-repo source details; inspect direct repository lanes for product work",
+      "source_id": "full_chain_random_repo_release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "blocking": 0,
+        "pass": 0,
+        "recommended_follow_up": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "selected_repositories": 2,
+        "status": "warning",
+        "warning": 2
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "full_chain_random_repo_release:release_rehearsal",
+      "label": "Release rehearsal",
+      "lane_id": "release_rehearsal",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "full_chain_random_repo_release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "generated_paths": {},
+        "recommended_follow_up": [
+          "Complete or explicitly disclose operator-guided release rehearsal lanes.",
+          "Review operator-guided repository setup status during release rehearsal.",
+          "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations.",
+          "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 7,
+          "missing_lanes": 0,
+          "operator_guided_lanes": 1,
+          "pass": 2,
+          "warning": 5
+        }
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "full_chain_random_repo_release:customer_host_v2",
+      "label": "Customer-host v2",
+      "lane_id": "customer_host_v2",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "full_chain_random_repo_release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "host_proof_level": "customer_controlled_with_browser_smoke",
+        "limitations": [
+          "Replace this sample with real customer-host observations before handoff.",
+          "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 7,
+          "not_provided": 0,
+          "operator_guided": 0,
+          "pass": 3,
+          "warning": 4
+        }
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "full_chain_random_repo_release:readiness_history",
+      "label": "Readiness history",
+      "lane_id": "readiness_history",
+      "rationale": "readiness history preserves prior non-clean evidence and should be reviewed as release context",
+      "source_id": "full_chain_random_repo_release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "entry_count": 11,
+        "latest_entry_id": "2026-07-08-accepted-decision-baseline-smoke",
+        "status": "warning"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "release_rehearsal:hosted_readiness",
+      "label": "Hosted/operator readiness",
+      "lane_id": "hosted_readiness",
+      "rationale": "source lane requires operator/manual proof",
+      "source_id": "release_rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "operator_guided",
+      "summary": {
+        "not_provided_count": 0,
+        "operator_guided_count": 3,
+        "public_walkthrough_status": "operator_guided",
+        "status": "operator_guided"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "release_rehearsal:benchmark_trend",
+      "label": "Benchmark trend",
+      "lane_id": "benchmark_trend",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "release_rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "covered_repositories": 1,
+        "operationally_blocked": 0,
+        "recommended_follow_up": [
+          "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+          "Review operator-guided repository setup status during release rehearsal."
+        ],
+        "regressed": 0,
+        "release_evidence_ready": true,
+        "repositories": 5,
+        "status": "warning"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "release_rehearsal:multi_repo_diagnosis",
+      "label": "Multi-repo live diagnosis",
+      "lane_id": "multi_repo_diagnosis",
+      "rationale": "aggregate release lane duplicates multi-repo source details; inspect direct repository lanes for product work",
+      "source_id": "release_rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "action_categories": {
+          "blocking": 0,
+          "external_dependency": 0,
+          "not_provided": 0,
+          "operator_setup": 0,
+          "product_controlled": 4
+        },
+        "blocking": 0,
+        "pass": 0,
+        "recommended_follow_up": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "selected_repositories": 2,
+        "status": "warning",
+        "warning": 2
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "product_controlled",
+      "grounding": null,
+      "id": "release_rehearsal:guardrail_summary",
+      "label": "Governance guardrail",
+      "lane_id": "guardrail_summary",
+      "rationale": "warning appears reducible through product evidence or workflow improvements",
+      "source_id": "release_rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "error": "Failed to parse JSON from C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\agent-guardrail.json: Expecting value: line 1 column 1 (char 0)",
+        "reason": "source_unreadable"
+      },
+      "warnings": [
+        "Failed to parse JSON from C:\\Users\\Max\\Desktop\\DecisionAtlas\\.tmp\\agent-guardrail.json: Expecting value: line 1 column 1 (char 0)"
+      ]
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "release_rehearsal:readiness_history",
+      "label": "Readiness history",
+      "lane_id": "readiness_history",
+      "rationale": "readiness history preserves prior non-clean evidence and should be reviewed as release context",
+      "source_id": "release_rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "entry_count": 11,
+        "latest_entry_id": "2026-07-08-accepted-decision-baseline-smoke",
+        "status": "warning"
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "real_external_host_trial:placeholder_review",
+      "label": "Placeholder/template review",
+      "lane_id": "placeholder_review",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "real_external_host_trial",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "summary": {
+        "finding_count": 8,
+        "finding_ids": [
+          "fill_me",
+          "customer_or_operator_name",
+          "fill_me",
+          "fill_me",
+          "optional_placeholder",
+          "customer_or_operator_name",
+          "customer_or_operator_name",
+          "replace_sample"
+        ]
+      },
+      "warnings": [
+        "fill_me",
+        "customer_or_operator_name",
+        "fill_me",
+        "fill_me",
+        "optional_placeholder",
+        "customer_or_operator_name",
+        "customer_or_operator_name",
+        "replace_sample"
+      ]
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "real_external_host_trial:customer_host_v2",
+      "label": "Customer-host v2",
+      "lane_id": "customer_host_v2",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "real_external_host_trial",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "summary": {
+        "blocker_count": 0,
+        "blocking": 0,
+        "host_proof_level": "customer_controlled_with_browser_smoke",
+        "limitations": [
+          "Replace this sample with real customer-host observations before handoff.",
+          "Do not paste secrets, raw logs, private source, .env values, or database backups into this file."
+        ],
+        "not_provided": 0,
+        "operator_guided": 0,
+        "pass": 3,
+        "status": "warning",
+        "warning": 4
+      },
+      "warnings": []
+    },
+    {
+      "accepted_baseline": null,
+      "category": "operator_guided",
+      "grounding": null,
+      "id": "real_external_host_trial:full_chain_random_repo_release",
+      "label": "Full-chain random repo release",
+      "lane_id": "full_chain_random_repo_release",
+      "rationale": "warning appears tied to hosted/customer/operator proof",
+      "source_id": "real_external_host_trial",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "summary": {
+        "blocker_count": 0,
+        "blocking": 0,
+        "limitations": [
+          "This bundle composes bounded evidence; it does not embed raw logs, secrets, or private repository content.",
+          "Random real repository diagnosis depends on local stack, GitHub, and provider availability.",
+          "Customer-host proof is only as strong as the supplied customer-host v2 evidence."
+        ],
+        "not_provided": 0,
+        "operator_guided": 0,
+        "pass": 1,
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "status": "warning",
+        "warning": 4
+      },
+      "warnings": []
+    }
+  ],
+  "commit": null,
+  "evidence_type": "random-repo-warning-lane-reduction",
+  "generated_at": "2026-07-10T09:53:19.1268478+08:00",
+  "label": "2026-07-10-review-candidates-accepted-baseline-smoke",
+  "limitations": [
+    "This reducer explains warning lanes but does not change source release evidence status.",
+    "Classification is deterministic and based on bounded source evidence, not raw logs or private source.",
+    "External-host and customer-host confidence depends on the supplied operator evidence."
+  ],
+  "reduction_actions": [
+    {
+      "action": "Reduce product-controlled import/review/why/drift/guardrail warning lanes for n8n, rich.",
+      "category": "product_controlled",
+      "priority": "P0"
+    },
+    {
+      "action": "Replace template/manual host evidence with real operator observations or disclose it in release notes.",
+      "category": "operator_guided",
+      "priority": "P1"
+    }
+  ],
+  "schema_version": 1,
+  "selected_repo_ids": [
+    "n8n",
+    "rich"
+  ],
+  "sources": [
+    {
+      "id": "multi_repo_diagnosis",
+      "label": "Multi-repo live diagnosis",
+      "source_path": ".tmp/multi-repo-live-diagnosis.json",
+      "status": "warning",
+      "summary": {
+        "recommended_follow_up": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "status": "warning",
+        "summary": {
+          "accepted_baseline_statuses": [
+            "present"
+          ],
+          "action_categories": {
+            "blocking": 0,
+            "external_dependency": 0,
+            "not_provided": 0,
+            "operator_setup": 0,
+            "product_controlled": 3
+          },
+          "blocking": 0,
+          "grounding_reason_codes": [
+            "weak_why_support"
+          ],
+          "operator_guided": 0,
+          "pass": 0,
+          "selected_repositories": 2,
+          "warning": 2
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "full_chain_random_repo_release",
+      "label": "Full-chain random repo release",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "summary": {
+        "recommended_follow_up": [],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 5,
+          "not_provided": 0,
+          "operator_guided": 0,
+          "pass": 1,
+          "selected_repositories": 2,
+          "warning": 4
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "release_rehearsal",
+      "label": "Release rehearsal",
+      "source_path": ".tmp/release-rehearsal-evidence.json",
+      "status": "warning",
+      "summary": {
+        "recommended_follow_up": [
+          "Complete or explicitly disclose operator-guided release rehearsal lanes.",
+          "Review operator-guided repository setup status during release rehearsal.",
+          "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations.",
+          "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "inspect_citations",
+          "inspect_guardrail_findings",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 7,
+          "missing_lanes": 0,
+          "operator_guided_lanes": 1,
+          "pass": 2,
+          "warning": 5
+        }
+      },
+      "warnings": []
+    },
+    {
+      "id": "real_external_host_trial",
+      "label": "Real external host trial",
+      "source_path": ".tmp/real-external-host-trial-evidence.json",
+      "status": "warning",
+      "summary": {
+        "recommended_follow_up": [],
+        "selected_repo_ids": [
+          "n8n",
+          "rich"
+        ],
+        "status": "warning",
+        "summary": {
+          "blocking": 0,
+          "lanes": 5,
+          "not_provided": 0,
+          "operator_guided": 0,
+          "pass": 2,
+          "placeholder_findings": 8,
+          "redaction_findings": 0,
+          "required_findings": 0,
+          "selected_repositories": 2,
+          "warning": 3
+        }
+      },
+      "warnings": []
+    }
+  ],
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "blocking_sources": 0,
+    "classified_lanes": 14,
+    "external_dependency": 0,
+    "not_provided": 0,
+    "operator_guided": 11,
+    "pass_sources": 0,
+    "product_controlled": 3,
+    "selected_repositories": 2,
+    "sources": 4,
+    "warning_sources": 4
+  },
+  "version_label": null
+}

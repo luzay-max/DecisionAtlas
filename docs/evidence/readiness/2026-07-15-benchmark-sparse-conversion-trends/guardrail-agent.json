@@ -1,0 +1,107 @@
+{
+  "agent_status": "caution",
+  "summary": "Governance guardrail found advisory concerns; the agent may continue only after addressing recommended actions.",
+  "required_tests": [
+    "1.3 Add profile and sparse expectation metadata to `examples/live-benchmarks/trend-pool.json` with deterministic offline validation",
+    "1.4 Add focused normalization tests for normal candidates, sparse recovery, exhausted recovery, provider failure, zero-candidate, and legacy payloads",
+    "3.2 Add CLI/rehearsal tests for offline mode, explicit live selection, seed reproducibility, output paths, and secret/path redaction",
+    "3.3 Run focused benchmark/evidence tests, full engine tests, Node tests, typecheck, benchmark fixture validation, and OpenSpec strict validation",
+    "Run or add targeted tests for changed behavior."
+  ],
+  "human_decisions_needed": [],
+  "recommended_next_actions": [
+    "1.3 Add profile and sparse expectation metadata to `examples/live-benchmarks/trend-pool.json` with deterministic offline validation",
+    "Review the historical issue before repeating the same implementation pattern."
+  ],
+  "human_questions": [],
+  "allowed_next_actions": [
+    "address_recommended_next_actions",
+    "run_required_tests",
+    "continue_with_explicit_caution_handoff"
+  ],
+  "disallowed_next_actions": [
+    "claim_completion_without_disclosing_caution",
+    "skip_required_tests"
+  ],
+  "findings": [],
+  "signals": [
+    {
+      "id": "repeated-postmortem-docs-project-fresh-public-repo-import-rehearsal-md-0-candidate-import-failu",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-07-02-update-log-md-openspec-validate-all-st",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-04-28-update-log-md-openspec-validate-all-st",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-05-20-update-log-md-engine-business-api-regr",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-governance-drift-finding-deduplication-md-detector-api-guardrail-d",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-05-08-update-log-md-real-repository-benchmar",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-demo-script-zh-cn-md-why-use-redis-cache-redi",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-real-repository-validation-baseline-md-drift-cases-json-capture",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-07-13-fresh-public-repo-import-update-log-md-chrome-dashboard-review-",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-07-13-public-repo-ci-access-probe-update-log-md-e2e-why-search-repo-gith",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-03-18-progress-log-md-updated-imported-workspa",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-07-10-review-baseline-update-log-md-openspec-84-passed-0-fai",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    },
+    {
+      "id": "repeated-postmortem-docs-project-release-checklist-md-openspec-strict-validati",
+      "type": "repeated_postmortem_issue",
+      "title": "Recent context resembles a historical issue",
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern."
+    }
+  ]
+}

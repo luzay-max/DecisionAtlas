@@ -8,6 +8,8 @@ Use this rehearsal before claiming long-term self-hosted continuity readiness fo
 
 This rehearsal is intentionally non-destructive. It does not run `pg_dump`, restore PostgreSQL, mutate Redis, apply migrations, upgrade services, or rollback a deployment. It verifies that operator-provided backup, restore, upgrade, rollback, custody, and handoff evidence is explicit and safe to share.
 
+Use the real scratch rehearsal when you need proof that backup/restore mechanics were exercised against isolated state. The real rehearsal operates only inside `.tmp/real-backup-restore-upgrade-rehearsal/<label>/` and is still not production customer continuity proof unless it is rerun on the operator/customer-controlled host.
+
 ## Evidence Boundary
 
 The committed sample is `operator_guided`. It is not proof that a real customer backup, restore, upgrade, or rollback has been completed.
@@ -44,6 +46,21 @@ python scripts\ci\rehearse_backup_restore_upgrade.py `
   --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
 ```
 
+Run the real scratch rehearsal when validating backup/restore mechanics:
+
+```powershell
+python scripts\ci\rehearse_real_backup_restore_upgrade.py `
+  --label real-continuity-rehearsal `
+  --previous-version self-hosted-before `
+  --target-version self-hosted-after `
+  --post-upgrade-status operator_guided `
+  --rollback-plan-status operator_guided `
+  --output-json .tmp\real-backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md
+```
+
+The real rehearsal creates scratch source state, writes a backup artifact, restores it into a separate scratch target, and compares bounded hashes/counts. It must not be pointed at production databases, real backup dumps, `.env` files, or customer repositories.
+
 ## Status Rules
 
 - `pass`: Evidence supports the lane.
@@ -56,3 +73,5 @@ python scripts\ci\rehearse_backup_restore_upgrade.py `
 ## Customer Handoff Rule
 
 Customer-facing continuity claims must reference the generated JSON/Markdown rehearsal evidence or say that it is missing, operator-guided, known-limited, or not provided. Do not describe package readiness as backup/restore/upgrade readiness unless this evidence exists and is reviewed.
+
+Do not describe non-destructive verifier evidence as proof that backup/restore/upgrade mechanics were exercised. Use real scratch rehearsal evidence for that claim, and use external/customer-host evidence when claiming continuity on a customer-controlled machine.

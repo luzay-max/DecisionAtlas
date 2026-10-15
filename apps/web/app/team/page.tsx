@@ -1,15 +1,17 @@
 import React from "react";
 
-import { AccountScopeSurface } from "../../components/auth/account-scope-surface";
+import { GlobalSidebar } from "../../components/navigation/global-sidebar";
 import { TeamManagementPanel } from "../../components/auth/team-management-panel";
 
 export default function TeamPage() {
   return (
-    <main className="page-shell">
-      <div className="panel">
-        <AccountScopeSurface />
-        <TeamManagementPanel />
-      </div>
-    </main>
+    <>
+      <GlobalSidebar />
+      <main className="page-with-sidebar">
+        <div className="panel">
+          <TeamManagementPanel />
+        </div>
+      </main>
+    </>
   );
 }

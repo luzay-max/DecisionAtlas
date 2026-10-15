@@ -40,6 +40,7 @@ Classify every lane explicitly:
 | Self-hosted package manifest | Yes for package handoff claims | `.tmp/self-hosted-package/<label>/manifest.json` |
 | Self-hosted package verification | Yes for package handoff claims | `.tmp/self-hosted-package-verification.json` and Markdown |
 | Clean self-hosted install rehearsal | Yes before external operator trial readiness claims | `.tmp/clean-self-hosted-install-rehearsal.json` and Markdown |
+| External self-hosted install evidence | Required before customer-host install claims | `.tmp/external-self-hosted-install-evidence.json` and Markdown, or `not_provided` / `operator_guided` |
 | OpenSpec strict validation | Yes | Command output recorded in handoff summary |
 | Governance guardrail | Yes | `.tmp/agent-guardrail.json` and summary text |
 | Canonical pre-release | Yes, or explicit blocker/substitute | `.tmp/pre-release-rehearsal-YYYY-MM-DD.log` and status |
@@ -52,6 +53,7 @@ Classify every lane explicitly:
 | Handoff summary | Yes | `docs/evidence/readiness/<entry>/summary.md` |
 | Code Decision Audit sample | Required for paid pilot/customer evaluation | `docs/evidence/readiness/<entry>/code-decision-audit-sample.md` |
 | Backup/restore/upgrade rehearsal | Required before clean long-term self-hosted continuity claims | `.tmp/backup-restore-upgrade-rehearsal.json` and Markdown |
+| Real backup/restore/upgrade rehearsal | Required before claiming tested backup/restore/upgrade mechanics | `.tmp/real-backup-restore-upgrade-rehearsal.json` and Markdown, or `not_provided` / `operator_guided` |
 
 ## Execution Flow
 
@@ -71,6 +73,7 @@ Classify every lane explicitly:
 14. Archive selected artifacts into readiness evidence history.
 15. Prepare the rehearsal summary and Code Decision Audit handoff.
 16. Generate backup/restore/upgrade rehearsal evidence before claiming long-term continuity readiness.
+17. Collect external self-hosted install evidence before claiming a clean VM, another machine, or customer-controlled host passed the install flow.
 
 ## Command Template
 
@@ -93,6 +96,16 @@ python scripts\ci\rehearse_backup_restore_upgrade.py `
   --input-json templates\backup-restore-upgrade-rehearsal.example.json `
   --output-json .tmp\backup-restore-upgrade-rehearsal.json `
   --output-markdown .tmp\backup-restore-upgrade-rehearsal.md
+python scripts\ci\rehearse_real_backup_restore_upgrade.py `
+  --label real-continuity-rehearsal `
+  --previous-version "self-hosted-rehearsal-before-$Date" `
+  --target-version "self-hosted-rehearsal-$Date" `
+  --output-json .tmp\real-backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md
+python scripts\ci\collect_external_self_hosted_install_evidence.py `
+  --input-json templates\external-self-hosted-install-evidence.example.json `
+  --output-json .tmp\external-self-hosted-install-evidence.json `
+  --output-markdown .tmp\external-self-hosted-install-evidence.md
 python scripts\governance\agent_guardrail.py --pretty > .tmp\agent-guardrail.json
 python scripts\governance\agent_guardrail.py --summary > .tmp\agent-guardrail-summary.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\pre-release.ps1 *> ".tmp\pre-release-rehearsal-$Date.log"
@@ -128,7 +141,15 @@ python scripts\ci\collect_readiness_evidence_history.py archive `
   --hosted-readiness-json .tmp/hosted-operator-readiness.json `
   --hosted-readiness-markdown .tmp/hosted-operator-readiness.md `
   --benchmark-comparison-json .tmp/real-repo-benchmark-comparison.json `
-  --benchmark-comparison-markdown .tmp/real-repo-benchmark-comparison.md
+  --benchmark-comparison-markdown .tmp/real-repo-benchmark-comparison.md `
+  --external-install-evidence-json .tmp/external-self-hosted-install-evidence.json `
+  --external-install-evidence-markdown .tmp/external-self-hosted-install-evidence.md `
+  --real-continuity-rehearsal-json .tmp/real-backup-restore-upgrade-rehearsal.json `
+  --real-continuity-rehearsal-markdown .tmp/real-backup-restore-upgrade-rehearsal.md `
+  --team-handoff-json .tmp/team-handoff-report.json `
+  --team-handoff-markdown .tmp/team-handoff-report.md `
+  --code-decision-audit-json .tmp/code-decision-audit-report.json `
+  --code-decision-audit-markdown .tmp/code-decision-audit-report.md
 ```
 
 If Web, API, Engine, hosted URLs, provider credentials, private repository credentials, or live benchmark inputs are absent, record the lane as `operator_guided`, `known_limitation`, `not_provided`, or `blocking`. Do not convert it into pass.
@@ -143,7 +164,37 @@ Use the report as a bounded statement:
 - `warning` means package structure may be usable but evidence is missing, operator-guided, known-limited, or non-clean.
 - `blocking` means a required package asset, package input, or hard evidence input must be fixed before external operator trial.
 
-Do not claim a clean external operator trial if this evidence is missing.
+Do not claim a clean external operator trial if this evidence is missing. Do not claim customer-host install proof unless external self-hosted install evidence is supplied and blocking lanes are clear.
+
+## External Install Evidence
+
+External install evidence records what happened on a clean VM, another machine, or customer-controlled host. It is generated from an explicit operator-filled JSON file and does not synthesize pass evidence from the local developer machine.
+
+Use it when customer-facing material needs to say the package was tried outside the development workstation:
+
+```powershell
+python scripts\ci\collect_external_self_hosted_install_evidence.py `
+  --input-json templates\external-self-hosted-install-evidence.example.json `
+  --output-json .tmp\external-self-hosted-install-evidence.json `
+  --output-markdown .tmp\external-self-hosted-install-evidence.md
+```
+
+Attach the resulting JSON to clean install rehearsal, team handoff, and Code Decision Audit reports. If it is absent, preserve `not_provided` or `operator_guided` instead of describing local clean rehearsal as external proof.
+
+## Real Continuity Rehearsal
+
+The non-destructive backup/restore/upgrade verifier checks operator-submitted evidence. The real continuity rehearsal checks mechanics against isolated scratch state:
+
+```powershell
+python scripts\ci\rehearse_real_backup_restore_upgrade.py `
+  --label real-continuity-rehearsal `
+  --previous-version <previous> `
+  --target-version <target> `
+  --output-json .tmp\real-backup-restore-upgrade-rehearsal.json `
+  --output-markdown .tmp\real-backup-restore-upgrade-rehearsal.md
+```
+
+Use its JSON in handoff and audit reports before claiming tested backup/restore/upgrade readiness. If it is absent, keep continuity mechanics as `not_provided` or `operator_guided`.
 
 ## Public GitHub Import Rehearsal
 
@@ -197,5 +248,6 @@ Use this boundary when explaining customer readiness. Do not claim full GitLab, 
 - Customer-facing claims must reference the readiness history entry or state that rehearsal evidence is missing.
 - `warning`, `blocking`, `operator_guided`, `known_limitation`, and `not_provided` states must remain visible in the summary.
 - `.tmp` output remains scratch evidence unless explicitly copied into readiness evidence history.
+- Complete delivery rehearsal history should include release, hosted, benchmark, external install, real continuity, handoff, and audit evidence when those claims are part of the handoff.
 - Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.
 - For paid pilots, prepare a Code Decision Audit report from the generated evidence.

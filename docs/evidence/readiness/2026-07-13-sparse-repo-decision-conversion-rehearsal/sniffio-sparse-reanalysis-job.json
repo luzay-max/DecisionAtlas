@@ -1,0 +1,82 @@
+{
+  "job_id": "80feea76-2a28-4193-8e2e-1352b4d58965",
+  "workspace_slug": "github-python-trio-sniffio",
+  "repo": "python-trio/sniffio",
+  "mode": "since_last_sync",
+  "status": "succeeded",
+  "sync_origin": "manual_incremental",
+  "trigger_event": null,
+  "imported_count": 3,
+  "summary": {
+    "stage": "completed",
+    "imported_count": 3,
+    "artifact_counts": {
+      "issue": 0,
+      "pr": 2,
+      "commit": 0,
+      "doc": 1
+    },
+    "document_summary": {
+      "selected": 1,
+      "imported": 1,
+      "skipped": {
+        "non_markdown": 28,
+        "generated_or_vendor_path": 0,
+        "outside_high_signal_paths": 1
+      },
+      "categories": {
+        "general": 1
+      }
+    },
+    "extraction_summary": {
+      "shortlisted_artifacts": 4,
+      "screened_artifacts": 4,
+      "screened_in_artifacts": 0,
+      "screened_out_artifacts": 4,
+      "full_extraction_requests": 4,
+      "completed_full_extractions": 4,
+      "recovery_extraction_attempts": 4,
+      "total_artifacts": 8,
+      "processed_artifacts": 8,
+      "created_candidates": 0,
+      "salvaged_candidates": 0,
+      "recovered_candidates": 0,
+      "thin_source_ref_decisions": 0,
+      "skipped_provider_400": 0,
+      "skipped_provider_timeout": 0,
+      "skipped_invalid_json": 0,
+      "selected_extraction_families": {},
+      "conversion_loss_reasons": {
+        "null_decision": 4
+      },
+      "sparse_recovery_status": "exhausted",
+      "sparse_recovery_skip_reason": "all_attempts_rejected",
+      "sparse_recovery_eligible_artifacts": 4,
+      "sparse_recovery_attempted_artifacts": 4,
+      "sparse_recovery_model_attempts": 4,
+      "sparse_recovery_recovered_candidates": 0,
+      "sparse_recovery_evidence_families": {
+        "pull_request": 4
+      },
+      "sparse_recovery_rejection_reasons": {
+        "null_decision": 4
+      },
+      "elapsed_seconds": 29,
+      "estimated_remaining_seconds": 0,
+      "average_full_extraction_latency_ms": 4220,
+      "current_artifact_title": null,
+      "current_phase": "completed",
+      "current_extraction_family": null
+    },
+    "evidence_summary": {
+      "reviewable_decisions": 0,
+      "decision_source_types": {},
+      "contributing_doc_categories": {},
+      "contributing_doc_paths": []
+    },
+    "outcome": "insufficient_evidence"
+  },
+  "error_message": null,
+  "started_at": "2026-07-13T02:35:53.903403",
+  "finished_at": "2026-07-13T02:36:39.377916"
+}

@@ -1,0 +1,177 @@
+{
+  "accepted_baseline": {
+    "accepted_count": 1,
+    "accepted_sample_titles": [
+      "Remove support for Python 3.8"
+    ],
+    "candidate_count": 27,
+    "candidate_sample_titles": [
+      "Use Python 3.13 for \"QA\" workflow",
+      "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+      "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+    ],
+    "next_action": "accepted_baseline_ready",
+    "status": "present",
+    "strength": "thin"
+  },
+  "base_url": "http://127.0.0.1:3001",
+  "evidence_type": "imported-workspace-core-loop-rehearsal",
+  "generated_at": "2026-07-13T02:43:31.607204+00:00",
+  "lane_reasons": {},
+  "lanes": {
+    "dashboard": {
+      "action_category": "pass",
+      "details": {
+        "accepted_decisions": 1,
+        "candidate_decisions": 27,
+        "drift_state": "clean",
+        "github_repo": "jazzband/pip-tools",
+        "import_status": "succeeded",
+        "readiness_state": "why_ready",
+        "workspace_mode": "imported",
+        "workspace_slug": "github-jazzband-pip-tools"
+      },
+      "next_action": "review_candidates_or_ask_why",
+      "status": "pass",
+      "summary": "Dashboard summary loaded for imported workspace."
+    },
+    "drift": {
+      "action_category": "pass",
+      "details": {
+        "alert_count": 0,
+        "drift_state": "clean",
+        "evaluation": {
+          "can_evaluate": true,
+          "created_alerts": 0,
+          "evaluated_rules": 0,
+          "last_evaluated_at": "2026-07-13T02:43:30.694525+00:00",
+          "next_action": "evaluate_drift",
+          "state": "clean"
+        },
+        "evaluation_error": null,
+        "evaluation_request_status": "ok"
+      },
+      "next_action": "evaluate_or_monitor_drift",
+      "status": "pass",
+      "summary": "Drift lane returned `clean` with 0 alert(s)."
+    },
+    "guardrail": {
+      "action_category": "product_controlled",
+      "details": {
+        "agent_status": "caution",
+        "diff_status": "pass",
+        "drift_status": "drift_detected",
+        "findings_count": 2,
+        "required_tests_count": 0
+      },
+      "next_action": "inspect_guardrail_findings",
+      "status": "warning",
+      "summary": "Guardrail returned `caution`."
+    },
+    "review": {
+      "action_category": "pass",
+      "details": {
+        "accepted_baseline": {
+          "accepted_count": 1,
+          "accepted_sample_titles": [
+            "Remove support for Python 3.8"
+          ],
+          "candidate_count": 27,
+          "candidate_sample_titles": [
+            "Use Python 3.13 for \"QA\" workflow",
+            "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+            "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+          ],
+          "next_action": "accepted_baseline_ready",
+          "status": "present",
+          "strength": "thin"
+        },
+        "candidate_count": 27,
+        "sample_titles": [
+          "Use Python 3.13 for \"QA\" workflow",
+          "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+          "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+        ]
+      },
+      "next_action": "review_candidates",
+      "status": "pass",
+      "summary": "Review queue has candidate decisions."
+    },
+    "setup": {
+      "action_category": "pass",
+      "details": {
+        "repo": "jazzband/pip-tools",
+        "setup": {
+          "source": "explicit"
+        },
+        "workspace_slug": "github-jazzband-pip-tools"
+      },
+      "next_action": "probe_core_loop",
+      "status": "pass",
+      "summary": "Workspace setup source `explicit` reported `provided`."
+    },
+    "why_search": {
+      "action_category": "pass",
+      "details": {
+        "answer_status": "ok",
+        "citation_count": 2,
+        "primary_decision": {
+          "decision_id": 443,
+          "title": "Remove support for Python 3.8"
+        },
+        "question": "Why did pip-tools remove support for Python 3.8?",
+        "workspace_mode": "imported"
+      },
+      "next_action": "inspect_citations",
+      "status": "pass",
+      "summary": "Why-search returned `ok`."
+    }
+  },
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "inspect_citations",
+    "inspect_guardrail_findings",
+    "probe_core_loop",
+    "review_candidates",
+    "review_candidates_or_ask_why"
+  ],
+  "repository": {
+    "repo": "jazzband/pip-tools",
+    "workspace_slug": "github-jazzband-pip-tools"
+  },
+  "schema_version": 1,
+  "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output.",
+  "status": "warning",
+  "summary": {
+    "accepted_baseline": {
+      "accepted_count": 1,
+      "accepted_sample_titles": [
+        "Remove support for Python 3.8"
+      ],
+      "candidate_count": 27,
+      "candidate_sample_titles": [
+        "Use Python 3.13 for \"QA\" workflow",
+        "Re-integrate GFM admonitions via `click_extra.sphinx` ext",
+        "Use separate coverage config for plugin self-testing to maintain independent 100% coverage"
+      ],
+      "next_action": "accepted_baseline_ready",
+      "status": "present",
+      "strength": "thin"
+    },
+    "action_categories": {
+      "blocking": 0,
+      "external_dependency": 0,
+      "not_provided": 0,
+      "operator_setup": 0,
+      "product_controlled": 1
+    },
+    "blocking_lanes": 0,
+    "grounding_summary": {
+      "reason_codes": [],
+      "warning_lanes_with_grounding": 0
+    },
+    "pass_lanes": 5,
+    "setup_waiting": false,
+    "warning_lanes": 1
+  }
+}

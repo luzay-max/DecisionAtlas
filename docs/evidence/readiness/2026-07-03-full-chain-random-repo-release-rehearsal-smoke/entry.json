@@ -1,0 +1,57 @@
+{
+  "artifacts": {
+    "full_chain_random_repo_release_rehearsal": {
+      "json": "full_chain_random_repo_release_rehearsal.json",
+      "markdown": "full_chain_random_repo_release_rehearsal.md",
+      "source_json_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "source_markdown_path": ".tmp/full-chain-random-repo-release-rehearsal.md"
+    }
+  },
+  "commit": "850af2d",
+  "counts": {
+    "benchmark_improvements": 0,
+    "benchmark_operational_blockers": 0,
+    "benchmark_regressions": 0,
+    "blockers": 0,
+    "external_customer_host_v2_blockers": 0,
+    "external_install_blockers": 0,
+    "full_chain_random_repo_release_blockers": 0,
+    "known_limitations": 0,
+    "not_provided": 0,
+    "operator_guided": 0,
+    "real_continuity_blockers": 0,
+    "warnings": 4
+  },
+  "created_at": "2026-07-03T06:35:28.000989+00:00",
+  "entry_id": "2026-07-03-full-chain-random-repo-release-rehearsal-smoke",
+  "families": {
+    "full_chain_random_repo_release_rehearsal": {
+      "blocker_count": 0,
+      "generated_at": "2026-07-03T06:35:28.000989+00:00",
+      "label": "Full-chain random repo release rehearsal",
+      "lane_statuses": {
+        "browser_rehearsal": "pass",
+        "customer_host_v2": "warning",
+        "multi_repo_diagnosis": "warning",
+        "readiness_history": "warning",
+        "release_rehearsal": "warning"
+      },
+      "not_provided_count": 0,
+      "operator_guided_count": 0,
+      "selected_repo_ids": [
+        "n8n",
+        "rich"
+      ],
+      "source_markdown_path": ".tmp/full-chain-random-repo-release-rehearsal.md",
+      "source_path": ".tmp/full-chain-random-repo-release-rehearsal.json",
+      "status": "warning",
+      "warning_count": 4
+    }
+  },
+  "label": "full-chain-random-repo-release-rehearsal-smoke",
+  "schema_version": 1,
+  "sensitive_material_note": "Do not archive secrets, private repository contents, raw model output, or unnecessary local-only logs.",
+  "status": "warning",
+  "version_label": "full-chain-smoke",
+  "warnings": []
+}
