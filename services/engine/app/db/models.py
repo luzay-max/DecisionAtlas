@@ -197,6 +197,7 @@ class Decision(Base):
     chosen_option: Mapped[str] = mapped_column(Text, nullable=False)
     tradeoffs: Mapped[str] = mapped_column(Text, nullable=False)
     confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    candidate_metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
 

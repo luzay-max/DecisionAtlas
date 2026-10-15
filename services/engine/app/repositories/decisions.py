@@ -23,6 +23,7 @@ class DecisionRepository:
         chosen_option: str,
         tradeoffs: str,
         confidence: float,
+        candidate_metadata: dict | None = None,
     ) -> Decision:
         decision = Decision(
             workspace_id=workspace_id,
@@ -35,6 +36,7 @@ class DecisionRepository:
             chosen_option=chosen_option,
             tradeoffs=tradeoffs,
             confidence=confidence,
+            candidate_metadata_json=candidate_metadata,
         )
         self.session.add(decision)
         self.session.flush()

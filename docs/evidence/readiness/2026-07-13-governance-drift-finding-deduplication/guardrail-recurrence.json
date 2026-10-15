@@ -1,0 +1,413 @@
+{
+  "agent_status": "caution",
+  "summary": "Governance guardrail found advisory concerns; the agent may continue only after addressing recommended actions.",
+  "workflow_protocol": {
+    "name": "decisionatlas-agent-governance-workflow",
+    "version": "1",
+    "advisory_only": true
+  },
+  "agent_instruction": "Proceed only after addressing or explicitly reporting recommended governance actions.",
+  "allowed_next_actions": [
+    "address_recommended_next_actions",
+    "run_required_tests",
+    "continue_with_explicit_caution_handoff"
+  ],
+  "disallowed_next_actions": [
+    "claim_completion_without_disclosing_caution",
+    "skip_required_tests"
+  ],
+  "human_questions": [],
+  "handoff_summary": {
+    "agent_status": "caution",
+    "diff_status": "pass",
+    "drift_status": "drift_detected",
+    "required_tests": [
+      "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+      "3.2 Add web/API tests for recurrence rendering and backward-compatible payloads",
+      "3.3 Run focused and full automated suites plus OpenSpec strict validation and guardrail checks",
+      "Run or add targeted tests for changed behavior."
+    ],
+    "human_questions": [],
+    "recommended_next_actions": [
+      "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+      "Review the historical issue before repeating the same implementation pattern."
+    ],
+    "advisory_only": true
+  },
+  "findings": [],
+  "signals": [
+    {
+      "id": "repeated-postmortem-docs-project-governance-drift-detection-md-repeated-postmortem-issu",
+      "type": "repeated_postmortem_issue",
+      "severity": "warning",
+      "title": "Recent context resembles a historical issue",
+      "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+      "evidence": [
+        {
+          "kind": "project_log",
+          "path": "docs\\project\\governance-drift-detection.md",
+          "title": "governance-drift-detection.md",
+          "excerpt": "`repeated_postmortem_issue`: a historical issue or error summary appears similar to recent context.",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        },
+        {
+          "kind": "recent_context",
+          "path": null,
+          "title": "recent governance context",
+          "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        }
+      ],
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+      "occurrence_count": 1,
+      "source_count": 2
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-06-22-mimo-update-log-md-apps-web-app-error-tsx-g",
+      "type": "repeated_postmortem_issue",
+      "severity": "warning",
+      "title": "Recent context resembles a historical issue",
+      "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+      "evidence": [
+        {
+          "kind": "project_log",
+          "path": "docs\\project\\2026-06-22-mimo-update-log.md",
+          "title": "2026-06-22-mimo-update-log.md",
+          "excerpt": "`apps/web/app/error.tsx` — global error boundary",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        },
+        {
+          "kind": "recent_context",
+          "path": null,
+          "title": "recent governance context",
+          "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        }
+      ],
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+      "occurrence_count": 1,
+      "source_count": 2
+    },
+    {
+      "id": "repeated-postmortem-docs-project-2026-06-22-mimo-session2-update-log-md-apps-web-app-error-tsx-m",
+      "type": "repeated_postmortem_issue",
+      "severity": "warning",
+      "title": "Recent context resembles a historical issue",
+      "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+      "evidence": [
+        {
+          "kind": "project_log",
+          "path": "docs\\project\\2026-06-22-mimo-session2-update-log.md",
+          "title": "2026-06-22-mimo-session2-update-log.md",
+          "excerpt": "`apps/web/app/error.tsx` (modified — recovery suggestions)",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        },
+        {
+          "kind": "recent_context",
+          "path": null,
+          "title": "recent governance context",
+          "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        }
+      ],
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+      "occurrence_count": 1,
+      "source_count": 2
+    },
+    {
+      "id": "repeated-postmortem-docs-project-zz-temp-dedup-a-update-log-md-issue-governance-drift-f",
+      "type": "repeated_postmortem_issue",
+      "severity": "warning",
+      "title": "Recent context resembles a historical issue",
+      "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+      "evidence": [
+        {
+          "kind": "project_log",
+          "path": "docs\\project\\zz-temp-dedup-a-update-log.md",
+          "title": "zz-temp-dedup-a-update-log.md",
+          "excerpt": "Issue: Governance drift finding duplication caused dashboard review failure.",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        },
+        {
+          "kind": "project_log",
+          "path": "docs\\project\\zz-temp-dedup-b-postmortem.md",
+          "title": "zz-temp-dedup-b-postmortem.md",
+          "excerpt": "Failure - dashboard review failed because of governance drift finding duplication.",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        },
+        {
+          "kind": "recent_context",
+          "path": null,
+          "title": "recent governance context",
+          "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+          "id": null,
+          "lifecycle_status": null,
+          "lifecycle_rationale": null,
+          "superseded_by_rule_id": null
+        }
+      ],
+      "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+      "occurrence_count": 2,
+      "source_count": 3
+    }
+  ],
+  "matched_rules": [],
+  "required_tests": [
+    "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+    "3.2 Add web/API tests for recurrence rendering and backward-compatible payloads",
+    "3.3 Run focused and full automated suites plus OpenSpec strict validation and guardrail checks",
+    "Run or add targeted tests for changed behavior."
+  ],
+  "human_decisions_needed": [],
+  "recommended_next_actions": [
+    "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+    "Review the historical issue before repeating the same implementation pattern."
+  ],
+  "source_results": {
+    "diff_check": {
+      "status": "pass",
+      "findings": [],
+      "matched_rules": [],
+      "conflicts": [],
+      "required_tests": [
+        "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+        "3.2 Add web/API tests for recurrence rendering and backward-compatible payloads",
+        "3.3 Run focused and full automated suites plus OpenSpec strict validation and guardrail checks",
+        "Run or add targeted tests for changed behavior."
+      ],
+      "recommended_next_action": "3.1 Add engine regression tests for duplicate consolidation, near-match separation, evidence bounds, ordering, and advisory behavior",
+      "context": {
+        "diff_paths": [
+          ".codegraph/.gitignore",
+          "apps/web/components/governance/guardrail-pause-banner.tsx",
+          "apps/web/lib/api.ts",
+          "services/engine/app/governance/drift_detector.py",
+          "services/engine/tests/governance/test_agent_guardrail.py",
+          "services/engine/tests/governance/test_drift_detector.py",
+          "AGENTS.md",
+          "apps/web/tests/guardrail-pause-banner.test.tsx",
+          "debug-smoke.ps1",
+          "docs/evidence/readiness/2026-07-13-governance-drift-finding-deduplication",
+          "docs/project/zz-temp-dedup-a-update-log.md",
+          "docs/project/zz-temp-dedup-b-postmortem.md",
+          "openspec/changes/deduplicate-governance-drift-findings",
+          "run-demo-smoke.ps1",
+          "run-e2e.ps1"
+        ],
+        "active_openspec_changes": [
+          "deduplicate-governance-drift-findings"
+        ],
+        "roadmap_refs": 5,
+        "spec_refs": 30,
+        "accepted_rule_count": 0,
+        "inactive_rule_traces": [],
+        "advisory_only": true
+      }
+    },
+    "drift_report": {
+      "status": "drift_detected",
+      "signals": [
+        {
+          "id": "repeated-postmortem-docs-project-governance-drift-detection-md-repeated-postmortem-issu",
+          "type": "repeated_postmortem_issue",
+          "severity": "warning",
+          "title": "Recent context resembles a historical issue",
+          "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+          "evidence": [
+            {
+              "kind": "project_log",
+              "path": "docs\\project\\governance-drift-detection.md",
+              "title": "governance-drift-detection.md",
+              "excerpt": "`repeated_postmortem_issue`: a historical issue or error summary appears similar to recent context.",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            },
+            {
+              "kind": "recent_context",
+              "path": null,
+              "title": "recent governance context",
+              "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            }
+          ],
+          "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+          "occurrence_count": 1,
+          "source_count": 2
+        },
+        {
+          "id": "repeated-postmortem-docs-project-2026-06-22-mimo-update-log-md-apps-web-app-error-tsx-g",
+          "type": "repeated_postmortem_issue",
+          "severity": "warning",
+          "title": "Recent context resembles a historical issue",
+          "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+          "evidence": [
+            {
+              "kind": "project_log",
+              "path": "docs\\project\\2026-06-22-mimo-update-log.md",
+              "title": "2026-06-22-mimo-update-log.md",
+              "excerpt": "`apps/web/app/error.tsx` — global error boundary",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            },
+            {
+              "kind": "recent_context",
+              "path": null,
+              "title": "recent governance context",
+              "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            }
+          ],
+          "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+          "occurrence_count": 1,
+          "source_count": 2
+        },
+        {
+          "id": "repeated-postmortem-docs-project-2026-06-22-mimo-session2-update-log-md-apps-web-app-error-tsx-m",
+          "type": "repeated_postmortem_issue",
+          "severity": "warning",
+          "title": "Recent context resembles a historical issue",
+          "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+          "evidence": [
+            {
+              "kind": "project_log",
+              "path": "docs\\project\\2026-06-22-mimo-session2-update-log.md",
+              "title": "2026-06-22-mimo-session2-update-log.md",
+              "excerpt": "`apps/web/app/error.tsx` (modified — recovery suggestions)",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            },
+            {
+              "kind": "recent_context",
+              "path": null,
+              "title": "recent governance context",
+              "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            }
+          ],
+          "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+          "occurrence_count": 1,
+          "source_count": 2
+        },
+        {
+          "id": "repeated-postmortem-docs-project-zz-temp-dedup-a-update-log-md-issue-governance-drift-f",
+          "type": "repeated_postmortem_issue",
+          "severity": "warning",
+          "title": "Recent context resembles a historical issue",
+          "detail": "A prior update log or postmortem issue appears similar to recent governance context.",
+          "evidence": [
+            {
+              "kind": "project_log",
+              "path": "docs\\project\\zz-temp-dedup-a-update-log.md",
+              "title": "zz-temp-dedup-a-update-log.md",
+              "excerpt": "Issue: Governance drift finding duplication caused dashboard review failure.",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            },
+            {
+              "kind": "project_log",
+              "path": "docs\\project\\zz-temp-dedup-b-postmortem.md",
+              "title": "zz-temp-dedup-b-postmortem.md",
+              "excerpt": "Failure - dashboard review failed because of governance drift finding duplication.",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            },
+            {
+              "kind": "recent_context",
+              "path": null,
+              "title": "recent governance context",
+              "excerpt": "diff --git a/.codegraph/.gitignore b/.codegraph/.gitignore index 9de0f16..d20c0fe 100644 --- a/.codegraph/.gitignore +++ b/.codegraph/.gitignore @@ -1,16 +1,5 @@ -# CodeGraph data files -# These are local to each machine and should not be committed - -# Database -*.db -*.db-wal -*.db-shm - -# Cache -cache/ - -# Logs -*.log - -# Hook markers -.dirty +# CodeGraph data files — local to each machine, not for committing. +# Ignore everything in .codegraph/ except this file itself, so transient +# files (the database, daemon.pid, sockets, logs) never show up in git. +* +!.gitignore diff --git a/apps/web/components/governance/guardrail-pause-banner.tsx b/apps/web/components/governance/guardrail-pause-banner.tsx index ef3ad05..fd5f04d 100644 --- a/apps/web/components/governance/guardrail-pause-banner.tsx +++ b/apps/web/components/governance/guardrail-pause-banner.tsx @@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string <div style={styles.signalHead}> <span style={styles.signalType}>{signal.type}</span> <span style={styles.signalTitle}>{t(signal.title)}</span> + {(signal.occurrence_count ?? 1) > 1 ? ( + <span style={styles.signalRecurrence}> +",
+              "id": null,
+              "lifecycle_status": null,
+              "lifecycle_rationale": null,
+              "superseded_by_rule_id": null
+            }
+          ],
+          "recommended_next_action": "Review the historical issue before repeating the same implementation pattern.",
+          "occurrence_count": 2,
+          "source_count": 3
+        }
+      ],
+      "human_decisions_needed": [],
+      "recommended_next_actions": [
+        "Review the historical issue before repeating the same implementation pattern."
+      ],
+      "context": {
+        "roadmap_refs": 21,
+        "spec_refs": 85,
+        "archived_changes": 12,
+        "log_refs": 62,
+        "governance_rules": 0,
+        "accepted_rule_count": 0,
+        "raw_signal_count": 5,
+        "canonical_signal_count": 4,
+        "merged_signal_occurrences": 1,
+        "diff_paths": [
+          ".codegraph/.gitignore",
+          "apps/web/components/governance/guardrail-pause-banner.tsx",
+          "apps/web/lib/api.ts",
+          "services/engine/app/governance/drift_detector.py",
+          "services/engine/tests/governance/test_agent_guardrail.py",
+          "services/engine/tests/governance/test_drift_detector.py",
+          "AGENTS.md",
+          "apps/web/tests/guardrail-pause-banner.test.tsx",
+          "debug-smoke.ps1",
+          "docs/evidence/readiness/2026-07-13-governance-drift-finding-deduplication",
+          "docs/project/zz-temp-dedup-a-update-log.md",
+          "docs/project/zz-temp-dedup-b-postmortem.md",
+          "openspec/changes/deduplicate-governance-drift-findings",
+          "run-demo-smoke.ps1",
+          "run-e2e.ps1"
+        ],
+        "advisory_only": true
+      }
+    }
+  },
+  "context": {
+    "diff_status": "pass",
+    "drift_status": "drift_detected",
+    "advisory_only": true
+  }
+}

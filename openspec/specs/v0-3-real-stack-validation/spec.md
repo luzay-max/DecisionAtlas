@@ -1,7 +1,7 @@
 # v0-3-real-stack-validation Specification
 
 ## Purpose
-TBD - created by archiving change validate-v0-3-real-stack-flow. Update Purpose after archive.
+Validates the v0.3 product lanes across seeded demo, real local stack, public repository import, platform access bindings, hosted operator checks, and canonical release gates in a reproducible matrix.
 ## Requirements
 ### Requirement: v0.3 real-stack validation records a reproducible matrix
 The system SHALL define a v0.3 real-stack validation matrix that records the command or operator action, observed result, status, known limitation, and follow-up for each product lane being validated.

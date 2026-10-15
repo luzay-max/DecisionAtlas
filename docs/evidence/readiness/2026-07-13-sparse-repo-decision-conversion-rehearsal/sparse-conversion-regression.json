@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-13T10:44:59.2577184+08:00",
+  "evidence_type": "sparse-repo-decision-conversion-regression",
+  "status": "warning",
+  "baseline": {
+    "repository": "python-trio/sniffio",
+    "workspace_slug": "github-python-trio-sniffio",
+    "imported_count": 147,
+    "created_candidates": 0,
+    "accepted_count": 0,
+    "core_loop_status": "warning"
+  },
+  "current": {
+    "repository": "jazzband/pip-tools",
+    "workspace_slug": "github-jazzband-pip-tools",
+    "preflight_workspace_exists": false,
+    "imported_count": 1207,
+    "screened_artifacts": 80,
+    "screened_in_artifacts": 36,
+    "full_extraction_requests": 49,
+    "created_candidates": 28,
+    "accepted_count": 1,
+    "why_status": "pass",
+    "why_citations": 2,
+    "drift_status": "pass",
+    "drift_state": "clean",
+    "browser_status": "pass",
+    "sparse_recovery_status": "skipped",
+    "sparse_recovery_skip_reason": "candidate_present",
+    "sparse_model_attempts": 0
+  },
+  "supplemental_sparse_branch": {
+    "repository": "python-trio/sniffio",
+    "job_id": "80feea76-2a28-4193-8e2e-1352b4d58965",
+    "status": "succeeded",
+    "outcome": "insufficient_evidence",
+    "sparse_recovery_status": "exhausted",
+    "sparse_recovery_skip_reason": "all_attempts_rejected",
+    "eligible_artifacts": 4,
+    "model_attempts": 4,
+    "recovered_candidates": 0,
+    "rejection_reasons": {
+      "null_decision": 4
+    }
+  },
+  "movement": {
+    "candidate_delta": 28,
+    "accepted_delta": 1,
+    "core_loop_improved": true
+  },
+  "limitations": [
+    "Repository profiles differ, so candidate delta is evidence rather than a controlled causal estimate.",
+    "pip-tools normal extraction produced candidates, so sparse recovery correctly skipped with zero extra calls.",
+    "The supplemental sniffio run proves the sparse branch executed four model attempts and preserved zero candidates when all outputs were null.",
+    "Current candidates are model-extracted review items; only one was manually accepted after evidence inspection."
+  ]
+}

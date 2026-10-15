@@ -113,3 +113,6 @@ def test_hosted_readiness_markdown_discloses_scope_and_release_gate(tmp_path: Pa
     assert "does not replace scripts/ci/pre-release.ps1" in markdown
     assert "scoped to demo-workspace" in markdown
     assert "operationally_blocked" in markdown
+    assert bundle["source_paths"]["governance_guardrail"] == "guardrail.json"
+    assert bundle["source_paths"]["release_evidence"] == "release-evidence.json"
+    assert bundle["source_paths"]["real_repo_evidence"] == "benchmark.json"

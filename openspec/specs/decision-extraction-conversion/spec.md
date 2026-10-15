@@ -61,3 +61,34 @@ The extraction conversion path SHALL distinguish candidates that are structurall
 - **WHEN** conversion diagnostics are generated
 - **THEN** they SHALL use bounded categories and counters rather than raw provider prose or repository-specific hard-coded labels
 
+### Requirement: Decision extraction conversion distinguishes sparse recovery outcomes
+Decision extraction conversion SHALL distinguish ordinary full-extraction outcomes from bounded sparse-repository recovery and SHALL preserve conversion loss reasons for both phases.
+
+#### Scenario: Sparse recovery creates a candidate
+- **WHEN** a grounded candidate is created by the sparse recovery phase
+- **THEN** extraction summary counters SHALL increment recovered-candidate and recovery-attempt counts
+- **AND** normal created-candidate totals SHALL remain internally consistent.
+
+#### Scenario: Sparse recovery remains null
+- **WHEN** all bounded sparse recovery attempts return `null_decision`
+- **THEN** extraction summaries SHALL retain `null_decision` as a residual conversion loss
+- **AND** the import SHALL remain successful but evidence-limited.
+
+### Requirement: Created candidates retain bounded extraction provenance
+The extraction conversion path SHALL persist bounded per-candidate provenance that identifies artifact family, parser salvage, and recovery path without retaining raw provider responses.
+
+#### Scenario: Normal extraction creates candidate metadata
+- **WHEN** a normal full-extraction attempt creates a candidate
+- **THEN** the candidate SHALL retain its artifact family and explicit non-recovery extraction state
+
+#### Scenario: Salvaged output remains attributable
+- **WHEN** parser salvage produces a structurally valid grounded candidate
+- **THEN** that candidate SHALL retain a parser-salvaged marker for review ranking and diagnostics
+
+#### Scenario: Recovery output remains attributable
+- **WHEN** bounded recovery or sparse recovery creates a candidate
+- **THEN** the candidate SHALL retain applicable recovery markers and final artifact family
+
+#### Scenario: Raw provider output is excluded
+- **WHEN** candidate extraction provenance is persisted
+- **THEN** it SHALL contain only allowlisted bounded fields and SHALL NOT contain raw model responses, prompts, credentials, or repository source content

@@ -62,6 +62,26 @@ def test_guardrail_returns_continue_for_clean_sources() -> None:
     assert body["agent_instruction"].startswith("Continue normal work")
 
 
+def test_guardrail_preserves_canonical_signal_recurrence_metadata() -> None:
+    signal = {
+        "id": "repeated-postmortem-import-timeout",
+        "type": "repeated_postmortem_issue",
+        "severity": "warning",
+        "title": "Recent context resembles a historical issue",
+        "detail": "A prior issue appears similar to recent context.",
+        "occurrence_count": 4,
+        "source_count": 3,
+    }
+
+    result = aggregate_governance_guardrail(
+        diff_check=_diff_check(),
+        drift_report=_drift_report(status="drift_detected", signals=[signal]),
+    )
+
+    assert result.signals == [signal]
+    assert result.source_results["drift_report"]["signals"] == [signal]
+    assert result.agent_status == "caution"
+
 def test_guardrail_returns_caution_for_non_blocking_warnings() -> None:
     result = aggregate_governance_guardrail(
         diff_check=_diff_check(

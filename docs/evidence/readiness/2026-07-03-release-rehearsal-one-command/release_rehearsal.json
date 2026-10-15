@@ -1,0 +1,170 @@
+{
+  "evidence_type": "release-rehearsal-one-command-evidence",
+  "generated_at": "2026-07-03T01:53:43.418128+00:00",
+  "generated_paths": {},
+  "label": "release-rehearsal-one-command",
+  "lanes": [
+    {
+      "id": "release_evidence",
+      "label": "Release evidence",
+      "required": false,
+      "source_path": ".tmp/release-evidence.json",
+      "status": "pass",
+      "summary": {
+        "advisory_signal_count": 3,
+        "missing_input_count": 0,
+        "required_gate_count": 3,
+        "status": "pass",
+        "warning_count": 0
+      },
+      "warnings": []
+    },
+    {
+      "id": "hosted_readiness",
+      "label": "Hosted/operator readiness",
+      "required": false,
+      "source_path": ".tmp/hosted-operator-readiness.json",
+      "status": "operator_guided",
+      "summary": {
+        "not_provided_count": 0,
+        "operator_guided_count": 3,
+        "public_walkthrough_status": "operator_guided",
+        "status": "operator_guided"
+      },
+      "warnings": []
+    },
+    {
+      "id": "benchmark_trend",
+      "label": "Benchmark trend",
+      "required": false,
+      "source_path": ".tmp/real-repo-benchmark-trend.json",
+      "status": "warning",
+      "summary": {
+        "covered_repositories": 1,
+        "operationally_blocked": 0,
+        "recommended_follow_up": [
+          "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+          "Review operator-guided repository setup status during release rehearsal."
+        ],
+        "regressed": 0,
+        "repositories": 5,
+        "status": "warning"
+      },
+      "warnings": []
+    },
+    {
+      "id": "benchmark_comparison",
+      "label": "Benchmark comparison",
+      "required": false,
+      "source_path": ".tmp/real-repo-benchmark-comparison.json",
+      "status": "warning",
+      "summary": {
+        "covered_repositories": null,
+        "operationally_blocked": 0,
+        "recommended_follow_up": [],
+        "regressed": 0,
+        "repositories": 2,
+        "status": "unknown"
+      },
+      "warnings": []
+    },
+    {
+      "id": "multi_repo_diagnosis",
+      "label": "Multi-repo live diagnosis",
+      "required": false,
+      "source_path": ".tmp/multi-repo-live-diagnosis.json",
+      "status": "warning",
+      "summary": {
+        "blocking": 0,
+        "pass": 0,
+        "recommended_follow_up": [
+          "evaluate_or_monitor_drift",
+          "improve_accepted_decision_evidence",
+          "probe_core_loop",
+          "review_candidates",
+          "review_candidates_or_ask_why",
+          "run_agent_guardrail",
+          "run_benchmark"
+        ],
+        "selected_repo_ids": [
+          "httpx",
+          "fastapi"
+        ],
+        "selected_repositories": 2,
+        "status": "warning",
+        "warning": 2
+      },
+      "warnings": []
+    },
+    {
+      "id": "guardrail_summary",
+      "label": "Governance guardrail",
+      "required": false,
+      "source_path": ".tmp/agent-guardrail.json",
+      "status": "pass",
+      "summary": {
+        "handoff_summary": {
+          "advisory_only": true,
+          "agent_status": "continue",
+          "diff_status": "pass",
+          "drift_status": "clean",
+          "human_questions": [],
+          "recommended_next_actions": [
+            "2.2 Run OpenSpec strict validation and governance guardrail summary.",
+            "No governance drift signals detected. Continue normal review."
+          ],
+          "required_tests": [
+            "2.2 Run OpenSpec strict validation and governance guardrail summary.",
+            "5.2 Run `openspec validate rehearse-self-hosted-delivery --type change --strict`.",
+            "5.3 Run `openspec validate --all --strict`."
+          ]
+        },
+        "status": "pass",
+        "summary": "Governance guardrail found no blocking or caution-level governance concerns."
+      },
+      "warnings": []
+    },
+    {
+      "id": "readiness_history",
+      "label": "Readiness history",
+      "required": false,
+      "source_path": "docs/evidence/readiness/index.json",
+      "status": "warning",
+      "summary": {
+        "entry_count": 3,
+        "latest_entry_id": "2026-06-10-2026-06-10-real-stack-ai-browser-rehearsal",
+        "status": "warning"
+      },
+      "warnings": []
+    }
+  ],
+  "missing_lanes": [],
+  "operator_guided_lanes": [
+    "hosted_readiness"
+  ],
+  "recommended_follow_up": [
+    "Complete or explicitly disclose operator-guided release rehearsal lanes.",
+    "Review operator-guided repository setup status during release rehearsal.",
+    "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations.",
+    "Run or attach benchmark comparison rows for missing fixed-pool repositories.",
+    "evaluate_or_monitor_drift",
+    "improve_accepted_decision_evidence",
+    "probe_core_loop",
+    "review_candidates",
+    "review_candidates_or_ask_why",
+    "run_agent_guardrail",
+    "run_benchmark"
+  ],
+  "schema_version": 1,
+  "sensitive_material_note": "This bundle stores compact statuses/counts only. Do not include tokens, raw private source, raw model output, or unbounded local logs.",
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 7,
+    "missing_lanes": 0,
+    "operator_guided_lanes": 1,
+    "pass": 2,
+    "warning": 5
+  },
+  "warnings": []
+}

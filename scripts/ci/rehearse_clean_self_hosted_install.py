@@ -58,6 +58,7 @@ REQUIRED_PACKAGE_ASSETS = [
     "scripts/dev/start-real-stack.bat",
     "scripts/ci/verify_self_hosted_package.py",
     "scripts/ci/collect_team_handoff_report.py",
+    "scripts/ci/collect_external_self_hosted_install_evidence.py",
 ]
 
 DEFERRED_LANES = [
@@ -342,6 +343,7 @@ def build_rehearsal(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         _source_summary("public_github_import", "Public GitHub import rehearsal", args.public_github_import_json, root),
         _source_summary("license_support", "License and support boundary", args.license_support_json, root),
         _source_summary("team_handoff", "Team handoff report", args.team_handoff_json, root),
+        _source_summary("external_install_evidence", "External self-hosted install evidence", args.external_install_evidence_json, root),
     ]
     live_probes = [
         _probe_url("web", args.web_url, args.probe_timeout),
@@ -378,6 +380,7 @@ def build_rehearsal(args: argparse.Namespace, root: Path) -> dict[str, Any]:
         "recommended_next_actions": _recommended_next_actions(status, blockers, warnings),
         "limitations": [
             "This rehearsal validates a clean package copy and evidence bundle, not a full VM or customer-server install.",
+            "External/customer-host install proof must be supplied separately through external install evidence.",
             "Live URL probing is optional and must remain non-pass when URLs are not provided or unreachable.",
             "Secrets, repository tokens, .env files, private repository dumps, and database backups are not included.",
         ],
@@ -479,6 +482,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--public-github-import-json")
     parser.add_argument("--license-support-json")
     parser.add_argument("--team-handoff-json")
+    parser.add_argument("--external-install-evidence-json")
     parser.add_argument("--probe-live-stack", action="store_true")
     parser.add_argument("--web-url")
     parser.add_argument("--api-url")

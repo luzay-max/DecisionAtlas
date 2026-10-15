@@ -1,0 +1,503 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-13T01:42:17.317586+00:00",
+  "evidence_type": "fresh-public-repo-import-rehearsal",
+  "status": "warning",
+  "base_url": "http://127.0.0.1:3001",
+  "selection": {
+    "mode": "seeded_candidate_pool",
+    "seed": "20260710-fresh-01",
+    "candidate_pool_digest": "ca0328288114fa84068b4b4cbc1c0447bae5f6af5b96ff9ec63c12ba7194b92f",
+    "candidate_count": 5,
+    "selected_repository": "python-trio/sniffio",
+    "considered": [
+      {
+        "repo": "pytest-dev/pluggy",
+        "workspace_slug": "github-pytest-dev-pluggy",
+        "outcome": "reused_not_eligible",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "pytest-dev/pluggy",
+          "repo_url": "https://github.com/pytest-dev/pluggy",
+          "workspace_exists": true,
+          "workspace_slug": "github-pytest-dev-pluggy",
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": {
+            "job_id": "7f758647-b797-4dd5-85e2-4d23aa6a6444",
+            "workspace_slug": "github-pytest-dev-pluggy",
+            "repo": "pytest-dev/pluggy",
+            "mode": "full",
+            "status": "failed",
+            "sync_origin": "manual_full",
+            "trigger_event": null,
+            "imported_count": 0,
+            "summary": {
+              "stage": "importing_artifacts",
+              "failure_category": "repository_access_failure"
+            },
+            "error_message": "Client error '401 Unauthorized' for url 'https://api.github.com/repos/pytest-dev/pluggy/issues?per_page=100&page=1&state=all'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401",
+            "started_at": "2026-07-10T06:41:28.530223",
+            "finished_at": "2026-07-10T06:41:31.475929"
+          },
+          "active_import": null,
+          "latest_sync_origin": "manual_full",
+          "latest_sync_at": "2026-07-10T06:41:31.475929",
+          "last_import_summary": {
+            "stage": "importing_artifacts",
+            "failure_category": "repository_access_failure"
+          },
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_source_status": null,
+          "access_source_status_detail": null,
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      },
+      {
+        "repo": "pallets/itsdangerous",
+        "workspace_slug": "github-pallets-itsdangerous",
+        "outcome": "reused_not_eligible",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "pallets/itsdangerous",
+          "repo_url": "https://github.com/pallets/itsdangerous",
+          "workspace_exists": true,
+          "workspace_slug": "github-pallets-itsdangerous",
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": {
+            "job_id": "ac0ba24c-f0a4-4746-8fdd-659d42dcb93d",
+            "workspace_slug": "github-pallets-itsdangerous",
+            "repo": "pallets/itsdangerous",
+            "mode": "full",
+            "status": "failed",
+            "sync_origin": "manual_full",
+            "trigger_event": null,
+            "imported_count": 0,
+            "summary": {
+              "stage": "importing_artifacts",
+              "imported_count": 751,
+              "failure_category": "analysis_execution_failed"
+            },
+            "error_message": "Server error '502 Bad Gateway' for url 'https://api.github.com/repos/pallets/itsdangerous/contents/README.md?ref=main'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502",
+            "started_at": "2026-07-10T06:51:52.934703",
+            "finished_at": "2026-07-10T06:52:25.660829"
+          },
+          "active_import": null,
+          "latest_sync_origin": "manual_full",
+          "latest_sync_at": "2026-07-10T06:52:25.660829",
+          "last_import_summary": {
+            "stage": "importing_artifacts",
+            "imported_count": 751,
+            "failure_category": "analysis_execution_failed"
+          },
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_source_status": null,
+          "access_source_status_detail": null,
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      },
+      {
+        "repo": "python-trio/sniffio",
+        "outcome": "selected_fresh",
+        "lookup": {
+          "owner_scope": "local-default",
+          "repo": "python-trio/sniffio",
+          "repo_url": "https://github.com/python-trio/sniffio",
+          "workspace_exists": false,
+          "workspace_slug": null,
+          "has_successful_import": false,
+          "can_incremental_sync": false,
+          "has_running_import": false,
+          "latest_import": null,
+          "active_import": null,
+          "latest_sync_origin": null,
+          "latest_sync_at": null,
+          "last_import_summary": null,
+          "provider": "github",
+          "access_mode": "public",
+          "access_source_type": "public",
+          "access_source_label": "Public GitHub access",
+          "access_requirement": null,
+          "access_requirement_detail": null
+        }
+      }
+    ]
+  },
+  "fresh_import": {
+    "status": "pass",
+    "outcome": "fresh_import",
+    "next_action": "probe_fresh_workspace_core_loop",
+    "summary": "No-workspace preflight was followed by a successful full import."
+  },
+  "import_rehearsal": {
+    "generated_at": "2026-07-10T07:00:06.358426+00:00",
+    "evidence_type": "public-github-import-rehearsal",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "id": "sniffio",
+      "repo": "python-trio/sniffio",
+      "workspace_slug": "github-python-trio-sniffio",
+      "role": "small_python_async_library",
+      "benchmark_purpose": "Validate a bounded import on a small asynchronous runtime detection library."
+    },
+    "setup": {
+      "outcome": "created",
+      "benchmark_ready": true,
+      "next_action": "run_benchmark"
+    },
+    "lookup": {
+      "owner_scope": "local-default",
+      "repo": "python-trio/sniffio",
+      "repo_url": "https://github.com/python-trio/sniffio",
+      "workspace_exists": false,
+      "workspace_slug": null,
+      "has_successful_import": false,
+      "can_incremental_sync": false,
+      "has_running_import": false,
+      "latest_import": null,
+      "active_import": null,
+      "latest_sync_origin": null,
+      "latest_sync_at": null,
+      "last_import_summary": null,
+      "provider": "github",
+      "access_mode": "public",
+      "access_source_type": "public",
+      "access_source_label": "Public GitHub access",
+      "access_requirement": null,
+      "access_requirement_detail": null
+    },
+    "import_job": {
+      "job_id": "79e4f3f9-16ee-407b-80cd-2c91276b6bf7",
+      "workspace_slug": "github-python-trio-sniffio",
+      "repo": "python-trio/sniffio",
+      "mode": "full",
+      "status": "succeeded",
+      "sync_origin": "manual_full",
+      "trigger_event": null,
+      "imported_count": 147,
+      "summary": {
+        "stage": "completed",
+        "imported_count": 147,
+        "artifact_counts": {
+          "issue": 17,
+          "pr": 40,
+          "commit": 89,
+          "doc": 1
+        },
+        "document_summary": {
+          "selected": 1,
+          "imported": 1,
+          "skipped": {
+            "non_markdown": 28,
+            "generated_or_vendor_path": 0,
+            "outside_high_signal_paths": 1
+          },
+          "categories": {
+            "general": 1
+          }
+        },
+        "extraction_summary": {
+          "shortlisted_artifacts": 4,
+          "screened_artifacts": 4,
+          "screened_in_artifacts": 1,
+          "screened_out_artifacts": 3,
+          "full_extraction_requests": 2,
+          "completed_full_extractions": 2,
+          "recovery_extraction_attempts": 1,
+          "total_artifacts": 6,
+          "processed_artifacts": 6,
+          "created_candidates": 0,
+          "salvaged_candidates": 0,
+          "recovered_candidates": 0,
+          "thin_source_ref_decisions": 0,
+          "skipped_provider_400": 0,
+          "skipped_provider_timeout": 0,
+          "skipped_invalid_json": 0,
+          "selected_extraction_families": {
+            "pull_request": 1
+          },
+          "conversion_loss_reasons": {
+            "null_decision": 1
+          },
+          "elapsed_seconds": 34,
+          "estimated_remaining_seconds": 0,
+          "average_full_extraction_latency_ms": 8938,
+          "current_artifact_title": null,
+          "current_phase": "completed",
+          "current_extraction_family": null
+        },
+        "evidence_summary": {
+          "reviewable_decisions": 0,
+          "decision_source_types": {},
+          "contributing_doc_categories": {},
+          "contributing_doc_paths": []
+        },
+        "outcome": "insufficient_evidence"
+      },
+      "error_message": null,
+      "started_at": "2026-07-10T06:59:15.714228",
+      "finished_at": "2026-07-10T07:00:01.387080"
+    },
+    "error": null
+  },
+  "core_loop": {
+    "schema_version": 1,
+    "generated_at": "2026-07-10T07:00:14.366877+00:00",
+    "evidence_type": "imported-workspace-core-loop-rehearsal",
+    "status": "warning",
+    "base_url": "http://127.0.0.1:3001",
+    "repository": {
+      "repo": "python-trio/sniffio",
+      "workspace_slug": "github-python-trio-sniffio"
+    },
+    "accepted_baseline": {
+      "status": "absent",
+      "strength": "none",
+      "candidate_count": 0,
+      "accepted_count": 0,
+      "candidate_sample_titles": [],
+      "accepted_sample_titles": [],
+      "next_action": "import_or_review_decision_candidates"
+    },
+    "lanes": {
+      "setup": {
+        "status": "pass",
+        "summary": "Workspace setup source `explicit` reported `provided`.",
+        "next_action": "probe_core_loop",
+        "details": {
+          "workspace_slug": "github-python-trio-sniffio",
+          "repo": "python-trio/sniffio",
+          "setup": {
+            "source": "explicit"
+          }
+        },
+        "action_category": "pass"
+      },
+      "dashboard": {
+        "status": "pass",
+        "summary": "Dashboard summary loaded for imported workspace.",
+        "next_action": "review_candidates_or_ask_why",
+        "details": {
+          "workspace_slug": "github-python-trio-sniffio",
+          "github_repo": "python-trio/sniffio",
+          "workspace_mode": "imported",
+          "import_status": "succeeded",
+          "candidate_decisions": 0,
+          "accepted_decisions": 0,
+          "drift_state": "evidence_limited",
+          "readiness_state": "evidence_limited"
+        },
+        "action_category": "pass"
+      },
+      "review": {
+        "status": "warning",
+        "summary": "Review queue is empty; accepted baseline may be missing or already reviewed.",
+        "next_action": "inspect_import_quality_or_existing_decisions",
+        "details": {
+          "candidate_count": 0,
+          "sample_titles": [],
+          "accepted_baseline": {
+            "status": "absent",
+            "strength": "none",
+            "candidate_count": 0,
+            "accepted_count": 0,
+            "candidate_sample_titles": [],
+            "accepted_sample_titles": [],
+            "next_action": "import_or_review_decision_candidates"
+          }
+        },
+        "action_category": "product_controlled"
+      },
+      "why_search": {
+        "status": "warning",
+        "summary": "Why-search returned `evidence_limited`.",
+        "next_action": "improve_accepted_decision_evidence",
+        "details": {
+          "answer_status": "evidence_limited",
+          "question": "What important implementation decision was made and why?",
+          "citation_count": 0,
+          "workspace_mode": "imported",
+          "primary_decision": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "why_search",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Why-search has no citations or primary decision to ground the answer.",
+              "next_action": "improve_accepted_decision_evidence",
+              "evidence": {
+                "accepted_baseline_status": "absent",
+                "accepted_decision_count": 0,
+                "answer_status": "evidence_limited",
+                "citation_count": 0,
+                "primary_decision_present": false,
+                "workspace_mode": "imported"
+              }
+            }
+          ]
+        }
+      },
+      "drift": {
+        "status": "warning",
+        "summary": "Drift lane returned `evidence_limited` with 0 alert(s).",
+        "next_action": "evaluate_or_monitor_drift",
+        "details": {
+          "drift_state": "evidence_limited",
+          "alert_count": 0,
+          "evaluation": {
+            "state": "evidence_limited",
+            "can_evaluate": false,
+            "next_action": "inspect_import_summary",
+            "last_evaluated_at": "2026-07-10T07:00:13.117395+00:00",
+            "evaluated_rules": 0,
+            "created_alerts": 0
+          },
+          "evaluation_request_status": "ok",
+          "evaluation_error": null
+        },
+        "action_category": "product_controlled",
+        "grounding": {
+          "reasons": [
+            {
+              "lane": "drift",
+              "code": "missing_accepted_decision_evidence",
+              "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+              "next_action": "evaluate_or_monitor_drift",
+              "evidence": {
+                "accepted_baseline_status": "absent",
+                "accepted_decision_count": 0,
+                "alert_count": 0,
+                "drift_state": "evidence_limited",
+                "evaluation_request_status": "ok",
+                "evaluation_state": "evidence_limited"
+              }
+            }
+          ]
+        }
+      },
+      "guardrail": {
+        "status": "warning",
+        "summary": "Guardrail returned `caution`.",
+        "next_action": "inspect_guardrail_findings",
+        "details": {
+          "agent_status": "caution",
+          "diff_status": "pass",
+          "drift_status": "drift_detected",
+          "required_tests_count": 0,
+          "findings_count": 2
+        },
+        "action_category": "product_controlled"
+      }
+    },
+    "lane_reasons": {
+      "why_search": [
+        {
+          "lane": "why_search",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Why-search has no citations or primary decision to ground the answer.",
+          "next_action": "improve_accepted_decision_evidence",
+          "evidence": {
+            "accepted_baseline_status": "absent",
+            "accepted_decision_count": 0,
+            "answer_status": "evidence_limited",
+            "citation_count": 0,
+            "primary_decision_present": false,
+            "workspace_mode": "imported"
+          }
+        }
+      ],
+      "drift": [
+        {
+          "lane": "drift",
+          "code": "missing_accepted_decision_evidence",
+          "summary": "Drift warning may be caused by insufficient accepted-decision baseline evidence.",
+          "next_action": "evaluate_or_monitor_drift",
+          "evidence": {
+            "accepted_baseline_status": "absent",
+            "accepted_decision_count": 0,
+            "alert_count": 0,
+            "drift_state": "evidence_limited",
+            "evaluation_request_status": "ok",
+            "evaluation_state": "evidence_limited"
+          }
+        }
+      ]
+    },
+    "summary": {
+      "pass_lanes": 2,
+      "warning_lanes": 4,
+      "blocking_lanes": 0,
+      "action_categories": {
+        "product_controlled": 4,
+        "operator_setup": 0,
+        "external_dependency": 0,
+        "not_provided": 0,
+        "blocking": 0
+      },
+      "accepted_baseline": {
+        "status": "absent",
+        "strength": "none",
+        "candidate_count": 0,
+        "accepted_count": 0,
+        "candidate_sample_titles": [],
+        "accepted_sample_titles": [],
+        "next_action": "import_or_review_decision_candidates"
+      },
+      "grounding_summary": {
+        "warning_lanes_with_grounding": 2,
+        "reason_codes": [
+          "missing_accepted_decision_evidence"
+        ]
+      },
+      "setup_waiting": false
+    },
+    "recommended_next_actions": [
+      "evaluate_or_monitor_drift",
+      "improve_accepted_decision_evidence",
+      "inspect_guardrail_findings",
+      "inspect_import_quality_or_existing_decisions",
+      "probe_core_loop",
+      "review_candidates_or_ask_why"
+    ],
+    "sensitive_material_note": "This report stores compact statuses/counts only. Do not include tokens, raw private source, or raw model output."
+  },
+  "browser": {
+    "status": "pass",
+    "summary": "Chrome verified the real fresh python-trio/sniffio workspace: 147 imported artifacts, zero review candidates, a conservative evidence-limited Why response with no citations, evidence-limited Drift, zero console errors, and DOM-CUA navigation back to the dashboard."
+  },
+  "limitations": [
+    "A seeded bounded pool is random and reproducible but is not an unbounded sample of GitHub.",
+    "GitHub and the real local stack are external runtime dependencies.",
+    "A successful import can still yield evidence-limited decision quality.",
+    "Evidence excludes credentials, raw private source, raw model output, and unbounded logs."
+  ],
+  "recommended_next_actions": [
+    "evaluate_or_monitor_drift",
+    "improve_accepted_decision_evidence",
+    "inspect_guardrail_findings",
+    "inspect_import_quality_or_existing_decisions",
+    "probe_core_loop",
+    "review_candidates_or_ask_why"
+  ],
+  "summary": {
+    "fresh_import": true,
+    "selected_repository": "python-trio/sniffio",
+    "workspace_slug": "github-python-trio-sniffio",
+    "imported_count": 147,
+    "core_loop_status": "warning",
+    "browser_status": "pass"
+  }
+}

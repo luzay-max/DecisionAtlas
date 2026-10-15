@@ -1,0 +1,454 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-07-15T04:16:12.950158+00:00",
+  "comparison_type": "real-repo-benchmark-regression",
+  "baseline_generated_at": "2026-05-08T00:00:00+00:00",
+  "current_generated_at": "2026-07-15T04:15:25.165705+00:00",
+  "summary": {
+    "repositories": 5,
+    "movements": {
+      "improved": 0,
+      "missing-from-current": 1,
+      "needs-review": 0,
+      "newly-evaluated": 4,
+      "operationally-blocked": 0,
+      "product-limited": 0,
+      "regressed": 0,
+      "unchanged": 0
+    },
+    "regressed": 0,
+    "improved": 0,
+    "operationally_blocked": 0,
+    "sparse_movements": {
+      "improved": 0,
+      "regressed": 0,
+      "operationally_blocked": 0,
+      "not_provided": 0
+    },
+    "release_evidence_ready": true
+  },
+  "repositories": [
+    {
+      "id": "browser-use",
+      "repo": "browser-use/browser-use",
+      "workspace_slug": "github-browser-use-browser-use",
+      "movement": "missing-from-current",
+      "current_value_outcome": null,
+      "baseline_value_outcome": "useful_now",
+      "current_bounded_outcome": null,
+      "baseline_bounded_outcome": "why_ready",
+      "metric_deltas": {},
+      "sparse_conversion": {
+        "movement": "missing-from-current",
+        "status": null,
+        "baseline_status": null,
+        "metric_deltas": {
+          "normal_attempts": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "candidate_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          }
+        },
+        "rejection_reason_deltas": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        },
+        "reasons": []
+      },
+      "reasons": [
+        "Repository existed in the baseline snapshot but is missing from the current comparison input."
+      ]
+    },
+    {
+      "id": "drisspg-transformer-nuggets",
+      "repo": "drisspg/transformer_nuggets",
+      "workspace_slug": "github-drisspg-transformer-nuggets",
+      "movement": "newly-evaluated",
+      "current_value_outcome": "evidence_limited",
+      "baseline_value_outcome": null,
+      "current_bounded_outcome": "evidence_limited",
+      "baseline_bounded_outcome": null,
+      "metric_deltas": {},
+      "sparse_conversion": {
+        "movement": "newly-evaluated",
+        "status": "exhausted",
+        "baseline_status": null,
+        "metric_deltas": {
+          "normal_attempts": {
+            "current": 3,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "current": 1,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "current": 1,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "current": 1,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "candidate_yield": {
+            "current": 0.0,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "current": 0.0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "current": 0.0,
+            "baseline": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "current": 26,
+            "baseline": null,
+            "delta": null
+          }
+        },
+        "rejection_reason_deltas": {
+          "current": [
+            "null_decision"
+          ],
+          "baseline": [],
+          "added": [
+            "null_decision"
+          ],
+          "removed": []
+        },
+        "reasons": [
+          "New sparse rejection reasons: null_decision"
+        ]
+      },
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot.",
+        "New sparse rejection reasons: null_decision"
+      ]
+    },
+    {
+      "id": "harbor-framework-terminal-bench-science",
+      "repo": "harbor-framework/terminal-bench-science",
+      "workspace_slug": "github-harbor-framework-terminal-bench-science",
+      "movement": "newly-evaluated",
+      "current_value_outcome": "useful_now",
+      "baseline_value_outcome": null,
+      "current_bounded_outcome": "review_ready",
+      "baseline_bounded_outcome": null,
+      "metric_deltas": {},
+      "sparse_conversion": {
+        "movement": "newly-evaluated",
+        "status": "skipped",
+        "baseline_status": null,
+        "metric_deltas": {
+          "normal_attempts": {
+            "current": 43,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "current": 23,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "current": 6,
+            "baseline": null,
+            "delta": null
+          },
+          "candidate_yield": {
+            "current": 0.6744,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "current": 0.5349,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "current": 690,
+            "baseline": null,
+            "delta": null
+          }
+        },
+        "rejection_reason_deltas": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        },
+        "reasons": []
+      },
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ]
+    },
+    {
+      "id": "lipu-jpg-openwrite",
+      "repo": "LiPu-jpg/Openwrite",
+      "workspace_slug": "github-lipu-jpg-openwrite",
+      "movement": "newly-evaluated",
+      "current_value_outcome": "evidence_limited",
+      "baseline_value_outcome": null,
+      "current_bounded_outcome": "evidence_limited",
+      "baseline_bounded_outcome": null,
+      "metric_deltas": {},
+      "sparse_conversion": {
+        "movement": "newly-evaluated",
+        "status": "skipped",
+        "baseline_status": null,
+        "metric_deltas": {
+          "normal_attempts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "candidate_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          }
+        },
+        "rejection_reason_deltas": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        },
+        "reasons": []
+      },
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ]
+    },
+    {
+      "id": "sirkirby-unifi-mcp",
+      "repo": "sirkirby/unifi-mcp",
+      "workspace_slug": "github-sirkirby-unifi-mcp",
+      "movement": "newly-evaluated",
+      "current_value_outcome": "useful_now",
+      "baseline_value_outcome": null,
+      "current_bounded_outcome": "review_ready",
+      "baseline_bounded_outcome": null,
+      "metric_deltas": {},
+      "sparse_conversion": {
+        "movement": "newly-evaluated",
+        "status": "skipped",
+        "baseline_status": null,
+        "metric_deltas": {
+          "normal_attempts": {
+            "current": 74,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidates": {
+            "current": 38,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_eligible_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_attempted_artifacts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_model_attempts": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_candidates": {
+            "current": 0,
+            "baseline": null,
+            "delta": null
+          },
+          "recovery_candidates": {
+            "current": 13,
+            "baseline": null,
+            "delta": null
+          },
+          "candidate_yield": {
+            "current": 0.6892,
+            "baseline": null,
+            "delta": null
+          },
+          "normal_candidate_yield": {
+            "current": 0.5135,
+            "baseline": null,
+            "delta": null
+          },
+          "sparse_recovered_yield": {
+            "current": null,
+            "baseline": null,
+            "delta": null
+          },
+          "elapsed_seconds": {
+            "current": 772,
+            "baseline": null,
+            "delta": null
+          }
+        },
+        "rejection_reason_deltas": {
+          "current": [],
+          "baseline": [],
+          "added": [],
+          "removed": []
+        },
+        "reasons": []
+      },
+      "reasons": [
+        "Repository is present in the current comparison input but not in the baseline snapshot."
+      ]
+    }
+  ]
+}

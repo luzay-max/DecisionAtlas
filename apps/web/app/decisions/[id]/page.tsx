@@ -1,8 +1,6 @@
 import React from "react";
 
-import { DecisionCard } from "../../../components/decisions/decision-card";
-import { SourceRefList } from "../../../components/decisions/source-ref-list";
-import { DemoWorkspaceNav } from "../../../components/navigation/demo-workspace-nav";
+import { DecisionDetailContent } from "../../../components/decisions/decision-detail-content";
 import { getDecisionDetail } from "../../../lib/api";
 
 export default async function DecisionDetailPage({
@@ -17,13 +15,5 @@ export default async function DecisionDetailPage({
   const workspaceSlug = query.workspace ?? "demo-workspace";
   const decision = await getDecisionDetail(id);
 
-  return (
-    <main className="page-shell">
-      <section className="panel">
-        <DemoWorkspaceNav workspaceSlug={workspaceSlug} currentPath="/review" />
-        <DecisionCard decision={decision} />
-        <SourceRefList sourceRefs={decision.source_refs} />
-      </section>
-    </main>
-  );
+  return <DecisionDetailContent decision={decision} workspaceSlug={workspaceSlug} />;
 }

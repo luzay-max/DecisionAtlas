@@ -12,6 +12,11 @@ vi.mock("next/navigation", () => ({
     refresh: vi.fn(),
     push: vi.fn(),
   }),
+  usePathname: () => "/governance",
+}));
+
+vi.mock("../components/navigation/global-sidebar", () => ({
+  GlobalSidebar: () => <nav data-testid="global-sidebar" />,
 }));
 
 vi.mock("../lib/api", async () => {

@@ -1,7 +1,7 @@
 # v0-3-release-candidate-baseline Specification
 
 ## Purpose
-TBD - created by archiving change prepare-v0-3-release-candidate-baseline. Update Purpose after archive.
+Defines the frozen v0.3 release-candidate baseline with tag/commit tracking, shipped capability boundary, known limitations, and canonical validation evidence.
 ## Requirements
 ### Requirement: v0.3 release candidate has a frozen baseline
 The system SHALL define a v0.3 release-candidate baseline that records the intended tag, final tag target commit, shipped capability boundary, known limitations, and actual local and remote tag status before v0.4 follow-up product-value work begins.

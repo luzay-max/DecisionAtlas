@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 import { WhyAnswerResponse } from "../../lib/api";
 import { useI18n } from "../i18n/language-provider";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
 
-export function SearchResults({ result }: { result: WhyAnswerResponse }) {
+export function SearchResults({ result, workspaceSlug }: { result: WhyAnswerResponse; workspaceSlug: string }) {
   const { messages } = useI18n();
   const answerContext = result.answer_context;
   const limitedSupport = result.status === "limited_support";
@@ -58,6 +59,16 @@ export function SearchResults({ result }: { result: WhyAnswerResponse }) {
         {result.citations.map((citation, index) => (
           <article key={`${citation.quote}-${index}`} className="source-ref">
             <blockquote>{citation.quote}</blockquote>
+            {citation.decision_id ? (
+              <p>
+                <Link
+                  href={`/decisions/${citation.decision_id}?workspace=${encodeURIComponent(workspaceSlug)}`}
+                  className="action-link"
+                >
+                  Open decision detail
+                </Link>
+              </p>
+            ) : null}
             {citation.url ? (
               <a href={citation.url} target="_blank" rel="noreferrer">
                 {citation.url}

@@ -1,7 +1,7 @@
 # release-evidence-automation Specification
 
 ## Purpose
-TBD - created by archiving change release-evidence-automation. Update Purpose after archive.
+Generates machine-readable release evidence bundles and operator-readable Markdown handoffs that separate required release gates from advisory confidence signals.
 ## Requirements
 ### Requirement: Release evidence bundle generation
 The system SHALL provide a local way to generate a release evidence bundle that summarizes release readiness signals in a machine-readable format.
@@ -89,3 +89,13 @@ Generated release evidence bundles SHALL be usable as explicit input to readines
 - **WHEN** readiness history is archived without release evidence
 - **THEN** the history entry SHALL record release evidence as not provided rather than passed.
 
+### Requirement: Release evidence can be orchestrated by release rehearsal
+Release evidence automation SHALL be usable as a lane in the one-command release rehearsal bundle.
+
+#### Scenario: Release evidence JSON is provided
+- **WHEN** a release evidence JSON path is supplied to the rehearsal command
+- **THEN** the rehearsal SHALL include its status, summary, and evidence path.
+
+#### Scenario: Release evidence is not provided
+- **WHEN** release evidence is omitted
+- **THEN** the rehearsal SHALL preserve the release lane as `not_provided` or run it only when explicitly requested.

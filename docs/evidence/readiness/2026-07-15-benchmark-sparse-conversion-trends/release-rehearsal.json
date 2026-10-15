@@ -1,0 +1,144 @@
+{
+  "evidence_type": "release-rehearsal-one-command-evidence",
+  "generated_at": "2026-07-15T04:30:07.150740+00:00",
+  "generated_paths": {},
+  "label": "benchmark-sparse-conversion-live-four-profile-rehearsal",
+  "lanes": [
+    {
+      "id": "release_evidence",
+      "label": "Release evidence",
+      "required": false,
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/release-evidence.json",
+      "status": "warning",
+      "summary": {
+        "advisory_signal_count": 4,
+        "missing_input_count": 1,
+        "required_gate_count": 3,
+        "status": "warning",
+        "warning_count": 0
+      },
+      "warnings": []
+    },
+    {
+      "id": "hosted_readiness",
+      "label": "Hosted/operator readiness",
+      "required": false,
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/hosted-readiness.json",
+      "status": "operator_guided",
+      "summary": {
+        "not_provided_count": 0,
+        "operator_guided_count": 4,
+        "public_walkthrough_status": "operator_guided",
+        "status": "operator_guided"
+      },
+      "warnings": []
+    },
+    {
+      "id": "benchmark_trend",
+      "label": "Benchmark trend",
+      "required": false,
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/live-trend.json",
+      "status": "pass",
+      "summary": {
+        "covered_repositories": 4,
+        "operationally_blocked": 0,
+        "recommended_follow_up": [
+          "Fixed-pool benchmark trend evidence is clean for the supplied comparison."
+        ],
+        "regressed": 0,
+        "release_evidence_ready": true,
+        "repositories": 4,
+        "sparse_improved": 0,
+        "sparse_not_provided": 0,
+        "sparse_operationally_blocked": 0,
+        "sparse_regressed": 0,
+        "status": "pass"
+      },
+      "warnings": []
+    },
+    {
+      "id": "benchmark_comparison",
+      "label": "Benchmark comparison",
+      "required": false,
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/live-comparison.json",
+      "status": "pass",
+      "summary": {
+        "covered_repositories": null,
+        "operationally_blocked": 0,
+        "recommended_follow_up": [],
+        "regressed": 0,
+        "release_evidence_ready": true,
+        "repositories": 5,
+        "sparse_improved": 0,
+        "sparse_not_provided": 0,
+        "sparse_operationally_blocked": 0,
+        "sparse_regressed": 0,
+        "status": "pass"
+      },
+      "warnings": []
+    },
+    {
+      "id": "multi_repo_diagnosis",
+      "label": "Multi-repo live diagnosis",
+      "required": false,
+      "source_path": null,
+      "status": "not_provided",
+      "summary": {
+        "reason": "source_not_provided"
+      },
+      "warnings": [
+        "source_not_provided"
+      ]
+    },
+    {
+      "id": "guardrail_summary",
+      "label": "Governance guardrail",
+      "required": false,
+      "source_path": ".tmp/benchmark-sparse-conversion-trends/guardrail-agent.json",
+      "status": "warning",
+      "summary": {
+        "handoff_summary": null,
+        "status": "warning",
+        "summary": "Governance guardrail found advisory concerns; the agent may continue only after addressing recommended actions."
+      },
+      "warnings": []
+    },
+    {
+      "id": "readiness_history",
+      "label": "Readiness history",
+      "required": false,
+      "source_path": "docs/evidence/readiness/index.json",
+      "status": "warning",
+      "summary": {
+        "entry_count": 17,
+        "latest_entry_id": "2026-07-15-benchmark-sparse-conversion-live-four-profile-rehearsal",
+        "status": "warning"
+      },
+      "warnings": []
+    }
+  ],
+  "missing_lanes": [
+    "multi_repo_diagnosis"
+  ],
+  "operator_guided_lanes": [
+    "hosted_readiness"
+  ],
+  "recommended_follow_up": [
+    "Attach or generate missing optional release evidence lanes before claiming a clean release.",
+    "Complete or explicitly disclose operator-guided release rehearsal lanes.",
+    "Fixed-pool benchmark trend evidence is clean for the supplied comparison.",
+    "Review warning/blocking lanes and decide whether to rerun collectors or disclose limitations."
+  ],
+  "schema_version": 1,
+  "sensitive_material_note": "This bundle stores compact statuses/counts only. Do not include tokens, raw private source, raw model output, or unbounded local logs.",
+  "status": "warning",
+  "summary": {
+    "blocking": 0,
+    "lanes": 7,
+    "missing_lanes": 1,
+    "operator_guided_lanes": 1,
+    "pass": 2,
+    "warning": 5
+  },
+  "warnings": []
+}

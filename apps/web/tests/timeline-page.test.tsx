@@ -1,7 +1,16 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { TimelinePageContent } from "../components/timeline/timeline-page-content";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/timeline",
+}));
+
+vi.mock("../components/navigation/global-sidebar", () => ({
+  GlobalSidebar: () => <nav data-testid="global-sidebar" />,
+}));
 
 describe("TimelinePageContent", () => {
   it("renders accepted decisions in order", () => {

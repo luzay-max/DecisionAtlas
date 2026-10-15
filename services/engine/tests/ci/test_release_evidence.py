@@ -105,6 +105,12 @@ def test_release_evidence_markdown_discloses_guardrail_and_benchmark_warnings(tm
                     "regressed": 1,
                     "operationally_blocked": 1,
                     "improved": 0,
+                    "sparse_movements": {
+                        "improved": 0,
+                        "regressed": 1,
+                        "operationally_blocked": 1,
+                        "not_provided": 0,
+                    },
                     "release_evidence_ready": True,
                 },
             }
@@ -136,3 +142,8 @@ def test_release_evidence_markdown_discloses_guardrail_and_benchmark_warnings(tm
     assert "operationally_blocked" in markdown
     assert "regressed" in markdown
     assert "Governance guardrail found advisory concerns." in markdown
+    assert bundle["source_paths"]["governance_guardrail"] == "guardrail.json"
+    assert bundle["source_paths"]["real_repo_benchmark_comparison"] == "comparison.json"
+    benchmark = next(item for item in bundle["advisory_signals"] if item["id"] == "real_repo_benchmark_comparison")
+    assert benchmark["details"]["sparse_regressed"] == 1
+    assert benchmark["details"]["sparse_operationally_blocked"] == 1

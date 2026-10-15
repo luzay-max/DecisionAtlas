@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "evidence_label": "external-self-hosted-install-example",
+  "generated_at": "2026-07-02T00:00:00+00:00",
+  "external_host": {
+    "host_class": "clean-vm",
+    "os": "Windows Server 2025 or Ubuntu 24.04",
+    "runtime": "Docker Desktop or Docker Engine",
+    "is_customer_controlled": false,
+    "operator": "example-operator"
+  },
+  "package_identity": {
+    "package_label": "decisionatlas-self-hosted",
+    "version_label": "self-hosted-preview",
+    "commit": "replace-with-package-commit",
+    "package_manifest_sha256": "replace-with-manifest-sha256"
+  },
+  "lanes": {
+    "package_identity": {
+      "status": "passed",
+      "evidence": "Package label, version, commit, and manifest hash were recorded from the package manifest."
+    },
+    "startup": {
+      "status": "operator_guided",
+      "evidence": "Operator starts the stack with scripts/dev/start-real-stack.bat or scripts/dev/start-real-stack.ps1 on the external host."
+    },
+    "health": {
+      "status": "operator_guided",
+      "evidence": "Operator runs health checks against web, API, and engine URLs on the external host."
+    },
+    "browser_smoke": {
+      "status": "operator_guided",
+      "evidence": "Operator opens the web UI and confirms workspace/review/drift pages load."
+    },
+    "repository_import": {
+      "status": "operator_guided",
+      "evidence": "Operator imports a public repository or records why repository import is deferred."
+    },
+    "readiness_evidence": {
+      "status": "not_provided",
+      "evidence": "Attach release evidence, hosted readiness, benchmark comparison, and handoff report paths when generated on the external host."
+    },
+    "redaction_review": {
+      "status": "passed",
+      "evidence": "Operator reviewed this evidence and removed raw tokens, .env values, private keys, database dumps, and private repository snippets."
+    }
+  },
+  "source_evidence_paths": [
+    ".tmp/release-evidence.md",
+    ".tmp/hosted-operator-readiness.md",
+    ".tmp/real-repo-benchmark-comparison.md",
+    ".tmp/team-handoff-report.md"
+  ],
+  "limitations": [
+    "This example is a template and not customer-host proof until filled on a real external host.",
+    "Do not attach raw .env files, provider keys, repository tokens, database dumps, or private repository content."
+  ],
+  "redaction_acknowledgement": {
+    "acknowledged": true,
+    "reviewer": "example-operator",
+    "note": "Evidence contains only bounded summaries and sanitized paths."
+  }
+}

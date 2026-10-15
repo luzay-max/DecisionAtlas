@@ -154,6 +154,13 @@ export function GuardrailPauseBanner({ workspaceSlug }: { workspaceSlug: string 
                   <div style={styles.signalHead}>
                     <span style={styles.signalType}>{signal.type}</span>
                     <span style={styles.signalTitle}>{t(signal.title)}</span>
+                    {(signal.occurrence_count ?? 1) > 1 ? (
+                      <span style={styles.signalRecurrence}>
+                        {isZh
+                          ? "重复 " + signal.occurrence_count + " 次 · " + (signal.source_count ?? 1) + " 个来源"
+                          : "Repeated " + signal.occurrence_count + " times · " + (signal.source_count ?? 1) + " sources"}
+                      </span>
+                    ) : null}
                   </div>
                   {signal.recommended_next_action && (
                     <p style={styles.signalAction}>
@@ -346,6 +353,16 @@ const styles = {
   sourcePath: {
     color: "#f8fafc",
     fontWeight: "500" as const,
+  },
+  signalRecurrence: {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px solid rgba(245, 158, 11, 0.45)",
+    borderRadius: "999px",
+    padding: "2px 8px",
+    fontSize: "11px",
+    color: "#fef3c7",
+    whiteSpace: "nowrap",
   },
   signalsList: {
     display: "flex",

@@ -27,6 +27,15 @@ test("self-hosted team workflow rehearsal", async ({ page }) => {
   await page.getByLabel("Scope role").selectOption("viewer");
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText(accountLabel(viewerUsername))).toBeVisible();
+  const viewerAccountText = await page.getByText(accountLabel(viewerUsername)).textContent();
+  const viewerActorId = viewerAccountText?.match(/#(\d+)/)?.[1];
+  expect(viewerActorId).toBeTruthy();
+
+  const workspaceMembers = page.getByRole("heading", { name: "Workspace members" }).locator("..");
+  await workspaceMembers.getByLabel("Actor ID").fill(viewerActorId!);
+  await workspaceMembers.getByLabel("Workspace role").selectOption("viewer");
+  await workspaceMembers.getByRole("button", { name: "Assign member" }).click();
+  await expect(page.getByText("Workspace member assignment updated.")).toBeVisible();
 
   await page.goto("/login?next=/team");
   await page.getByLabel("Username").fill(reviewerUsername);
@@ -47,4 +56,11 @@ test("self-hosted team workflow rehearsal", async ({ page }) => {
   await expect(page.getByLabel("Current account and owner scope").getByText(/Role: viewer/)).toBeVisible();
   await expect(page.getByText("Admin role required for team account and workspace permission management.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Create account" })).toHaveCount(0);
+
+  await page.goto("/review?workspace=demo-workspace");
+  await expect(page.getByRole("heading", { name: /Current review role: viewer/ })).toBeVisible();
+  await expect(page.getByText("read-only")).toBeVisible();
+  await expect(page.getByText(/cannot accept, reject, or supersede candidates/)).toBeVisible();
+  await expect(page.getByText("Reviewer or admin role required for review actions.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Accept" })).toHaveCount(0);
 });
