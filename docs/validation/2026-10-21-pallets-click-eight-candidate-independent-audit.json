@@ -99,7 +99,7 @@
       "observed_source": "PR #2559 closed/unmerged；替代 PR #2562 merged",
       "additional_evidence": [
         "https://github.com/pallets/click/pull/2562",
-        "https://github.com/pallets/click/issues/2559#issuecomment-1627820166"
+        "https://github.com/pallets/click/pull/2559"
       ],
       "human_signed_off": false
     },
