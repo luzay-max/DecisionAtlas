@@ -108,3 +108,12 @@ def test_production_rejects_plaintext_github_token_binding_before_network(monkey
     monkeypatch.setenv("APP_ENV", "production")
     with pytest.raises(RepositoryAccessError, match="encrypted credential storage"):
         bind_github_private_access_source(repo="org/private", token="do-not-store")
+
+def test_production_rejects_reuse_of_legacy_plaintext_token() -> None:
+    from types import SimpleNamespace
+    from app.jobs.import_jobs import RepositoryAccessError, _token_for_workspace
+
+    workspace = SimpleNamespace(access_source_type="github_token", access_source_ref="old")
+    settings = SimpleNamespace(app_env="production")
+    with pytest.raises(RepositoryAccessError, match="encrypted credential storage"):
+        _token_for_workspace(session=None, workspace=workspace, settings=settings)
