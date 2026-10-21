@@ -96,3 +96,11 @@
 - [ ] 之后才运行一个明确上限的真实模型试验，先限制评估样本，核对 20 条候选（不足则全量）与预注册 10 个 Why 问题。人工评分必须显式填入，系统不自动声明准确率。
 - [ ] Drift 的 5 条真实变更仍需独立人工验证；不能由 Fake Provider 或模型自评分代替。
 
+
+### 公开仓库候选人工审核包（非真实模型评估）
+
+- 新增 `scripts/ci/run_public_pilot_ci.py` 中的候选审核包导出，GitHub Actions 运行 [#39565932265](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265) **success**。
+- Artifact：[pallets/click source-linked review packet](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265/artifacts/12329577704)，其中 `pilot-pallets-click-review-packet.json/.md` 含 8 条候选及可点击的 GitHub 来源、候选问题/选项和未填写的人工评分字段。
+- 每条候选目前有至少一个公开 GitHub 引用。**来源可点击 ≠ 引用一定支持候选结论**；是否为真实决策、是否正确、是否值得保留仍需独立标注。
+- 导入工作流使用 Fake Provider，候选审核包 `quality_claim=not_evaluated`。不自动计算准确率，不声称人工审核通过，也**不使用任何付费 LLM API**。
+- 真实大模型试验下一步需维护者确认模型供应商、预算上限，并由维护者自行配置受限 GitHub Actions Secret。PR #7 仍为 Draft，不因此自动合并。
