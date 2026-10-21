@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 import { getEnv } from "./plugins/env";
 
@@ -20,8 +20,11 @@ export function parseCookieHeader(header: string | undefined): Record<string, st
   );
 }
 
-function buildSessionCookie(name: string, value: string): string {
-  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax`;
+function buildSessionCookie(name: string, value: string, clear = false): string {
+  const env = getEnv();
+  const secure = env.APP_ENV === "production" || process.env.NODE_ENV === "production";
+  const expiry = clear ? "; Max-Age=0" : "";
+  return `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}${expiry}`;
 }
 
 export function ensureSessionToken(request: FastifyRequest): string | null {
@@ -42,4 +45,9 @@ export async function authHeadersForRequest(request: FastifyRequest): Promise<Re
 export function setSessionCookie(reply: FastifyReply, sessionToken: string): void {
   const env = getEnv();
   reply.header("set-cookie", buildSessionCookie(env.AUTH_COOKIE_NAME, sessionToken));
+}
+
+export function clearSessionCookie(reply: FastifyReply): void {
+  const env = getEnv();
+  reply.header("set-cookie", buildSessionCookie(env.AUTH_COOKIE_NAME, "", true));
 }
