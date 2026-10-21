@@ -236,7 +236,8 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 - [Governance Drift Detection](./docs/project/governance-drift-detection.md)
 - [AI Agent Governance Guardrail](./docs/project/governance-agent-guardrail.md)
 - [架构与规划](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
-- [当前总计划](./docs/plans/2026-04-29-decisionatlas-next-master-plan.md)
+- [当前执行计划（2026-10-21）：安全整改与真实仓库价值验证](./docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md)
+- [历史计划审查与归档索引](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
 - [真实仓库验证](./docs/project/real-repository-validation-baseline.md)
 
 ## ⚠️ 已知限制
