@@ -4,6 +4,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from app.auth import SESSION_HEADER, require_actor
+from app.config import get_settings
 from app.db.session import get_db_session
 from app.repositories.auth import AuthRepository, ensure_bootstrap_identity, verify_password
 
@@ -21,6 +22,9 @@ class ScopeSwitchRequest(BaseModel):
 
 @router.post("/bootstrap")
 def bootstrap_auth() -> dict:
+    settings = get_settings()
+    if not settings.auth_auto_bootstrap_local or settings.app_env.lower() not in {"development", "test"}:
+        raise HTTPException(status_code=403, detail="Local bootstrap is disabled")
     session = get_db_session()
     try:
         actor, scope, membership = ensure_bootstrap_identity(session)
