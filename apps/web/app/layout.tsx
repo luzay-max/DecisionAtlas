@@ -12,8 +12,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <a className="skip-to-content" href="#main-content">Skip to main content</a>
-        <Providers>{children}</Providers>
+        <a className="skip-to-content" href="#page-content">Skip to main content</a>
+        <Providers><div id="page-content" tabIndex={-1}>{children}</div></Providers>
       </body>
     </html>
   );
