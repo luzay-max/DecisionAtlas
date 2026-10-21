@@ -23,7 +23,7 @@ export default function HomePage() {
     <main className="home home-page" id="main-content">
       <div className="home-container">
         <header className="home-header">
-          <Link href="/" className="home-brand" aria-label={messages.home.homeAriaLabel}>
+          <Link href="/" className="home-brand">
             <span className="home-brand-symbol" aria-hidden="true">D<span>A</span></span>
             <span>DecisionAtlas</span>
           </Link>
