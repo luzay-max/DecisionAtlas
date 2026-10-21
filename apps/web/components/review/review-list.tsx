@@ -62,7 +62,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
           <div className="review-queue-heading">
             <h2>{messages.review.queueCount.replace("{count}", String(items.length))}</h2>
             <span className="badge" role="status" aria-live="polite">
-              {messages.review.remainingCount.replace("{count}", String(items.length))}
+              {messages.review.remainingCount.replace("{count}", String(filteredItems.length))}
             </span>
           </div>
           <div className="review-queue-fields">
