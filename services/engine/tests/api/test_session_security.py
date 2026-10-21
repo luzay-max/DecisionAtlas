@@ -102,18 +102,43 @@ def test_disabling_account_revokes_sessions(tmp_path: Path, monkeypatch) -> None
     assert response.status_code == 200
     assert client.get("/auth/session", headers={SESSION_HEADER: member_token}).status_code == 401
 
-def test_production_rejects_plaintext_github_token_binding_before_network(monkeypatch) -> None:
+def test_production_without_keys_rejects_token_binding_before_network(monkeypatch) -> None:
     from app.jobs.import_jobs import RepositoryAccessError, bind_github_private_access_source
 
     monkeypatch.setenv("APP_ENV", "production")
-    with pytest.raises(RepositoryAccessError, match="encrypted credential storage"):
+    monkeypatch.delenv("GITHUB_TOKEN_ENCRYPTION_KEYS", raising=False)
+    with pytest.raises(RepositoryAccessError, match="encryption keys are not configured"):
         bind_github_private_access_source(repo="org/private", token="do-not-store")
 
-def test_production_rejects_reuse_of_legacy_plaintext_token() -> None:
+
+def test_production_rejects_reuse_of_legacy_plaintext_token(tmp_path: Path, monkeypatch) -> None:
     from types import SimpleNamespace
+    from app.db.models import GitHubTokenAccessSource
     from app.jobs.import_jobs import RepositoryAccessError, _token_for_workspace
 
-    workspace = SimpleNamespace(access_source_type="github_token", access_source_ref="old")
-    settings = SimpleNamespace(app_env="production")
-    with pytest.raises(RepositoryAccessError, match="encrypted credential storage"):
-        _token_for_workspace(session=None, workspace=workspace, settings=settings)
+    db_path = tmp_path / "legacy-tokens.db"
+    _setup(db_path, monkeypatch)
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(GitHubTokenAccessSource(
+            owner_scope="team-a",
+            source_ref="old",
+            display_label="legacy",
+            repo_identity="org/private",
+            token_secret="ghp-old-plaintext",
+            authorization_status="authorized",
+        ))
+        session.commit()
+
+    monkeypatch.setenv("APP_ENV", "production")
+    workspace = SimpleNamespace(
+        access_source_type="github_token", access_source_ref="old",
+        owner_scope="team-a", repo_identity="org/private",
+    )
+    with Session(engine) as session:
+        with pytest.raises(RepositoryAccessError, match="not a supported encrypted token"):
+            _token_for_workspace(
+                session=session, workspace=workspace,
+                settings=SimpleNamespace(app_env="production"),
+            )
+    engine.dispose()
