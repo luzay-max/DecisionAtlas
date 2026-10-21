@@ -104,3 +104,15 @@
 - 每条候选目前有至少一个公开 GitHub 引用。**来源可点击 ≠ 引用一定支持候选结论**；是否为真实决策、是否正确、是否值得保留仍需独立标注。
 - 导入工作流使用 Fake Provider，候选审核包 `quality_claim=not_evaluated`。不自动计算准确率，不声称人工审核通过，也**不使用任何付费 LLM API**。
 - 真实大模型试验下一步需维护者确认模型供应商、预算上限，并由维护者自行配置受限 GitHub Actions Secret。PR #7 仍为 Draft，不因此自动合并。
+
+## 8. DeepSeek 兼容模型接入准备（只执行免费模拟）
+
+- 2026-10-21 确定 DeepSeek 为下一轮人工质量实验的优选服务。官方 OpenAI 兼容入口 `https://api.deepseek.com`、当前 Flash 模型 `deepseek-flash`。请不要继续把旧 `deepseek-chat` 别名写入新示例。
+- [x] 基于现有 `OpenAICompatibleProvider` 增加**可选**的 `max_output_tokens` 和 `disable_thinking`。未显式启用时原行为不变。
+- [x] 新增两条预登记公开 PR #3877/#3884 的 DeepSeek 格式模拟流程，默认 **dry_run_mock**：`httpx.MockTransport` 代替真实付费接口，未配置任何 AI Key。
+- [x] 代码级保护：最多 2 次请求、固定 `deepseek-flash`、非思考模式、768 个最大输出 Token、5000 字节请求体上限、无自动重试和本地保守预估金额检查。费用估算不是供应商的硬扣费上限。
+- [x] 新增 GitHub Actions `deepseek-adapter-pilot.yml`：分支 push 只允许模拟任务；未来付费任务只允许带双重确认的 `workflow_dispatch` 并由未来维护者自行配置 `DEEPSEEK_PILOT_API_KEY`。
+- [ ] dry-run 工作流和最新完整 CI 在当前 SHA 通过。失败修复不得开启 live 请求。
+- [ ] **付费模型调用仍为 `not_run`**，未获得用户后续关于调用和费用的明确同意，亦未配置或获取 API Key。
+- [ ] 完整 DecisionAtlas live 提取、人工候选评分、10 个 Why 和 5 个 Drift 仍未运行。两条 PR 的模型接口冒烟测试不是全链路质量证明。
+- 详细接入、收费授权门禁及变更的模型名称以 [DeepSeek 接入试点手册](../validation/2026-10-21-deepseek-adapter-dry-run.md) 为准。
