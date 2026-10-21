@@ -57,7 +57,7 @@ def test_token_is_encrypted_at_rest_and_bound_to_scope(monkeypatch) -> None:
     with pytest.raises(CredentialProtectionError, match="does not match"):
         decrypt_token(encrypted, owner_scope="team-2", source_ref="private-repo", repo_identity="org/private")
     with pytest.raises(CredentialProtectionError, match="authentication failed"):
-        decrypt_token(encrypted[:-1] + ("x" if encrypted[-1] != "x" else "y"), **_context())
+        decrypt_token(encrypted[:35] + ("x" if encrypted[35] != "x" else "y") + encrypted[36:], **_context())
 
 
 def test_missing_or_invalid_key_fails_closed(monkeypatch) -> None:
