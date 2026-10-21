@@ -1,0 +1,108 @@
+name: DeepSeek DecisionAtlas adapter pilot
+
+# Until this file exists on main, new branch workflows are triggered by push.
+# All push runs are mock-only, with NO MODEL SECRET and NO BILLABLE CALLS.
+on:
+  push:
+    branches:
+      - fix/security-bootstrap-webhook-import-20261021
+    paths:
+      - ".github/workflows/deepseek-adapter-pilot.yml"
+      - "scripts/ci/deepseek_pilot.py"
+      - "services/engine/app/llm/openai_compatible.py"
+      - "services/engine/tests/ci/test_deepseek_pilot.py"
+  workflow_dispatch:
+    inputs:
+      execution:
+        description: "Default costs $0. Live requires separate explicit charge acknowledgement and API secret"
+        required: true
+        type: choice
+        default: dry_run
+        options:
+          - dry_run
+          - live_two_requests
+      charge_acknowledgement:
+        description: "For live only, type I_APPROVE_DEEPSEEK_API_CHARGES"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deepseek-adapter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dry-run:
+    if: github.event_name == 'push' || inputs.execution == 'dry_run'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v5
+      - name: Install frozen Engine requirements
+        run: uv sync --project services/engine --frozen
+      - name: Verify DeepSeek adapter with offline mocks only
+        run: uv run --project services/engine python scripts/ci/deepseek_pilot.py
+      - name: Run DeepSeek adapter guard tests
+        working-directory: services/engine
+        run: uv run pytest -q tests/ci/test_deepseek_pilot.py
+      - name: Upload ungraded mock-only report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-mock-only-${{ github.run_number }}
+          path: |
+            .tmp/deepseek-pilot/deepseek-pilot-summary.json
+            .tmp/deepseek-pilot/deepseek-pilot-summary.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  future-live-opt-in:
+    # This job CANNOT run on push, pull_request or a default dry_run dispatch.
+    # workflow_dispatch only becomes available after a future maintainer merges the file to main.
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && inputs.execution == 'live_two_requests'
+      && inputs.charge_acknowledgement == 'I_APPROVE_DEEPSEEK_API_CHARGES'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v5
+      - name: Install frozen Engine requirements
+        run: uv sync --project services/engine --frozen
+      - name: Make two explicitly approved DeepSeek calls (never automatic)
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_PILOT_API_KEY }}
+          DEEPSEEK_PILOT_APPROVED: YES_I_APPROVE_DEEPSEEK_API_CHARGES
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run --project services/engine python scripts/ci/deepseek_pilot.py --live
+      - name: Upload human-ungraded bounded experiment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-live-manual-${{ github.run_number }}
+          path: |
+            .tmp/deepseek-pilot/deepseek-pilot-summary.json
+            .tmp/deepseek-pilot/deepseek-pilot-summary.md
+          if-no-files-found: warn
+          retention-days: 14
