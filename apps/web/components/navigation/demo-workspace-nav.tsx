@@ -34,7 +34,7 @@ export function DemoWorkspaceNav({
         <div className="workspace-nav-context">
           <div>
             <p className="eyebrow">{isDemoWorkspace ? messages.guidedDemo.demoBadge : messages.nav.workspaceNavigation}</p>
-            <p className="workspace-nav-name">{workspaceSlug}</p>
+            <p className="workspace-nav-name">{isDemoWorkspace ? messages.guidedDemo.title : workspaceSlug}</p>
             <p className="workspace-nav-description muted">
               {isDemoWorkspace ? messages.guidedDemo.demoSummary : messages.common.liveVsDemo}
             </p>
