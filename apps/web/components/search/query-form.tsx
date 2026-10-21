@@ -114,7 +114,7 @@ export function QueryForm({
           />
         </label>
         <button type="submit" disabled={loading || !trimmedQuestion}>
-          {loading ? messages.search.searching : messages.search}
+          {loading ? messages.search.searching : messages.search.search}
         </button>
       </form>
       {validationError ? (
