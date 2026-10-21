@@ -393,7 +393,7 @@ describe("QueryForm", () => {
       fireEvent.change(screen.getByRole("textbox", { name: "Ask why" }), { target: { value: "  why redis?  " } });
       fireEvent.click(screen.getByRole("button", { name: "Search" }));
       expect(screen.getByRole("button", { name: "Searching..." })).toBeDisabled();
-      expect(fetchMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
       expect(JSON.stringify(fetchMock.mock.calls[0])).toContain("why redis?");
       completeFetch({ ok: false } as Response);
       await waitFor(() => expect(screen.getByRole("button", { name: "Retry search" })).toBeInTheDocument());
