@@ -403,4 +403,33 @@ describe("ReviewPageContent", () => {
     expect(screen.getByRole("link", { name: "Try caching" })).toBeInTheDocument();
     expect(screen.getByText("2 shown")).toBeInTheDocument();
   });
+
+  it("does not report a durable baseline when all candidates were rejected", async () => {
+    vi.mocked(api.reviewDecision).mockResolvedValue({
+      id: 81, workspace_id: 2, title: "Do not adopt change",
+      status: "active", review_state: "rejected", problem: "No proof",
+      context: null, constraints: null, chosen_option: "Stay with current plan",
+      tradeoffs: "Manual checks", confidence: 0.3,
+    });
+    const user = userEvent.setup();
+    render(
+      <ReviewPageContent
+        workspaceSlug="github-org-repo"
+        decisions={[{
+          id: 81, workspace_id: 2, title: "Do not adopt change",
+          status: "active", review_state: "candidate", problem: "No proof",
+          context: null, constraints: null, chosen_option: "Stay with current plan",
+          tradeoffs: "Manual checks", confidence: 0.3,
+        }]}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Reject" }));
+    await waitFor(() => {
+      expect(screen.getByText("Review queue cleared; no baseline accepted")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Imported baseline established.")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Return to workspace" })).toHaveAttribute(
+      "href", "/workspaces/github-org-repo"
+    );
+  });
 });
