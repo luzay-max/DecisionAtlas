@@ -4,6 +4,19 @@
 >
 > 目的：在停止增加新功能后，用非 Demo 的真实仓库测试决策提取、人工审核、引用问答和漂移检测的价值。绝不把 `fixture` / GitHub 元数据检查宣称为 DecisionAtlas 端到端成功。
 
+## 云端执行（无需本地环境）
+
+- GitHub Actions 工作流：[Public repository value pilot (pallets/click)](https://github.com/luzay-max/DecisionAtlas/actions/workflows/public-value-pilot.yml)。
+- PR #7 仍未合并时，GitHub 只能通过**此分支的代码推送**触发新增工作流；该工作流有精确分支和路径过滤。你现在可以打开现有 run 右上角 **Re-run all jobs** 重新运行同一提交。
+- **重要限制**：GitHub 的 `Run workflow`（`workflow_dispatch`）按钮一般要求工作流文件已经存在于默认分支。因此在 PR #7 未合并前，不能依赖该按钮；未来工作流进入 `main` 后才可以从 Actions 手动选择分支执行。
+- Runner 使用 Windows 2025、Python 3.13、锁定的 `uv` 依赖、孤立的临时 SQLite 和仅绑定 `127.0.0.1` 的 Engine。只允许本次临时测试用 `APP_ENV=test` / `AUTH_AUTO_BOOTSTRAP_LOCAL=true`。
+- **不需要用户设置任何模型或 GitHub API Key**：GitHub Actions 自带的临时 read-only token 仅用于访问真实的公开 GitHub API；分析模型明确设为 Fake Provider。这能证明真实仓库的可导入性和流水线行为，**不能证明真实 LLM 提取或回答质量**。
+- 每次运行在 **Artifacts** 区域上传 `decisionatlas-pallets-click-public-import-<run number>` ZIP，内含 `pilot-pallets-click-import.json/.md` 和 `pilot-pallets-click-summary.json/.md`。数据库、Engine 原始日志、密钥不上传；即使导入失败也保留诊断报告。
+- 结果只有在导入任务 `succeeded` 且落地至少 1 条真实源 Artifact 时才写 `import_pass_only`。20 候选、10 Why、5 Drift 的人工判断仍为 `not_run`，不得包装成成功。
+- 第一次实际云端运行：[run #39553746386](https://github.com/luzay-max/DecisionAtlas/actions/runs/39553746386)，真实导入 1,093 条资料后在提取阶段因 `sqlite3.OperationalError: database is locked` 失败；产出的失败报告被保留。针对这一生产可靠性问题已在 PR #7 同分支加入修复及回归测试，待最新云端复测验证。
+
+---
+
 ## 1. 真实来源和固定样本
 
 - Public GitHub: https://github.com/pallets/click
