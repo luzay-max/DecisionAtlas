@@ -3,9 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
-from sqlalchemy.orm import Session
 
 from app.db.models import ImportJob
 
@@ -86,7 +86,7 @@ class ImportJobRepository:
             select(ImportJob)
             .where(
                 ImportJob.workspace_id == workspace_id,
-                ImportJob.status.in_(("queued", "running")),
+                ImportJob.status.in_(ACTIVE_IMPORT_STATUSES),
             )
             .order_by(ImportJob.created_at.desc(), ImportJob.id.desc())
         )
