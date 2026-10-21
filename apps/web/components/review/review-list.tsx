@@ -35,6 +35,7 @@ function qualityReasonLabel(reason: string, messages: ReturnType<typeof useI18n>
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
+  const [acceptedInThisSession, setAcceptedInThisSession] = useState(0);
   const [query, setQuery] = useState("");
   const [evidenceFilter, setEvidenceFilter] = useState<"all" | "strong" | "partial" | "thin">("all");
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -52,6 +53,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
 
   async function handleReview(decisionId: number, reviewState: ReviewState) {
     await reviewDecision(decisionId, reviewState);
+    if (reviewState === "accepted") setAcceptedInThisSession((count) => count + 1);
     setItems((current) => current.filter((decision) => decision.id !== decisionId));
   }
 
@@ -99,7 +101,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
         </section>
       ) : null}
       {items.length === 0 ? (
-        isGuidedDemoWorkspace && startedWithItems ? (
+        startedWithItems && acceptedInThisSession > 0 && isGuidedDemoWorkspace ? (
           <GuidedDemoPanel
             step={2}
             total={messages.guidedDemo.steps.length}
@@ -111,7 +113,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
             nextLabel={messages.guidedDemo.reviewNext}
             tone="success"
           />
-        ) : isImportedWorkspace && startedWithItems ? (
+        ) : startedWithItems && acceptedInThisSession > 0 && isImportedWorkspace ? (
           <div className="card">
             <p className="eyebrow">{messages.review.importedBaselineTitle}</p>
             <p>{messages.review.importedBaselineStatus}</p>
@@ -124,8 +126,16 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
               </Link>
             </div>
           </div>
+        ) : startedWithItems ? (
+          <div className="card">
+            <p className="eyebrow">{messages.review.reviewedWithoutAcceptanceTitle}</p>
+            <p>{messages.review.reviewedWithoutAcceptanceStatus}</p>
+            <Link href={`/workspaces/${encodeURIComponent(workspaceSlug)}`} className="action-link">
+              {messages.review.reviewedWithoutAcceptanceNext}
+            </Link>
+          </div>
         ) : (
-          <p>{workspaceSlug === "demo-workspace" ? messages.review.emptyDemo : messages.review.emptyImported}</p>
+          <p>{isGuidedDemoWorkspace ? messages.review.emptyDemo : messages.review.emptyImported}</p>
         )
       ) : null}
       {filteredItems.map((decision) => {
