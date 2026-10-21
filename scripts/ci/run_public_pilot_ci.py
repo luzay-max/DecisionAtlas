@@ -72,7 +72,33 @@ def table_counts(db_path: Path) -> dict:
             "WHERE d.workspace_id = ? GROUP BY d.id ORDER BY d.id LIMIT 20",
             (workspace_id,),
         ).fetchall()
+        evidence_rows = db.execute(
+            "SELECT d.id, d.problem, d.chosen_option, s.url, a.url "
+            "FROM decisions AS d LEFT JOIN source_refs AS s ON s.decision_id = d.id "
+            "LEFT JOIN artifacts AS a ON a.id = s.artifact_id "
+            "WHERE d.workspace_id = ? ORDER BY d.id, s.id LIMIT 100",
+            (workspace_id,),
+        ).fetchall()
+        evidence: dict[int, dict] = {}
+        for ident, problem, chosen, source_url, artifact_url in evidence_rows:
+            if ident not in evidence:
+                evidence[ident] = {
+                    "problem": (problem or "")[:350],
+                    "chosen_option": (chosen or "")[:350],
+                    "source_urls": [],
+                }
+            # This workflow only ingests the public pallets/click repository.
+            # Do not propagate untrusted external URLs, raw issue text or DB dumps.
+            url = source_url or artifact_url
+            if (
+                isinstance(url, str)
+                and url.startswith("https://github.com/pallets/click/")
+                and url not in evidence[ident]["source_urls"]
+                and len(evidence[ident]["source_urls"]) < 4
+            ):
+                evidence[ident]["source_urls"].append(url.split("?")[0][:500])
         return {
+            "review_evidence": evidence,
             "artifact_count": artifacts,
             "decision_count": sum(count for _, count in decisions),
             "decisions_by_review_state": {str(state): count for state, count in decisions},
@@ -82,6 +108,68 @@ def table_counts(db_path: Path) -> dict:
                 for ident, title, state, citations in sample
             ],
         }
+
+
+def write_human_review_packet(report: dict) -> None:
+    """Generate an ungraded, evidence-linked worksheet for a human reviewer."""
+    metrics = report.get("metrics") or {}
+    evidence = metrics.get("review_evidence") or {}
+    review_rows = []
+    for item in metrics.get("candidate_preview") or []:
+        detail = evidence.get(item["id"]) or evidence.get(str(item["id"])) or {}
+        review_rows.append({
+            "decision_id": item["id"],
+            "title": item["title"],
+            "problem": detail.get("problem", ""),
+            "chosen_option": detail.get("chosen_option", ""),
+            "source_urls": detail.get("source_urls", []),
+            "is_real_decision": None,
+            "source_verified": None,
+            "review_notes": "",
+        })
+    packet = {
+        "repository": REPO,
+        "provider_mode": "fake",
+        "quality_claim": "not_evaluated",
+        "provenance": "real GitHub sources, deterministic FakeProvider candidates",
+        "reviewed_by_human": False,
+        "decision_sample_size": len(review_rows),
+        "decisions": review_rows,
+    }
+    write_json(OUTPUT / "pilot-pallets-click-review-packet.json", packet)
+    lines = [
+        "# pallets/click candidate quality review — unscored",
+        "",
+        "**Provider: FakeProvider. This worksheet cannot establish real LLM accuracy.**",
+        "",
+        "For each candidate, open the GitHub citations and independently check",
+        "whether it represents a genuine adopted engineering decision.",
+        "Do not mark the whole sample as passing until a human records decisions and notes.",
+        "",
+    ]
+    def safe(text: str) -> str:
+        return " ".join(str(text).split()).replace("|", "/")[:350]
+    for row in review_rows:
+        lines.extend([
+            f"## Decision {row['decision_id']}: {safe(row['title'])}",
+            "",
+            f"- Problem: {safe(row['problem'])}",
+            f"- Chosen option: {safe(row['chosen_option'])}",
+            f"- Source links: {len(row['source_urls'])}",
+        ])
+        for url in row["source_urls"]:
+            lines.append(f"  - {url}")
+        lines.extend([
+            "- Human decision assessment: **not_reviewed**",
+            "- Human citation verification: **not_reviewed**",
+            "- Notes: _pending_",
+            "",
+        ])
+    if not review_rows:
+        lines.append("No candidates were available; quality remains not_evaluated.\n")
+    (OUTPUT / "pilot-pallets-click-review-packet.md").write_text(
+        "\n".join(lines) + "\n", encoding="utf-8"
+    )
 
 
 def wait_for_health(proc: subprocess.Popen, timeout_seconds: int = 90) -> None:
@@ -130,6 +218,7 @@ def write_summary(report: dict) -> None:
     if report.get("error"):
         lines += ["", f"- Failure category: `{report['error']}`"]
     summary = "\n".join(lines) + "\n"
+    write_human_review_packet(report)
     (OUTPUT / "pilot-pallets-click-summary.md").write_text(summary, encoding="utf-8")
     github_summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if github_summary:
