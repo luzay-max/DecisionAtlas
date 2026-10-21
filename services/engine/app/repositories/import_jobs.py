@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+
+ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
 from sqlalchemy.orm import Session
 
 from app.db.models import ImportJob
@@ -75,7 +77,7 @@ class ImportJobRepository:
     def has_active_for_workspace(self, workspace_id: int) -> bool:
         stmt = select(ImportJob).where(
             ImportJob.workspace_id == workspace_id,
-            ImportJob.status.in_(("queued", "running")),
+            ImportJob.status.in_(ACTIVE_IMPORT_STATUSES),
         )
         return self.session.scalar(stmt) is not None
 
