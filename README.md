@@ -239,7 +239,8 @@ Current post-stage-7 planning is captured in:
 - [Governance Drift Detection](./docs/project/governance-drift-detection.md)
 - [AI Agent Governance Guardrail](./docs/project/governance-agent-guardrail.md)
 - [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
-- [Current Master Plan](./docs/plans/2026-04-29-decisionatlas-next-master-plan.md)
+- [Current Execution Plan (2026-10-21): Security Hardening and Real-Repository Value Pilot](./docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md)
+- [Historical Plans: Reviewed Archive Index](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
 - [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 
 ## ⚠️ Known Limitations
