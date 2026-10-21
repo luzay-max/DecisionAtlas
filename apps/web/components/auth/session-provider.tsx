@@ -8,6 +8,7 @@ import {
   ProductSession,
   getProductSession,
   loginProductSession,
+  logoutProductSession,
   saveProductSessionToken,
   switchProductScope,
 } from "../../lib/api";
@@ -20,6 +21,7 @@ type ProductSessionContextValue = {
   error: string | null;
   refreshSession: () => Promise<ProductSession | null>;
   login: (username: string, password: string) => Promise<ProductSession>;
+  logout: () => Promise<void>;
   switchScope: (ownerScope: string) => Promise<ProductSession>;
   canManageWorkspace: boolean;
   canReviewWorkspace: boolean;
@@ -73,6 +75,15 @@ export function ProductSessionProvider({ children }: { children: React.ReactNode
     return nextSession;
   }
 
+  async function logout() {
+    await logoutProductSession();
+    setSession(null);
+    setStatus("unauthenticated");
+    setError(null);
+    router.push("/login");
+    router.refresh();
+  }
+
   async function switchScope(ownerScope: string) {
     const nextSession = await switchProductScope(ownerScope);
     saveProductSessionToken(nextSession.session_token);
@@ -95,6 +106,7 @@ export function ProductSessionProvider({ children }: { children: React.ReactNode
         error,
         refreshSession,
         login,
+        logout,
         switchScope,
         canManageWorkspace: canManage(session),
         canReviewWorkspace: canReview(session),
@@ -119,6 +131,7 @@ export function useProductSession() {
     login: async () => {
       throw new Error("Product session provider is not mounted");
     },
+    logout: async () => {},
     switchScope: async () => {
       throw new Error("Product session provider is not mounted");
     },
