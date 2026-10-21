@@ -225,7 +225,7 @@ export async function importsRoute(app: FastifyInstance) {
             ? { "x-hub-signature-256": headers.data["x-hub-signature-256"] }
             : {}),
         },
-        body: (request as WebhookRequest).rawWebhookBody ?? JSON.stringify(request.body ?? {})
+        body: (request as WebhookRequest).rawWebhookBody?.toString("utf8") ?? JSON.stringify(request.body ?? {})
       }),
       app.log,
       "POST /imports/github/webhook"
