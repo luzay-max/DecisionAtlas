@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import GitHubTokenAccessSource
+from app.security.github_tokens import decrypt_token, encrypt_token
 
 
 class GitHubTokenAccessSourceRepository:
@@ -50,7 +51,7 @@ class GitHubTokenAccessSourceRepository:
                 source_ref=source_ref,
                 display_label=display_label,
                 repo_identity=repo_identity,
-                token_secret=token_secret,
+                token_secret=encrypt_token(token_secret, owner_scope=owner_scope, source_ref=source_ref, repo_identity=repo_identity),
                 authorization_status=authorization_status,
                 last_error=last_error,
                 last_validated_at=validated_at,
@@ -59,12 +60,20 @@ class GitHubTokenAccessSourceRepository:
         else:
             record.display_label = display_label
             record.repo_identity = repo_identity
-            record.token_secret = token_secret
+            record.token_secret = encrypt_token(token_secret, owner_scope=owner_scope, source_ref=source_ref, repo_identity=repo_identity)
             record.authorization_status = authorization_status
             record.last_error = last_error
             record.last_validated_at = validated_at
         self.session.flush()
         return record
+
+    def read_token(self, record: GitHubTokenAccessSource) -> str:
+        return decrypt_token(
+            record.token_secret,
+            owner_scope=record.owner_scope,
+            source_ref=record.source_ref,
+            repo_identity=record.repo_identity,
+        )
 
     def mark_authorized(self, record: GitHubTokenAccessSource, *, validated_at: datetime) -> GitHubTokenAccessSource:
         record.authorization_status = "authorized"
