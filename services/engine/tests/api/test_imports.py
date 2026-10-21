@@ -731,6 +731,7 @@ def test_lookup_reports_private_access_requirement_when_repo_is_not_publicly_rea
 
 
 def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ALLOW_UNSIGNED_WEBHOOKS_LOCAL", "true")
     db_path = tmp_path / "webhook-import.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
@@ -791,6 +792,7 @@ def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp
 
 
 def test_webhook_does_not_enqueue_duplicate_active_sync(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ALLOW_UNSIGNED_WEBHOOKS_LOCAL", "true")
     db_path = tmp_path / "webhook-active-sync.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
