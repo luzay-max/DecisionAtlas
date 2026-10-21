@@ -1,6 +1,6 @@
 # 2026-10-21 · 独立真实仓库试点：pallets/click
 
-> 状态：**REPOSITORY VERIFIED / ENGINE IMPORT NOT RUN**（仓库可访问，尚未使用 DecisionAtlas Engine 完整导入）
+> 状态：**PUBLIC IMPORT PASSED / HUMAN AI QUALITY NOT RUN**（公开 GitHub 数据真实导入成功；使用 Fake Provider，未做人工质量评估）
 >
 > 目的：在停止增加新功能后，用非 Demo 的真实仓库测试决策提取、人工审核、引用问答和漂移检测的价值。绝不把 `fixture` / GitHub 元数据检查宣称为 DecisionAtlas 端到端成功。
 
@@ -13,7 +13,8 @@
 - **不需要用户设置任何模型或 GitHub API Key**：GitHub Actions 自带的临时 read-only token 仅用于访问真实的公开 GitHub API；分析模型明确设为 Fake Provider。这能证明真实仓库的可导入性和流水线行为，**不能证明真实 LLM 提取或回答质量**。
 - 每次运行在 **Artifacts** 区域上传 `decisionatlas-pallets-click-public-import-<run number>` ZIP，内含 `pilot-pallets-click-import.json/.md` 和 `pilot-pallets-click-summary.json/.md`。数据库、Engine 原始日志、密钥不上传；即使导入失败也保留诊断报告。
 - 结果只有在导入任务 `succeeded` 且落地至少 1 条真实源 Artifact 时才写 `import_pass_only`。20 候选、10 Why、5 Drift 的人工判断仍为 `not_run`，不得包装成成功。
-- 第一次实际云端运行：[run #39553746386](https://github.com/luzay-max/DecisionAtlas/actions/runs/39553746386)，真实导入 1,093 条资料后在提取阶段因 `sqlite3.OperationalError: database is locked` 失败；产出的失败报告被保留。针对这一生产可靠性问题已在 PR #7 同分支加入修复及回归测试，待最新云端复测验证。
+- 第一次实际云端运行：[run #39553746386](https://github.com/luzay-max/DecisionAtlas/actions/runs/39553746386)，真实导入资料后在提取阶段因 `sqlite3.OperationalError: database is locked` 失败；产出的失败报告保留。
+- 修复后成功复测：[run #39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395)；[下载 Actions artifact](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395/artifacts/12324951897)。实际数据库包含 **1,093 条 Artifact、8 条候选决策、11 条 SourceRef**；导入 Job `succeeded`。其中 5 条候选只有单个引用；Fake Provider 不能证明候选准确性。
 
 ---
 
@@ -82,11 +83,11 @@ API 若禁用演示 bootstrap，使用有权限的管理员登录并给脚本提
 | 检查项 | 当前状态 |
 | --- | --- |
 | 公共仓库 GitHub 可访问性和选题有真实证据 | verified |
-| 本次版本上的 DecisionAtlas Engine 导入 | **not_run** |
+| 本次版本上的 DecisionAtlas Engine 导入 | **import_pass_only**（Actions 真实公开仓库导入通过，Fake Provider） |
 | 20 条候选人工审核 | **not_run** |
 | 10 条 Why 回答及引用评分 | **not_run** |
 | 5 条 Drift 人工验证 | **not_run** |
 | 非作者独立体验 | **operator_guided** |
 | 私有仓库 Token 加密及迁移 | **blocking** |
 
-结论：当前只有**试点选题与复现实验材料**，不能声称 DecisionAtlas 已在 `pallets/click` 产生有效决策知识。真实执行证据放 `.tmp/pilot-pallets-click-*.json/.md`，审核后再提交脱敏摘要。终止新功能开发，只有与验收阻断直接相关的 Bug 允许进入下一轮修复。
+结论：已具备**真实 GitHub 导入成功证据**，但候选决策尚未经人工审核；不能声称真实 AI 提取、Why 或 Drift 已通过。真实执行证据保存在成功的 GitHub Actions Artifact，审核后再归档脱敏结论。冻结新功能开发，只有与验收阻断直接相关的 Bug 允许进入下一轮修复。
