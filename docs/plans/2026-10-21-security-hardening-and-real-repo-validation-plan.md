@@ -47,9 +47,9 @@
 **候选**：`pallets/click`（公开、无私有凭据；实际运行前确认可访问与 PR/issue/文档信号）。不重复使用内置演示 `encode/httpx` 作为主样本。固定 commit/ref、分析窗口、导入模式、模型 provider 与 prompt 配置。
 
 ### B1. 环境与可重复运行
-- [ ] 在隔离的安全 Demo/真实栈，记录 Engine/API/Web 版本、commit、健康检查、权限设置。
-- [ ] 对仓库执行一次真实 GitHub import（非 fake、非 fixture）；记录耗时、GitHub API 配额、导入数、失败数及最新同步时刻。
-- [ ] 输出安全、脱敏的 JSON/Markdown evidence 到本地 `.tmp`，只把汇总与复现说明入库；**不可把未运行的计划写成 `pass`**。
+- [x] 在 GitHub Actions Windows 隔离 Runner 的 Python Engine 中进行公开仓库试点，记录 commit、测试 bootstrap、Fake Provider、SQLite 健康检查与仓库 HEAD。（非 Web/API/Engine 全栈或客户环境测试）
+- [x] 通过实际 GitHub API 导入真实 `pallets/click` 的来源（非 fixture），观察 1,093 条 Artifact，Job `succeeded`，8 候选与 11 条 SourceRef；模型分析使用 Fake Provider，不代表真实 LLM 价值。API 配额和外部用户试验未验证。
+- [x] GitHub Actions 上传本次公开仓库 JSON/Markdown 报告（数据库、Engine 原始日志和密钥不上传）；[成功运行 #39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395)。质量评测仍为 `not_run`。
 
 ### B2. 价值衡量：人为标注而不是“模型自己给自己打分”
 - [ ] 抽样 20 条候选决策（不足则全部），两类判定：是否是真实可执行的工程决策、证据能否点击核验。记录接受/拒绝/不确定、引用可靠度。
@@ -73,3 +73,11 @@
 - **真实仓库候选已核对**：`pallets/click`，固定 Git SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`，有 [PR #3877](https://github.com/pallets/click/pull/3877) 和 [#3884](https://github.com/pallets/click/pull/3884) 可核对。详见 [试点操作与 10 个预注册问题](../validation/2026-10-21-pallets-click-value-pilot.md)。
 - 这轮仅确认 GitHub 上有可评估材料；**DecisionAtlas Engine 真实导入、人工评分、外部用户试验均未运行**。无法取得可执行真实栈时继续标为 `not_run`，不得改写成 pass。
 - 新 CI 尚待当前最新 SHA 验证；中途曾有新增 TS 测试语法错误，已在后续提交纠正。以最新 CI 结果为准。
+
+## 6. 新增云端验证证据（2026-10-21）
+
+- Actions 工作流：`.github/workflows/public-value-pilot.yml`，只在 PR #7 分支按路径推送触发；合入默认分支后才具备正常的 `workflow_dispatch` UI 手动运行入口。当前无需本地环境，可在 Actions 的运行页面重新运行已有 job。
+- 第一次运行 [#39553746386](https://github.com/luzay-max/DecisionAtlas/actions/runs/39553746386) 实际 GitHub 数据导入后，SQLite 独立写连接在 extraction progress 汇报时发生 `database is locked`；标记 failed，不包装成 provider 网络失败。
+- 修复 `services/engine/app/jobs/import_jobs.py` 中的同 Session commit 行为，并增加 SQLite 未提交候选 + 进度更新的专项回归测试。重新导入 [#39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395) **成功**。
+- 本次观测为 `pallets/click`、SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`、数据库 Artifact=1,093、候选决策=8、SourceRef=11。统计真实性来自 Actions 上传的 artifact；**数据不是 Fake Provider 捏造的 GitHub 源**，但候选的提取由 Fake Provider 完成，尚未证明真实 AI 价值。
+- 当前禁止把导入链路 Pass 当作 20 条人工审核、10 条 Why、5 条 Drift 或安全整改全部完工；这些仍处于 `not_run` / `blocking`。
