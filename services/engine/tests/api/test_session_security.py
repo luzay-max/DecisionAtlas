@@ -101,3 +101,10 @@ def test_disabling_account_revokes_sessions(tmp_path: Path, monkeypatch) -> None
     )
     assert response.status_code == 200
     assert client.get("/auth/session", headers={SESSION_HEADER: member_token}).status_code == 401
+
+def test_production_rejects_plaintext_github_token_binding_before_network(monkeypatch) -> None:
+    from app.jobs.import_jobs import RepositoryAccessError, bind_github_private_access_source
+
+    monkeypatch.setenv("APP_ENV", "production")
+    with pytest.raises(RepositoryAccessError, match="encrypted credential storage"):
+        bind_github_private_access_source(repo="org/private", token="do-not-store")
