@@ -528,6 +528,11 @@ def bind_github_private_access_source(
     source_label: str | None = None,
     workspace_slug: str | None = None,
 ) -> dict[str, object | None]:
+    if get_settings().app_env.lower() == "production":
+        raise RepositoryAccessError(
+            "Private token binding is disabled until encrypted credential storage is available.",
+            failure_category="credential_storage_unavailable",
+        )
     session = get_db_session()
     try:
         effective_owner_scope = _owner_scope(owner_scope)
@@ -877,6 +882,11 @@ def _resolve_owner_scope_for_installation(*, session, installation_id: str) -> s
 
 def _token_for_workspace(*, session, workspace, settings) -> str | None:
     if workspace.access_source_type == "github_token":
+        if settings.app_env.lower() == "production":
+            raise RepositoryAccessError(
+                "Private token access requires encrypted credential storage.",
+                failure_category="credential_storage_unavailable",
+            )
         if not workspace.access_source_ref:
             raise RepositoryAccessError(
                 f"Private repository access source is not configured for {workspace.repo_identity or workspace.repo_url or workspace.slug}.",
@@ -948,6 +958,11 @@ def _validate_private_access_source(
     access_source_ref: str | None,
     max_pages: int,
 ) -> None:
+    if get_settings().app_env.lower() == "production":
+        raise RepositoryAccessError(
+            "Private token access requires encrypted credential storage.",
+            failure_category="credential_storage_unavailable",
+        )
     if not access_source_ref:
         raise RepositoryAccessError(
             f"Private repository access source is not configured for {repo_ref}.",
