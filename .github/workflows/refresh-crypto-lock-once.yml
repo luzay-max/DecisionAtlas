@@ -1,0 +1,35 @@
+name: One-time cryptography lock refresh (PR 7 only)
+
+on:
+  push:
+    branches:
+      - fix/security-bootstrap-webhook-import-20261021
+    paths:
+      - .github/workflows/refresh-crypto-lock-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    if: github.repository == 'luzay-max/DecisionAtlas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/security-bootstrap-webhook-import-20261021
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Resolve and lock audited cryptography dependency
+        run: uv lock --project services/engine
+      - name: Commit only Engine lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add services/engine/uv.lock
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "build(engine): lock cryptography and transitive dependencies"
+            git push origin HEAD:fix/security-bootstrap-webhook-import-20261021
+          fi
