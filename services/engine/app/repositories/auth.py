@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -55,7 +55,27 @@ class AuthRepository:
         return list(self.session.execute(stmt).all())
 
     def get_auth_session(self, session_token: str) -> AuthSession | None:
-        return self.session.scalar(select(AuthSession).where(AuthSession.session_token == session_token))
+        record = self.session.scalar(select(AuthSession).where(AuthSession.session_token == session_token))
+        if record is None:
+            return None
+        settings = get_settings()
+        now = datetime.now(UTC)
+
+        def utc(value: datetime) -> datetime:
+            return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+        # Absolute and idle expiry are independent; DB defaults can return naïve UTC.
+        if now - utc(record.created_at) >= timedelta(hours=settings.auth_session_max_hours):
+            return None
+        if now - utc(record.last_seen_at) >= timedelta(minutes=settings.auth_session_idle_minutes):
+            return None
+        return record
+
+    def revoke_session(self, session_token: str) -> None:
+        self.session.execute(delete(AuthSession).where(AuthSession.session_token == session_token))
+
+    def revoke_actor_sessions(self, actor_id: int) -> None:
+        self.session.execute(delete(AuthSession).where(AuthSession.actor_id == actor_id))
 
     def create_actor(
         self,
@@ -98,6 +118,8 @@ class AuthRepository:
             return None
         actor.status = status
         actor.disabled_at = datetime.now(UTC) if status != "active" else None
+        if status != "active":
+            self.revoke_actor_sessions(actor_id)
         self.session.flush()
         return actor
 
@@ -106,6 +128,7 @@ class AuthRepository:
         if actor is None:
             return None
         actor.password_hash = hash_password(password)
+        self.revoke_actor_sessions(actor_id)
         self.session.flush()
         return actor
 
