@@ -1658,3 +1658,141 @@ html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
     overflow-wrap: anywhere;
   }
 }
+
+
+/* Second UX pass: review queue and Why Search work surfaces. */
+.review-queue-controls,
+.search-suggestions {
+  display: grid;
+  gap: 16px;
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card-bg);
+}
+
+.review-queue-heading,
+.review-queue-fields {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.review-queue-heading h2,
+.search-suggestions h2 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.4;
+  background: none;
+  color: var(--ink);
+  -webkit-text-fill-color: currentColor;
+}
+
+.review-queue-fields {
+  align-items: end;
+}
+.review-queue-fields .field {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.review-queue-fields select,
+.review-queue-fields input {
+  width: 100%;
+  min-height: 46px;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.review-queue-fields select {
+  cursor: pointer;
+}
+
+.review-empty-filter {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  line-height: 1.65;
+}
+.review-empty-filter p {
+  margin: 0 0 10px;
+}
+.review-empty-filter button,
+.search-retry button {
+  min-height: 44px;
+  padding: 10px 16px;
+  color: var(--ink);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.search-suggestions .muted {
+  margin: 0;
+  line-height: 1.6;
+}
+.search-suggestion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.search-suggestion-list button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  padding: 10px 15px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.search-suggestion-list button:hover:not(:disabled),
+.search-suggestion-list button:focus-visible {
+  background: rgba(var(--accent-rgb), 0.10);
+  border-color: var(--accent);
+}
+.search-suggestion-list button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.search-request-status p {
+  margin: 0;
+}
+.search-retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .review-queue-heading,
+  .review-queue-fields {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .review-queue-heading {
+    gap: 8px;
+  }
+  .search-suggestion-list {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .search-suggestion-list button {
+    border-radius: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-suggestion-list button {
+    transition: none;
+  }
+}
