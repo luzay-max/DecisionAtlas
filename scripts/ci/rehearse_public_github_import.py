@@ -86,6 +86,12 @@ def _classify_request_error(error_payload: dict | None) -> str:
     return "local_stack_failure"
 
 
+def _failed_import_outcome(job: dict | None) -> str:
+    # Engine/database failures must not be mislabeled as GitHub provider failures.
+    failure_category = ((job or {}).get("summary") or {}).get("failure_category")
+    return "local_stack_failure" if failure_category == "analysis_execution_failed" else "provider_failure"
+
+
 def _next_action_for_outcome(outcome: str, *, job: dict | None = None, lookup: dict | None = None) -> str:
     if outcome == "created":
         status = (job or {}).get("status")
@@ -282,7 +288,7 @@ def rehearse_public_import(
                 return build_report(
                     repository=repository,
                     base_url=base_url,
-                    setup_outcome="provider_failure",
+                    setup_outcome=_failed_import_outcome(latest_job),
                     lookup=lookup,
                     import_job=latest_job,
                     error_payload={"type": "import_failed", "detail": (latest_job or {}).get("error_message")},
@@ -353,7 +359,7 @@ def rehearse_public_import(
         return build_report(
             repository=repository,
             base_url=base_url,
-            setup_outcome="provider_failure",
+            setup_outcome=_failed_import_outcome(latest_job),
             lookup=lookup,
             import_job=latest_job,
             error_payload={"type": "import_failed", "detail": (latest_job or {}).get("error_message")},
