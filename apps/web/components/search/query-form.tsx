@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 import { askWhy, WhyAnswerResponse } from "../../lib/api";
 import { SearchResults } from "./search-results";
@@ -28,6 +28,18 @@ export function QueryForm({
   const [result, setResult] = useState<WhyAnswerResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState(false);
+  const pendingRef = useRef(false);
+  const requestVersion = useRef(0);
+  const trimmedQuestion = question.trim();
+
+  function updateQuestion(nextQuestion: string) {
+    setQuestion(nextQuestion);
+    setError(null);
+    setValidationError(false);
+    setResult(null);
+    requestVersion.current += 1; // Never show an answer for an edited question.
+  }
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
   const importedNextAction = !isGuidedDemoWorkspace ? result?.answer_context?.workspace_readiness?.next_action : null;
   const importedNextActionHref = importedNextAction ? nextActionHref[importedNextAction] : null;
@@ -42,15 +54,25 @@ export function QueryForm({
       : null;
 
   async function runQuestion(nextQuestion: string) {
+    const normalized = nextQuestion.trim();
+    if (!normalized) {
+      setValidationError(true);
+      return;
+    }
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+    const version = ++requestVersion.current;
     setLoading(true);
+    setValidationError(false);
     setError(null);
+    setResult(null);
     try {
-      const response = await askWhy(workspaceSlug, nextQuestion);
-      setResult(response);
+      const response = await askWhy(workspaceSlug, normalized);
+      if (version === requestVersion.current) setResult(response);
     } catch {
-      setResult(null);
-      setError(messages.search.error);
+      if (version === requestVersion.current) setError(messages.search.error);
     } finally {
+      pendingRef.current = false;
       setLoading(false);
     }
   }
@@ -62,22 +84,56 @@ export function QueryForm({
 
   return (
     <div className="stack">
+      <section className="search-suggestions" aria-labelledby="why-search-examples-title">
+        <h2 id="why-search-examples-title">{messages.search.examplesTitle}</h2>
+        <p className="muted">{messages.search.exampleHint}</p>
+        <div className="search-suggestion-list">
+          {messages.search.examples.map((example) => (
+            <button key={example} type="button" disabled={loading} onClick={() => updateQuestion(example)}>
+              {example}
+            </button>
+          ))}
+        </div>
+      </section>
       {isGuidedDemoWorkspace ? (
         <div className="action-row">
-          <button type="button" className="action-link action-link-primary" onClick={() => void runQuestion(question)} disabled={loading}>
+          <button type="button" className="action-link action-link-primary" onClick={() => void runQuestion(question)} disabled={loading || !trimmedQuestion}>
             {messages.guidedDemo.searchRunExample}
           </button>
         </div>
       ) : null}
-      <form className="search-form" onSubmit={handleSubmit}>
+      <form className="search-form" onSubmit={handleSubmit} aria-busy={loading}>
         <label className="field">
           <span>{messages.search.askWhy}</span>
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={messages.search.placeholder} />
+          <input
+            value={question}
+            onChange={(event) => updateQuestion(event.target.value)}
+            placeholder={messages.search.placeholder}
+            aria-invalid={validationError}
+            aria-describedby={validationError ? "why-question-error" : undefined}
+          />
         </label>
-        <button type="submit">{loading ? messages.search.searching : messages.search.search}</button>
+        <button type="submit" disabled={loading || !trimmedQuestion}>
+          {loading ? messages.search.searching : messages.search}
+        </button>
       </form>
+      {validationError ? (
+        <p id="why-question-error" className="form-feedback form-feedback-error" role="alert">
+          {messages.search.questionRequired}
+        </p>
+      ) : null}
       {!result && !error ? <p>{isGuidedDemoWorkspace ? messages.search.intro : messages.search.importedIntro}</p> : null}
-      {error ? <p>{error}</p> : null}
+      <div aria-live="polite" role="status" className="search-request-status">
+        {loading ? <p>{messages.search.searching}</p> : null}
+        {error ? (
+          <div className="search-retry">
+            <p className="form-feedback form-feedback-error">{error}</p>
+            <button type="button" onClick={() => void runQuestion(question)} disabled={loading || !trimmedQuestion}>
+              {messages.search.retryQuestion}
+            </button>
+          </div>
+        ) : null}
+      </div>
       {result ? <SearchResults result={result} /> : null}
       {result && renderedNextActionHref && nextActionLabel ? (
         <div className="action-row">
