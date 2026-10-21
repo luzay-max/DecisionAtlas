@@ -81,3 +81,18 @@
 - 修复 `services/engine/app/jobs/import_jobs.py` 中的同 Session commit 行为，并增加 SQLite 未提交候选 + 进度更新的专项回归测试。重新导入 [#39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395) **成功**。
 - 本次观测为 `pallets/click`、SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`、数据库 Artifact=1,093、候选决策=8、SourceRef=11。统计真实性来自 Actions 上传的 artifact；**数据不是 Fake Provider 捏造的 GitHub 源**，但候选的提取由 Fake Provider 完成，尚未证明真实 AI 价值。
 - 当前禁止把导入链路 Pass 当作 20 条人工审核、10 条 Why、5 条 Drift 或安全整改全部完工；这些仍处于 `not_run` / `blocking`。
+
+## 7. 2026-10-21 凭据灾难恢复门禁与下一阶段质量评估
+
+- **隔离 SQLite 备份/恢复云端演练已通过（8/8）**：[GitHub Actions #39565576734](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565576734)，运行提交 `5d96ba4d9346`。JSON Artifact：[synthetic-credential-recovery-2](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565576734/artifacts/12329552427)。
+- 首轮 [#39565320799](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565320799) 的 JSON 出现过 `status=pass` **同时有 `error_category=PermissionError`**：根因是 Windows 文件句柄未释放、清理失败未覆盖整体结果。已修复为显式关闭 SQLite 连接/SQLAlchemy pool 且任何清理异常都标记 fail，新报告不含错误类别。**首轮结果不可作为完成证据。**
+- 测试使用临时 SQLite 和合成 Token、运行期随机 Fernet 密钥；覆盖旧数据显式迁移拒绝、事务回滚、只读 dry-run、新密钥加密、旧密钥移除拒绝、备份一致性、恢复解密与迁移预检查。并未运行真实客户 PostgreSQL、外部 Secret Manager、真实 GitHub 私有凭据或客户灾难恢复。
+- PR #7 不因合成演练通过而自动放行生产部署；客户上线前仍需隔离试点、密钥保管、真实备份恢复、权限边界安全复核。
+
+### 下一步：真实 AI 价值评估（严格成本和证据门禁）
+
+- [ ] 在明确模型提供商、允许的**最高测试费用**和是否使用独立 API Key 前，**不运行任何付费模型 API 请求**；密钥只能由维护者自己写入 GitHub Secrets，绝不能提交到仓库或聊天。
+- [ ] 用真实公开 GitHub 数据导出的**未评分候选审核包**（链接证据、候选标题、选项；Fake Provider 明确标签）先完成质量基线审查。该步骤不等同于真实 LLM 效果。
+- [ ] 之后才运行一个明确上限的真实模型试验，先限制评估样本，核对 20 条候选（不足则全量）与预注册 10 个 Why 问题。人工评分必须显式填入，系统不自动声明准确率。
+- [ ] Drift 的 5 条真实变更仍需独立人工验证；不能由 Fake Provider 或模型自评分代替。
+
