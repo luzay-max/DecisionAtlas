@@ -1612,3 +1612,49 @@ html[data-theme="light"] .shimmer-btn::after {
     scroll-behavior: auto !important;
   }
 }
+
+/* UI UX Pro Max accessibility pass: usable keyboard escape route. */
+.skip-to-content {
+  position: fixed;
+  z-index: 1000;
+  top: 12px;
+  left: 12px;
+  padding: 12px 18px;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font-weight: 700;
+  transform: translateY(-160%);
+  text-decoration: none;
+}
+.skip-to-content:focus-visible {
+  transform: translateY(0);
+}
+#page-content:focus {
+  outline: none;
+}
+.workspace-nav-tabs .demo-nav-link {
+  min-height: 44px;
+}
+html[data-theme="light"] .home-shortcut-link,
+html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
+  color: var(--ink);
+}
+@media (max-width: 400px) {
+  .home-header-tools .account-scope-surface {
+    width: 100%;
+  }
+  .home-header-tools .language-toggle,
+  .home-header-tools .theme-toggle {
+    min-height: 44px;
+  }
+  .home-path-preview,
+  .home-guided-card > .guided-demo-panel,
+  .home-shortcuts {
+    padding: 20px !important;
+  }
+  .home-shortcut-link {
+    overflow-wrap: anywhere;
+  }
+}
