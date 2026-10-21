@@ -21,6 +21,7 @@ export function LiveAnalysisForm() {
   const [loading, setLoading] = useState(false);
   const [lookup, setLookup] = useState<ImportLookup | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [checkedRepoInput, setCheckedRepoInput] = useState<string | null>(null);
   const [lookupFailed, setLookupFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -28,11 +29,15 @@ export function LiveAnalysisForm() {
   const validRepo = GITHUB_REPO_INPUT.test(trimmedRepo);
   const showInvalidRepo = touched && trimmedRepo.length > 0 && !validRepo;
   const existing = Boolean(lookup?.workspace_exists && lookup.workspace_slug);
-  const canCreate = validRepo && Boolean(lookup) && !existing && !lookupLoading && !lookupFailed && !loading;
+  const hasAccessBlocker = Boolean(lookup?.access_requirement) ||
+    ["unauthorized", "invalid", "missing"].includes(lookup?.access_source_status ?? "");
+  const readyLookup = validRepo && checkedRepoInput === trimmedRepo && Boolean(lookup) && !lookupLoading && !lookupFailed;
+  const canCreate = readyLookup && !existing && !hasAccessBlocker && !loading;
 
   useEffect(() => {
     if (!validRepo) {
       setLookup(null);
+      setCheckedRepoInput(null);
       setLookupFailed(false);
       setLookupLoading(false);
       return;
@@ -40,6 +45,7 @@ export function LiveAnalysisForm() {
 
     let cancelled = false;
     setLookup(null);
+    setCheckedRepoInput(null);
     setLookupFailed(false);
     setLookupLoading(true);
     const timeout = setTimeout(async () => {
@@ -47,10 +53,12 @@ export function LiveAnalysisForm() {
         const result = await lookupGithubImport(trimmedRepo);
         if (!cancelled) {
           setLookup(result);
+          setCheckedRepoInput(trimmedRepo);
         }
       } catch {
         if (!cancelled) {
           setLookup(null);
+          setCheckedRepoInput(null);
           setLookupFailed(true);
         }
       } finally {
@@ -76,7 +84,7 @@ export function LiveAnalysisForm() {
   const lookupAccessRequirement = accessRequirementCopy(messages, lookup?.access_requirement);
 
   async function startImport(mode: "full" | "since_last_sync", workspaceSlug: string | null) {
-    if (loading || lookupFailed || lookupLoading || !validRepo) return;
+    if (loading || !readyLookup || hasAccessBlocker || (lookup?.has_running_import ?? false)) return;
     setLoading(true);
     setActionError(false);
     setMessage(mode === "since_last_sync" ? messages.liveAnalysis.syncSubmitting : messages.liveAnalysis.submitting);
@@ -148,7 +156,7 @@ export function LiveAnalysisForm() {
             </button>
           </div>
         ) : null}
-        {lookup && !lookup.workspace_exists && !lookupAccessRequirement ? (
+        {readyLookup && lookup && !lookup.workspace_exists && !lookupAccessRequirement && !hasAccessBlocker ? (
           <p className="form-feedback form-feedback-success">{messages.liveAnalysis.readyToImport}</p>
         ) : null}
         {!existing && lookupAccessRequirement ? (
@@ -191,14 +199,14 @@ export function LiveAnalysisForm() {
             </Link>
             <button
               type="button"
-              disabled={loading || lookupLoading || !lookup.can_incremental_sync || lookup.has_running_import}
+              disabled={loading || !readyLookup || hasAccessBlocker || !lookup.can_incremental_sync || lookup.has_running_import}
               onClick={() => startImport("since_last_sync", lookup.workspace_slug)}
             >
               {messages.liveAnalysis.syncExisting}
             </button>
             <button
               type="button"
-              disabled={loading || lookupLoading || lookup.has_running_import}
+              disabled={loading || !readyLookup || hasAccessBlocker || lookup.has_running_import}
               onClick={() => startImport("full", lookup.workspace_slug)}
             >
               {messages.liveAnalysis.rerunFull}
