@@ -41,7 +41,7 @@ export default function HomePage() {
             <p className="lede">{messages.home.lede}</p>
             <div className="action-row home-hero-actions">
               <Link href="/workspaces/demo-workspace" className="action-link action-link-primary home-cta">
-                {messages.guidedDemo.openCta} <span aria-hidden="true">→</span>
+                {messages.home.openDemo} <span aria-hidden="true">→</span>
               </Link>
               <a href="#workflow" className="action-link home-secondary-cta">
                 {messages.home.conceptsLabel} <span aria-hidden="true">↓</span>
