@@ -539,6 +539,14 @@ export async function loginProductSession(username: string, password: string): P
   return response.json();
 }
 
+export async function logoutProductSession(): Promise<void> {
+  const response = await apiFetch(`${apiBaseUrl}/auth/logout`, { method: "POST" });
+  if (!response.ok) {
+    await readError(response, "Failed to sign out");
+  }
+  saveProductSessionToken(null);
+}
+
 export async function switchProductScope(ownerScope: string): Promise<ProductSession> {
   const response = await apiFetch(`${apiBaseUrl}/auth/scope`, {
     method: "POST",
