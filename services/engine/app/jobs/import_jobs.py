@@ -260,7 +260,7 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         session.commit()
 
         extraction_pipeline = CandidateExtractionPipeline(session, runtime.extraction_provider)
-        progress_reporter = _build_extraction_progress_reporter(job_id=job_id)
+        progress_reporter = _build_extraction_progress_reporter(job_id=job_id, session=session)
         created_candidates = extraction_pipeline.run(
             workspace_slug=workspace_slug,
             progress_callback=progress_reporter,
@@ -1018,7 +1018,7 @@ def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: s
         raise ValueError("Invalid GitHub webhook signature")
 
 
-def _build_extraction_progress_reporter(*, job_id: str):
+def _build_extraction_progress_reporter(*, job_id: str, session=None):
     last_reported_processed = -1
     last_reported_at = 0.0
 
@@ -1034,7 +1034,10 @@ def _build_extraction_progress_reporter(*, job_id: str):
         if not should_report:
             return
 
-        progress_session = get_db_session()
+        # Use the extraction session to commit both candidates and progress atomically.
+        # A second SQLite writer would deadlock with the pipeline's uncommitted
+        # candidate INSERTs (observed with real pallets/click input).
+        progress_session = session if session is not None else get_db_session()
         try:
             jobs_repo = ImportJobRepository(progress_session)
             
@@ -1064,6 +1067,7 @@ def _build_extraction_progress_reporter(*, job_id: str):
             last_reported_processed = stats.processed_artifacts
             last_reported_at = now
         finally:
-            progress_session.close()
+            if session is None:
+                progress_session.close()
 
     return report
