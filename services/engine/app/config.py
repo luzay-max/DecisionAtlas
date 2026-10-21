@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     port: int = 8000
     database_url: str = "sqlite:///./decisionatlas.db"
     github_token: str | None = None
+    # Ordered id=FernetKey entries, newest active key first. Keep outside the database.
+    github_token_encryption_keys: str | None = None
     github_import_max_pages: int = 5
     default_owner_scope: str = "local-default"
     auth_auto_bootstrap_local: bool = False
