@@ -40,6 +40,10 @@ def _keyring() -> list[tuple[str, Fernet]]:
     return keys
 
 
+def active_key_id() -> str:
+    return _keyring()[0][0]
+
+
 def is_encrypted_token(value: str) -> bool:
     return value.startswith("enc:")
 
