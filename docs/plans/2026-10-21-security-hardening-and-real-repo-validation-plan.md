@@ -19,15 +19,15 @@
 ## 2. 阶段 A：PR #7 第二阶段安全整改
 
 ### A1. 会话生命周期与权限 (P0)
-- [ ] Engine 会话绝对有效期及闲置有效期，超时后拒绝访问；兼容 SQLite UTC naïve timestamp，生产配置可调整且有上限。
-- [ ] 显式 logout 删除服务端 session，API 清 Cookie，前端退出并清理本地状态。
-- [ ] 账号禁用和管理员密码重置立即撤销该用户全部存量 session。
-- [ ] 覆盖已过期、无效、撤销、越权、角色变化的负向回归测试。
+- [x] Engine 会话绝对有效期及闲置有效期，超时后拒绝访问；兼容 SQLite UTC naïve timestamp，生产配置可调整且有上限。
+- [x] 显式 logout 删除服务端 session，API 清 Cookie，前端退出并清理本地状态。
+- [x] 账号禁用和管理员密码重置立即撤销该用户全部存量 session。
+- [ ] 覆盖已过期、无效、撤销、越权、角色变化的负向回归测试。（已补过期/注销/重置/禁用，角色变化专项仍待验收）
 
 ### A2. Browser/Auth 边界 (P0)
-- [ ] API Origin allowlist，生产默认不允许任意跨域，开发允许显式 localhost Origins。
-- [ ] 生产认证 Cookie `Secure; HttpOnly; SameSite=Lax`，退出时正确失效；测试开发 HTTP 保留可用。
-- [ ] 正确处理 Cookie/Session header，避免默认凭据泄露、无效 token 自动被当作本地 bootstrap。
+- [x] API Origin allowlist，生产默认不允许任意跨域，开发允许显式 localhost Origins。
+- [x] 生产认证 Cookie `Secure; HttpOnly; SameSite=Lax`，退出时正确失效；测试开发 HTTP 保留可用。
+- [ ] 正确处理 Cookie/Session header，避免默认凭据泄露、无效 token 自动被当作本地 bootstrap。（无效 token 拒绝已实现；localStorage 与服务端 cookie 的完全统一仍待处理）
 - [ ] 确认不把 XSS 风险误报为已彻底解决；localStorage Token 搬迁到同源 BFF/服务端 Session 单独评估。
 
 ### A3. 私有仓库凭据加密与迁移 (P0 — 放行客户私有仓库前)
@@ -65,3 +65,11 @@
 ## 4. 执行记录与发布边界
 
 每次提交更新本计划勾选状态、SHA、CI 链接、明确哪些步骤没有运行。客户私有仓库验证只能在客户控制环境进行，任何 token/源码/私有 Issue 都不得写入公开仓库。2026-10-21 当前仅已验证 Phase 1 CI；Phase 2 和 `pallets/click` 的真实导入必须另行有证据，不能沿用历史的 `encode/httpx` 报告当作本次结果。
+
+## 5. 2026-10-21 本轮阶段进度
+
+- 安全代码与测试已提交到 PR #7 独立分支（会话 TTL/注销/重置撤销、CORS/Origin、生产 Cookie、回归测试）。
+- **生产私有 token 路径已临时 fail-closed**：禁止继续沿用明文持久化；加密、迁移和密钥轮换尚未完成，A3 仍为阻断项，不可用于客户私有凭据。
+- **真实仓库候选已核对**：`pallets/click`，固定 Git SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`，有 [PR #3877](https://github.com/pallets/click/pull/3877) 和 [#3884](https://github.com/pallets/click/pull/3884) 可核对。详见 [试点操作与 10 个预注册问题](../validation/2026-10-21-pallets-click-value-pilot.md)。
+- 这轮仅确认 GitHub 上有可评估材料；**DecisionAtlas Engine 真实导入、人工评分、外部用户试验均未运行**。无法取得可执行真实栈时继续标为 `not_run`，不得改写成 pass。
+- 新 CI 尚待当前最新 SHA 验证；中途曾有新增 TS 测试语法错误，已在后续提交纠正。以最新 CI 结果为准。
