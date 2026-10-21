@@ -40,7 +40,21 @@ describe("security boundaries", () => {
     await app.close();
   });
 
-  it("marks session cookies secure in production and expires cookie on logout", async () => {
+  it("rejects state-changing requests from untrusted browser Origins", async () => {
+    process.env.APP_ENV = "production";
+    process.env.CORS_ALLOWED_ORIGINS = "https://atlas.example";
+    const app = buildServer();
+    const blocked = await app.inject({
+      method: "POST", url: "/auth/login",
+      headers: { origin: "https://untrusted.example" },
+      payload: { username: "alice", password: "secret" },
+    });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.json()).toEqual({ error: "Origin not allowed" });
+    await app.close();
+  });
+
+  it("marks session cookies secure in production and expires cookie on logout", async () {
     process.env.APP_ENV = "production";
     global.fetch = vi.fn().mockResolvedValue({
       status: 200, ok: true,
