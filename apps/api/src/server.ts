@@ -15,8 +15,17 @@ import { timelineRoute } from "./routes/timeline";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
+  const env = getEnv();
+  const origins = new Set(
+    env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  );
+  // Local demo: explicit localhost allowlist. Production: no cross-origin access by default.
+  if (env.APP_ENV !== "production") {
+    origins.add("http://127.0.0.1:3000");
+    origins.add("http://localhost:3000");
+  }
   app.register(cors, {
-    origin: true,
+    origin: (origin, callback) => callback(null, !origin || origins.has(origin)),
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   });
