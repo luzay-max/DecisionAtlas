@@ -5,6 +5,7 @@ printed. This does not exercise a customer's own database or secret manager.
 """
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -24,20 +25,20 @@ if str(ENGINE_ROOT) not in sys.path:
     sys.path.insert(0, str(ENGINE_ROOT))
 
 from app.db.models import GitHubTokenAccessSource
-from app.db.session import get_db_session
+from app.db.session import get_db_session, get_engine
 from app.repositories.github_token_access_sources import GitHubTokenAccessSourceRepository
 from app.security.github_tokens import CredentialProtectionError, decrypt_token
 
 
 def backup_sqlite(source: Path, target: Path) -> None:
     """Use the SQLite online backup API, not a raw copy of a possibly WAL DB."""
-    with sqlite3.connect(str(source)) as current:
-        with sqlite3.connect(str(target)) as saved:
+    with closing(sqlite3.connect(str(source))) as current:
+        with closing(sqlite3.connect(str(target))) as saved:
             current.backup(saved)
 
 
 def rows(path: Path) -> dict[str, str]:
-    with sqlite3.connect(str(path)) as db:
+    with closing(sqlite3.connect(str(path))) as db:
         return dict(db.execute("SELECT source_ref, token_secret FROM github_token_access_sources"))
 
 
@@ -122,6 +123,8 @@ def run() -> dict:
                     authorization_status="authorized",
                 ))
                 session.commit()
+            # SQLAlchemy's SQLite connection pool otherwise keeps Windows DB files open.
+            get_engine().dispose()
 
             backup_sqlite(primary, before)
             original_rows = rows(before)
@@ -180,6 +183,8 @@ def run() -> dict:
             )
             report["status"] = "pass" if all(report["checks"].values()) else "fail"
     except Exception as exc:
+        # A backup/cleanup error must override any earlier passing assertions.
+        report["status"] = "fail"
         # Only the class name, no secrets, path values, token content or exception payload.
         report["error_category"] = type(exc).__name__
     finally:
@@ -197,14 +202,20 @@ def run() -> dict:
             "# Synthetic GitHub credential disaster recovery rehearsal",
             "",
             f"- Status: **{report['status']}**",
-            f"- Revision: \`{report['commit']}\`",
+            f"- Revision: `{report['commit']}`",
             "- No production credentials or customer databases used",
-            "- Database backups, keys and synthetic plaintext were removed with the temporary directory",
+            (
+                "- Temporary SQLite databases and generated keys were cleaned up successfully"
+                if report["status"] == "pass"
+                else "- Cleanup or a validation step failed; inspect the error category and CI runner state"
+            ),
             "",
             "## Checks",
             "",
         ]
         lines.extend(f"- {'PASS' if valid else 'FAIL'} — {name}" for name, valid in report["checks"].items())
+        if report.get("error_category"):
+            lines.append("- Error category: " + report["error_category"])
         lines.extend(["", "## Limits", ""])
         lines.extend(f"- {limit}" for limit in report["limitations"])
         (output / "result.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
