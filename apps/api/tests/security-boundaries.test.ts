@@ -54,7 +54,7 @@ describe("security boundaries", () => {
     await app.close();
   });
 
-  it("marks session cookies secure in production and expires cookie on logout", async () {
+  it("marks session cookies secure in production and expires cookie on logout", async () => {
     process.env.APP_ENV = "production";
     global.fetch = vi.fn().mockResolvedValue({
       status: 200, ok: true,
