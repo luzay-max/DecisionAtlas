@@ -107,11 +107,11 @@ def write_summary(report: dict) -> None:
         "",
         f"- Result: **{status}**",
         f"- Repository: [pallets/click](https://github.com/pallets/click)",
-        f"- GitHub HEAD at run time: \`{report.get('github_head') or 'not_provided'}\`",
+        f"- GitHub HEAD at run time: `{report.get('github_head') or 'not_provided'}`",
         "- Provider mode: **FAKE**, no live AI quality claims",
         "- Authentication: isolated loopback test bootstrap; no production deployment",
-        f"- Import outcome: \`{report['import_outcome']}\`",
-        f"- Import job status: \`{report['import_job_status']}\`",
+        f"- Import outcome: `{report['import_outcome']}`",
+        f"- Import job status: `{report['import_job_status']}`",
         f"- Imported artifacts (in local pilot DB): **{metrics.get('artifact_count', 'not_provided')}**",
         f"- Decision rows: **{metrics.get('decision_count', 'not_provided')}**",
         f"- Citation refs: **{metrics.get('source_reference_count', 'not_provided')}**",
@@ -125,10 +125,10 @@ def write_summary(report: dict) -> None:
         "- Drift accuracy: **not_run** (5 planned examples).",
         "- Private repository credentials: **not_used**.",
         "",
-        "See \`pilot-pallets-click-summary.json\` and \`pilot-pallets-click-import.json\` in this artifact.",
+        "See `pilot-pallets-click-summary.json` and `pilot-pallets-click-import.json` in this artifact.",
     ]
     if report.get("error"):
-        lines += ["", f"- Failure category: \`{report['error']}\`"]
+        lines += ["", f"- Failure category: `{report['error']}`"]
     summary = "\n".join(lines) + "\n"
     (OUTPUT / "pilot-pallets-click-summary.md").write_text(summary, encoding="utf-8")
     github_summary = os.environ.get("GITHUB_STEP_SUMMARY")
