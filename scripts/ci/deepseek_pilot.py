@@ -108,7 +108,7 @@ class GuardedChatClient:
         else:
             def mock_chat(request: httpx.Request) -> httpx.Response:
                 body = json.loads(request.content)
-                text = body["messages"][1]["content"]
+                text = body["messages"][-1]["content"]
                 number = 3877 if "PR #3877" in text else 3884
                 fixture = DRY_FIXTURES[number]
                 answer = json.dumps({
