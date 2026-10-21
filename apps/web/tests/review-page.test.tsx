@@ -425,7 +425,7 @@ describe("ReviewPageContent", () => {
     );
     await user.click(screen.getByRole("button", { name: "Reject" }));
     await waitFor(() => {
-      expect(screen.getByText("Review queue cleared; no baseline accepted")).toBeInTheDocument();
+      expect(screen.getByText("No decisions accepted in this review")).toBeInTheDocument();
     });
     expect(screen.queryByText("Imported baseline established.")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to workspace" })).toHaveAttribute(
