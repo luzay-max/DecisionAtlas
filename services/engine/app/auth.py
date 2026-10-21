@@ -34,6 +34,9 @@ def require_actor(
         auth_session = repo.get_auth_session(x_decisionatlas_session_token) if x_decisionatlas_session_token else None
 
         if auth_session is None:
+            # An explicitly supplied invalid/expired token must never fall through to demo bootstrap.
+            if x_decisionatlas_session_token:
+                raise HTTPException(status_code=401, detail="Authentication required")
             if not settings.auth_auto_bootstrap_local or settings.app_env.lower() not in {"development", "test"}:
                 raise HTTPException(status_code=401, detail="Authentication required")
             actor, scope, membership = ensure_bootstrap_identity(session)
