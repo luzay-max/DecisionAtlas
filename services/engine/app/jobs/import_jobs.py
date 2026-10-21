@@ -175,8 +175,6 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             latest_job = jobs.get_by_job_id(job_id)
             if latest_job:
                 session.refresh(latest_job)
-            if latest_job:
-                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "paused":
                 while True:
                     session.refresh(latest_job)
@@ -186,8 +184,6 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                     time.sleep(2.0)
             if latest_job:
                 session.refresh(latest_job)
-            if latest_job:
-                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "cancelled":
                 raise Exception("Import cancelled")
 
@@ -995,9 +991,9 @@ def _classify_private_access_validation_failure(exc: Exception, *, repo_ref: str
 
 def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: str | None) -> None:
     if not secret:
-        if settings := get_settings():
-            if settings.app_env.lower() in {"development", "test"} and settings.allow_unsigned_webhooks_local:
-                return
+        settings = get_settings()
+        if settings.app_env.lower() in {"development", "test"} and settings.allow_unsigned_webhooks_local:
+            return
         raise ValueError("GitHub webhook secret is required")
     if not signature or not signature.startswith("sha256="):
         raise ValueError("Missing GitHub webhook signature")
@@ -1029,6 +1025,8 @@ def _build_extraction_progress_reporter(*, job_id: str):
             
             # Check pause status
             latest_job = jobs_repo.get_by_job_id(job_id)
+            if latest_job:
+                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "paused":
                 while True:
                     progress_session.refresh(latest_job)
@@ -1036,6 +1034,8 @@ def _build_extraction_progress_reporter(*, job_id: str):
                         break
                     import time
                     time.sleep(2.0)
+            if latest_job:
+                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "cancelled":
                 raise Exception("Import cancelled")
 
