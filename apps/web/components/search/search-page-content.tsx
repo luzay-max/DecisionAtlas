@@ -38,12 +38,6 @@ export function SearchPageContent({
         {!isGuidedDemoWorkspace && summary.workspace_readiness ? (
           <ImportedReadinessCard readiness={summary.workspace_readiness} workspaceSlug={workspaceSlug} />
         ) : null}
-        <h2>{messages.search.examplesTitle}</h2>
-        <ul className="stack" aria-label={messages.search.examplesTitle}>
-          {messages.search.examples.map((example) => (
-            <li key={example}>{example}</li>
-          ))}
-        </ul>
         <QueryForm workspaceSlug={workspaceSlug} />
       </section>
     </main>
