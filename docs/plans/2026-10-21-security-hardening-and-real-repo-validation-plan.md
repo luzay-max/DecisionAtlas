@@ -31,11 +31,11 @@
 - [ ] 确认不把 XSS 风险误报为已彻底解决；localStorage Token 搬迁到同源 BFF/服务端 Session 单独评估。
 
 ### A3. 私有仓库凭据加密与迁移 (P0 — 放行客户私有仓库前)
-- [ ] 选用审计成熟的 AEAD 库/KMS；添加显式密钥配置、密钥轮换与灾难恢复说明。
-- [ ] 新写入须为密文；生产缺密钥须 fail-closed；读取旧明文记录不能静默在生产使用。
-- [ ] 提供可回滚的旧 Token 迁移/重新授权流程，避免已有客户凭据丢失。
-- [ ] 添加密文落盘、错误密钥、跨 owner-scope、泄露防护及轮换测试。
-- **禁止自制密码学实现**；如果依赖锁文件和可执行 CI 未能完成，A3 维持 blocking，不能宣称可接入真实客户私有仓库。
+- [x] 使用 cryptography.Fernet 认证加密（成熟密码学库，非 KMS）；显式密钥配置与离线轮换、恢复限制已记录。KMS/密钥托管仍属部署责任。
+- [x] 仓库统一加密新 Token，全部环境缺密钥 fail-closed；旧明文 Token 不能被应用静默读取。
+- [x] 提供可先 dry-run、显式 --apply 与 --include-legacy 的事务性离线迁移命令，失败回滚；迁移前需停止写入并保留受控备份。
+- [x] 新增密文落盘、错误密钥、跨 scope、篡改、事务迁移和轮换测试；最终 CI 尚需最新 SHA 验证。
+- **无需自制密码学**：cryptography 已锁进 uv.lock；CI、部署密钥管理、备份恢复和运营审查仍是客户部署前的必要验收。参见 [私有 Token 操作手册](../security/private-github-token-encryption.md)。
 
 ### A4. 完成门禁
 - [ ] Node/API/Web/Engine、TypeScript、E2E、Webhook 签名、OpenSpec strict 和 canonical pre-release 有当前 SHA 证据。
@@ -69,7 +69,7 @@
 ## 5. 2026-10-21 本轮阶段进度
 
 - 安全代码与测试已提交到 PR #7 独立分支（会话 TTL/注销/重置撤销、CORS/Origin、生产 Cookie、回归测试）。
-- **生产私有 token 路径已临时 fail-closed**：禁止继续沿用明文持久化；加密、迁移和密钥轮换尚未完成，A3 仍为阻断项，不可用于客户私有凭据。
+- **生产私有 Token 已切换为需显式密钥的密文路径**：不配置密钥或者遇到旧明文都会 fail-closed。已提供迁移/离线轮换工具；实际生产密钥管理、备份恢复与 CI 验证仍未完成。
 - **真实仓库候选已核对**：`pallets/click`，固定 Git SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`，有 [PR #3877](https://github.com/pallets/click/pull/3877) 和 [#3884](https://github.com/pallets/click/pull/3884) 可核对。详见 [试点操作与 10 个预注册问题](../validation/2026-10-21-pallets-click-value-pilot.md)。
 - 这轮仅确认 GitHub 上有可评估材料；**DecisionAtlas Engine 真实导入、人工评分、外部用户试验均未运行**。无法取得可执行真实栈时继续标为 `not_run`，不得改写成 pass。
 - 新 CI 尚待当前最新 SHA 验证；中途曾有新增 TS 测试语法错误，已在后续提交纠正。以最新 CI 结果为准。
