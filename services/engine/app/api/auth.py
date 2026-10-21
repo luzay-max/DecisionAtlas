@@ -45,6 +45,21 @@ def bootstrap_auth() -> dict:
         session.close()
 
 
+@router.post("/logout")
+def logout_auth(
+    x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),
+) -> dict:
+    # Idempotent so browsers can clear local state even after expiry.
+    if x_decisionatlas_session_token:
+        session = get_db_session()
+        try:
+            AuthRepository(session).revoke_session(x_decisionatlas_session_token)
+            session.commit()
+        finally:
+            session.close()
+    return {"status": "signed_out"}
+
+
 @router.post("/login")
 def login(request: LoginRequest) -> dict:
     session = get_db_session()
