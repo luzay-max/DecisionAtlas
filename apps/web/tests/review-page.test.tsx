@@ -353,4 +353,54 @@ describe("ReviewPageContent", () => {
       "/drift?workspace=github-org-repo"
     );
   });
+
+  it("filters review candidates by evidence quality and title, then restores the queue", async () => {
+    const user = userEvent.setup();
+    render(
+      <ReviewPageContent
+        workspaceSlug="github-org-repo"
+        decisions={[
+          {
+            id: 51, workspace_id: 2, title: "Adopt a queue", status: "active",
+            review_state: "candidate", problem: "Blocking requests",
+            context: null, constraints: null, chosen_option: "Use workers",
+            tradeoffs: "Extra service", confidence: 0.88,
+            candidate_quality: {
+              label: "strong", summary: "Grounded",
+              source_ref_count: 2, previewable_source_ref_count: 2,
+              has_primary_artifact: true, has_source_url: true,
+              confidence_bucket: "high", reasons: [],
+            },
+          },
+          {
+            id: 52, workspace_id: 2, title: "Try caching", status: "active",
+            review_state: "candidate", problem: "Slow queries",
+            context: null, constraints: null, chosen_option: "Cache",
+            tradeoffs: "Stale data", confidence: 0.62,
+            candidate_quality: {
+              label: "thin", summary: "Missing evidence",
+              source_ref_count: 0, previewable_source_ref_count: 0,
+              has_primary_artifact: false, has_source_url: false,
+              confidence_bucket: "medium", reasons: [],
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("2 decisions waiting")).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole("combobox", { name: "Filter decisions" }), "strong");
+    expect(screen.getByRole("link", { name: "Adopt a queue" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Try caching" })).not.toBeInTheDocument();
+    expect(screen.getByText("1 shown")).toBeInTheDocument();
+
+    await user.type(screen.getByRole("searchbox", { name: "Find a decision" }), "no match");
+    expect(screen.getByText("No candidates match these filters. Try clearing a filter.")).toBeInTheDocument();
+    expect(screen.queryByText("Imported baseline established.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByRole("link", { name: "Adopt a queue" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Try caching" })).toBeInTheDocument();
+    expect(screen.getByText("2 shown")).toBeInTheDocument();
+  });
 });
