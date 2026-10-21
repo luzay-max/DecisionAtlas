@@ -116,3 +116,11 @@
 - [ ] **付费模型调用仍为 `not_run`**，未获得用户后续关于调用和费用的明确同意，亦未配置或获取 API Key。
 - [ ] 完整 DecisionAtlas live 提取、人工候选评分、10 个 Why 和 5 个 Drift 仍未运行。两条 PR 的模型接口冒烟测试不是全链路质量证明。
 - 详细接入、收费授权门禁及变更的模型名称以 [DeepSeek 接入试点手册](../validation/2026-10-21-deepseek-adapter-dry-run.md) 为准。
+
+## 9. 公开仓库 8 条候选独立证据核查（2026-10-21）
+
+- 样本来自 Actions [#39565932265](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265) 的真实 GitHub 数据 + **FakeProvider** 候选审核包；将 7 个文档链接固定到 `pallets/click@2247b35ea1c47c727d7a06e51fa280e12a863ff6`，逐条检查 PR 状态与内容。
+- 已提交[逐条审核说明](../validation/2026-10-21-pallets-click-eight-candidate-independent-audit.md)和[机器可读核查结果](../validation/2026-10-21-pallets-click-eight-candidate-independent-audit.json)。**0 接受、7 拒绝、1 不确定**；原始 GitHub URL 可访问 8/8，但 8 条候选都有 FakeProvider 的默认问题/选项占位字段，**0 条可直接作为已证实决策知识资产**。
+- 第 6 条 `Fix decorator typing with _Decorator type alias` 标记不确定：它指向的 [PR #2559](https://github.com/pallets/click/pull/2559) 已关闭未合并，同类修复由 [PR #2562](https://github.com/pallets/click/pull/2562) 合并。原标题有价值线索，但不能把未合并 PR 当已接受结论。
+- 这是 **AI 助手逐条独立公开证据核查，而非独立非作者人类签字复核**。因此 B2 的 20 条候选**人类评审门禁依然 [ ] 未完成**，不把此结果计为真实 DeepSeek 准确率或 70% 质量放行证据。
+- 后续 live 模型比较应将这个占位基线与真实模型区分，特别检查源码/PR 是否真正支持生成的问题、选项、引用以及采纳状态。用户未授权收费请求，依然 `0` 次 DeepSeek 付费调用，PR #7 不合并。
