@@ -653,7 +653,9 @@ def test_private_token_import_updates_status_for_repository_not_found(tmp_path: 
                 source_ref="org/private-repo",
                 display_label="team private repo",
                 repo_identity="org/private-repo",
-                token_secret="ghp-should-not-leak",
+                token_secret=__import__("app.security.github_tokens", fromlist=["encrypt_token"]).encrypt_token(
+                    "ghp-should-not-leak", owner_scope="local-default", source_ref="org/private-repo", repo_identity="org/private-repo"
+                ),
                 authorization_status="authorized",
             )
         )
