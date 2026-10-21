@@ -50,3 +50,15 @@ def test_one_off_public_repo_rejects_urls_and_bad_identifiers(monkeypatch) -> No
         "rehearse_public_github_import.py", "--repo", "https://github.com/pallets/click"
     ])
     assert runner.main() == 1
+
+
+def test_sqlite_writer_lock_is_classified_as_local_failure() -> None:
+    runner = _load_runner()
+    assert runner._failed_import_outcome({
+        "status": "failed",
+        "summary": {"failure_category": "analysis_execution_failed"},
+    }) == "local_stack_failure"
+    assert runner._failed_import_outcome({
+        "status": "failed",
+        "summary": {"failure_category": "provider_failure"},
+    }) == "provider_failure"
