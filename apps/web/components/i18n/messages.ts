@@ -34,6 +34,8 @@ export const messages = {
       drift: "Drift",
     },
     guidedDemo: {
+      badge: "GUIDED DEMO",
+      stepLabel: "Step {step} / {total}",
       title: "Start the guided demo",
       description:
         "Walk through the seeded demo workspace first. This is the stable MVP story and the fastest way to understand the product.",
@@ -640,12 +642,14 @@ export const messages = {
       drift: "漂移",
     },
     guidedDemo: {
-      title: "开始 guided demo",
-      description: "先走 seed 演示工作区的稳定流程。这是当前 MVP 最可靠、最容易理解的产品故事。",
+      badge: "引导演示",
+      stepLabel: "第 {step} / {total} 步",
+      title: "开始引导演示",
+      description: "从预置演示工作区开始，快速体验决策审阅、证据检索和变更追踪。",
       openCta: "开始演示",
       quickLinks: "演示快捷入口",
-      demoBadge: "guided walkthrough",
-      demoSummary: "使用 seed walkthrough 数据，保证演示结果稳定、流程清晰。",
+      demoBadge: "引导工作区",
+      demoSummary: "使用预置演示数据，流程稳定，适合了解产品功能。",
       steps: ["准备演示工作区", "审阅候选决策", "提一个为什么问题", "查看已采纳时间线", "检查漂移"],
       dashboardTitle: "准备演示工作区",
       dashboardDescription: "seed 演示工作区本来就应当是可用的。直接按页面给出的下一步继续，不需要自己猜流程。",
@@ -674,8 +678,8 @@ export const messages = {
       eyebrow: "工程决策工作台",
       title: "带引用的工程决策记忆。",
       lede:
-        "先走一条稳定的 seed walkthrough，审阅几个决策，查看引用式答案，再理解已采纳决策如何沉淀为工程记忆。",
-      note: "guided demo 是当前 MVP 的主体验。真实仓库分析被保留在高级能力里。",
+        "从真实的工程问题出发，审阅关键决策、查看证据引用，让团队的技术选择有据可查。",
+      note: "先通过预置演示了解主要功能；真实仓库分析位于高级设置中。",
       conceptsLabel: "MVP 概念",
       pills: ["导入", "决策", "为什么"],
       steps: ["准备演示工作区。", "审阅 1 到 2 条候选决策。", "提问为什么，查看时间线，并以漂移收尾。"],
@@ -938,7 +942,7 @@ export const messages = {
     review: {
       eyebrow: "审阅队列",
       title: "等待审阅的候选决策",
-      lede: "先展示置信度最高的候选项，方便 guided demo 快速完成审阅。",
+      lede: "优先展示置信度更高的候选，方便快速核对证据并作出审阅决定。",
       emptyDemo: "seed 演示工作区本应已经有可审阅候选。若这里仍为空，请重新初始化 demo stack。",
       emptyImported: "当前还没有候选决策。这通常意味着导入的仓库里缺少足够高信号的决策证据。",
       contextDemo: "这个审阅队列使用的是 seed walkthrough 决策，用于 guided demo。",
