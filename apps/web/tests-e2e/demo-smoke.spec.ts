@@ -38,3 +38,23 @@ test("demo smoke flow", async ({ page }) => {
   await page.goto("/drift?workspace=demo-workspace");
   await expect(page.getByText(/possible[_ ]drift/i)).toBeVisible();
 });
+
+
+test("mobile landing keeps the primary flow readable and supports keyboard skip navigation", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+
+  await expect(page.getByRole("link", { name: /open the public demo workspace/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /jump to review/i })).toBeVisible();
+  await expect(page.locator("#page-content")).toBeVisible();
+
+  const hasPageOverflow = await page.evaluate(() => {
+    return document.documentElement.scrollWidth > window.innerWidth + 1;
+  });
+  expect(hasPageOverflow).toBe(false);
+
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Skip to main content" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#page-content")).toBeFocused();
+});

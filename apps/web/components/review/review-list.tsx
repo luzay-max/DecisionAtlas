@@ -35,19 +35,73 @@ function qualityReasonLabel(reason: string, messages: ReturnType<typeof useI18n>
 export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
+  const [acceptedInThisSession, setAcceptedInThisSession] = useState(0);
+  const [query, setQuery] = useState("");
+  const [evidenceFilter, setEvidenceFilter] = useState<"all" | "strong" | "partial" | "thin">("all");
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredItems = items.filter((decision) => {
+    const quality = decision.candidate_quality?.label ?? "thin";
+    const matchesEvidence = evidenceFilter === "all" || quality === evidenceFilter;
+    const matchesQuery = !normalizedQuery ||
+      [decision.title, decision.problem, decision.chosen_option]
+        .some((value) => (value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+    return matchesEvidence && matchesQuery;
+  });
   const startedWithItems = decisions.length > 0;
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
   const isImportedWorkspace = !isGuidedDemoWorkspace;
 
   async function handleReview(decisionId: number, reviewState: ReviewState) {
     await reviewDecision(decisionId, reviewState);
+    if (reviewState === "accepted") setAcceptedInThisSession((count) => count + 1);
     setItems((current) => current.filter((decision) => decision.id !== decisionId));
   }
 
   return (
     <div className="stack">
+      {items.length > 0 ? (
+        <section className="review-queue-controls" aria-label={messages.review.filterLabel}>
+          <div className="review-queue-heading">
+            <h2>{messages.review.queueCount.replace("{count}", String(items.length))}</h2>
+            <span className="badge" role="status" aria-live="polite">
+              {messages.review.remainingCount.replace("{count}", String(filteredItems.length))}
+            </span>
+          </div>
+          <div className="review-queue-fields">
+            <label className="field">
+              <span>{messages.review.searchCandidates}</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={messages.review.searchPlaceholder}
+              />
+            </label>
+            <label className="field">
+              <span>{messages.review.filterLabel}</span>
+              <select
+                value={evidenceFilter}
+                onChange={(event) => setEvidenceFilter(event.target.value as typeof evidenceFilter)}
+              >
+                <option value="all">{messages.review.filterAll}</option>
+                <option value="strong">{messages.review.filterStrong}</option>
+                <option value="partial">{messages.review.filterPartial}</option>
+                <option value="thin">{messages.review.filterThin}</option>
+              </select>
+            </label>
+          </div>
+          {filteredItems.length === 0 ? (
+            <div className="review-empty-filter" role="status">
+              <p>{messages.review.noFilterResults}</p>
+              <button type="button" onClick={() => { setQuery(""); setEvidenceFilter("all"); }}>
+                {messages.review.clearFilters}
+              </button>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       {items.length === 0 ? (
-        isGuidedDemoWorkspace && startedWithItems ? (
+        startedWithItems && acceptedInThisSession > 0 && isGuidedDemoWorkspace ? (
           <GuidedDemoPanel
             step={2}
             total={messages.guidedDemo.steps.length}
@@ -59,7 +113,7 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
             nextLabel={messages.guidedDemo.reviewNext}
             tone="success"
           />
-        ) : isImportedWorkspace && startedWithItems ? (
+        ) : startedWithItems && acceptedInThisSession > 0 && isImportedWorkspace ? (
           <div className="card">
             <p className="eyebrow">{messages.review.importedBaselineTitle}</p>
             <p>{messages.review.importedBaselineStatus}</p>
@@ -72,11 +126,19 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
               </Link>
             </div>
           </div>
+        ) : startedWithItems ? (
+          <div className="card">
+            <p className="eyebrow">{messages.review.reviewedWithoutAcceptanceTitle}</p>
+            <p>{messages.review.reviewedWithoutAcceptanceStatus}</p>
+            <Link href={`/workspaces/${encodeURIComponent(workspaceSlug)}`} className="action-link">
+              {messages.review.reviewedWithoutAcceptanceNext}
+            </Link>
+          </div>
         ) : (
-          <p>{workspaceSlug === "demo-workspace" ? messages.review.emptyDemo : messages.review.emptyImported}</p>
+          <p>{isGuidedDemoWorkspace ? messages.review.emptyDemo : messages.review.emptyImported}</p>
         )
       ) : null}
-      {items.map((decision) => {
+      {filteredItems.map((decision) => {
         const evidence = decision.review_evidence;
         const quality = decision.candidate_quality;
         const evidenceState = evidence?.state ?? "missing";

@@ -9,34 +9,57 @@ import { accessRequirementCopy, accessSourceStatusLabel } from "../access-source
 import { useI18n } from "../i18n/language-provider";
 import { syncSummary } from "../sync/sync-provenance";
 
+const GITHUB_REPO_INPUT = /^(?:https:\/\/github\.com\/)?[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/?$/i;
+
 export function LiveAnalysisForm() {
   const { messages } = useI18n();
   const router = useRouter();
   const [repo, setRepo] = useState("");
+  const [touched, setTouched] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lookup, setLookup] = useState<ImportLookup | null>(null);
   const [lookupLoading, setLookupLoading] = useState(false);
+  const [checkedRepoInput, setCheckedRepoInput] = useState<string | null>(null);
+  const [lookupFailed, setLookupFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const trimmedRepo = repo.trim();
+  const validRepo = GITHUB_REPO_INPUT.test(trimmedRepo);
+  const showInvalidRepo = touched && trimmedRepo.length > 0 && !validRepo;
+  const existing = Boolean(lookup?.workspace_exists && lookup.workspace_slug);
+  const hasAccessBlocker = Boolean(lookup?.access_requirement) ||
+    ["unauthorized", "invalid", "missing"].includes(lookup?.access_source_status ?? "");
+  const readyLookup = validRepo && checkedRepoInput === trimmedRepo && Boolean(lookup) && !lookupLoading && !lookupFailed;
+  const canCreate = readyLookup && !existing && !hasAccessBlocker && !loading;
 
   useEffect(() => {
-    const trimmedRepo = repo.trim();
-    if (trimmedRepo.length < 3) {
+    if (!validRepo) {
       setLookup(null);
+      setCheckedRepoInput(null);
+      setLookupFailed(false);
       setLookupLoading(false);
       return;
     }
 
     let cancelled = false;
+    setLookup(null);
+    setCheckedRepoInput(null);
+    setLookupFailed(false);
     setLookupLoading(true);
     const timeout = setTimeout(async () => {
       try {
         const result = await lookupGithubImport(trimmedRepo);
         if (!cancelled) {
           setLookup(result);
+          setCheckedRepoInput(trimmedRepo);
         }
       } catch {
         if (!cancelled) {
           setLookup(null);
+          setCheckedRepoInput(null);
+          setLookupFailed(true);
         }
       } finally {
         if (!cancelled) {
@@ -49,36 +72,30 @@ export function LiveAnalysisForm() {
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [repo]);
+  }, [trimmedRepo, validRepo, retryCount]);
 
   function workspaceHref(workspaceSlug: string, jobId?: string | null) {
     const base = `/workspaces/${encodeURIComponent(workspaceSlug)}`;
-    if (!jobId) {
-      return base;
-    }
-    return `${base}?job=${encodeURIComponent(jobId)}`;
+    return jobId ? `${base}?job=${encodeURIComponent(jobId)}` : base;
   }
+
   const latestLookupSyncSummary = syncSummary(messages, lookup?.latest_import);
   const lookupAccessStatus = accessSourceStatusLabel(messages, lookup?.access_source_status);
   const lookupAccessRequirement = accessRequirementCopy(messages, lookup?.access_requirement);
 
   async function startImport(mode: "full" | "since_last_sync", workspaceSlug: string | null) {
+    if (loading || !readyLookup || hasAccessBlocker || (lookup?.has_running_import ?? false)) return;
     setLoading(true);
-    setMessage(
-      mode === "since_last_sync"
-        ? messages.liveAnalysis.syncSubmitting
-        : messages.liveAnalysis.submitting
-    );
+    setActionError(false);
+    setMessage(mode === "since_last_sync" ? messages.liveAnalysis.syncSubmitting : messages.liveAnalysis.submitting);
     try {
-      const result = await startGithubImport(workspaceSlug, repo, mode);
-      const nextWorkspaceSlug = result.workspace_slug;
-      if (!nextWorkspaceSlug) {
-        throw new Error("Missing workspace slug");
-      }
-      setMessage(messages.liveAnalysis.redirecting.replace("{repo}", result.repo ?? repo));
-      router.push(workspaceHref(nextWorkspaceSlug, result.job_id));
+      const result = await startGithubImport(workspaceSlug, trimmedRepo, mode);
+      if (!result.workspace_slug) throw new Error("Missing workspace slug");
+      setMessage(messages.liveAnalysis.redirecting.replace("{repo}", result.repo ?? trimmedRepo));
+      router.push(workspaceHref(result.workspace_slug, result.job_id));
     } catch (error) {
       const detail = error instanceof Error ? error.message : "unknown error";
+      setActionError(true);
       setMessage(messages.liveAnalysis.failed.replace("{detail}", detail));
     } finally {
       setLoading(false);
@@ -87,69 +104,116 @@ export function LiveAnalysisForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (lookup?.workspace_exists && lookup.workspace_slug) {
-      setMessage(messages.liveAnalysis.reuseDetected);
+    setTouched(true);
+    if (!canCreate) {
+      if (existing) setMessage(messages.liveAnalysis.reuseDetected);
       return;
     }
     await startImport("full", null);
   }
 
   return (
-    <form className="stack" onSubmit={handleSubmit}>
-      <label htmlFor="live-analysis-repo">
-        <strong>{messages.liveAnalysis.label}</strong>
-      </label>
-      <input
-        id="live-analysis-repo"
-        type="text"
-        value={repo}
-        onChange={(event) => setRepo(event.target.value)}
-        placeholder={messages.liveAnalysis.placeholder}
-      />
-      <button type="submit" disabled={loading || lookupLoading || repo.trim().length === 0}>
-        {loading ? messages.liveAnalysis.submittingButton : messages.liveAnalysis.submit}
-      </button>
-      <p>{messages.liveAnalysis.helper}</p>
-      {lookupLoading ? <p>{messages.liveAnalysis.lookupLoading}</p> : null}
+    <form className="live-import-form" onSubmit={handleSubmit} aria-label={messages.liveAnalysis.importSectionLabel}>
+      <div className="live-import-entry">
+        <div className="field live-import-field">
+          <label htmlFor="live-analysis-repo">{messages.liveAnalysis.label}</label>
+          <input
+            id="live-analysis-repo"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
+            spellCheck={false}
+            value={repo}
+            onChange={(event) => {
+              setRepo(event.target.value);
+              setMessage(null);
+              setActionError(false);
+            }}
+            onBlur={() => setTouched(true)}
+            aria-invalid={showInvalidRepo}
+            aria-describedby={showInvalidRepo ? "live-analysis-repo-help live-analysis-repo-error" : "live-analysis-repo-help"}
+            placeholder={messages.liveAnalysis.placeholder}
+          />
+          <p className="muted live-import-help" id="live-analysis-repo-help">{messages.liveAnalysis.helper}</p>
+          {showInvalidRepo ? (
+            <p id="live-analysis-repo-error" className="form-feedback form-feedback-error" role="alert">
+              {messages.liveAnalysis.invalidRepo}
+            </p>
+          ) : null}
+        </div>
+        <button className="action-link-primary live-import-submit" type="submit" disabled={!canCreate}>
+          {loading ? messages.liveAnalysis.submittingButton : messages.liveAnalysis.submit}
+        </button>
+      </div>
+
+      <div className="live-import-feedback" role="status" aria-live="polite" aria-atomic="true">
+        {lookupLoading ? <p>{messages.liveAnalysis.lookupLoading}</p> : null}
+        {lookupFailed ? (
+          <div className="live-import-retry">
+            <p className="form-feedback form-feedback-error">{messages.liveAnalysis.lookupFailed}</p>
+            <button type="button" onClick={() => setRetryCount((value) => value + 1)}>
+              {messages.liveAnalysis.retryLookup}
+            </button>
+          </div>
+        ) : null}
+        {readyLookup && lookup && !lookup.workspace_exists && !lookupAccessRequirement && !hasAccessBlocker ? (
+          <p className="form-feedback form-feedback-success">{messages.liveAnalysis.readyToImport}</p>
+        ) : null}
+        {!existing && lookupAccessRequirement ? (
+          <p className="form-feedback form-feedback-error">{lookupAccessRequirement}</p>
+        ) : null}
+        {!existing && lookup?.access_requirement_detail ? (
+          <p className="form-feedback form-feedback-error">{lookup.access_requirement_detail}</p>
+        ) : null}
+        {message ? <p className={actionError ? "form-feedback form-feedback-error" : "form-feedback"}>{message}</p> : null}
+      </div>
+
       {lookup?.workspace_exists && lookup.workspace_slug ? (
-        <div className="stack" style={{ border: "1px solid currentColor", borderRadius: "1rem", padding: "1rem" }}>
-          <p><strong>{messages.liveAnalysis.reuseTitle}</strong></p>
+        <section className="live-import-existing" aria-labelledby="live-import-existing-title">
+          <div className="live-import-existing-header">
+            <div>
+              <p className="eyebrow">{messages.liveAnalysis.importSectionLabel}</p>
+              <h3 id="live-import-existing-title">{messages.liveAnalysis.reuseTitle}</h3>
+            </div>
+            <span className="live-import-existing-indicator" aria-hidden="true" />
+          </div>
           <p>{messages.liveAnalysis.reuseBody.replace("{workspace}", lookup.workspace_slug)}</p>
-            {lookup.access_source_label ? <p>{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
-            {lookupAccessStatus ? (
-              <p>{messages.liveAnalysis.accessSourceStatus.replace("{status}", lookupAccessStatus)}</p>
-            ) : null}
-            {lookup.access_source_status_detail ? (
-              <p>{messages.liveAnalysis.accessSourceDetail.replace("{detail}", lookup.access_source_status_detail)}</p>
-            ) : null}
-            {latestLookupSyncSummary ? (
-              <p>{messages.liveAnalysis.latestSync.replace("{summary}", latestLookupSyncSummary)}</p>
-            ) : null}
-            {lookup.has_running_import ? <p>{messages.liveAnalysis.runningImportHint}</p> : null}
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Link href={workspaceHref(lookup.workspace_slug, lookup.has_running_import ? lookup.latest_import?.job_id : null)}>
+          {lookup.access_source_label ? <p className="muted">{messages.liveAnalysis.accessSource.replace("{source}", lookup.access_source_label)}</p> : null}
+          {lookupAccessStatus ? <p className="muted">{messages.liveAnalysis.accessSourceStatus.replace("{status}", lookupAccessStatus)}</p> : null}
+          {lookup.access_source_status_detail ? (
+            <p className="muted">{messages.liveAnalysis.accessSourceDetail.replace("{detail}", lookup.access_source_status_detail)}</p>
+          ) : null}
+          {latestLookupSyncSummary ? (
+            <p className="muted">{messages.liveAnalysis.latestSync.replace("{summary}", latestLookupSyncSummary)}</p>
+          ) : null}
+          {lookup.has_running_import ? <p className="form-feedback">{messages.liveAnalysis.runningImportHint}</p> : null}
+          <div className="action-row live-import-existing-actions">
+            <Link
+              href={workspaceHref(
+                lookup.workspace_slug,
+                lookup.has_running_import ? lookup.active_import?.job_id ?? lookup.latest_import?.job_id : null
+              )}
+              className="action-link action-link-primary"
+            >
               {messages.liveAnalysis.openExisting}
             </Link>
             <button
               type="button"
-              disabled={loading || !lookup.can_incremental_sync}
+              disabled={loading || !readyLookup || hasAccessBlocker || !lookup.can_incremental_sync || lookup.has_running_import}
               onClick={() => startImport("since_last_sync", lookup.workspace_slug)}
             >
               {messages.liveAnalysis.syncExisting}
             </button>
             <button
               type="button"
-              disabled={loading || lookup.has_running_import}
+              disabled={loading || !readyLookup || hasAccessBlocker || lookup.has_running_import}
               onClick={() => startImport("full", lookup.workspace_slug)}
             >
               {messages.liveAnalysis.rerunFull}
             </button>
           </div>
-        </div>
+        </section>
       ) : null}
-      {!lookup?.workspace_exists && lookupAccessRequirement ? <p>{lookupAccessRequirement}</p> : null}
-      {!lookup?.workspace_exists && lookup?.access_requirement_detail ? <p>{lookup.access_requirement_detail}</p> : null}
-      {message ? <p>{message}</p> : null}
     </form>
   );
 }

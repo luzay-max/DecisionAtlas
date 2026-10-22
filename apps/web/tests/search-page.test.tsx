@@ -361,4 +361,70 @@ describe("QueryForm", () => {
 
     global.fetch = originalFetch;
   });
+
+  it("fills a question from a clickable example without starting a network request", () => {
+    const originalFetch = global.fetch;
+    const fetchMock = vi.fn();
+    global.fetch = fetchMock;
+
+    try {
+      render(<QueryForm workspaceSlug="demo-workspace" />);
+      fireEvent.click(screen.getByRole("button", { name: "why is redis cache-only" }));
+      expect(screen.getByRole("textbox", { name: "Ask why" })).toHaveValue("why is redis cache-only");
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("blocks empty submissions and prevents overlapping network requests", async () => {
+    const originalFetch = global.fetch;
+    let completeFetch!: (response: Response) => void;
+    const pending = new Promise<Response>((resolve) => { completeFetch = resolve; });
+    const fetchMock = vi.fn().mockReturnValue(pending);
+    global.fetch = fetchMock;
+
+    try {
+      render(<QueryForm workspaceSlug="demo-workspace" />);
+      fireEvent.change(screen.getByRole("textbox", { name: "Ask why" }), { target: { value: "   " } });
+      expect(screen.getByRole("button", { name: "Search" })).toBeDisabled();
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      fireEvent.change(screen.getByRole("textbox", { name: "Ask why" }), { target: { value: "  why redis?  " } });
+      fireEvent.click(screen.getByRole("button", { name: "Search" }));
+      expect(screen.getByRole("button", { name: "Searching..." })).toBeDisabled();
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(JSON.stringify(fetchMock.mock.calls[0])).toContain("why redis?");
+      completeFetch({ ok: false } as Response);
+      await waitFor(() => expect(screen.getByRole("button", { name: "Retry search" })).toBeInTheDocument());
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("does not show an outdated answer after the user edits a pending question", async () => {
+    const originalFetch = global.fetch;
+    let completeFetch!: (response: Response) => void;
+    global.fetch = vi.fn().mockReturnValue(new Promise<Response>((resolve) => { completeFetch = resolve; }));
+    try {
+      render(<QueryForm workspaceSlug="demo-workspace" />);
+      fireEvent.click(screen.getByRole("button", { name: "Search" }));
+      fireEvent.change(screen.getByRole("textbox", { name: "Ask why" }), {
+        target: { value: "why did the team change the plan?" },
+      });
+      completeFetch({
+        ok: true,
+        json: async () => ({
+          status: "ok", question: "why use redis cache",
+          answer: "Stale answer must not appear",
+          citations: [], supporting_context: [],
+        }),
+      } as Response);
+
+      await waitFor(() => expect(screen.getByRole("button", { name: "Search" })).toBeEnabled());
+      expect(screen.queryByText("Stale answer must not appear")).not.toBeInTheDocument();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
 });

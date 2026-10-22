@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import Link from "next/link";
 import React from "react";
 
@@ -20,6 +18,7 @@ export function DemoWorkspaceNav({
   currentPath: string;
 }) {
   const { messages } = useI18n();
+  const isDemoWorkspace = workspaceSlug === "demo-workspace";
 
   const navItems = [
     { href: "/workspaces", label: messages.nav.dashboard },
@@ -30,42 +29,48 @@ export function DemoWorkspaceNav({
   ];
 
   return (
-    <nav className="demo-nav-shell" aria-label={messages.nav.workspaceNavigation}>
-      <div className="stack nav-primary">
-        <div className="card guided-demo-badge">
-          <p className="eyebrow">{messages.guidedDemo.demoBadge}</p>
-          <p>{messages.guidedDemo.demoSummary}</p>
-          <div className="action-row">
-            <Link href="/" className="action-link">
-              {messages.nav.home}
-            </Link>
-            {workspaceSlug !== "demo-workspace" ? (
-              <Link href="/workspaces/demo-workspace" className="action-link">
-                {messages.nav.backToDemo}
-              </Link>
+    <nav className="demo-nav-shell workspace-nav-shell" aria-label={messages.nav.workspaceNavigation}>
+      <div className="workspace-nav-primary">
+        <div className="workspace-nav-context">
+          <div>
+            <p className="eyebrow">{isDemoWorkspace ? messages.guidedDemo.demoBadge : messages.nav.workspaceNavigation}</p>
+            <p className="workspace-nav-name">{isDemoWorkspace ? messages.guidedDemo.title : workspaceSlug}</p>
+            <p className="workspace-nav-description muted">
+              {isDemoWorkspace ? messages.guidedDemo.demoSummary : messages.common.liveVsDemo}
+            </p>
+          </div>
+          <div className="action-row workspace-nav-context-actions">
+            <Link href="/" className="action-link">{messages.nav.home}</Link>
+            {!isDemoWorkspace ? (
+              <Link href="/workspaces/demo-workspace" className="action-link">{messages.nav.backToDemo}</Link>
             ) : null}
           </div>
         </div>
-        <div className="demo-nav">
+        <div className="demo-nav workspace-nav-tabs">
           {navItems.map((item) => {
-            const href =
-              item.href === "/workspaces"
-                ? `/workspaces/${workspaceSlug}`
-                : `${item.href}?workspace=${encodeURIComponent(workspaceSlug)}`;
-            const isActive =
-              item.href === "/workspaces" ? currentPath.startsWith("/workspaces/") : currentPath === item.href;
+            const href = item.href === "/workspaces"
+              ? `/workspaces/${encodeURIComponent(workspaceSlug)}`
+              : `${item.href}?workspace=${encodeURIComponent(workspaceSlug)}`;
+            const isActive = item.href === "/workspaces"
+              ? currentPath.startsWith("/workspaces/")
+              : currentPath === item.href;
 
             return (
-              <Link key={item.href} href={href} className={isActive ? "demo-nav-link active" : "demo-nav-link"}>
+              <Link
+                key={item.href}
+                href={href}
+                className={isActive ? "demo-nav-link active" : "demo-nav-link"}
+                aria-current={isActive ? "page" : undefined}
+              >
                 {item.label}
               </Link>
             );
           })}
         </div>
       </div>
-      <div className="stack">
+      <div className="workspace-nav-tools">
         <AccountScopeSurface />
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+        <div className="workspace-nav-switches">
           <LanguageToggle />
           <ThemeToggle />
         </div>

@@ -63,6 +63,9 @@ describe("LiveAnalysisForm", () => {
     await waitFor(() => {
       expect(lookupGithubImport).toHaveBeenCalledWith("org/repo");
     });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Run live analysis" })).toBeEnabled();
+    });
     await user.click(screen.getByRole("button", { name: "Run live analysis" }));
 
     await waitFor(() => {
@@ -251,4 +254,72 @@ describe("LiveAnalysisForm", () => {
       )
     ).toBeInTheDocument();
   });
+  it("validates repository syntax before any API lookup", async () => {
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "not-a-github-repo");
+    await user.tab();
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter owner/repo or a GitHub repository URL.");
+    expect(screen.getByLabelText("Repository")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("button", { name: "Run live analysis" })).toBeDisabled();
+    expect(lookupGithubImport).not.toHaveBeenCalled();
+    expect(startGithubImport).not.toHaveBeenCalled();
+  });
+
+  it("lets a user retry a failed repository check without accidentally importing", async () => {
+    const user = userEvent.setup();
+    lookupGithubImport.mockRejectedValueOnce(new Error("temporary network failure"));
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "org/repo");
+    await waitFor(() => {
+      expect(screen.getByText("Could not check this repository right now. Retry before starting an import.")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Run live analysis" })).toBeDisabled();
+    expect(startGithubImport).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Retry check" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Run live analysis" })).toBeEnabled();
+    });
+    expect(lookupGithubImport).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks the primary import action when private repository credentials are missing", async () => {
+    const user = userEvent.setup();
+    lookupGithubImport.mockResolvedValue({
+      repo: "org/private",
+      workspace_exists: false,
+      workspace_slug: null,
+      has_successful_import: false,
+      can_incremental_sync: false,
+      has_running_import: false,
+      latest_import: null,
+      access_requirement: "credential_required",
+      access_source_type: "public",
+    });
+    render(
+      <LanguageProvider>
+        <LiveAnalysisForm />
+      </LanguageProvider>
+    );
+
+    await user.type(screen.getByLabelText("Repository"), "org/private");
+    await waitFor(() => {
+      expect(screen.getByText("Private repository access setup is required before import can proceed.")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Run live analysis" })).toBeDisabled();
+    expect(startGithubImport).not.toHaveBeenCalled();
+  });
+
 });
