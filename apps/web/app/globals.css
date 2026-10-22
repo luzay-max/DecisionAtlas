@@ -2227,3 +2227,9 @@ html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
     width: 100%;
   }
 }
+
+
+/* Active locale must remain legible on the light theme, not white-on-white. */
+html[data-theme="light"] .language-toggle-active {
+  color: var(--ink);
+}
