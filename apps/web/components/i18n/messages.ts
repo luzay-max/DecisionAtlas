@@ -34,7 +34,7 @@ export const messages = {
       drift: "Drift",
     },
     guidedDemo: {
-      badge: "GUIDED DEMO",
+      badge: "Guided Demo",
       stepLabel: "Step {step} / {total}",
       title: "Start the guided demo",
       description:
