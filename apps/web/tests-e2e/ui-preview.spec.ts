@@ -47,6 +47,13 @@ test("capture real demo UI screenshots in Chinese (desktop, mobile, dark and lig
   await expect(page.getByRole("heading", { name: "带引用的工程决策记忆。" })).toBeVisible();
   await page.getByRole("button", { name: "深色模式" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  const localeTextColor = await page.locator(".home-header-tools .language-toggle-active").evaluate(
+    (element) => getComputedStyle(element).color
+  );
+  const pageTextColor = await page.locator(".home-page h1").evaluate(
+    (element) => getComputedStyle(element).color
+  );
+  expect(localeTextColor, "The active Chinese locale must be readable in light mode").toBe(pageTextColor);
   await capture("05-home-desktop-light-zh.png");
 
   await page.getByRole("button", { name: "浅色模式" }).click();
