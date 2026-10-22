@@ -144,7 +144,9 @@ GitHub Actions 在 **Windows** 上执行 Node 测试、类型检查、Engine 测
 ```powershell
 pnpm test
 pnpm typecheck
-uv run --project services/engine pytest -q
+cd services/engine
+uv run pytest -q
+cd ../..
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 

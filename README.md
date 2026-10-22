@@ -146,7 +146,9 @@ For changes to this repository, CI validates Node tests, type checking, Engine t
 ```powershell
 pnpm test
 pnpm typecheck
-uv run --project services/engine pytest -q
+cd services/engine
+uv run pytest -q
+cd ../..
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 
