@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+import { useI18n } from "../i18n/language-provider";
 
 type GuidedDemoPanelProps = {
   step: number;
@@ -28,15 +29,16 @@ export function GuidedDemoPanel({
   tone = "default",
   children,
 }: GuidedDemoPanelProps) {
+  const { messages } = useI18n();
   return (
-    <section className={`glass-panel-heavy stack guided-demo-panel guided-demo-panel-${tone}`} style={{ padding: "32px", marginBottom: "24px" }}>
+    <section className={`glass-panel-heavy stack guided-demo-panel guided-demo-panel-${tone}`}>
       <div className="card-head">
         <div>
-          <p className="eyebrow">Guided Demo</p>
+          <p className="eyebrow">{messages.guidedDemo.badge}</p>
           <h2>{title}</h2>
         </div>
         <span className="badge">
-          Step {step} / {total}
+          {messages.guidedDemo.stepLabel.replace("{step}", String(step)).replace("{total}", String(total))}
         </span>
       </div>
       <p>{description}</p>

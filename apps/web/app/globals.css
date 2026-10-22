@@ -1796,3 +1796,440 @@ html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
     transition: none;
   }
 }
+
+
+/* ==========================================================================
+   Visual polish v2: calm header, focused task navigation and readable demo.
+   Based on inspection of the real Playwright desktop/mobile preview images.
+   ========================================================================== */
+
+.home-header,
+.workspace-nav-shell {
+  isolation: isolate;
+}
+
+.account-scope-compact {
+  display: block;
+  position: relative;
+  min-width: 0;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-size: .85rem;
+  z-index: 5;
+}
+
+.home-header-tools .account-scope-compact {
+  min-width: 0;
+}
+
+.account-scope-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  min-height: 44px;
+  max-width: 180px;
+  padding: 7px 12px 7px 7px;
+  color: var(--ink);
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.account-scope-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.account-scope-trigger-name {
+  font-weight: 650;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.account-scope-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(var(--accent-rgb), .16);
+  border: 1px solid rgba(var(--accent-rgb), .24);
+  color: var(--accent);
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.account-scope-chevron {
+  flex: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.account-scope-compact[open] .account-scope-trigger {
+  border-color: rgba(var(--accent-rgb), .55);
+}
+
+.account-scope-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 12px;
+  width: min(290px, calc(100vw - 36px));
+  padding: 18px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .3);
+}
+
+.account-scope-popover .account-scope-identity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.account-scope-metadata {
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.account-scope-popover > button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Give the five daily destinations the full width of the work surface. */
+.workspace-nav-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin: 0 0 8px;
+  padding: 0 0 20px;
+}
+
+.workspace-nav-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.workspace-nav-context {
+  align-items: flex-start;
+  flex: 1 1 370px;
+  gap: 16px;
+  padding: 0;
+}
+
+.workspace-nav-context-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-nav-description {
+  max-width: 360px;
+  margin: 5px 0 0;
+}
+
+.workspace-nav-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 1 auto;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.workspace-nav-tools .advanced-controls {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 11px 13px;
+  border-radius: 999px;
+  background: var(--card-bg);
+}
+
+.workspace-nav-tools .advanced-controls summary {
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+.workspace-nav-tools .advanced-controls[open] {
+  flex-basis: 100%;
+}
+
+.workspace-nav-tabs {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.workspace-nav-tabs .demo-nav-link {
+  min-width: 96px;
+  min-height: 46px;
+}
+
+.page-shell .panel {
+  gap: 20px;
+}
+
+/* Tighter step rhythm makes one meaningful action visible sooner. */
+.guided-demo-panel,
+.home-guided-card > .guided-demo-panel {
+  padding: 26px;
+  margin-bottom: 0;
+  gap: 14px;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.guided-demo-panel .card-head {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.guided-demo-panel h2 {
+  margin: 4px 0 0;
+  background: none;
+  color: var(--ink);
+  -webkit-text-fill-color: currentColor;
+  font-size: clamp(1.12rem, 1.9vw, 1.35rem);
+  line-height: 1.35;
+}
+
+.guided-demo-panel > p {
+  margin: 0;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.guided-demo-step-list {
+  gap: 8px;
+}
+
+.guided-demo-step {
+  line-height: 1.5;
+  align-items: flex-start;
+  font-size: .9rem;
+}
+
+.guided-demo-step-index {
+  flex: none;
+}
+
+.guided-demo-panel .action-row {
+  margin-top: 3px;
+}
+
+.home-guided-card > .guided-demo-panel {
+  height: 100%;
+}
+
+.home-shortcut-list {
+  margin-top: 20px;
+}
+
+.home-shortcuts > .muted {
+  margin-bottom: 4px;
+}
+
+.home-shortcuts {
+  gap: 8px;
+}
+
+@media (max-width: 1100px) {
+  .workspace-nav-top {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .workspace-nav-context {
+    flex: initial;
+  }
+  .workspace-nav-tools {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .home-header {
+    gap: 14px;
+  }
+  .home-header-tools {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 7px;
+  }
+  .home-header-tools .account-scope-trigger {
+    max-width: 145px;
+  }
+  .home-header-tools .theme-toggle {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px !important;
+  }
+  .home-header-tools .theme-toggle > span:last-child {
+    display: none;
+  }
+  .home-header-tools .language-toggle {
+    padding: 9px 13px;
+    min-height: 44px;
+  }
+  .home-hero {
+    padding-top: 32px;
+    padding-bottom: 36px;
+  }
+  .home-page h1 {
+    max-width: 11ch;
+    line-height: 1.12;
+  }
+  .home-hero-actions {
+    margin-top: 24px;
+  }
+  .home-path-preview {
+    padding: 22px;
+  }
+  .home-workflow {
+    padding-top: 30px;
+  }
+  .home-guided-card > .guided-demo-panel {
+    padding: 22px;
+  }
+  .home-shortcuts {
+    padding: 22px;
+  }
+  .workspace-nav-context {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .workspace-nav-context-actions {
+    flex: 0 0 auto;
+  }
+  .workspace-nav-tools {
+    display: flex;
+    gap: 7px;
+  }
+  .workspace-nav-tools .theme-toggle {
+    min-height: 44px;
+    padding: 10px !important;
+  }
+  .workspace-nav-tools .theme-toggle > span:last-child {
+    display: none;
+  }
+  .workspace-nav-tabs .demo-nav-link {
+    min-width: 94px;
+  }
+  .page-shell {
+    padding: 20px 12px;
+  }
+  .page-shell .panel {
+    padding: 20px 16px;
+    border-radius: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-nav-tabs {
+    scroll-behavior: auto;
+  }
+}
+
+
+/* Mobile follow-up from the 8 real CI screenshots:
+   don't wrap the locale label; don't stretch flex fields to 240px tall;
+   keep dashboard KPIs in a scannable 2x2 matrix. */
+.home-header-tools .language-toggle,
+.workspace-nav-tools .language-toggle {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.language-toggle > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .review-queue-fields .field {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .review-queue-fields input,
+  .review-queue-fields select {
+    min-height: 46px;
+    height: auto;
+  }
+
+  .review-queue-fields {
+    gap: 14px;
+  }
+
+  .kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-strip .card {
+    padding: 16px;
+    min-width: 0;
+    min-height: 104px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .kpi-strip .card p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .home-header-tools .language-toggle {
+    gap: 5px;
+    padding: 9px 11px;
+  }
+
+  .home-header-tools .account-scope-compact {
+    min-width: 0;
+    flex: 0 1 146px;
+  }
+  .home-header-tools .account-scope-trigger {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+
+/* Active locale must remain legible on the light theme, not white-on-white. */
+html[data-theme="light"] .language-toggle-active {
+  color: var(--ink);
+}

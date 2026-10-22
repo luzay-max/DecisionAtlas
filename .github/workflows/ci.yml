@@ -63,3 +63,15 @@ jobs:
 
       - name: Run browser smoke flow
         run: pnpm --filter @decisionatlas/web exec playwright test
+
+      - name: Upload UI preview screenshots
+        # The screenshots contain CI's seeded public demo only.
+        # Preserve any successfully captured pages even if a later E2E assertion fails.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decisionatlas-ui-preview
+          path: apps/web/test-results/ui-preview/*.png
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 0
