@@ -18,7 +18,7 @@ test("capture real demo UI screenshots in Chinese (desktop, mobile, dark and lig
   async function capture(filename: string) {
     // Ensure hydration, locale and fonts have settled before capturing UI.
     await expect(page.locator("html")).toHaveAttribute("lang", "zh");
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(async () => { await document.fonts.ready; });
     await page.screenshot({
       path: path.join(previewDir, filename),
       fullPage: true,
