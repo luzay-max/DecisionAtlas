@@ -9,7 +9,10 @@ export default defineConfig({
   testDir: "./tests-e2e",
   timeout: 60_000,
   use: {
-    baseURL
+    baseURL,
+    // Use the full Chromium binary in the supported new-headless mode.
+    // CI installs with --no-shell to avoid downloading the separate headless shell.
+    channel: "chromium",
   },
   webServer: skipWebServer ? undefined : [
     {
