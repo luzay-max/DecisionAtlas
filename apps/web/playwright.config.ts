@@ -8,6 +8,9 @@ const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 export default defineConfig({
   testDir: "./tests-e2e",
   timeout: 60_000,
+  // The CI demo, account/bootstrap and review E2E suites share one SQLite
+  // database. Serial execution avoids nondeterministic bootstrap races.
+  workers: process.env.CI === "true" ? 1 : undefined,
   use: {
     baseURL,
     // Use the full Chromium binary in the supported new-headless mode.
