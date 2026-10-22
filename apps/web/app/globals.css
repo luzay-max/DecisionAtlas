@@ -2158,3 +2158,72 @@ html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
     scroll-behavior: auto;
   }
 }
+
+
+/* Mobile follow-up from the 8 real CI screenshots:
+   don't wrap the locale label; don't stretch flex fields to 240px tall;
+   keep dashboard KPIs in a scannable 2x2 matrix. */
+.home-header-tools .language-toggle,
+.workspace-nav-tools .language-toggle {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.language-toggle > span {
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .review-queue-fields .field {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .review-queue-fields input,
+  .review-queue-fields select {
+    min-height: 46px;
+    height: auto;
+  }
+
+  .review-queue-fields {
+    gap: 14px;
+  }
+
+  .kpi-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kpi-strip .card {
+    padding: 16px;
+    min-width: 0;
+    min-height: 104px;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .kpi-strip .card p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .home-header-tools .language-toggle {
+    gap: 5px;
+    padding: 9px 11px;
+  }
+
+  .home-header-tools .account-scope-compact {
+    min-width: 0;
+    flex: 0 1 146px;
+  }
+  .home-header-tools .account-scope-trigger {
+    min-width: 0;
+    width: 100%;
+  }
+}
