@@ -57,6 +57,7 @@ test("capture real demo UI screenshots in Chinese (desktop, mobile, dark and lig
     () => document.documentElement.scrollWidth > window.innerWidth + 1
   );
   expect(hasOverflow).toBe(false);
+  await expect(page.locator(".home-header-tools .language-toggle")).toHaveCSS("white-space", "nowrap");
   await capture("06-home-mobile-dark-zh.png");
 
   // Verify that account administration stays accessible without occupying
@@ -77,6 +78,17 @@ test("capture real demo UI screenshots in Chinese (desktop, mobile, dark and lig
       () => document.documentElement.scrollWidth > window.innerWidth + 1
     );
     expect(overflow, `Unexpected horizontal overflow in ${url}`).toBe(false);
+    if (url.startsWith("/workspaces/")) {
+      const kpiColumns = await page.locator(".kpi-strip").evaluate(
+        (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length
+      );
+      expect(kpiColumns).toBe(2);
+    } else {
+      const filterHeight = await page.locator(".review-queue-fields .field").first().evaluate(
+        (element) => element.getBoundingClientRect().height
+      );
+      expect(filterHeight).toBeLessThan(130);
+    }
     await capture(file);
   }
 });
