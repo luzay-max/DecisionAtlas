@@ -69,7 +69,7 @@ export function DemoWorkspaceNav({
         </div>
       </div>
       <div className="workspace-nav-tools">
-        <AccountScopeSurface />
+        <AccountScopeSurface compact />
         <div className="workspace-nav-switches">
           <LanguageToggle />
           <ThemeToggle />
