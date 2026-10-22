@@ -20,10 +20,56 @@ Captured by Playwright from the **actual Windows CI demo stack** at [main commit
 | --- | --- |
 | ![DecisionAtlas home page, dark mode, actual browser screenshot](docs/assets/screenshots/01-home-desktop-dark-zh.png) | ![DecisionAtlas candidate review, actual browser screenshot](docs/assets/screenshots/03-review-desktop-dark-zh.png) |
 
+The current screenshots show the **Chinese-language UI**; English documentation is available below.
+
 **[See all 8 screenshots](docs/project/ui-screenshots.md)** (desktop light/dark, workspace, Why Search and mobile screens) · [Verified main CI](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244)
 
 > Screenshots use **seeded demo data with Fake LLM providers**. They demonstrate real UI rendering, not the correctness of AI extraction from customer repositories or production deployment readiness.
 
+## 🚀 Try it locally (Windows PowerShell)
+
+The **seeded demo** is the simplest place to start. It runs the real Web/API/Engine services with a local SQLite database and **fake LLM/embedding providers**—no Docker, GitHub token, or paid AI API key is needed.
+
+**Prerequisites:** Node.js **22 recommended** (the CI version), pnpm **10.6.0** (see `package.json`), Python **3.11+**, and [uv](https://docs.astral.sh/uv/). These commands target **Windows PowerShell**; other operating systems require following the individual-service instructions.
+
+```powershell
+git clone https://github.com/luzay-max/DecisionAtlas.git
+cd DecisionAtlas
+pnpm install
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+Open **http://localhost:3000**. The demo initializes isolated data under `.tmp/`, starts the three services, and uses seeded examples—not a live repository-quality benchmark.
+
+Stop the demo when finished:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-demo-stack.ps1
+```
+
+### Full local stack (PostgreSQL + Redis)
+
+For an integration-style local setup, **start Docker Desktop first** and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
+```
+
+The script starts Docker PostgreSQL/Redis, applies migrations, checks or seeds the demo workspace, and runs Web/API/Engine. It uses local development database credentials and **is not a production deployment script**. If an earlier walkthrough consumed the seeded review state, restore it explicitly with `-ResetSeededDemo`; don't assume a normal restart resets reviews.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
+```
+
+To stop the full stack:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
+```
+
+Health checks: [Web](http://localhost:3000) · [API](http://localhost:3001/health) · [Engine](http://localhost:8000/health).
+
+**Next:** Follow the [guided walkthrough](docs/project/usage-guide.md), use the [quick-start and troubleshooting guide](docs/project/quick-start.md), or read the [deployment guide](docs/project/deployment.md). These commands are **not** a manual per-service setup; use the linked guide when debugging individual services.
 
 ## 🎯 Why DecisionAtlas?
 
@@ -93,115 +139,24 @@ The repository also includes OpenSpec change management, automated tests, and a 
 - *Does this new code change conflict with an accepted architecture decision?*
 - *What should an AI coding agent review before making this change?*
 
-## ⚡ Fastest way to try it
+## ✅ Development checks
 
-For a **Windows PowerShell local demo**, clone the repo, install the prerequisites below, and run:
-
-```powershell
-git clone https://github.com/luzay-max/DecisionAtlas.git
-cd DecisionAtlas
-pnpm install
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
-```
-
-The demo uses a **local SQLite workspace and fake LLM/embedding providers**; no real model API key is required for the fake-provider path. Once started, open [http://localhost:3000](http://localhost:3000).
-
-For PostgreSQL/Redis and live-service development, use the [full-stack guide](docs/project/quick-start.md) and the commands below. Startup times and local prerequisites vary by machine.
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js (v18+) & pnpm
-- Python (3.11+) & uv
-- Docker Desktop (for PostgreSQL & Redis)
-
-### One-Command Demo Stack
-
-The fastest way to experience the product locally using an isolated, SQLite-backed demo workspace:
+For changes to this repository, CI validates Node tests, type checking, Engine tests, benchmark fixtures, and browser smoke flows on **Windows**. You can run focused checks locally:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
-```
-
-### One-Command Real Stack
-
-The recommended full local stack uses Docker PostgreSQL, Redis, the FastAPI engine, the Fastify API, and the Next.js web app:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
-```
-
-Stop it with:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
-```
-
-The script stops any existing managed stack, starts PostgreSQL/Redis, runs migrations, seeds demo data, and starts all three services.
-
-### Manual Full Stack Setup
-
-Use this only when debugging the individual services:
-
-```powershell
-pnpm install
-uv sync --project services/engine
-Copy-Item .env.example .env
-docker compose up -d postgres redis
-
-cd services/engine
-$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/decisionatlas"
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-
-pnpm run dev:real
-```
-
-Then open your browser:
-- Web UI: `http://localhost:3000`
-- API Health: `http://localhost:3001/health`
-- Engine Health: `http://localhost:8000/health`
-
-## ✅ Validation Flow
-
-Use these checks before archiving an OpenSpec change or preparing a release snapshot:
-
-```powershell
-openspec validate --all --strict
-python scripts\governance\agent_guardrail.py --summary
-python scripts\governance\agent_guardrail.py --protocol-status --summary
+pnpm test
+pnpm typecheck
+uv run --project services/engine pytest -q
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 
-Engine-focused checks:
-
-```powershell
-cd services/engine
-.\.venv\Scripts\python.exe -m pytest tests/governance/test_diff_checker.py tests/governance/test_drift_detector.py tests/governance/test_agent_guardrail.py -q
-.\.venv\Scripts\python.exe -m pytest tests/db/test_migrations.py tests/db/test_schema.py -q
-```
-
-The governance guardrail is advisory by default:
-
-- `continue`: no blocking governance concern detected.
-- `caution`: review recommended actions before claiming completion.
-- `pause`: stop and ask for human review; do not silently rewrite code, specs, or accepted rules.
-
-The default local governance development protocol uses:
+Playwright requires its Chromium browser to be installed. Before release-style validation, consult the [pre-release gate](docs/project/quick-start.md) and run the governance CLI when applicable:
 
 ```powershell
 python scripts\governance\agent_guardrail.py --protocol-status --summary
 ```
 
-Run it before non-trivial implementation, after targeted validation, before archiving an OpenSpec change, and before committing completed work. It reports active OpenSpec context, guardrail status, required tests, recommended actions, human questions, and handoff guidance. It remains advisory and is separate from optional enforcement preview or the canonical release gate.
-
-## 💡 Example Queries
-
-Once running, you can ask questions like:
-- *Why did we choose Redis as cache only?*
-- *Why is PostgreSQL still the primary database?*
-- *Why did we move this workflow into a queue?*
+The CLI returns advisory `continue` / `caution` / `pause` guidance; it does not automatically approve a candidate decision or block CI.
 
 ## ⚙️ Configuration (Live Provider)
 
@@ -217,23 +172,13 @@ EMBEDDING_API_KEY=your_api_key
 LLM_BASE_URL=https://api.openai.com/v1
 ```
 
-## 🧭 OpenSpec Development Flow
+Live-provider requests may incur API charges. Use server-side environment configuration and never commit tokens. **The seeded demo uses Fake Providers regardless of these examples.** For setup and operator boundaries, see the [quick-start guide](docs/project/quick-start.md).
 
-DecisionAtlas uses OpenSpec for scoped changes. The expected workflow is:
+## 🧭 Contributing and project direction
 
-1. Propose a change with proposal, design, specs, and tasks.
-2. Run governance preflight with `python scripts\governance\agent_guardrail.py --protocol-status --summary`.
-3. Implement tasks incrementally.
-4. Run targeted tests and `openspec validate --all --strict`.
-5. Run governance postflight with `python scripts\governance\agent_guardrail.py --protocol-status --summary`.
-6. Sync delta specs to main specs.
-7. Archive the completed change under `openspec/changes/archive/`.
-8. Commit the code, specs, archive, and documentation together, including any `caution` or `pause` evidence in the handoff.
+DecisionAtlas uses OpenSpec for scoped engineering changes. Keep changes reviewable, run focused tests, record governance `caution` or `pause` decisions, and archive completed specifications as appropriate. See the [developer validation instructions](docs/project/quick-start.md) and [governance guardrail guide](docs/project/governance-agent-guardrail.md).
 
-Current post-stage-7 planning is captured in:
-
-- [Post Stage 7 Master Plan](./docs/plans/2026-05-06-decisionatlas-post-stage-7-master-plan.md)
-- [2026-05-06 Update Log](./docs/project/2026-05-06-update-log.md)
+**Current focus (October 2026):** evidence traceability, trustworthy human review, real-repository evaluation, and safe self-hosting—not indiscriminate adoption of new agent/graph frameworks. The [security and real-repository validation plan](docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md) records the active baseline; the [evidence-first framework roadmap (PR #11)](https://github.com/luzay-max/DecisionAtlas/pull/11) is a **separate proposal under review**, not implemented functionality.
 
 ## 📚 Documentation
 
@@ -256,17 +201,14 @@ Current post-stage-7 planning is captured in:
 - [Historical Plans: Reviewed Archive Index](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
 - [Real Repository Validation](./docs/project/real-repository-validation-baseline.md)
 
-## ⚠️ Known Limitations
+## ⚠️ Current limitations
 
-- v0.3 RC includes local/bootstrap session recovery, owner scope switching, and role-gated product actions, but not a full SaaS org-management console.
-- GitHub App installation binding and token-backed private repository access binding are admin/operator flows; full GitHub Marketplace/OAuth self-service and secret vault behavior are not included.
-- Multi-user collaborative review workflows and billing are not included.
-- Near-term productization targets self-hosted Community / Team / Enterprise packaging; hosted managed service, billing, and Marketplace-style onboarding remain future optional work.
-- Product/support tier boundaries are documented for self-hosted packaging, but runtime license enforcement is not part of the current baseline.
-- Semantic drift labels are conservative and intentionally narrow.
-- Imported workspaces can still be sparse depending on repository signal quality.
-- Governance guardrails are advisory by default and do not block CI unless a future explicit change enables that mode.
-- Demo review queue state can be consumed by prior runs; the next planned hardening slice is a reliable demo reset/reseed workflow.
+- This is a **v0.3 release-candidate baseline for local/self-hosted evaluation**, not a production-ready managed SaaS, hosted SLA, or full multi-tenant organization console.
+- GitHub App/private repository bindings are **admin/operator workflows**; Marketplace/OAuth self-service, a complete secret vault, billing, and collaborative multi-user review are not part of the current baseline.
+- Local demo data comes from a **seeded SQLite workspace and Fake Providers**. Successful UI/browser checks do not prove real-model extraction accuracy or customer readiness.
+- Source URLs and merged PR status alone do **not** establish that a candidate is a trustworthy adopted decision. Human review and evidence validation remain necessary.
+- Drift results are intentionally conservative; imported real-repository workspaces may be sparse. AI-agent governance is **advisory by default**.
+- A consumed demo review queue may need an explicit reset. See `-ResetSeededDemo` under [Full local stack](#full-local-stack-postgresql--redis) or the [demo recovery instructions](docs/project/quick-start.md).
 
 ---
-*Current Project Stage: Post Stage 7 - AI-agent governance guardrails and long-running import pause/resume mechanisms are fully implemented; the next focus is governance workflow hardening, demo reset reliability, and real-repository value measurement.*
+*Project status and roadmap are documented with dated evidence; historical stage labels are not release certifications.*

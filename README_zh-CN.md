@@ -24,6 +24,50 @@ DecisionAtlas 可以将分散在 **GitHub Issues、Pull Requests、Commits、ADR
 
 > 截图使用**预置演示数据与 Fake Provider**，证明真实浏览器的界面与交互可运行，不代表真实仓库 AI 提取质量或生产环境已经完成验收。
 
+## 🚀 本地快速体验（Windows PowerShell）
+
+推荐先运行 **预置演示**：它会真实启动 Web/API/Engine 三端，但使用本地 SQLite、**Fake LLM/Embedding Provider** 和预置数据，**无需 Docker、GitHub Token 或付费模型 API Key**。
+
+**环境要求**：推荐 Node.js **22**（与 CI 一致）、pnpm **10.6.0**（见 `package.json`）、Python **3.11+** 和 [uv](https://docs.astral.sh/uv/)。下面的命令面向 **Windows PowerShell**；其他系统请参照各服务的启动说明。
+
+```powershell
+git clone https://github.com/luzay-max/DecisionAtlas.git
+cd DecisionAtlas
+pnpm install
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
+```
+
+打开 **http://localhost:3000**。演示数据保存在独立的 `.tmp/` 中，用于体验审核、原因检索与漂移等流程；**演示成功不代表真实仓库 AI 提取质量已通过评估**。
+
+演示结束后停止服务：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-demo-stack.ps1
+```
+
+### 完整本地栈（PostgreSQL + Redis）
+
+需要进行数据库/任务协同的本地开发时，**先启动 Docker Desktop**，再执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
+```
+
+脚本会启动 Docker PostgreSQL/Redis、执行迁移、检查或初始化演示工作区，并启动三端服务。此脚本采用**本地开发数据库凭据，不适用于生产环境直接部署**。若此前的演示审核队列被消耗，可以明确指定 `-ResetSeededDemo` 还原预置演示状态；普通重启**不会自动重置**已经审核的数据。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1 -ResetSeededDemo
+```
+
+完整栈停止命令：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
+```
+
+访问入口：[Web](http://localhost:3000) · [API 健康检查](http://localhost:3001/health) · [Engine 健康检查](http://localhost:8000/health)。
+
+**接下来**可以阅读[图文操作指南](docs/project/usage-guide.md)、[快速开始与故障排查](docs/project/quick-start_zh-CN.md)、[部署说明](docs/project/deployment_zh-CN.md)。上述命令均为自动化启动流程；如需逐服务调试，请参考详细指南。
 
 ## 🎯 为什么需要 DecisionAtlas？
 
@@ -93,115 +137,24 @@ flowchart TB
 - *最近的代码修改是否与已接受的架构决策冲突？*
 - *AI 编程助手在实施本次变更前，应该复查哪些约束？*
 
-## ⚡ 最快体验方式
+## ✅ 开发与质量检查
 
-以下为 **Windows PowerShell 本地 Demo**。安装所需工具后，在终端执行：
-
-```powershell
-git clone https://github.com/luzay-max/DecisionAtlas.git
-cd DecisionAtlas
-pnpm install
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
-```
-
-Demo 使用**隔离的 SQLite 工作区和 Fake LLM / Embedding Provider**；在 Fake Provider 路径下不需要真实模型 API Key。启动后访问 [http://localhost:3000](http://localhost:3000)。
-
-如需 PostgreSQL、Redis 和完整服务，请参考[快速开始文档](docs/project/quick-start_zh-CN.md)及后续启动说明。
-
-## 🚀 快速开始
-
-### 前置条件
-- Node.js (v18+) & pnpm
-- Python (3.11+) & uv
-- Docker Desktop (用于 PostgreSQL & Redis)
-
-### 单命令 Demo Stack
-
-体验该产品最快的方式是在本地使用隔离的、基于 SQLite 的演示工作区：
+GitHub Actions 在 **Windows** 上执行 Node 测试、类型检查、Engine 测试、Benchmark Fixture 校验和浏览器冒烟测试。本地可按需执行：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-demo-stack.ps1
-```
-
-### 单命令 Real Stack
-
-推荐的完整本地真实栈包含 Docker PostgreSQL、Redis、FastAPI Engine、Fastify API 和 Next.js Web：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\start-real-stack.ps1
-```
-
-停止真实栈：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
-```
-
-该脚本会先停止已有受管服务，再启动 PostgreSQL/Redis、执行 migrations、seed demo 数据，并启动三端服务。
-
-### 手动全栈启动
-
-只有在调试单个服务时才建议使用手动流程：
-
-```powershell
-pnpm install
-uv sync --project services/engine
-Copy-Item .env.example .env
-docker compose up -d postgres redis
-
-cd services/engine
-$env:DATABASE_URL = "postgresql+psycopg://postgres:postgres@127.0.0.1:5432/decisionatlas"
-uv run alembic upgrade head
-uv run python -m app.db.seed_demo
-cd ..\..
-
-pnpm run dev:real
-```
-
-然后在浏览器中打开：
-- Web UI: `http://localhost:3000`
-- API 运行状况: `http://localhost:3001/health`
-- Engine 运行状况: `http://localhost:8000/health`
-
-## ✅ 验证流程
-
-在归档 OpenSpec change 或准备 release snapshot 前，建议运行：
-
-```powershell
-openspec validate --all --strict
-python scripts\governance\agent_guardrail.py --summary
-python scripts\governance\agent_guardrail.py --protocol-status --summary
+pnpm test
+pnpm typecheck
+uv run --project services/engine pytest -q
 pnpm --filter @decisionatlas/web exec playwright test
 ```
 
-Engine 侧重点验证：
-
-```powershell
-cd services/engine
-.\.venv\Scripts\python.exe -m pytest tests/governance/test_diff_checker.py tests/governance/test_drift_detector.py tests/governance/test_agent_guardrail.py -q
-.\.venv\Scripts\python.exe -m pytest tests/db/test_migrations.py tests/db/test_schema.py -q
-```
-
-治理 guardrail 默认是 advisory：
-
-- `continue`：未发现阻断级治理问题。
-- `caution`：存在建议处理的风险，完成推荐动作后再声明完成。
-- `pause`：必须暂停并请求人工审核，不应静默改代码、specs 或 accepted rules。
-
-默认本地治理开发协议使用：
+Playwright 需要事先安装 Chromium 浏览器。发布前请参考[快速开始中的标准发布门禁](docs/project/quick-start_zh-CN.md)，并按需要运行治理检查：
 
 ```powershell
 python scripts\governance\agent_guardrail.py --protocol-status --summary
 ```
 
-在非平凡实现前、targeted validation 后、归档 OpenSpec change 前以及提交完成工作前运行。它会报告 active OpenSpec context、guardrail status、required tests、recommended actions、human questions 和 handoff guidance。该协议仍是 advisory，独立于可选 enforcement preview 和 canonical release gate。
-
-## 💡 示例查询
-
-项目运行后，您可以尝试询问以下问题：
-- *为什么我们只将 Redis 用作缓存？ (Why did we choose Redis as cache only?)*
-- *为什么 PostgreSQL 仍然是主要数据库？ (Why is PostgreSQL still the primary database?)*
-- *为什么我们将这个工作流移到了队列中？ (Why did we move this workflow into a queue?)*
+治理 CLI 的 `continue` / `caution` / `pause` 默认**只提供建议**，既不会把候选决策自动视为可信，也不会默认强制阻断 CI。
 
 ## ⚙️ 配置 (实时大模型提供商)
 
@@ -217,23 +170,13 @@ EMBEDDING_API_KEY=your_api_key
 LLM_BASE_URL=https://api.openai.com/v1
 ```
 
-## 🧭 OpenSpec 开发流程
+真实模型调用可能产生费用，请仅通过服务端环境安全配置，不要把 Token/API Key 提交到仓库。**预置 SQLite 演示不会因此变成真实模型质量验证。** 详细配置和权限边界见[快速开始](docs/project/quick-start_zh-CN.md)。
 
-DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
+## 🧭 参与开发与近期方向
 
-1. 创建 change，包含 proposal、design、specs 和 tasks。
-2. 运行 governance preflight：`python scripts\governance\agent_guardrail.py --protocol-status --summary`。
-3. 按 tasks 增量实现。
-4. 运行 targeted tests 和 `openspec validate --all --strict`。
-5. 运行 governance postflight：`python scripts\governance\agent_guardrail.py --protocol-status --summary`。
-6. 将 delta specs 同步到 main specs。
-7. 将完成的 change 归档到 `openspec/changes/archive/`。
-8. 将代码、specs、归档和文档一起提交，并在 handoff 中记录任何 `caution` 或 `pause` 证据。
+DecisionAtlas 使用 OpenSpec 管理范围明确的变更。建议小步提交、运行对应测试、记录治理检查中的 `caution` / `pause`，并按项目规范归档已完成的规格。参见[开发与验证说明](docs/project/quick-start_zh-CN.md)和[AI Agent 治理指南](docs/project/governance-agent-guardrail.md)。
 
-当前阶段 7 后的规划记录在：
-
-- [阶段 7 后总开发计划](./docs/plans/2026-05-06-decisionatlas-post-stage-7-master-plan.md)
-- [2026-05-06 更新日志](./docs/project/2026-05-06-update-log.md)
+**当前重点（2026 年 10 月）**：证据可追溯、可信人工审核、真实仓库价值验证以及安全自托管；不为了追赶 Agent/图谱框架热度而盲目重构。[安全收口及真实仓库验证计划](docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md)记录已开展的工作；[证据优先框架改进路线 PR #11](https://github.com/luzay-max/DecisionAtlas/pull/11)是**仍在评审中的独立计划**，不代表相应功能已实现。
 
 ## 📚 文档
 
@@ -253,15 +196,14 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 - [历史计划审查与归档索引](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
 - [真实仓库验证](./docs/project/real-repository-validation-baseline.md)
 
-## ⚠️ 已知限制
+## ⚠️ 当前限制
 
-- v0.3 RC 已包含本地/bootstrap session 恢复、owner scope 切换和基于角色的产品操作，但还不是完整 SaaS 组织管理台。
-- GitHub App 安装绑定和 token-backed 私有仓库访问绑定是 admin/operator 流程；尚不包含完整 GitHub Marketplace/OAuth 自助安装和 secret vault。
-- 暂不包含多人协作 review workflow 和 billing。
-- 语义漂移标签较为保守，被刻意限制在较窄的范围内。
-- 取决于仓库的信号质量，导入的工作区可能仍然会比较稀疏。
-- 治理 guardrail 默认是 advisory，不会阻断 CI，除非未来有明确 change 启用该模式。
-- Demo review queue 可能被之前的运行消费；下一阶段计划补稳定的 demo reset/reseed 流程。
+- 目前是供**本地/自托管评估的 v0.3 RC 能力基线**，尚不是具备生产 SLA 的托管 SaaS 或完整多租户组织管理平台。
+- GitHub App / 私有仓库绑定属于 **admin/operator 流程**；Marketplace/OAuth 自助安装、完整 Secret Vault、计费以及多人协同审核仍不在当前范围。
+- SQLite 演示使用**预置数据和 Fake Provider**。浏览器截图与 CI 通过不代表真实模型提取准确率或客户生产场景已验收。
+- **来源 URL 可访问、GitHub PR 已合并，不等于决策已被可信采纳**；仍需验证引用语义与实际人工审核。
+- 漂移检测采取保守策略；真实仓库导入数据可能较少。AI Agent 护栏**默认仅提供建议**。
+- 已消费的演示审核队列需要显式恢复：完整栈可使用上文 `-ResetSeededDemo`，更多说明见[演示恢复指南](docs/project/quick-start_zh-CN.md)。
 
 ---
-*当前项目阶段：Post Stage 7 - AI-agent 治理护栏和导入暂停/恢复机制均已完全实现；下一步聚焦治理流程硬化、demo reset 可靠性和真实仓库价值度量。*
+*项目进度以有日期和证据的验证报告为准，历史阶段编号不等于当前发布认证。*
