@@ -1,0 +1,139 @@
+{
+  "audit_date": "2026-10-21",
+  "repository": "pallets/click",
+  "github_source_sha": "2247b35ea1c47c727d7a06e51fa280e12a863ff6",
+  "decisionatlas_run": "https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265",
+  "provider": "FakeProvider",
+  "reviewer_type": "AI_assisted_source_audit",
+  "human_reviewer_signed_off": false,
+  "paid_ai_calls": 0,
+  "pr_merged": false,
+  "rubric": "accepted requires specific decision/problem/chosen_option plus evidence of adoption",
+  "counts": {
+    "source_urls_accessible": 8,
+    "accepted": 0,
+    "rejected": 7,
+    "uncertain": 1,
+    "complete_usable_decisions": 0
+  },
+  "candidate_fields_shared": {
+    "problem": "Recovered from artifact content",
+    "chosen_option": "Use the option described in the artifact",
+    "tradeoffs": "Tradeoffs are implied by the artifact"
+  },
+  "evaluations": [
+    {
+      "id": 1,
+      "title": "advanced",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/advanced.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/advanced.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "仅是 Advanced Patterns 使用说明；含 eager callback、validation 等范例，但候选没有具体问题或选项。",
+      "observed_source": "Advanced Patterns：callbacks/eager options 教程",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 2,
+      "title": "commands-and-groups",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/commands-and-groups.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/commands-and-groups.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "页面介绍 Command/Group/Context 的概念和示例；没有从源材料提取明确的采纳决定。",
+      "observed_source": "Basic Commands, Groups, Context 教程",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 3,
+      "title": "complex",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/complex.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/complex.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "页面讲组合 CLI、上下文和调用约定；有设计背景但候选没有写出选定方案。",
+      "observed_source": "Complex Applications 教程",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 4,
+      "title": "options",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/options.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/options.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "选项装饰器的 API 教程，包含参数名推断等规则；候选仅套用模糊占位句。",
+      "observed_source": "Options API 文档",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 5,
+      "title": "upgrade-guides",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/upgrade-guides.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/upgrade-guides.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "文档确有 9.0 迁移与弃用决策、PR #3827/#3866 等线索，但候选未指出具体弃用对象、变更原因或替代方案。",
+      "observed_source": "Upgrading 8.3.X to 9.0 的弃用与迁移指南",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 6,
+      "title": "Fix decorator typing with _Decorator type alias",
+      "classification": "uncertain",
+      "original_source_url": "https://github.com/pallets/click/pull/2559",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/pull/2559",
+      "source_accessible": true,
+      "source_relevance": "partial_topic_support_but_pr_unmerged",
+      "reason": "标题指向真实的类型兼容问题。PR #2559 建议将 _Decorator[FC] 替换为 Callable[[FC], FC]，但原 PR 关闭未合并；维护者说明替代 PR #2562 更全面，#2562 已合并。候选仍没有实际问题/选项，且引用到未合并 PR，须重建证据链后重审。",
+      "observed_source": "PR #2559 closed/unmerged；替代 PR #2562 merged",
+      "additional_evidence": [
+        "https://github.com/pallets/click/pull/2562",
+        "https://github.com/pallets/click/pull/2559"
+      ],
+      "human_signed_off": false
+    },
+    {
+      "id": 7,
+      "title": "commands",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/commands.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/commands.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "Advanced Groups and Context 文档主要说明 group callbacks 和 context 等用法；并非已经提取的具体工程决策。",
+      "observed_source": "Advanced Groups and Context 教程",
+      "additional_evidence": [],
+      "human_signed_off": false
+    },
+    {
+      "id": 8,
+      "title": "parameter-types",
+      "classification": "reject",
+      "original_source_url": "https://github.com/pallets/click/blob/main/docs/parameter-types.md",
+      "verified_at_fixed_sha_url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/parameter-types.md",
+      "source_accessible": true,
+      "source_relevance": "generic_document_only",
+      "reason": "页面介绍 Choice、数字范围等内置参数类型，候选没有选择、否决选项或决策理由。",
+      "observed_source": "Parameter Types API 教程",
+      "additional_evidence": [],
+      "human_signed_off": false
+    }
+  ],
+  "limitations": [
+    "No independent human reviewer signed off",
+    "Only review packet exported: exact SourceRef.quote/spans unavailable",
+    "FakeProvider does not measure DeepSeek or other live LLM accuracy",
+    "No private data or paid LLM requests"
+  ]
+}

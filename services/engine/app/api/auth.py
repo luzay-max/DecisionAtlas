@@ -4,6 +4,7 @@ from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from app.auth import SESSION_HEADER, require_actor
+from app.config import get_settings
 from app.db.session import get_db_session
 from app.repositories.auth import AuthRepository, ensure_bootstrap_identity, verify_password
 
@@ -21,6 +22,9 @@ class ScopeSwitchRequest(BaseModel):
 
 @router.post("/bootstrap")
 def bootstrap_auth() -> dict:
+    settings = get_settings()
+    if not settings.auth_auto_bootstrap_local or settings.app_env.lower() not in {"development", "test"}:
+        raise HTTPException(status_code=403, detail="Local bootstrap is disabled")
     session = get_db_session()
     try:
         actor, scope, membership = ensure_bootstrap_identity(session)
@@ -39,6 +43,21 @@ def bootstrap_auth() -> dict:
         }
     finally:
         session.close()
+
+
+@router.post("/logout")
+def logout_auth(
+    x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),
+) -> dict:
+    # Idempotent so browsers can clear local state even after expiry.
+    if x_decisionatlas_session_token:
+        session = get_db_session()
+        try:
+            AuthRepository(session).revoke_session(x_decisionatlas_session_token)
+            session.commit()
+        finally:
+            session.close()
+    return {"status": "signed_out"}
 
 
 @router.post("/login")

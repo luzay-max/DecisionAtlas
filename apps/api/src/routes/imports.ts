@@ -1,4 +1,5 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
+import { Readable } from "node:stream";
 import { z } from "zod";
 import { authHeadersForRequest } from "../auth";
 import { getEnv } from "../plugins/env";
@@ -48,7 +49,20 @@ const webhookHeadersSchema = z.object({
   "x-hub-signature-256": z.string().min(1).optional(),
 });
 
+type WebhookRequest = FastifyRequest & { rawWebhookBody?: Buffer };
+
 export async function importsRoute(app: FastifyInstance) {
+  // GitHub HMAC signatures cover the exact request bytes, not parsed/reformatted JSON.
+  app.addHook("preParsing", async (request, _reply, payload) => {
+    if (request.url.split("?")[0] !== "/imports/github/webhook") return payload;
+    const chunks: Buffer[] = [];
+    for await (const chunk of payload) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const raw = Buffer.concat(chunks);
+    (request as WebhookRequest).rawWebhookBody = raw;
+    const replay = Readable.from([raw]);
+    Object.assign(replay, { receivedEncodedLength: raw.length });
+    return replay;
+  });
   app.get("/imports/lookup", async (request, reply) => {
     const query = z.object({ repo: z.string().min(3) }).safeParse(request.query);
     if (!query.success) {
@@ -211,7 +225,7 @@ export async function importsRoute(app: FastifyInstance) {
             ? { "x-hub-signature-256": headers.data["x-hub-signature-256"] }
             : {}),
         },
-        body: JSON.stringify(request.body ?? {})
+        body: (request as WebhookRequest).rawWebhookBody?.toString("utf8") ?? JSON.stringify(request.body ?? {})
       }),
       app.log,
       "POST /imports/github/webhook"

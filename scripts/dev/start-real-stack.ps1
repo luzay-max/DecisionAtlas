@@ -205,6 +205,7 @@ foreach ($port in 8000, 3001, 3000) {
 $engineCommand = @"
 `$env:DATABASE_URL = '$databaseUrl'
 `$env:REDIS_URL = '$redisUrl'
+`$env:AUTH_AUTO_BOOTSTRAP_LOCAL = 'true'
 Set-Location '$($repoRoot.Path)\services\engine'
 if (Get-Command uv -ErrorAction SilentlyContinue) {
   uv run uvicorn app.main:app --host 127.0.0.1 --port 8000

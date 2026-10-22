@@ -1,7 +1,7 @@
 from pathlib import Path
 from threading import Lock
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,9 +19,14 @@ class Settings(BaseSettings):
     port: int = 8000
     database_url: str = "sqlite:///./decisionatlas.db"
     github_token: str | None = None
+    # Ordered id=FernetKey entries, newest active key first. Keep outside the database.
+    github_token_encryption_keys: str | None = None
     github_import_max_pages: int = 5
     default_owner_scope: str = "local-default"
-    auth_auto_bootstrap_local: bool = True
+    auth_auto_bootstrap_local: bool = False
+    allow_unsigned_webhooks_local: bool = False
+    auth_session_max_hours: int = Field(default=24, ge=1, le=720)
+    auth_session_idle_minutes: int = Field(default=120, ge=1, le=10080)
     local_bootstrap_username: str = "local-admin"
     local_bootstrap_password: str = "decisionatlas-local-admin"
     github_app_webhook_secret: str | None = None

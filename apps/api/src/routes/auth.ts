@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
-import { parseCookieHeader, SESSION_HEADER, setSessionCookie } from "../auth";
+import { clearSessionCookie, parseCookieHeader, SESSION_HEADER, setSessionCookie } from "../auth";
 import { getEnv } from "../plugins/env";
 import { fetchUpstreamPayload } from "../proxy";
 
@@ -33,6 +33,20 @@ export async function authRoute(app: FastifyInstance) {
     if (typeof payload?.session_token === "string") {
       setSessionCookie(reply, payload.session_token);
     }
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
+  app.post("/auth/logout", async (request, reply) => {
+    const env = getEnv();
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: sessionHeadersFromRequest(request),
+      }),
+      app.log,
+      "POST /auth/logout"
+    );
+    clearSessionCookie(reply);
     return reply.status(upstream.status).send(upstream.payload);
   });
 

@@ -52,6 +52,7 @@ def _create_actor_session(
 def test_auth_bootstrap_returns_session_and_scope(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "auth-bootstrap.db"
     _upgrade(db_path, monkeypatch)
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "true")
 
     client = TestClient(create_app())
     bootstrap = client.post("/auth/bootstrap")
@@ -69,6 +70,25 @@ def test_auth_bootstrap_returns_session_and_scope(tmp_path: Path, monkeypatch) -
     assert session_payload["actor"]["bootstrap"] is True
     assert session_payload["current_owner_scope"] == "local-default"
     assert session_payload["role"] == "admin"
+
+
+def test_bootstrap_is_disabled_by_default(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "false")
+    db_path = tmp_path / "auth-bootstrap-disabled.db"
+    _upgrade(db_path, monkeypatch)
+    client = TestClient(create_app())
+    assert client.post("/auth/bootstrap").status_code == 403
+    assert client.get("/auth/session").status_code == 401
+
+
+def test_bootstrap_cannot_be_enabled_in_production(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "true")
+    monkeypatch.setenv("APP_ENV", "production")
+    db_path = tmp_path / "auth-bootstrap-production.db"
+    _upgrade(db_path, monkeypatch)
+    client = TestClient(create_app())
+    assert client.post("/auth/bootstrap").status_code == 403
+    assert client.get("/auth/session").status_code == 401
 
 
 def test_import_requires_admin_role(tmp_path: Path, monkeypatch) -> None:

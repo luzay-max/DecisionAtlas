@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from app.auth import AuthContext, require_actor, require_role
 from pydantic import BaseModel
 
 from app.config import get_runtime_provider_modes, get_settings, set_runtime_provider_modes
@@ -28,7 +29,8 @@ def get_provider_mode() -> dict:
 
 
 @router.post("/provider-mode")
-def set_provider_mode(request: ProviderModeRequest) -> dict:
+def set_provider_mode(request: ProviderModeRequest, auth: AuthContext = Depends(require_actor)) -> dict:
+    require_role(auth, "admin")
     normalized = request.mode.lower()
     if normalized == "fake":
         set_runtime_provider_modes(llm_provider_mode="fake", embedding_provider_mode="fake")

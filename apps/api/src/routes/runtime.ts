@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { authHeadersForRequest } from "../auth";
 import { getEnv } from "../plugins/env";
 import { fetchUpstreamPayload } from "../proxy";
 
@@ -19,7 +20,8 @@ export async function runtimeRoute(app: FastifyInstance) {
       fetch(`${env.ENGINE_BASE_URL}/runtime/provider-mode`, {
         method: "POST",
         headers: {
-          "content-type": "application/json"
+          "content-type": "application/json",
+          ...(await authHeadersForRequest(request)),
         },
         body: JSON.stringify(request.body)
       }),

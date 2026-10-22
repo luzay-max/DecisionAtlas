@@ -33,6 +33,7 @@ from app.repositories.github_token_access_sources import GitHubTokenAccessSource
 from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
+from app.security.github_tokens import CredentialProtectionError, active_key_id
 
 
 DEFAULT_OWNER_SCOPE = "local-default"
@@ -173,6 +174,8 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             
             # Check pause status
             latest_job = jobs.get_by_job_id(job_id)
+            if latest_job:
+                session.refresh(latest_job)
             if latest_job and latest_job.status == "paused":
                 while True:
                     session.refresh(latest_job)
@@ -180,6 +183,8 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
                         break
                     import time
                     time.sleep(2.0)
+            if latest_job:
+                session.refresh(latest_job)
             if latest_job and latest_job.status == "cancelled":
                 raise Exception("Import cancelled")
 
@@ -256,7 +261,7 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         session.commit()
 
         extraction_pipeline = CandidateExtractionPipeline(session, runtime.extraction_provider)
-        progress_reporter = _build_extraction_progress_reporter(job_id=job_id)
+        progress_reporter = _build_extraction_progress_reporter(job_id=job_id, session=session)
         created_candidates = extraction_pipeline.run(
             workspace_slug=workspace_slug,
             progress_callback=progress_reporter,
@@ -524,6 +529,11 @@ def bind_github_private_access_source(
     source_label: str | None = None,
     workspace_slug: str | None = None,
 ) -> dict[str, object | None]:
+    # Refuse authorization flow before GitHub network access unless encryption is ready.
+    try:
+        active_key_id()
+    except CredentialProtectionError as exc:
+        raise RepositoryAccessError(str(exc), failure_category="credential_storage_unavailable") from exc
     session = get_db_session()
     try:
         effective_owner_scope = _owner_scope(owner_scope)
@@ -537,7 +547,8 @@ def bind_github_private_access_source(
 
         source_key = (source_ref or repo_ref).strip()
         display_label = (source_label or repo_ref).strip()
-        source_record = GitHubTokenAccessSourceRepository(session).upsert(
+        try:
+            source_record = GitHubTokenAccessSourceRepository(session).upsert(
             owner_scope=effective_owner_scope,
             source_ref=source_key,
             display_label=display_label,
@@ -546,7 +557,9 @@ def bind_github_private_access_source(
             authorization_status="authorized",
             last_error=None,
             validated_at=validated_at,
-        )
+            )
+        except CredentialProtectionError as exc:
+            raise RepositoryAccessError(str(exc), failure_category="credential_storage_unavailable") from exc
         workspace = _resolve_workspace(
             workspaces=WorkspaceRepository(session),
             workspace_slug=workspace_slug,
@@ -871,6 +884,13 @@ def _resolve_owner_scope_for_installation(*, session, installation_id: str) -> s
     return record.owner_scope if record is not None else None
 
 
+def _read_protected_token(repository: GitHubTokenAccessSourceRepository, record) -> str:
+    try:
+        return repository.read_token(record)
+    except CredentialProtectionError as exc:
+        raise RepositoryAccessError(str(exc), failure_category="credential_storage_unavailable") from exc
+
+
 def _token_for_workspace(*, session, workspace, settings) -> str | None:
     if workspace.access_source_type == "github_token":
         if not workspace.access_source_ref:
@@ -878,7 +898,8 @@ def _token_for_workspace(*, session, workspace, settings) -> str | None:
                 f"Private repository access source is not configured for {workspace.repo_identity or workspace.repo_url or workspace.slug}.",
                 failure_category="credential_required",
             )
-        record = GitHubTokenAccessSourceRepository(session).get_by_owner_scope_and_source_ref(
+        repository = GitHubTokenAccessSourceRepository(session)
+        record = repository.get_by_owner_scope_and_source_ref(
             owner_scope=workspace.owner_scope,
             source_ref=workspace.access_source_ref,
         )
@@ -887,7 +908,7 @@ def _token_for_workspace(*, session, workspace, settings) -> str | None:
                 f"Private repository access source is not configured for {workspace.repo_identity or workspace.repo_url or workspace.slug}.",
                 failure_category="credential_required",
             )
-        return record.token_secret
+        return _read_protected_token(repository, record)
     return getattr(settings, "github_token", None)
 
 
@@ -963,7 +984,7 @@ def _validate_private_access_source(
         )
     validated_at = datetime.now(timezone.utc)
     try:
-        GitHubClient(token=record.token_secret, max_pages=max_pages).get_repository_metadata(repo_ref)
+        GitHubClient(token=_read_protected_token(repository, record), max_pages=max_pages).get_repository_metadata(repo_ref)
         repository.mark_authorized(record, validated_at=validated_at)
     except (httpx.HTTPStatusError, GitHubNetworkError) as exc:
         category, status, detail = _classify_private_access_validation_failure(exc, repo_ref=repo_ref)
@@ -987,7 +1008,10 @@ def _classify_private_access_validation_failure(exc: Exception, *, repo_ref: str
 
 def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: str | None) -> None:
     if not secret:
-        return
+        settings = get_settings()
+        if settings.app_env.lower() in {"development", "test"} and settings.allow_unsigned_webhooks_local:
+            return
+        raise ValueError("GitHub webhook secret is required")
     if not signature or not signature.startswith("sha256="):
         raise ValueError("Missing GitHub webhook signature")
     digest = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
@@ -996,7 +1020,7 @@ def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: s
         raise ValueError("Invalid GitHub webhook signature")
 
 
-def _build_extraction_progress_reporter(*, job_id: str):
+def _build_extraction_progress_reporter(*, job_id: str, session=None):
     last_reported_processed = -1
     last_reported_at = 0.0
 
@@ -1012,12 +1036,17 @@ def _build_extraction_progress_reporter(*, job_id: str):
         if not should_report:
             return
 
-        progress_session = get_db_session()
+        # Use the extraction session to commit both candidates and progress atomically.
+        # A second SQLite writer would deadlock with the pipeline's uncommitted
+        # candidate INSERTs (observed with real pallets/click input).
+        progress_session = session if session is not None else get_db_session()
         try:
             jobs_repo = ImportJobRepository(progress_session)
             
             # Check pause status
             latest_job = jobs_repo.get_by_job_id(job_id)
+            if latest_job:
+                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "paused":
                 while True:
                     progress_session.refresh(latest_job)
@@ -1025,6 +1054,8 @@ def _build_extraction_progress_reporter(*, job_id: str):
                         break
                     import time
                     time.sleep(2.0)
+            if latest_job:
+                progress_session.refresh(latest_job)
             if latest_job and latest_job.status == "cancelled":
                 raise Exception("Import cancelled")
 
@@ -1038,6 +1069,7 @@ def _build_extraction_progress_reporter(*, job_id: str):
             last_reported_processed = stats.processed_artifacts
             last_reported_at = now
         finally:
-            progress_session.close()
+            if session is None:
+                progress_session.close()
 
     return report

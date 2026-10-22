@@ -1,0 +1,65 @@
+name: Public repository value pilot (pallets/click)
+
+# While this workflow exists only in PR #7, the branch-scoped push trigger
+# runs it without merging. GitHub requires workflow_dispatch files to exist
+# on the default branch before the "Run workflow" UI can be used.
+on:
+  push:
+    branches:
+      - fix/security-bootstrap-webhook-import-20261021
+    paths:
+      - ".github/workflows/public-value-pilot.yml"
+      - "scripts/ci/run_public_pilot_ci.py"
+      - "scripts/ci/rehearse_public_github_import.py"
+      - "services/engine/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-pilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  import-public-repo:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install locked Engine dependencies
+        run: uv sync --project services/engine --frozen
+
+      - name: Run isolated public repo import with FAKE providers
+        env:
+          # Ephemeral, read-only Actions token; not saved to DB or artifacts.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run --project services/engine python scripts/ci/run_public_pilot_ci.py
+
+      - name: Upload sanitised public pilot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: decisionatlas-pallets-click-public-import-${{ github.run_number }}
+          path: |
+            .tmp/pilot-pallets-click/pilot-pallets-click-*.json
+            .tmp/pilot-pallets-click/pilot-pallets-click-*.md
+          if-no-files-found: warn
+          retention-days: 14

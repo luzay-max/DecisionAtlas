@@ -1,0 +1,126 @@
+# DecisionAtlas 2026-10-21 安全收口与真实仓库价值验证执行计划
+
+> Status: **ACTIVE / 进行中** · Owner: DecisionAtlas maintainers · Branch: `fix/security-bootstrap-webhook-import-20261021` · PR: [#7](https://github.com/luzay-max/DecisionAtlas/pull/7)
+>
+> 本计划取代历史路线图作为**当前执行入口**，但不改写历史结果，不代表产品已完成客户验收。
+
+## 0. 基线与目标
+
+- `main` 基线 `36374ce69019290ebf9865543f871c81e5994eaf`；2026-10-21 PR #7 Draft，首阶段 CI `39539935220` success。尚未合并。
+- 核心产品路径：公开/私有仓库导入 → 证据支撑的候选决策 → 人工审核 → why-search → drift → 可交付 Code Decision Audit。
+- **北极星目标**：一个未参与开发的团队能在受控环境中使用一个真实仓库得到可验证的工程决策价值。
+- **明确不做**：新的 SaaS、计费、SSO、Marketplace、通用 IDE 功能和额外 AI 特性。
+- 一旦安全收口达到门禁，**冻结新功能开发**，资源转向真实仓库验证与修复验证中发现的阻断 Bug。
+
+## 1. 历史计划检查及归档策略
+
+见 [历史计划归档索引](archive/2026-10-21-reviewed-plan-index.md)。归档采取**逻辑归档**：保留原路径和既有相互引用，不批量挪动、删除、更改历史措辞。文档中的“completed”仅表示当时范围交付，不自动意味着当前分支/外部客户环境验收。OpenSpec 已归档的 change 不重复迁移。Draft PR #2–#6 不可被视为已合入；特别是 #4 → #5 → #6 有堆叠依赖，必须分别评审合并策略。
+
+## 2. 阶段 A：PR #7 第二阶段安全整改
+
+### A1. 会话生命周期与权限 (P0)
+- [x] Engine 会话绝对有效期及闲置有效期，超时后拒绝访问；兼容 SQLite UTC naïve timestamp，生产配置可调整且有上限。
+- [x] 显式 logout 删除服务端 session，API 清 Cookie，前端退出并清理本地状态。
+- [x] 账号禁用和管理员密码重置立即撤销该用户全部存量 session。
+- [ ] 覆盖已过期、无效、撤销、越权、角色变化的负向回归测试。（已补过期/注销/重置/禁用，角色变化专项仍待验收）
+
+### A2. Browser/Auth 边界 (P0)
+- [x] API Origin allowlist，生产默认不允许任意跨域，开发允许显式 localhost Origins。
+- [x] 生产认证 Cookie `Secure; HttpOnly; SameSite=Lax`，退出时正确失效；测试开发 HTTP 保留可用。
+- [ ] 正确处理 Cookie/Session header，避免默认凭据泄露、无效 token 自动被当作本地 bootstrap。（无效 token 拒绝已实现；localStorage 与服务端 cookie 的完全统一仍待处理）
+- [ ] 确认不把 XSS 风险误报为已彻底解决；localStorage Token 搬迁到同源 BFF/服务端 Session 单独评估。
+
+### A3. 私有仓库凭据加密与迁移 (P0 — 放行客户私有仓库前)
+- [x] 使用 cryptography.Fernet 认证加密（成熟密码学库，非 KMS）；显式密钥配置与离线轮换、恢复限制已记录。KMS/密钥托管仍属部署责任。
+- [x] 仓库统一加密新 Token，全部环境缺密钥 fail-closed；旧明文 Token 不能被应用静默读取。
+- [x] 提供可先 dry-run、显式 --apply 与 --include-legacy 的事务性离线迁移命令，失败回滚；迁移前需停止写入并保留受控备份。
+- [x] 新增密文落盘、错误密钥、跨 scope、篡改、事务迁移和轮换测试；最终 CI 尚需最新 SHA 验证。
+- **无需自制密码学**：cryptography 已锁进 uv.lock；CI、部署密钥管理、备份恢复和运营审查仍是客户部署前的必要验收。参见 [私有 Token 操作手册](../security/private-github-token-encryption.md)。
+
+### A4. 完成门禁
+- [ ] Node/API/Web/Engine、TypeScript、E2E、Webhook 签名、OpenSpec strict 和 canonical pre-release 有当前 SHA 证据。
+- [ ] 安全复核无匿名管理员、会话复用、跨域凭据、旧 Token 明文读取后门。
+- [ ] PR 保持 Draft，**未经用户后续明确授权不得合并 main**。
+
+## 3. 阶段 B：唯一真实仓库价值验证（不增加新功能）
+
+**候选**：`pallets/click`（公开、无私有凭据；实际运行前确认可访问与 PR/issue/文档信号）。不重复使用内置演示 `encode/httpx` 作为主样本。固定 commit/ref、分析窗口、导入模式、模型 provider 与 prompt 配置。
+
+### B1. 环境与可重复运行
+- [x] 在 GitHub Actions Windows 隔离 Runner 的 Python Engine 中进行公开仓库试点，记录 commit、测试 bootstrap、Fake Provider、SQLite 健康检查与仓库 HEAD。（非 Web/API/Engine 全栈或客户环境测试）
+- [x] 通过实际 GitHub API 导入真实 `pallets/click` 的来源（非 fixture），观察 1,093 条 Artifact，Job `succeeded`，8 候选与 11 条 SourceRef；模型分析使用 Fake Provider，不代表真实 LLM 价值。API 配额和外部用户试验未验证。
+- [x] GitHub Actions 上传本次公开仓库 JSON/Markdown 报告（数据库、Engine 原始日志和密钥不上传）；[成功运行 #39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395)。质量评测仍为 `not_run`。
+
+### B2. 价值衡量：人为标注而不是“模型自己给自己打分”
+- [ ] 抽样 20 条候选决策（不足则全部），两类判定：是否是真实可执行的工程决策、证据能否点击核验。记录接受/拒绝/不确定、引用可靠度。
+- [ ] 设计并回答 10 个真实 Why 问题；逐项标注答案正确性、证据充分性、无证据时是否诚实拒答。
+- [ ] Drift 采用 5 个真实变更/规则案例评价误报；不具备标注条件时写 `not_provided` 而非计算虚假准确率。
+- [ ] 记录非作者用户完成导入→审核→搜索→报告的时间与阻碍；暂无外部用户写 `operator_guided`。
+
+### B3. 退出门禁
+- **Go**：完成导入和人工核验，≥70% 抽样候选有真实决策价值且具可核验证据；≥8/10 Why 回答正确且引用真实来源；没有高严重度安全问题。
+- **Caution**：质量偏低但能解释/修正；需列出具体样例与影响范围。
+- **No-go**：凭据风险、证据伪造/越权，无法导入或为何回答缺可靠来源。进入定向 Bug 修复而非新功能开发。
+
+## 4. 执行记录与发布边界
+
+每次提交更新本计划勾选状态、SHA、CI 链接、明确哪些步骤没有运行。客户私有仓库验证只能在客户控制环境进行，任何 token/源码/私有 Issue 都不得写入公开仓库。2026-10-21 当前仅已验证 Phase 1 CI；Phase 2 和 `pallets/click` 的真实导入必须另行有证据，不能沿用历史的 `encode/httpx` 报告当作本次结果。
+
+## 5. 2026-10-21 本轮阶段进度
+
+- 安全代码与测试已提交到 PR #7 独立分支（会话 TTL/注销/重置撤销、CORS/Origin、生产 Cookie、回归测试）。
+- **生产私有 Token 已切换为需显式密钥的密文路径**：不配置密钥或者遇到旧明文都会 fail-closed。已提供迁移/离线轮换工具；实际生产密钥管理、备份恢复与 CI 验证仍未完成。
+- **真实仓库候选已核对**：`pallets/click`，固定 Git SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`，有 [PR #3877](https://github.com/pallets/click/pull/3877) 和 [#3884](https://github.com/pallets/click/pull/3884) 可核对。详见 [试点操作与 10 个预注册问题](../validation/2026-10-21-pallets-click-value-pilot.md)。
+- 这轮仅确认 GitHub 上有可评估材料；**DecisionAtlas Engine 真实导入、人工评分、外部用户试验均未运行**。无法取得可执行真实栈时继续标为 `not_run`，不得改写成 pass。
+- 新 CI 尚待当前最新 SHA 验证；中途曾有新增 TS 测试语法错误，已在后续提交纠正。以最新 CI 结果为准。
+
+## 6. 新增云端验证证据（2026-10-21）
+
+- Actions 工作流：`.github/workflows/public-value-pilot.yml`，只在 PR #7 分支按路径推送触发；合入默认分支后才具备正常的 `workflow_dispatch` UI 手动运行入口。当前无需本地环境，可在 Actions 的运行页面重新运行已有 job。
+- 第一次运行 [#39553746386](https://github.com/luzay-max/DecisionAtlas/actions/runs/39553746386) 实际 GitHub 数据导入后，SQLite 独立写连接在 extraction progress 汇报时发生 `database is locked`；标记 failed，不包装成 provider 网络失败。
+- 修复 `services/engine/app/jobs/import_jobs.py` 中的同 Session commit 行为，并增加 SQLite 未提交候选 + 进度更新的专项回归测试。重新导入 [#39554248395](https://github.com/luzay-max/DecisionAtlas/actions/runs/39554248395) **成功**。
+- 本次观测为 `pallets/click`、SHA `2247b35ea1c47c727d7a06e51fa280e12a863ff6`、数据库 Artifact=1,093、候选决策=8、SourceRef=11。统计真实性来自 Actions 上传的 artifact；**数据不是 Fake Provider 捏造的 GitHub 源**，但候选的提取由 Fake Provider 完成，尚未证明真实 AI 价值。
+- 当前禁止把导入链路 Pass 当作 20 条人工审核、10 条 Why、5 条 Drift 或安全整改全部完工；这些仍处于 `not_run` / `blocking`。
+
+## 7. 2026-10-21 凭据灾难恢复门禁与下一阶段质量评估
+
+- **隔离 SQLite 备份/恢复云端演练已通过（8/8）**：[GitHub Actions #39565576734](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565576734)，运行提交 `5d96ba4d9346`。JSON Artifact：[synthetic-credential-recovery-2](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565576734/artifacts/12329552427)。
+- 首轮 [#39565320799](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565320799) 的 JSON 出现过 `status=pass` **同时有 `error_category=PermissionError`**：根因是 Windows 文件句柄未释放、清理失败未覆盖整体结果。已修复为显式关闭 SQLite 连接/SQLAlchemy pool 且任何清理异常都标记 fail，新报告不含错误类别。**首轮结果不可作为完成证据。**
+- 测试使用临时 SQLite 和合成 Token、运行期随机 Fernet 密钥；覆盖旧数据显式迁移拒绝、事务回滚、只读 dry-run、新密钥加密、旧密钥移除拒绝、备份一致性、恢复解密与迁移预检查。并未运行真实客户 PostgreSQL、外部 Secret Manager、真实 GitHub 私有凭据或客户灾难恢复。
+- PR #7 不因合成演练通过而自动放行生产部署；客户上线前仍需隔离试点、密钥保管、真实备份恢复、权限边界安全复核。
+
+### 下一步：真实 AI 价值评估（严格成本和证据门禁）
+
+- [ ] 在明确模型提供商、允许的**最高测试费用**和是否使用独立 API Key 前，**不运行任何付费模型 API 请求**；密钥只能由维护者自己写入 GitHub Secrets，绝不能提交到仓库或聊天。
+- [ ] 用真实公开 GitHub 数据导出的**未评分候选审核包**（链接证据、候选标题、选项；Fake Provider 明确标签）先完成质量基线审查。该步骤不等同于真实 LLM 效果。
+- [ ] 之后才运行一个明确上限的真实模型试验，先限制评估样本，核对 20 条候选（不足则全量）与预注册 10 个 Why 问题。人工评分必须显式填入，系统不自动声明准确率。
+- [ ] Drift 的 5 条真实变更仍需独立人工验证；不能由 Fake Provider 或模型自评分代替。
+
+
+### 公开仓库候选人工审核包（非真实模型评估）
+
+- 新增 `scripts/ci/run_public_pilot_ci.py` 中的候选审核包导出，GitHub Actions 运行 [#39565932265](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265) **success**。
+- Artifact：[pallets/click source-linked review packet](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265/artifacts/12329577704)，其中 `pilot-pallets-click-review-packet.json/.md` 含 8 条候选及可点击的 GitHub 来源、候选问题/选项和未填写的人工评分字段。
+- 每条候选目前有至少一个公开 GitHub 引用。**来源可点击 ≠ 引用一定支持候选结论**；是否为真实决策、是否正确、是否值得保留仍需独立标注。
+- 导入工作流使用 Fake Provider，候选审核包 `quality_claim=not_evaluated`。不自动计算准确率，不声称人工审核通过，也**不使用任何付费 LLM API**。
+- 真实大模型试验下一步需维护者确认模型供应商、预算上限，并由维护者自行配置受限 GitHub Actions Secret。PR #7 仍为 Draft，不因此自动合并。
+
+## 8. DeepSeek 兼容模型接入准备（只执行免费模拟）
+
+- 2026-10-21 确定 DeepSeek 为下一轮人工质量实验的优选服务。官方 OpenAI 兼容入口 `https://api.deepseek.com`、当前 Flash 模型 `deepseek-flash`。请不要继续把旧 `deepseek-chat` 别名写入新示例。
+- [x] 基于现有 `OpenAICompatibleProvider` 增加**可选**的 `max_output_tokens` 和 `disable_thinking`。未显式启用时原行为不变。
+- [x] 新增两条预登记公开 PR #3877/#3884 的 DeepSeek 格式模拟流程，默认 **dry_run_mock**：`httpx.MockTransport` 代替真实付费接口，未配置任何 AI Key。
+- [x] 代码级保护：最多 2 次请求、固定 `deepseek-flash`、非思考模式、768 个最大输出 Token、5000 字节请求体上限、无自动重试和本地保守预估金额检查。费用估算不是供应商的硬扣费上限。
+- [x] 新增 GitHub Actions `deepseek-adapter-pilot.yml`：分支 push 只允许模拟任务；未来付费任务只允许带双重确认的 `workflow_dispatch` 并由未来维护者自行配置 `DEEPSEEK_PILOT_API_KEY`。
+- [ ] dry-run 工作流和最新完整 CI 在当前 SHA 通过。失败修复不得开启 live 请求。
+- [ ] **付费模型调用仍为 `not_run`**，未获得用户后续关于调用和费用的明确同意，亦未配置或获取 API Key。
+- [ ] 完整 DecisionAtlas live 提取、人工候选评分、10 个 Why 和 5 个 Drift 仍未运行。两条 PR 的模型接口冒烟测试不是全链路质量证明。
+- 详细接入、收费授权门禁及变更的模型名称以 [DeepSeek 接入试点手册](../validation/2026-10-21-deepseek-adapter-dry-run.md) 为准。
+
+## 9. 公开仓库 8 条候选独立证据核查（2026-10-21）
+
+- 样本来自 Actions [#39565932265](https://github.com/luzay-max/DecisionAtlas/actions/runs/39565932265) 的真实 GitHub 数据 + **FakeProvider** 候选审核包；将 7 个文档链接固定到 `pallets/click@2247b35ea1c47c727d7a06e51fa280e12a863ff6`，逐条检查 PR 状态与内容。
+- 已提交[逐条审核说明](../validation/2026-10-21-pallets-click-eight-candidate-independent-audit.md)和[机器可读核查结果](../validation/2026-10-21-pallets-click-eight-candidate-independent-audit.json)。**0 接受、7 拒绝、1 不确定**；原始 GitHub URL 可访问 8/8，但 8 条候选都有 FakeProvider 的默认问题/选项占位字段，**0 条可直接作为已证实决策知识资产**。
+- 第 6 条 `Fix decorator typing with _Decorator type alias` 标记不确定：它指向的 [PR #2559](https://github.com/pallets/click/pull/2559) 已关闭未合并，同类修复由 [PR #2562](https://github.com/pallets/click/pull/2562) 合并。原标题有价值线索，但不能把未合并 PR 当已接受结论。
+- 这是 **AI 助手逐条独立公开证据核查，而非独立非作者人类签字复核**。因此 B2 的 20 条候选**人类评审门禁依然 [ ] 未完成**，不把此结果计为真实 DeepSeek 准确率或 70% 质量放行证据。
+- 后续 live 模型比较应将这个占位基线与真实模型区分，特别检查源码/PR 是否真正支持生成的问题、选项、引用以及采纳状态。用户未授权收费请求，依然 `0` 次 DeepSeek 付费调用，PR #7 不合并。

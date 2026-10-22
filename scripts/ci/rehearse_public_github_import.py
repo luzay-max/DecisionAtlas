@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from time import sleep
 from urllib import error, request
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 
 TERMINAL_JOB_STATUSES = {"succeeded", "failed", "cancelled"}
@@ -49,6 +49,8 @@ def _json_request(
     headers = {"Content-Type": "application/json"}
     if session_token:
         headers["x-decisionatlas-session-token"] = session_token
+        # Fastify authenticates browser calls through a cookie; Engine accepts the header.
+        headers["Cookie"] = f"decisionatlas_session={quote(session_token, safe='')}"
     http_request = request.Request(
         f"{base_url.rstrip('/')}{path}",
         data=encoded_body,
@@ -82,6 +84,12 @@ def _classify_request_error(error_payload: dict | None) -> str:
     if status in {404, 409}:
         return "operator_guided"
     return "local_stack_failure"
+
+
+def _failed_import_outcome(job: dict | None) -> str:
+    # Engine/database failures must not be mislabeled as GitHub provider failures.
+    failure_category = ((job or {}).get("summary") or {}).get("failure_category")
+    return "local_stack_failure" if failure_category == "analysis_execution_failed" else "provider_failure"
 
 
 def _next_action_for_outcome(outcome: str, *, job: dict | None = None, lookup: dict | None = None) -> str:
@@ -280,7 +288,7 @@ def rehearse_public_import(
                 return build_report(
                     repository=repository,
                     base_url=base_url,
-                    setup_outcome="provider_failure",
+                    setup_outcome=_failed_import_outcome(latest_job),
                     lookup=lookup,
                     import_job=latest_job,
                     error_payload={"type": "import_failed", "detail": (latest_job or {}).get("error_message")},
@@ -351,7 +359,7 @@ def rehearse_public_import(
         return build_report(
             repository=repository,
             base_url=base_url,
-            setup_outcome="provider_failure",
+            setup_outcome=_failed_import_outcome(latest_job),
             lookup=lookup,
             import_job=latest_job,
             error_payload={"type": "import_failed", "detail": (latest_job or {}).get("error_message")},
@@ -368,6 +376,7 @@ def rehearse_public_import(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-id", default="fastapi", help="Repository id from examples/live-benchmarks/repositories.json.")
+    parser.add_argument("--repo", help="One-off public owner/repo for a new value pilot, without changing benchmark baselines.")
     parser.add_argument("--base-url", default="http://127.0.0.1:3001", help="Engine/API base URL.")
     parser.add_argument("--session-token", help="Optional DecisionAtlas session token.")
     parser.add_argument("--wait", action="store_true", help="Wait for queued import job to finish.")
@@ -387,11 +396,25 @@ def main() -> int:
 
     root = Path(__file__).resolve().parents[2]
     repositories = _load_json_list(root / "examples" / "live-benchmarks" / "repositories.json")
-    try:
-        repository = _repository_by_id(repositories, args.repo_id)
-    except ValueError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    if args.repo:
+        import re
+
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repo):
+            print("--repo must be a public owner/repo without URL or credentials.", file=sys.stderr)
+            return 1
+        repository = {
+            "id": args.repo.lower().replace("/", "-"),
+            "repo": args.repo,
+            "workspace_slug": "github-" + args.repo.lower().replace("/", "-"),
+            "role": "independent_public_value_pilot",
+            "benchmark_purpose": "Independently assess human-reviewable, cited engineering decisions.",
+        }
+    else:
+        try:
+            repository = _repository_by_id(repositories, args.repo_id)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
 
     report = rehearse_public_import(
         repository=repository,

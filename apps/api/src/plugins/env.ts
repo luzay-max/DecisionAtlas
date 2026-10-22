@@ -21,6 +21,8 @@ const envSchema = z.object({
   ENGINE_BASE_URL: z.string().url().default("http://localhost:8000"),
   AUTH_COOKIE_NAME: z.string().min(1).default("decisionatlas_session"),
   AUTO_BOOTSTRAP_AUTH: booleanish.default(false),
+  APP_ENV: z.enum(["development", "test", "production"]).default("development"),
+  CORS_ALLOWED_ORIGINS: z.string().default(""),
 });
 
 export type ApiEnv = z.infer<typeof envSchema>;

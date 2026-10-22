@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { useProductSession } from "./session-provider";
 
 export function AccountScopeSurface() {
-  const { session, status, error, switchScope } = useProductSession();
+  const { session, status, error, switchScope, logout } = useProductSession();
   const [switching, setSwitching] = useState(false);
   const [switchError, setSwitchError] = useState<string | null>(null);
 
@@ -65,6 +65,7 @@ export function AccountScopeSurface() {
           </select>
         </label>
       ) : null}
+      <button type="button" onClick={() => void logout()} aria-label="Sign out">Sign out</button>
       {switchError ? <p className="guided-demo-status">{switchError}</p> : null}
     </div>
   );

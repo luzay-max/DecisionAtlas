@@ -114,6 +114,7 @@ $env:API_BASE_URL = "http://127.0.0.1:3001"
 $env:DEMO_REPO = "encode/httpx"
 $env:LLM_PROVIDER_MODE = "fake"
 $env:EMBEDDING_PROVIDER_MODE = "fake"
+$env:AUTH_AUTO_BOOTSTRAP_LOCAL = "true"
 
 Remove-Item $dbPath -Force -ErrorAction SilentlyContinue
 
@@ -133,6 +134,7 @@ $engineCommand = @"
 `$env:DEMO_REPO = 'encode/httpx'
 `$env:LLM_PROVIDER_MODE = 'fake'
 `$env:EMBEDDING_PROVIDER_MODE = 'fake'
+`$env:AUTH_AUTO_BOOTSTRAP_LOCAL = 'true'
 Set-Location '$($repoRoot.Path)\services\engine'
 if (Get-Command uv -ErrorAction SilentlyContinue) {
   uv run uvicorn app.main:app --host 127.0.0.1 --port 8000

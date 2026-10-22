@@ -653,7 +653,9 @@ def test_private_token_import_updates_status_for_repository_not_found(tmp_path: 
                 source_ref="org/private-repo",
                 display_label="team private repo",
                 repo_identity="org/private-repo",
-                token_secret="ghp-should-not-leak",
+                token_secret=__import__("app.security.github_tokens", fromlist=["encrypt_token"]).encrypt_token(
+                    "ghp-should-not-leak", owner_scope="local-default", source_ref="org/private-repo", repo_identity="org/private-repo"
+                ),
                 authorization_status="authorized",
             )
         )
@@ -731,6 +733,7 @@ def test_lookup_reports_private_access_requirement_when_repo_is_not_publicly_rea
 
 
 def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ALLOW_UNSIGNED_WEBHOOKS_LOCAL", "true")
     db_path = tmp_path / "webhook-import.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
@@ -791,6 +794,7 @@ def test_webhook_enqueues_incremental_sync_for_installation_backed_workspace(tmp
 
 
 def test_webhook_does_not_enqueue_duplicate_active_sync(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("ALLOW_UNSIGNED_WEBHOOKS_LOCAL", "true")
     db_path = tmp_path / "webhook-active-sync.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
 
@@ -852,3 +856,26 @@ def test_webhook_does_not_enqueue_duplicate_active_sync(tmp_path: Path, monkeypa
     assert body["reason"] == "active_sync_exists"
     assert body["workspace_slug"] == "github-org-repo"
     assert scheduled == []
+
+
+def test_webhook_rejects_missing_secret_by_default(monkeypatch) -> None:
+    from app.jobs.import_jobs import _validate_webhook_signature
+
+    monkeypatch.delenv("GITHUB_APP_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("ALLOW_UNSIGNED_WEBHOOKS_LOCAL", "false")
+    with __import__("pytest").raises(ValueError, match="secret is required"):
+        _validate_webhook_signature(body=b"{}", signature=None, secret=None)
+
+
+def test_webhook_accepts_valid_signature_and_rejects_tampering(monkeypatch) -> None:
+    import hashlib
+    import hmac
+    import pytest
+    from app.jobs.import_jobs import _validate_webhook_signature
+
+    secret = "test-webhook-secret"
+    body = b'{"repository":{"full_name":"org/repo"}}'
+    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    _validate_webhook_signature(body=body, signature=signature, secret=secret)
+    with pytest.raises(ValueError, match="Invalid GitHub webhook signature"):
+        _validate_webhook_signature(body=body + b" ", signature=signature, secret=secret)

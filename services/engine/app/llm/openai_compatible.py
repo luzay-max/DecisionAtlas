@@ -23,9 +23,15 @@ class OpenAICompatibleProvider:
         base_url: str = "https://api.openai.com/v1",
         timeout: float = 60.0,
         client: httpx.Client | None = None,
+        max_output_tokens: int | None = None,
+        disable_thinking: bool = False,
     ) -> None:
         self.api_key = api_key
         self.model = model
+        if max_output_tokens is not None and not (1 <= max_output_tokens <= 4096):
+            raise ValueError("max_output_tokens must be in range 1..4096")
+        self.max_output_tokens = max_output_tokens
+        self.disable_thinking = disable_thinking
         self.base_url = base_url.rstrip("/")
         self.client = client or httpx.Client(
             base_url=self.base_url,
@@ -84,7 +90,9 @@ class OpenAICompatibleProvider:
                         },
                     ],
                     "temperature": 0,
-                    **({"max_tokens": max_tokens} if max_tokens is not None else {}),
+                    **({"max_tokens": max_tokens if max_tokens is not None else self.max_output_tokens}
+                       if max_tokens is not None or self.max_output_tokens is not None else {}),
+                    **({"thinking": {"type": "disabled"}} if self.disable_thinking else {}),
                 },
             )
             response.raise_for_status()
