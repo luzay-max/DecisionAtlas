@@ -28,7 +28,7 @@ export default function HomePage() {
             <span>DecisionAtlas</span>
           </Link>
           <div className="home-header-tools">
-            <AccountScopeSurface />
+            <AccountScopeSurface compact />
             <LanguageToggle />
             <ThemeToggle />
           </div>
