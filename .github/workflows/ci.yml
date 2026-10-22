@@ -56,7 +56,10 @@ jobs:
         run: python scripts/ci/run_benchmark.py
 
       - name: Install Playwright browser
-        run: pnpm --filter @decisionatlas/web exec playwright install chromium
+        # New Chromium headless uses the full Chromium build; skip the separate
+        # headless shell download (cdn.playwright.dev TLS name mismatch on Windows).
+        # Keep TLS verification enabled; do not bypass certificate checks.
+        run: pnpm --filter @decisionatlas/web exec playwright install --no-shell chromium
 
       - name: Run browser smoke flow
         run: pnpm --filter @decisionatlas/web exec playwright test
