@@ -1,8 +1,8 @@
 # DecisionAtlas · GitHub 开源框架借鉴与证据优先改进计划表
 
 > **日期**：2026-10-22  
-> **状态**：PROPOSED / Draft PR（本文为计划，不代表已实施）  
-> **基线**：`main@93bbacd378a8d24e1230d70d3cde3e3a7c719a06`；[合并后主线 CI #39728035244](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244) 已通过。  
+> **状态**：PROPOSED / Ready for review（本文为计划，不代表已实施）  
+> **初始基线**：`main@93bbacd378a8d24e1230d70d3cde3e3a7c719a06`；**同步主线**：`main@9bc32ce739db0bebeaeb928c6fc979dca34fe005`；[合并后主线 CI #39728035244](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244) 已通过。  
 > **方向**：现有自托管技术栈不重写；先修复证据可信度和评价门禁，再验证时序关系、检索和代码影响。  
 > **边界**：本 PR **仅新增规划文档**。不安装框架、不改生产逻辑、不上传私有代码/Token、不调用付费 AI、不部署、不合并。
 

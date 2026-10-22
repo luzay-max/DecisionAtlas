@@ -12,6 +12,19 @@ DecisionAtlas 可以将分散在 **GitHub Issues、Pull Requests、Commits、ADR
 
 > **项目现状：** 持续开发中的本地优先 / 可自托管平台，目前具有 v0.3 RC 阶段的能力基础。AI 治理检查默认是**建议性（advisory）**的；项目目前还不是完整的多租户 SaaS 服务。
 
+## 📸 真实运行截图
+
+以下截图由 [主分支 `93bbacd` 的 GitHub Actions](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244) 使用 Playwright 启动真实演示栈自动生成，**不是 AI 设计效果图**。
+
+| 首页 · 深色模式 | 候选决策审核 |
+| --- | --- |
+| ![DecisionAtlas 中文首页真实浏览器截图](docs/assets/screenshots/01-home-desktop-dark-zh.png) | ![DecisionAtlas 候选决策审核真实浏览器截图](docs/assets/screenshots/03-review-desktop-dark-zh.png) |
+
+**[查看全部 8 张真实截图](docs/project/ui-screenshots.md)**：桌面深浅色、工作区、原因检索、手机首页 / 工作区 / 审核。图片保存在 GitHub 仓库内，可长期查看。
+
+> 截图使用**预置演示数据与 Fake Provider**，证明真实浏览器的界面与交互可运行，不代表真实仓库 AI 提取质量或生产环境已经完成验收。
+
+
 ## 🎯 为什么需要 DecisionAtlas？
 
 开发者通常可以在 Git 中找到“改了什么”，却难以快速知道“**为什么这么改**”。理由可能散落在 PR 讨论、Issue、ADR 或 Markdown 规范里。AI 编程助手也面临相同的问题，容易在不了解历史决策的情况下提出与原定架构相冲突的修改。

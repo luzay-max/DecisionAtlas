@@ -12,6 +12,19 @@ Turn scattered GitHub issues, pull requests, commits, ADRs, and engineering note
 
 > **Project status:** An actively developed, local-first/self-hosted platform with a v0.3 release-candidate baseline. Governance checks are **advisory by default**, and this is not yet a fully managed, multi-tenant SaaS product.
 
+## 📸 Real running UI
+
+Captured by Playwright from the **actual Windows CI demo stack** at [main commit `93bbacd`](https://github.com/luzay-max/DecisionAtlas/commit/93bbacd378a8d24e1230d70d3cde3e3a7c719a06), not design mockups.
+
+| Home · dark mode | Candidate decision review |
+| --- | --- |
+| ![DecisionAtlas home page, dark mode, actual browser screenshot](docs/assets/screenshots/01-home-desktop-dark-zh.png) | ![DecisionAtlas candidate review, actual browser screenshot](docs/assets/screenshots/03-review-desktop-dark-zh.png) |
+
+**[See all 8 screenshots](docs/project/ui-screenshots.md)** (desktop light/dark, workspace, Why Search and mobile screens) · [Verified main CI](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244)
+
+> Screenshots use **seeded demo data with Fake LLM providers**. They demonstrate real UI rendering, not the correctness of AI extraction from customer repositories or production deployment readiness.
+
+
 ## 🎯 Why DecisionAtlas?
 
 Engineering teams often know **what** changed but lose track of **why**: the reasoning lives across PR conversations, issue discussions, ADRs, and internal notes. AI coding assistants face the same problem and can propose changes that unintentionally conflict with established decisions.
