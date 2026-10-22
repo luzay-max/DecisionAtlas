@@ -1,0 +1,68 @@
+name: Publish validated UI screenshots to documentation
+on:
+  push:
+    branches:
+      - docs/readme-real-ui-screenshots-20261022
+    paths:
+      - .github/workflows/publish-docs-screenshots-once.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the documentation branch
+        uses: actions/checkout@v4
+        with:
+          ref: docs/readme-real-ui-screenshots-20261022
+          persist-credentials: true
+
+      - name: Copy screenshots from successful main branch CI
+        uses: actions/download-artifact@v4
+        with:
+          repository: luzay-max/DecisionAtlas
+          run-id: 39728035244
+          name: decisionatlas-ui-preview
+          github-token: ${{ github.token }}
+          path: docs/assets/screenshots
+
+      - name: Confirm eight real PNG files were downloaded
+        shell: bash
+        run: |
+          set -euo pipefail
+          for img in \
+            01-home-desktop-dark-zh.png \
+            02-workspace-desktop-dark-zh.png \
+            03-review-desktop-dark-zh.png \
+            04-why-search-desktop-dark-zh.png \
+            05-home-desktop-light-zh.png \
+            06-home-mobile-dark-zh.png \
+            07-workspace-mobile-dark-zh.png \
+            08-review-mobile-dark-zh.png; do
+            test -s "docs/assets/screenshots/$img"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          paths = sorted(Path("docs/assets/screenshots").glob("*.png"))
+          assert len(paths) == 8, f"Expected 8 screenshots, got {len(paths)}"
+          for path in paths:
+              assert path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), path
+              print(path, path.stat().st_size)
+          PY
+
+      - name: Commit real screenshots to documentation branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/screenshots/*.png
+          if git diff --cached --quiet; then
+            echo "No screenshot changes to commit"
+          else
+            git commit -m "docs: archive eight real demo screenshots from main CI"
+            git push origin HEAD:docs/readme-real-ui-screenshots-20261022
+          fi
