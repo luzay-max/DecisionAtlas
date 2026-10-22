@@ -19,7 +19,6 @@ export function DemoWorkspaceNav({
 }) {
   const { messages } = useI18n();
   const isDemoWorkspace = workspaceSlug === "demo-workspace";
-
   const navItems = [
     { href: "/workspaces", label: messages.nav.dashboard },
     { href: "/review", label: messages.nav.review },
@@ -30,7 +29,7 @@ export function DemoWorkspaceNav({
 
   return (
     <nav className="demo-nav-shell workspace-nav-shell" aria-label={messages.nav.workspaceNavigation}>
-      <div className="workspace-nav-primary">
+      <div className="workspace-nav-top">
         <div className="workspace-nav-context">
           <div>
             <p className="eyebrow">{isDemoWorkspace ? messages.guidedDemo.demoBadge : messages.nav.workspaceNavigation}</p>
@@ -39,44 +38,42 @@ export function DemoWorkspaceNav({
               {isDemoWorkspace ? messages.guidedDemo.demoSummary : messages.common.liveVsDemo}
             </p>
           </div>
-          <div className="action-row workspace-nav-context-actions">
+          <div className="workspace-nav-context-actions">
             <Link href="/" className="action-link">{messages.nav.home}</Link>
             {!isDemoWorkspace ? (
               <Link href="/workspaces/demo-workspace" className="action-link">{messages.nav.backToDemo}</Link>
             ) : null}
           </div>
         </div>
-        <div className="demo-nav workspace-nav-tabs">
-          {navItems.map((item) => {
-            const href = item.href === "/workspaces"
-              ? `/workspaces/${encodeURIComponent(workspaceSlug)}`
-              : `${item.href}?workspace=${encodeURIComponent(workspaceSlug)}`;
-            const isActive = item.href === "/workspaces"
-              ? currentPath.startsWith("/workspaces/")
-              : currentPath === item.href;
-
-            return (
-              <Link
-                key={item.href}
-                href={href}
-                className={isActive ? "demo-nav-link active" : "demo-nav-link"}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-      <div className="workspace-nav-tools">
-        <AccountScopeSurface compact />
-        <div className="workspace-nav-switches">
+        <div className="workspace-nav-tools">
+          <AccountScopeSurface compact />
           <LanguageToggle />
           <ThemeToggle />
+          <AdvancedControls>
+            <ProviderModeToggle />
+          </AdvancedControls>
         </div>
-        <AdvancedControls>
-          <ProviderModeToggle />
-        </AdvancedControls>
+      </div>
+      <div className="demo-nav workspace-nav-tabs">
+        {navItems.map((item) => {
+          const href = item.href === "/workspaces"
+            ? `/workspaces/${encodeURIComponent(workspaceSlug)}`
+            : `${item.href}?workspace=${encodeURIComponent(workspaceSlug)}`;
+          const isActive = item.href === "/workspaces"
+            ? currentPath.startsWith("/workspaces/")
+            : currentPath === item.href;
+
+          return (
+            <Link
+              key={item.href}
+              href={href}
+              className={isActive ? "demo-nav-link active" : "demo-nav-link"}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
