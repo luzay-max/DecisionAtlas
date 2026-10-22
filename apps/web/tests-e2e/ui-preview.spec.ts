@@ -58,4 +58,25 @@ test("capture real demo UI screenshots in Chinese (desktop, mobile, dark and lig
   );
   expect(hasOverflow).toBe(false);
   await capture("06-home-mobile-dark-zh.png");
+
+  // Verify that account administration stays accessible without occupying
+  // most of the mobile header on first paint.
+  const accountMenu = page.locator(".home-header-tools .account-scope-trigger");
+  await expect(accountMenu).toBeVisible();
+  await accountMenu.click();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await accountMenu.click();
+
+  for (const [url, heading, file] of [
+    ["/workspaces/demo-workspace", "demo-workspace", "07-workspace-mobile-dark-zh.png"],
+    ["/review?workspace=demo-workspace", "等待审阅的候选决策", "08-review-mobile-dark-zh.png"],
+  ] as const) {
+    await page.goto(url);
+    await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1
+    );
+    expect(overflow, `Unexpected horizontal overflow in ${url}`).toBe(false);
+    await capture(file);
+  }
 });
