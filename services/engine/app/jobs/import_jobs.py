@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.db.session import get_db_session
 from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
 from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.git_provider_clients import GitLabClient, GiteeClient, GitProviderError
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
@@ -133,7 +134,7 @@ def queue_github_import(
         session.close()
 
 
-def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str = "full") -> dict[str, int | str | None]:
+def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str = "full", provider: str = "github") -> dict[str, int | str | None]:
     settings = get_settings()
     session = get_db_session()
     logger = get_logger()
@@ -154,13 +155,29 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             if last_success is not None and last_success.job_id != job_id:
                 since = last_success.finished_at or last_success.started_at or last_success.created_at
 
-        importer = GitHubImporter(
-            session,
-            GitHubClient(
+        if provider == "github":
+            reader = GitHubClient(
                 token=_token_for_workspace(session=session, workspace=workspace, settings=settings),
                 max_pages=settings.github_import_max_pages,
-            ),
-        )
+            )
+        elif provider in {"gitlab", "gitee"}:
+            # Background job must match the exact public provider / workspace
+            # bound by an authenticated admin. Never accept a client-supplied host.
+            if (workspace.access_source_type != f"{provider}_public"
+                    or workspace.repo_identity != f"{provider}:{repo}"
+                    or workspace.repo_url != f"https://{'gitlab.com' if provider == 'gitlab' else 'gitee.com'}/{repo}"):
+                raise GitProviderError("Public import workspace does not match the selected provider")
+            reader = (GitLabClient if provider == "gitlab" else GiteeClient)(
+                max_pages=settings.github_import_max_pages,
+            )
+            metadata = reader.get_repository_metadata(repo)
+            if provider == "gitlab" and metadata.get("visibility") != "public":
+                raise GitProviderError("GitLab repository is not public")
+            if provider == "gitee" and metadata.get("private") is not False:
+                raise GitProviderError("Gitee repository is not public")
+        else:
+            raise GitProviderError("Unsupported Git provider")
+        importer = GitHubImporter(session, reader)
         runtime = build_runtime_providers(settings)
         logger.info(
             "github import started",
@@ -813,6 +830,8 @@ def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
 def _classify_failure(exc: Exception) -> str:
     if isinstance(exc, RepositoryAccessError):
         return exc.failure_category
+    if isinstance(exc, GitProviderError):
+        return "provider_access_failure"
     if isinstance(exc, GitHubNetworkError):
         return "network_failure"
     if isinstance(exc, httpx.HTTPStatusError):
