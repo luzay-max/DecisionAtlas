@@ -1,5 +1,8 @@
 # DecisionAtlas 阶段 7 后续开发计划：AI Agent Governance Integration
 
+> **归档状态（2026-10-23）：ARCHIVED · phase-delivered** — Stage-7 Agent Guardrail 原定范围已有主要实现（governance/agent_guardrail.py、使用说明与测试）；原始计划完整保留作为历史记录。该分类**不表示**计划中的所有扩展、真实客户环境、证据质量与生产安全验收均已通过。请看[历史计划归档索引](archive/2026-10-21-reviewed-plan-index.md)与[当前执行计划](2026-10-21-security-hardening-and-real-repo-validation-plan.md)。
+
+
 日期：2026-05-06  
 当前基线：`main` @ `dc8e00c`  
 当前状态：阶段 4、阶段 5、阶段 6 已完成；OpenSpec active changes 为 0；本地 `main` 相对 `origin/main` ahead 3

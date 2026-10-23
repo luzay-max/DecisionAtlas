@@ -1,5 +1,8 @@
 # DecisionAtlas v0.2 Implementation Plan
 
+> **归档状态（2026-10-23）：ARCHIVED · phase-delivered** — v0.2 功能基线已有主要实现（v0.2 Release Notes 与既有导入、provider、demo/部署能力）；原始计划完整保留作为历史记录。该分类**不表示**计划中的所有扩展、真实客户环境、证据质量与生产安全验收均已通过。请看[历史计划归档索引](archive/2026-10-21-reviewed-plan-index.md)与[当前执行计划](2026-10-21-security-hardening-and-real-repo-validation-plan.md)。
+
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Turn the completed MVP into a stable public demo product with real provider support, hardened import flows, deployment guidance, and repeatable demo validation.
