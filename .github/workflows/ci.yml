@@ -54,7 +54,7 @@ jobs:
 
       - name: Validate MCP SDK v2 protocol (in-process, no live data)
         working-directory: services/engine
-        run: uv run --with "mcp==2.2.0" pytest -q tests/mcp/test_sdk_protocol.py
+        run: uv run --with "mcp==2.2.0" pytest -q tests/agent_mcp/test_sdk_protocol.py
 
       - name: Run benchmark fixture validation
         run: python scripts/ci/run_benchmark.py
