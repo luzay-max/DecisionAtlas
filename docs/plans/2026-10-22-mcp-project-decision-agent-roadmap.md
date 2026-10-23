@@ -263,3 +263,70 @@ M0–M5 的**粗估合计 16–27 人日（不含 G0，且取决于现有 Engine
 | 下一步进入实现 | 先做协议 Spike，再做只读链路和真实 Host E2E | 阶段性交付，任何一步失败都可停损 |
 
 **审批请求**：评审本计划是否准确表达“让 AI Agent 在别人的仓库里自动理解经审核的项目决策并谨慎持续开发”。批准本计划只代表认可产品方向与阶段门槛，**不等于授权接入任何公司源码、调用付费模型、启用远程服务、开放写 Tools、推送代码或合并实施 PR**。
+
+## 13. 范围调整（2026-10-23）：复用既有导入，补齐 GitLab 与 Gitee，再统一暴露 MCP
+
+**维护者新增诉求**：既然 DecisionAtlas 已有 GitHub 仓库接入与决策数据处理链路，避免重新建一套通用“克隆后本地扫描 → 自研索引”平台。以现有 Workspace / Import Job / Artifact / SourceRef / Candidate Review / Why Search / Governance 能力为**唯一可信数据链路**；新增 GitLab/Gitee 连接器及 MCP 适配层。
+
+### 13.1 已有能力与不要重做的东西
+
+- **复用**现有 `POST /imports/github`、`GET /imports/lookup`、`GET /decisions`、`GET /decisions/:id`、`POST /query/why`、`GET /governance/rules`、`GET /governance/guardrail` 和索引、抽取、审阅模块。
+- **保留** GitHub 公开/私有仓库 + App/Token 授权的独立接入方式；外部 Agent 不需要重复下载一遍已在 Workspace 中的仓库资料。
+- **新增** MCP 中的 repo identity → 有权访问的 Workspace 绑定、accepted 决策读取与引用追踪、可选基于用户当前 Git diff 的治理检查。
+- 若用户工作区**没有索引**，默认回应 `not_indexed` / `import_required` 并提供显式人工启动导入入口；不能偷偷扫描本地目录、调用外部 API 或写入数据库。
+- 现有 `services/engine/app/git_sources.py` 把 GitLab/Gitee 标记为 `provider_unsupported`；`local_path` 是 `operator_guided`。**它们不是已实现的导入能力**。不允许将“下拉菜单可选”描述为“已经支持”。
+
+### 13.2 新增必须完成的仓库导入矩阵（正式交付范围）
+
+| 数据源 | 首版能力 | 第二阶段能力 | 交付边界 |
+| --- | --- | --- | --- |
+| GitHub.com | 复用现有公开 + 已授权私有导入、full/since_last_sync、Workspace 绑定 | 改进已存在的凭据复核及来源时效 | 绝不回归现有安全与导入状态 |
+| GitLab.com | **必须实现**：公开项目元数据、Issues、Merge Requests、Commits、README/ADR/docs → 既有 Artifact/SourceRef；全量导入与受控增量同步 | 明确批准后支持私有项目个人/项目 Token | 每个 artifact 保留 GitLab URL、MR `iid`/`state`、原始 source revision |
+| GitLab Self-Managed | **必须实现**：管理员显式配置的 HTTPS GitLab 实例 + 只读授权，导入与 GitLab.com 等价 | 管理员批准的内部证书或内网代理策略 | 默认禁止任意 URL / 非批准 Host，防 SSRF、DNS 重绑定和元数据地址访问 |
+| Gitee.com | **必须实现**：公开仓库元数据、Issues、Pull Requests、Commits、README/ADR/docs → 既有 Artifact/SourceRef；全量导入与受控增量同步 | 明确批准后支持私有仓库 API Token | 映射真实 Gitee PR 状态/合并状态与来源链接，拒绝“GitHub PR 默认语义” |
+| 本地仓库路径 | 本次不是前三种远程接入的前置依赖；MCP 可以经授权识别本地 Git remote 并绑定已导入 Workspace | 受控本地文档导入能力单独评审 | 不将浏览器/服务端任意本地路径读取作为首版能力 |
+
+**不把 GitLab、Gitee 标记为“已实现”，直到公开仓库真实导入、增量同步、审阅、Why Search、真实 MCP Host 查询均通过验收。**
+
+### 13.3 实施技术任务：一个正规化 Provider 接口，而不是三套决策系统
+
+1. 抽象 `GitProviderClient` 的读取合同：`get_repository_metadata`、`get_default_branch`、`fetch_issues`、`fetch_pull_requests`（GitLab 为 MR）、`fetch_commits`、`list_repository_files`、`fetch_markdown_document`。统一映射为现有 `GitHubArtifactPayload` / `GitHubRepositoryFile`（后续可重命名为 provider-neutral 的 payload，不必重建数据库）。
+2. GitLab 从官方 `/api/v4/projects/:id`、`/issues`、`/merge_requests`、`/repository/commits`、`/repository/tree`、`/repository/files/:path/raw` 读取；项目完整路径须 URL-encode，`PRIVATE-TOKEN` 只能用于审批通过的实例，支持响应中真实的下一页链接、限额、重试和中断。
+3. Gitee 从官方 `https://gitee.com/api/v5/repos/{owner}/{repo}`、`/issues`、`/pulls`、`/commits`、`/contents` 及递归文件树能力（以官方 API 支持范围为准）读取；鉴权只在批准的域名使用，验证分页、速率限制、返回字段、404/401/403 分类。
+4. 对外源 URL **按平台构造**（GitLab 文档路径 `/-/blob/<revision>/...`、GitHub/Gitee `/blob/<revision>/...`），并记录 project canonical id、provider、完整 repo identity、source id、SHA、采集时间和状态；当前 `GitHubImporter` 文档 URL 逻辑不能原封不动用于 GitLab。
+5. 复用现有 `GitHubImporter` 中的文档筛选、Artifact upsert、索引、候选抽取、review、why/drift 流程；将调用方重构为 provider-neutral import orchestration，逐步让既有 Github 测试持续通过，不得跳过审批链路。
+6. 新增 `POST /imports/git-sources/import` 或等效**经过鉴权**的通用导入任务入口；与既有 `/imports/github` 共存。对 `provider=gitlab/gitee` 检查 `owner_scope` + admin 角色，支持显式绑定、去重、导入任务状态、full/since_last_sync 与审计；**不能复用 GitHub 的 Token 存储表/加密格式假装通用**，需设计安全的 provider-scoped 凭据记录与轮换。
+7. 接入 MCP 时，只按 repo remote / canonical URL 查当前 actor 已授权的 Workspace；用户明确发起才可执行新的导入。MCP `list/search/get evidence` 仍按统一 accepted/source/candidate 语义返回；同名 repo 不跨 Provider、Owner Scope 或 Worktree 串读。
+
+### 13.4 安全与质量的硬性验收
+
+- [ ] 真实公开 GitLab.com 与 Gitee.com 仓库各至少一次**固定 SHA** 的端到端导入，Artifacts/SourceRef、候选与 Why 的数据可追溯；未进行人工核验时不能宣称抽取正确率。
+- [ ] GitLab 自建实例使用可控测试容器/Mock HTTPS 环境验证 allowlist、代理、DNS 重绑定、拒绝私网任意 Host 的安全边界；不把任意第三方 URL 接进服务器端抓取器。
+- [ ] 各平台全量/增量、重复运行幂等、分页、限速、异常/退避、中途取消、空仓库、被删除/重命名的 repo 均有测试。
+- [ ] 私有仓库 Token 测试只使用假凭据或经授权的隔离环境，含加密、权限撤销、轮换、跨 Scope 越权和日志脱敏。
+- [ ] GitLab MR `merged`、Gitee PR `merged`/`closed` 与“决策已采纳”严格分离；FakeProvider 候选绝不升级为 accepted。
+- [ ] GitHub 旧导入、后续 Decision/Review/Why/Drift 及 Node/Python/Browser CI 无回归。
+- [ ] 对两个真实 MCP Host 完成 GitHub/GitLab/Gitee 的查找、决策读取与状态标记 E2E；默认只读并遵守身份边界。
+- [ ] 新提供者的公开可用性/私有凭据行为，只有通过验收后才更新 README 为“支持”，否则应标注 `experimental` 或 `not_implemented`。
+
+### 13.5 修订优先级与可审查的实施 PR
+
+| 实施 PR | 交付 | 依赖 / 边界 |
+| --- | --- | --- |
+| **A0：连接器基础** | GitLab/Gitee 客户端、统一 payload 映射和只读 HTTP Mock 契约测试 | 不接凭据持久化、不宣称端到端、保持独立 Draft |
+| **A1：GitLab 端到端** | GitLab.com + 可配置的受信 Self-Managed 环境，导入、任务、索引/审阅/Why | G0 放行、授权/SSRF、数据库与工作流复用 |
+| **A2：Gitee 端到端** | Gitee.com 同等导入、鉴权、增量、状态、索引/审阅/Why | G0 放行，含独立平台语义和限速测试 |
+| **B0：MCP 最小读链路** | MCP `stdio` 服务，Workspace 绑定，4–6 个只读 Tools，真实 Host 集成 | 可先复用 GitHub 已导入 Workspace；A1/A2 独立并行 |
+| **B1：全平台 Agent 场景** | GitHub/GitLab/Gitee 上的开发前 Why、决策引用、diff advisory，Host 接入和安全测试 | A1+A2+B0；人工证据门槛和安全策略均满足 |
+| **C：增强项** | 授权私有 Token、多 Host 触发与远程 MCP、受控本地导入 | 按企业试点批准程度拆 PR，不把未经批准功能静默上线 |
+
+**更新后的关键路径**：`已有 GitHub 核心能力 + A0（Provider 适配）→ A1/A2（真实平台落地）║ B0（并行 MCP 接口）→ B1（跨平台 Agent E2E）`。这取代前文将“重新建立本地扫描和上下文索引”作为首要任务的建议；第 8 节原人日预估**不包含 GitLab/Gitee 的实现和安全验证**，必须在 A1/A2 独立估算后再报总工期。
+
+### 13.6 需要维护者确认的交付准则
+
+- **GitLab/Gitee 是确定要做的范围**，而非“以后也许有”的扩展项；但任何代码 PR 都须逐个 CI/安全/人工证据验收。
+- 无法获取某个公司的私有仓库授权时，该环境只能标记为 `operator_guided / blocked`，不能编造通过结果。
+- GitLab Self-Managed 默认要明确批准受信主机；对于公司内网不要求强制公开访问，也不应为方便使用而移除 SSRF 防护。
+- 计划审核、CI 通过与完成真实导入/MCP E2E 是不同阶段；**不将本规划 PR 当成实现完成**。
+
+**参考 API 文档（实现前确认当前版本）**：[GitLab REST](https://docs.gitlab.com/api/rest/)、[GitLab Merge Requests](https://docs.gitlab.com/api/merge_requests/)、[Gitee Open API v5](https://gitee.com/api/v5/swagger)。
