@@ -1,6 +1,6 @@
 # Hosted Preview Readiness
 
-[Home](../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Demo Script](demo-script.md) | [中文](hosted-preview-readiness_zh-CN.md)
+[Home](../../README.md) | [Quick Start](quick-start.md) | [Deployment](deployment.md) | [Hosted Operator Guide](hosted-demo-operator-guide.md) | [Demo Script](demo-script.md) | [中文](hosted-preview-readiness_zh-CN.md)
 
 ---
 
