@@ -57,6 +57,7 @@ def test_public_repository_normalization(provider: str, value: str, expected: st
     ("gitee", "http://gitee.com/team/repo"),
     ("gitlab", "https://gitlab.com@evil.example/a/b"),
     ("gitlab", "https://gitlab.com:8443/a/b"),
+    ("gitlab", "https://gitlab.com:badport/a/b"),
     ("gitlab", "https://gitlab.com/a/b?token=secret"),
     ("gitlab", "https://gitlab.com/a/b#anchor"),
     ("gitee", "a/b/c"),
@@ -166,3 +167,65 @@ def test_public_import_route_requires_admin_and_never_accepts_tokens(tmp_path: P
     }
     assert invocations[1]["runner"]["provider"] == "gitlab"
     assert invocations[1]["runner"]["repo"] == "team/repo"
+
+
+
+@pytest.mark.parametrize(("provider", "visibility"), [
+    ("gitlab", {"visibility": "private"}),
+    ("gitee", {"private": True}),
+    ("gitlab", {}),
+    ("gitee", {}),
+])
+def test_import_worker_fails_closed_for_private_or_unknown_repository(
+    tmp_path: Path, monkeypatch, provider: str, visibility: dict,
+) -> None:
+    from app.jobs import import_jobs
+
+    _db(tmp_path, monkeypatch)
+    job = queue_public_git_import(
+        provider=provider, repo="group/repo", mode="full",
+        owner_scope="local-default",
+    )
+
+    class StubClient:
+        def __init__(self, *, max_pages: int):
+            pass
+
+        def get_repository_metadata(self, repo: str) -> dict:
+            return visibility
+
+        def fetch_issues(self, repo: str, *, since=None):
+            pytest.fail("private repository must not be fetched")
+
+    monkeypatch.setattr(import_jobs, "GitLabClient" if provider == "gitlab" else "GiteeClient", StubClient)
+    result = import_jobs.run_github_import(
+        job_id=job["job_id"], workspace_slug=job["workspace_slug"],
+        repo="group/repo", mode="full", provider=provider,
+    )
+    assert result["status"] == "failed"
+    assert result["summary"]["failure_category"] == "provider_access_failure"
+    assert "not public" in result["error_message"]
+
+
+def test_import_worker_rejects_mismatched_workspace_provider_before_network(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    from app.jobs import import_jobs
+
+    _db(tmp_path, monkeypatch)
+    job = queue_public_git_import(
+        provider="gitlab", repo="group/repo", mode="full",
+        owner_scope="local-default",
+    )
+
+    class NoNetwork:
+        def __init__(self, *, max_pages: int):
+            pytest.fail("provider client must not be initialized for mismatched job")
+
+    monkeypatch.setattr(import_jobs, "GiteeClient", NoNetwork)
+    result = import_jobs.run_github_import(
+        job_id=job["job_id"], workspace_slug=job["workspace_slug"],
+        repo="group/repo", mode="full", provider="gitee",
+    )
+    assert result["status"] == "failed"
+    assert result["summary"]["failure_category"] == "provider_access_failure"

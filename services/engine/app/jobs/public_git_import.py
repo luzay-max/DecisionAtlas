@@ -30,9 +30,14 @@ def normalize_public_repo(*, provider: str, repo: str) -> tuple[str, str]:
         raise GitProviderError("Invalid repository address")
     value = repo
     if "://" in value:
-        parsed = urlparse(value)
-        if (parsed.scheme != "https" or parsed.hostname != PUBLIC_HOSTS[provider]
-                or parsed.username or parsed.password or parsed.port
+        try:
+            parsed = urlparse(value)
+            has_port = parsed.port is not None
+            hostname = parsed.hostname
+        except ValueError:
+            raise GitProviderError("Invalid repository address") from None
+        if (parsed.scheme != "https" or hostname != PUBLIC_HOSTS[provider]
+                or parsed.username or parsed.password or has_port
                 or parsed.query or parsed.fragment or parsed.params):
             raise GitProviderError("Repository URL must use the approved public HTTPS host")
         value = parsed.path.strip("/")
