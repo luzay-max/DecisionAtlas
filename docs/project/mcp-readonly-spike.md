@@ -82,8 +82,10 @@ paste a live session into an IDE's versioned configuration file.
 - **Implemented here:** Bridge configuration checks, Engine mocked HTTP contract
   tests, accepted-only filtering, cross-workspace ID guard, citation metadata, input
   limits, and credential/error redaction.
-- **Not verified by CI yet:** Actual SDK v2 protocol negotiation and tool discovery,
-  real Claude/Codex/Cursor host E2E, realistic accepted decisions in all three Git
+- **Dedicated optional CI test:** Official SDK v2 in-process tool discovery and
+  call results, running with a pinned `mcp==2.2.0` dependency (no private data).
+- **Not verified yet:** Real `stdio` subprocess negotiation, Claude/Codex/Cursor
+  host E2E, realistic accepted decisions in all three Git
   providers, refresh/staleness, agent-trigger hooks, private repository deployment.
 - **Release gate:** Connect two real Host clients to a seeded, non-sensitive workspace,
   capture redacted `project_status`/`list_project_decisions`/
