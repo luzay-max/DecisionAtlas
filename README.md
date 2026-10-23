@@ -11,6 +11,8 @@ Turn scattered GitHub issues, pull requests, commits, ADRs, and engineering note
 **English** · [简体中文](README_zh-CN.md) · [Quick start](docs/project/quick-start.md) · [Architecture](docs/plans/2026-03-18-decisionatlas-project-blueprint.md) · [Documentation](#-documentation)
 
 > **Project status:** An actively developed, local-first/self-hosted platform with a v0.3 release-candidate baseline. Governance checks are **advisory by default**, and this is not yet a fully managed, multi-tenant SaaS product.
+>
+> **Current main:** [CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099) passed after [PR #17 (read-only MCP)](https://github.com/luzay-max/DecisionAtlas/pull/17) and [PR #18 (historical plans)](https://github.com/luzay-max/DecisionAtlas/pull/18) merged. MCP remains an **optional experimental adapter**, not a production-ready Agent integration. See the [archive index](docs/plans/archive/2026-10-21-reviewed-plan-index.md).
 
 ## 📸 Real running UI
 
@@ -20,7 +22,7 @@ Captured by Playwright from the **actual Windows CI demo stack** at [main commit
 | --- | --- |
 | ![DecisionAtlas home page, dark mode, actual browser screenshot](docs/assets/screenshots/01-home-desktop-dark-zh.png) | ![DecisionAtlas candidate review, actual browser screenshot](docs/assets/screenshots/03-review-desktop-dark-zh.png) |
 
-**[See all 8 screenshots](docs/project/ui-screenshots.md)** (desktop light/dark, workspace, Why Search and mobile screens) · [Verified main CI](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244)
+**[See all 8 screenshots](docs/project/ui-screenshots.md)** (desktop light/dark, workspace, Why Search and mobile screens) · [Screenshot baseline CI](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244) · [Latest verified main CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099)
 
 > Screenshots use **seeded demo data with Fake LLM providers**. They demonstrate real UI rendering, not the correctness of AI extraction from customer repositories or production deployment readiness.
 
@@ -45,9 +47,23 @@ DecisionAtlas provides a reviewable decision layer between repository history an
 | **Evidence-first search** | Ask architecture “why” questions with source citations and supporting context. |
 | **Drift detection** | Evaluate rule-based and semantic drift signals, with conservative alert semantics. |
 | **AI-agent guardrails** | Run governance checks against a change/diff and return structured JSON plus advisory status codes. |
+| **Optional read-only MCP adapter (experimental)** | Expose human-accepted decisions and source evidence through four MCP tools scoped to one authorized workspace; not a general-purpose Agent or repository connector. |
 | **Owner-scoped workflows** | Use local/bootstrap login, role-gated workspaces, and admin/operator GitHub App or private-repository bindings. |
 | **Visual exploration** | Review decisions, timelines, search results, topology, and drift in a Next.js dashboard with dark/light themes. |
 | **Flexible model setup** | Run an isolated demo with fake providers or configure an OpenAI-compatible LLM for live workflows. |
+
+## 🔌 Optional read-only MCP (experimental)
+
+[PR #17](https://github.com/luzay-max/DecisionAtlas/pull/17) has merged into `main`. The optional **MCP Python SDK v2 stdio adapter** reads decisions from the **existing authenticated Engine API**, without creating a second repository index. It exposes these **read-only** tools:
+
+- `project_status` — report how many accepted decisions are available in the bound workspace.
+- `list_project_decisions` — list reviewed, accepted decisions.
+- `search_project_decisions` — search accepted decisions using **basic lexical matching** (not semantic search).
+- `get_decision_evidence` — retrieve source references only for an accepted decision in that workspace.
+
+The operator must supply a valid DecisionAtlas session and one explicitly authorized workspace. The adapter only connects to an Engine API on **loopback**; it cannot import repositories, approve candidates, write Git changes, or automatically detect the Agent's current repository. **SDK v2 in-process discovery and tool-call tests passed in CI; real stdio Agent-host integration, enterprise security sign-off, and decision-quality validation remain outstanding.** Human review is still required before candidate decisions can be treated as accepted.
+
+For prerequisites and a local, optional launch example, see [MCP read-only adapter guide](docs/project/mcp-readonly-spike.md).
 
 ## 🔄 How it works
 
@@ -251,6 +267,7 @@ Current post-stage-7 planning is captured in:
 - [Governance Diff Checker](./docs/project/governance-diff-checker.md)
 - [Governance Drift Detection](./docs/project/governance-drift-detection.md)
 - [AI Agent Governance Guardrail](./docs/project/governance-agent-guardrail.md)
+- [Optional read-only MCP adapter (experimental)](./docs/project/mcp-readonly-spike.md)
 - [Architecture & Plans](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [Current Execution Plan (2026-10-21): Security Hardening and Real-Repository Value Pilot](./docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md)
 - [Historical Plans: Reviewed Archive Index](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
@@ -265,8 +282,10 @@ Current post-stage-7 planning is captured in:
 - Product/support tier boundaries are documented for self-hosted packaging, but runtime license enforcement is not part of the current baseline.
 - Semantic drift labels are conservative and intentionally narrow.
 - Imported workspaces can still be sparse depending on repository signal quality.
+- **GitLab.com/Gitee.com public imports are not in the current `main` release**: [PR #15](https://github.com/luzay-max/DecisionAtlas/pull/15) and [PR #16](https://github.com/luzay-max/DecisionAtlas/pull/16) are still unmerged Draft PRs; private repos and GitLab self-managed access also remain unverified.
+- MCP is currently a **read-only, single-workspace experiment**: real Agent-host integration, repository auto-binding and diff checking through MCP remain unverified.
 - Governance guardrails are advisory by default and do not block CI unless a future explicit change enables that mode.
 - Demo review queue state can be consumed by prior runs; the next planned hardening slice is a reliable demo reset/reseed workflow.
 
 ---
-*Current Project Stage: Post Stage 7 - AI-agent governance guardrails and long-running import pause/resume mechanisms are fully implemented; the next focus is governance workflow hardening, demo reset reliability, and real-repository value measurement.*
+*Current project focus: evidence quality, Why Search validation, and reliable self-hosted workflows. The Stage-7 governance baseline and optional MCP adapter are present in main, but real Agent-host acceptance and GitLab/Gitee imports are not yet completed.*
