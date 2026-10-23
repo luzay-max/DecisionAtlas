@@ -5,6 +5,8 @@ from services/engine after configuring workspace and session in environment.
 """
 from __future__ import annotations
 
+from typing import Any
+
 from app.mcp.bridge import BridgeSettings, DecisionBridge
 
 
@@ -18,23 +20,23 @@ def create_server(bridge: DecisionBridge | None = None):
     server = MCPServer("DecisionAtlas Project Decisions")
     readonly = ToolAnnotations(read_only_hint=True, open_world_hint=False)
 
-    @server.tool(annotations=readonly)
-    def project_status() -> dict:
+    @server.tool(annotations=readonly, structured_output=True)
+    def project_status() -> dict[str, Any]:
         """Check accepted-decision availability in the pre-authorized workspace."""
         return source.project_status()
 
-    @server.tool(annotations=readonly)
-    def list_project_decisions(limit: int = 20) -> dict:
+    @server.tool(annotations=readonly, structured_output=True)
+    def list_project_decisions(limit: int = 20) -> dict[str, Any]:
         """Read reviewed, accepted project decisions only (max 50)."""
         return source.list_project_decisions(limit=limit)
 
-    @server.tool(annotations=readonly)
-    def search_project_decisions(query: str, limit: int = 10) -> dict:
+    @server.tool(annotations=readonly, structured_output=True)
+    def search_project_decisions(query: str, limit: int = 10) -> dict[str, Any]:
         """Find accepted decisions by basic local lexical matching; not semantic search."""
         return source.search_project_decisions(query=query, limit=limit)
 
-    @server.tool(annotations=readonly)
-    def get_decision_evidence(decision_id: int) -> dict:
+    @server.tool(annotations=readonly, structured_output=True)
+    def get_decision_evidence(decision_id: int) -> dict[str, Any]:
         """Get cited evidence for an accepted decision in the configured workspace."""
         return source.get_decision_evidence(decision_id=decision_id)
 

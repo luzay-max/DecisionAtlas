@@ -48,20 +48,27 @@ async def test_sdk_v2_tool_discovery_and_calls_without_network():
             "project_status", "list_project_decisions",
             "search_project_decisions", "get_decision_evidence",
         }
+        assert all(tool.output_schema is not None for tool in listed.tools)
+        assert all(tool.output_schema.get("type") == "object" for tool in listed.tools)
+
         result = await client.call_tool("project_status", {})
         assert not result.is_error
+        assert result.structured_content is not None, "result must return structured MCP data"
         assert result.structured_content["accepted_count"] == 1
 
         decisions = await client.call_tool("list_project_decisions", {"limit": 10})
         assert not decisions.is_error
+        assert decisions.structured_content is not None, "decisions must return structured MCP data"
         assert [d["decision_id"] for d in decisions.structured_content["items"]] == [1]
 
         search = await client.call_tool("search_project_decisions", {"query": "migration"})
         assert not search.is_error
+        assert search.structured_content is not None, "search must return structured MCP data"
         assert search.structured_content["items"][0]["decision_id"] == 1
 
         denied = await client.call_tool("get_decision_evidence", {"decision_id": 2})
         assert not denied.is_error
+        assert denied.structured_content is not None, "denied must return structured MCP data"
         assert denied.structured_content["status"] == "not_accepted_or_not_visible"
 
     assert len(received) == 4

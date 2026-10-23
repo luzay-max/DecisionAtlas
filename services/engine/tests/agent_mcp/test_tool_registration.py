@@ -22,9 +22,10 @@ def test_mcp_tools_register_with_readonly_annotations(monkeypatch) -> None:
         def __init__(self, name: str):
             self.name = name
 
-        def tool(self, *, annotations):
+        def tool(self, *, annotations, structured_output: bool = False):
             assert annotations.read_only_hint is True
             assert annotations.open_world_hint is False
+            assert structured_output is True
 
             def register(fn):
                 registered[fn.__name__] = fn
