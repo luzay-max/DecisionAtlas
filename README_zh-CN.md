@@ -11,6 +11,8 @@ DecisionAtlas 可以将分散在 **GitHub Issues、Pull Requests、Commits、ADR
 [English](README.md) · **简体中文** · [快速开始](docs/project/quick-start_zh-CN.md) · [项目架构](docs/plans/2026-03-18-decisionatlas-project-blueprint.md) · [完整文档](#-文档)
 
 > **项目现状：** 持续开发中的本地优先 / 可自托管平台，目前具有 v0.3 RC 阶段的能力基础。AI 治理检查默认是**建议性（advisory）**的；项目目前还不是完整的多租户 SaaS 服务。
+>
+> **当前主分支：** [CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099) 已通过，[PR #17（只读 MCP）](https://github.com/luzay-max/DecisionAtlas/pull/17)和 [PR #18（历史计划归档）](https://github.com/luzay-max/DecisionAtlas/pull/18)均已合并。MCP 目前是**可选的实验性适配器**，还不是经过真实 Agent 验收的生产集成。详见[归档索引](docs/plans/archive/2026-10-21-reviewed-plan-index.md)。
 
 ## 📸 真实运行截图
 
@@ -20,7 +22,7 @@ DecisionAtlas 可以将分散在 **GitHub Issues、Pull Requests、Commits、ADR
 | --- | --- |
 | ![DecisionAtlas 中文首页真实浏览器截图](docs/assets/screenshots/01-home-desktop-dark-zh.png) | ![DecisionAtlas 候选决策审核真实浏览器截图](docs/assets/screenshots/03-review-desktop-dark-zh.png) |
 
-**[查看全部 8 张真实截图](docs/project/ui-screenshots.md)**：桌面深浅色、工作区、原因检索、手机首页 / 工作区 / 审核。图片保存在 GitHub 仓库内，可长期查看。
+**[查看全部 8 张真实截图](docs/project/ui-screenshots.md)**：桌面深浅色、工作区、原因检索、手机首页 / 工作区 / 审核。图片保存在 GitHub 仓库内，可长期查看。截图基线与最新主分支测试分开记录：[截图基线 CI](https://github.com/luzay-max/DecisionAtlas/actions/runs/39728035244) · [主分支最新已验证 CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099)。
 
 > 截图使用**预置演示数据与 Fake Provider**，证明真实浏览器的界面与交互可运行，不代表真实仓库 AI 提取质量或生产环境已经完成验收。
 
@@ -45,9 +47,23 @@ DecisionAtlas 希望在历史代码和新变更之间，建立一层**可审核�
 | **有引用的智能搜索** | 查询项目的技术决策背景，并查看支撑结论的来源。 |
 | **架构 / 治理漂移检测** | 通过规则和语义信号提示潜在偏差，采用保守的告警策略。 |
 | **AI Agent 治理护栏** | 对代码变更执行治理检查，输出机器可读取的 JSON、状态和退出码。 |
+| **可选只读 MCP 适配器（实验性）** | 通过 4 个 MCP 工具读取单个授权工作区的已人工接受决策及引用证据；不承担自动编码或仓库导入。 |
 | **多工作区与权限边界** | 支持本地登录、Owner Scope、角色操作，以及管理员操作的 GitHub App / 私有仓库绑定。 |
 | **可视化工作台** | 提供决策审核、搜索、时间线、仪表盘、拓扑图和漂移视图，支持深浅色主题。 |
 | **灵活模型接入** | 可用 Fake Provider 进行本地演示，也可配置兼容 OpenAI 的模型提供商。 |
+
+## 🔌 可选只读 MCP（实验性）
+
+[PR #17](https://github.com/luzay-max/DecisionAtlas/pull/17) 已合并进 `main`。这个基于 **MCP Python SDK v2 stdio** 的可选适配器复用 DecisionAtlas **现有的已认证 Engine API**，不另建一套仓库索引。它提供 4 个**只读**工具：
+
+- `project_status`：查看指定工作区中已接受决策的数量与状态。
+- `list_project_decisions`：列出经人工审核并接受的决策。
+- `search_project_decisions`：对已接受决策做**基础关键词检索**（不是语义搜索）。
+- `get_decision_evidence`：查询当前授权工作区内已接受决策的引用证据。
+
+操作人员必须提供有效的 DecisionAtlas 会话及**一个已授权 Workspace**，适配器仅能访问本机环回地址上的 Engine API。它**不能**自动识别 Agent 当前 Git 仓库、导入仓库、通过候选审核或修改代码。**官方 SDK v2 的进程内工具发现和调用测试已在 CI 通过，但真实 stdio Agent 宿主联调、企业安全放行和决策质量验证仍未完成。** 候选决策仍须由人工审核，才能作为已接受决策使用。
+
+启动前提和可选本地运行示例参见：[MCP 只读适配器说明](docs/project/mcp-readonly-spike.md)。
 
 ## 🔄 工作原理
 
@@ -248,6 +264,7 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 - [Governance Diff Checker](./docs/project/governance-diff-checker.md)
 - [Governance Drift Detection](./docs/project/governance-drift-detection.md)
 - [AI Agent Governance Guardrail](./docs/project/governance-agent-guardrail.md)
+- [可选只读 MCP 适配器（实验性）](./docs/project/mcp-readonly-spike.md)
 - [架构与规划](./docs/plans/2026-03-18-decisionatlas-project-blueprint.md)
 - [当前执行计划（2026-10-21）：安全整改与真实仓库价值验证](./docs/plans/2026-10-21-security-hardening-and-real-repo-validation-plan.md)
 - [历史计划审查与归档索引](./docs/plans/archive/2026-10-21-reviewed-plan-index.md)
@@ -260,8 +277,10 @@ DecisionAtlas 使用 OpenSpec 管理有边界的变更。推荐流程：
 - 暂不包含多人协作 review workflow 和 billing。
 - 语义漂移标签较为保守，被刻意限制在较窄的范围内。
 - 取决于仓库的信号质量，导入的工作区可能仍然会比较稀疏。
+- **当前 `main` 尚未正式提供 GitLab/Gitee 公共仓库导入**：[PR #15](https://github.com/luzay-max/DecisionAtlas/pull/15)、[PR #16](https://github.com/luzay-max/DecisionAtlas/pull/16) 仍是未合并的 Draft，私有仓库与 GitLab 自建实例仍待安全和真实仓库验收。
+- MCP 目前仅为**单工作区、只读实验能力**：真实 Agent Host 联调、自动绑定仓库及经 MCP 的 diff 检查尚未验收。
 - 治理 guardrail 默认是 advisory，不会阻断 CI，除非未来有明确 change 启用该模式。
 - Demo review queue 可能被之前的运行消费；下一阶段计划补稳定的 demo reset/reseed 流程。
 
 ---
-*当前项目阶段：Post Stage 7 - AI-agent 治理护栏和导入暂停/恢复机制均已完全实现；下一步聚焦治理流程硬化、demo reset 可靠性和真实仓库价值度量。*
+*当前优化重点：决策证据质量、Why Search 验证和自托管可靠性。Stage-7 治理能力及可选 MCP 基础代码已进入 main，但真实 Agent 宿主验收和 GitLab/Gitee 完整导入尚未完成。*

@@ -1,8 +1,6 @@
-# DecisionAtlas MCP v2 Read-Only Spike (Not Yet Released)
+# DecisionAtlas MCP v2 Read-Only Adapter (Experimental)
 
-Status: **Draft implementation spike**. This is not a production MCP service, an approved
-enterprise deployment, or a finished agent-autonomy workflow. PR #14 controls G0 evidence
-and security release decisions; the implementation PR must remain Draft until approved.
+Status (2026-10-23): **Implementation merged into `main` in [PR #17](https://github.com/luzay-max/DecisionAtlas/pull/17)**. The adapter passed the official SDK v2 in-process tool-discovery / invocation check ([main CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099)). It remains **experimental**, not a production MCP service, an approved enterprise deployment, or a finished agent-autonomy workflow. [PR #14](https://github.com/luzay-max/DecisionAtlas/pull/14) still tracks G0 security/evidence acceptance and future integration.
 
 ## What this changes (and what it deliberately does not)
 
@@ -49,9 +47,10 @@ uv run --with "mcp==2.2.0" python -m app.mcp.server
 ```
 
 The official MCP Python SDK **v2** uses `MCPServer`, not the old
-`from mcp.server.fastmcp import FastMCP` path. In this spike the SDK version is
-fixed in the launch command; adding a lockfile and CI protocol-level handshake tests
-is a release gate for the next PR.
+`from mcp.server.fastmcp import FastMCP` path. The launch example pins the SDK version;
+CI exercises **official SDK v2 in-process tool discovery and calls**, including
+structured-output schema checks. A reproducible production dependency lock and **real
+stdio subprocess / Agent-host handshake** remain separate release gates.
 
 This command starts **stdio**, so it will not print an interactive shell prompt while
 running. An MCP-capable client normally starts it as a child process. Configure the
@@ -82,8 +81,9 @@ paste a live session into an IDE's versioned configuration file.
 - **Implemented here:** Bridge configuration checks, Engine mocked HTTP contract
   tests, accepted-only filtering, cross-workspace ID guard, citation metadata, input
   limits, and credential/error redaction.
-- **Dedicated optional CI test:** Official SDK v2 in-process tool discovery and
-  call results, running with a pinned `mcp==2.2.0` dependency (no private data).
+- **Verified in CI:** Official SDK v2 in-process tool discovery, calls, and
+  structured response schemas, using pinned `mcp==2.2.0` without private data.
+  See [main CI #227](https://github.com/luzay-max/DecisionAtlas/actions/runs/39913146099).
 - **Not verified yet:** Real `stdio` subprocess negotiation, Claude/Codex/Cursor
   host E2E, realistic accepted decisions in all three Git
   providers, refresh/staleness, agent-trigger hooks, private repository deployment.
