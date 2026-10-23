@@ -1,0 +1,934 @@
+{
+  "schema_version": 1,
+  "label_kind": "synthetic_rule_expectations_not_human_gold",
+  "cases": [
+    {
+      "candidate": {
+        "id": "exact-synthetic-quote",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "exact_quote_match",
+          "human_review_required"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "placeholder",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Recovered from artifact content",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "placeholder_field"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "fail",
+            "reason": "placeholder_field"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "missing-choice",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "missing_or_invalid_field"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "fail",
+            "reason": "missing_or_invalid_field"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "fabricated-quote",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We chose a distributed cache",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "quote_or_span_mismatch"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "fail",
+            "reason": "quote_or_span_mismatch"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "wrong-span",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 1,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "quote_or_span_mismatch"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "fail",
+            "reason": "quote_or_span_mismatch"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "duplicate-citation",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          },
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "duplicate_citation"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          },
+          "citations[1].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[1].unique": {
+            "status": "fail",
+            "reason": "duplicate_citation"
+          },
+          "citations[1].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[1].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[1].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "missing-snapshot",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "missing_quote_or_snapshot"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "not_evaluated",
+            "reason": "missing_quote_or_snapshot"
+          },
+          "citations[0].snapshot": {
+            "status": "not_evaluated",
+            "reason": "snapshot_integrity_unverified"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "changed-snapshot",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "snapshot_hash_mismatch"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "fail",
+            "reason": "snapshot_hash_mismatch"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "unmerged-proposal",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/pull/1",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "pull_request",
+            "merged": false
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "fail",
+        "reasons": [
+          "unmerged_proposal_not_adoption"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "not_evaluated",
+            "reason": "immutable_revision_unverified"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          },
+          "citations[0].adoption": {
+            "status": "fail",
+            "reason": "unmerged_proposal_not_adoption"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "merged-still-needs-review",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/pull/2",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "pull_request",
+            "merged": true
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "merged_does_not_prove_decision_adoption",
+          "human_review_required"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "not_evaluated",
+            "reason": "immutable_revision_unverified"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          },
+          "citations[0].adoption": {
+            "status": "pass",
+            "reason": "merged_does_not_prove_decision_adoption"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "unknown-merge-state",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "pull_request",
+            "merged": "false"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "pr_merge_state_unknown"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "pass",
+            "reason": "pinned_blob_url"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          },
+          "citations[0].adoption": {
+            "status": "not_evaluated",
+            "reason": "pr_merge_state_unknown"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "mutable-branch",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": [
+          {
+            "url": "https://example.org/demo/blob/main/design.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "quote": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_text": "We choose a local cache to reduce repeated reads; invalidation adds complexity.",
+            "snapshot_sha256": "946abcc22a0c93714ba54531977318a5c7f6aa747359465bd6c289d0426d6fad",
+            "start": 0,
+            "end": 79,
+            "kind": "document"
+          }
+        ]
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "immutable_revision_unverified"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "citations[0].url": {
+            "status": "pass",
+            "reason": "url_syntax_only"
+          },
+          "citations[0].unique": {
+            "status": "pass",
+            "reason": "unique_citation"
+          },
+          "citations[0].revision": {
+            "status": "not_evaluated",
+            "reason": "immutable_revision_unverified"
+          },
+          "citations[0].quote": {
+            "status": "pass",
+            "reason": "exact_quote_match"
+          },
+          "citations[0].snapshot": {
+            "status": "pass",
+            "reason": "snapshot_integrity_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          }
+        }
+      }
+    },
+    {
+      "candidate": {
+        "id": "missing-citations",
+        "provider_kind": "synthetic",
+        "title": "Cache repeated reads",
+        "problem": "Repeated disk reads add latency",
+        "chosen_option": "Cache records locally",
+        "tradeoffs": "Invalidation adds complexity",
+        "citations": []
+      },
+      "expected": {
+        "diagnostic_status": "review_required",
+        "reasons": [
+          "missing_citations"
+        ],
+        "checks": {
+          "title": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "problem": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "chosen_option": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "tradeoffs": {
+            "status": "pass",
+            "reason": "nonempty_nonplaceholder_only"
+          },
+          "semantic_support": {
+            "status": "not_evaluated",
+            "reason": "human_review_required"
+          },
+          "citations": {
+            "status": "not_evaluated",
+            "reason": "missing_citations"
+          }
+        }
+      }
+    }
+  ]
+}
