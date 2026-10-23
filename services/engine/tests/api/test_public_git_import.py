@@ -128,6 +128,9 @@ def test_public_import_rejects_reusing_foreign_github_workspace(tmp_path: Path, 
 
 def test_public_import_route_requires_admin_and_never_accepts_tokens(tmp_path: Path, monkeypatch):
     path = _db(tmp_path, monkeypatch)
+    # CI enables demo auto-bootstrap; disable it explicitly so this test
+    # verifies real session and role authorization without changing demo defaults.
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "false")
     admin = _auth(path, name="public-import-admin", role="admin")
     viewer = _auth(path, name="public-import-viewer", role="viewer")
     invocations: list[dict] = []
