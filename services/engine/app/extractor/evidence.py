@@ -48,7 +48,17 @@ def evaluate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         text = citation.get("snapshot_text")
         try:
             parsed = urlsplit(url if isinstance(url, str) else "")
-            valid_url = parsed.scheme == "https" and bool(parsed.hostname) and not parsed.username and not parsed.password
+            # Accessing .port is necessary: urlsplit() alone accepts malformed or
+            # out-of-range port text. Empty explicit ports are invalid as well.
+            port = parsed.port
+            valid_url = (
+                parsed.scheme == "https"
+                and bool(parsed.hostname)
+                and not parsed.username
+                and not parsed.password
+                and not parsed.netloc.endswith(":")
+                and (port is None or 1 <= port <= 65535)
+            )
         except ValueError:
             valid_url = False
         add(prefix + ".url", "pass" if valid_url else "fail", "url_syntax_only" if valid_url else "invalid_source_url")

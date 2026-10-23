@@ -52,9 +52,35 @@ def build_report(fixture: dict) -> dict:
         reasons = expected.get("reasons")
         if not isinstance(reasons, list) or not reasons or any(not isinstance(r, str) for r in reasons):
             raise ValueError("each case requires expected reason codes")
+        expected_checks = expected.get("checks")
+        if (
+            not isinstance(expected_checks, dict)
+            or not expected_checks
+            or any(
+                not isinstance(field, str)
+                or not field
+                or not isinstance(check, dict)
+                or set(check) != {"status", "reason"}
+                or check["status"] not in {"pass", "fail", "not_evaluated"}
+                or not isinstance(check["reason"], str)
+                or not check["reason"]
+                for field, check in expected_checks.items()
+            )
+            or not set(reasons) <= {check["reason"] for check in expected_checks.values()}
+        ):
+            raise ValueError("each case requires a complete expected field/status/reason map")
         result = evaluate_evidence(candidate)
-        actual_reasons = {check["reason"] for check in result["checks"]}
-        result["regression_status"] = "pass" if result["diagnostic_status"] == expected["diagnostic_status"] and set(reasons) <= actual_reasons else "fail"
+        actual_checks = {
+            check["field"]: {"status": check["status"], "reason": check["reason"]}
+            for check in result["checks"]
+        }
+        result["regression_status"] = (
+            "pass"
+            if result["diagnostic_status"] == expected["diagnostic_status"]
+            and len(actual_checks) == len(result["checks"])
+            and actual_checks == expected_checks
+            else "fail"
+        )
         result["expected"] = expected
         results.append(result)
     observations = []
