@@ -1,5 +1,8 @@
 # DecisionAtlas MVP Implementation Plan
 
+> **归档状态（2026-10-23）：ARCHIVED · phase-delivered** — MVP 核心功能代码阶段已有主要实现（apps/web、apps/api、services/engine 及 README）；原始计划完整保留作为历史记录。该分类**不表示**计划中的所有扩展、真实客户环境、证据质量与生产安全验收均已通过。请看[历史计划归档索引](archive/2026-10-21-reviewed-plan-index.md)与[当前执行计划](2026-10-21-security-hardening-and-real-repo-validation-plan.md)。
+
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build a self-hosted MVP that imports GitHub and docs, extracts candidate decisions, answers why-questions with citations, and flags first-pass drift alerts.
