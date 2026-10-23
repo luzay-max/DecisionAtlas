@@ -108,6 +108,7 @@ class _PublicProviderClient:
 
 class GitLabClient(_PublicProviderClient):
     """Public GitLab.com reader. Self-managed and private access require a separate gate."""
+    provider = "gitlab"
 
     def __init__(self, *, max_pages: int = 5, client: httpx.Client | None = None) -> None:
         super().__init__(base_url="https://gitlab.com/api/v4", max_pages=max_pages, client=client)
@@ -182,6 +183,7 @@ class GitLabClient(_PublicProviderClient):
 
 class GiteeClient(_PublicProviderClient):
     """Public Gitee.com reader, using the provider's official v5 API."""
+    provider = "gitee"
 
     def __init__(self, *, max_pages: int = 5, client: httpx.Client | None = None) -> None:
         super().__init__(base_url="https://gitee.com/api/v5", max_pages=max_pages, client=client)

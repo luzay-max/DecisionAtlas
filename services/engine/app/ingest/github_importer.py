@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from datetime import datetime
 from pathlib import PurePosixPath
+from urllib.parse import quote
 from typing import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -85,12 +86,12 @@ class GitHubImporter:
                     title=PurePosixPath(source_id).stem,
                     content=content,
                     author=None,
-                    url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
+                    url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id, provider=getattr(self.client, "provider", "github")),
                     timestamp=None,
                     metadata_json={
                         "path": source_id,
                         "ref": default_branch,
-                        "source": "github_repo_doc",
+                        "source": f"{getattr(self.client, 'provider', 'github')}_repo_doc",
                         "signal_category": signal_category,
                     },
                 )
@@ -110,6 +111,13 @@ class GitHubImporter:
         )
 
 
-def _repo_doc_url(repo_url: str | None, *, repo: str, ref: str, path: str) -> str:
-    base = repo_url.rstrip("/") if repo_url else f"https://github.com/{repo}"
-    return f"{base}/blob/{ref}/{path}"
+def _repo_doc_url(
+    repo_url: str | None, *, repo: str, ref: str, path: str, provider: str = "github"
+) -> str:
+    """Preserve platform-specific source URL formats without guessing PR semantics."""
+    hosts = {"github": "github.com", "gitlab": "gitlab.com", "gitee": "gitee.com"}
+    if provider not in hosts:
+        raise ValueError("Unsupported import source provider")
+    base = repo_url.rstrip("/") if repo_url else f"https://{hosts[provider]}/{repo}"
+    marker = "/-/blob" if provider == "gitlab" else "/blob"
+    return f"{base}{marker}/{quote(ref, safe='')}/{quote(path, safe='/')}"
