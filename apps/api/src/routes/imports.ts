@@ -176,6 +176,34 @@ export async function importsRoute(app: FastifyInstance) {
     return reply.status(upstream.status).send(upstream.payload);
   });
 
+  app.post("/imports/git-sources/import", async (request, reply) => {
+    const schema = z.object({
+      provider: z.enum(["gitlab", "gitee"]),
+      repo: z.string().min(3),
+      mode: z.enum(["full", "since_last_sync"]).default("full"),
+      workspace_slug: z.string().min(1).optional(),
+    }).strict();
+    const parsed = schema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({
+        error: "Invalid public Git import request",
+        issues: parsed.error.issues,
+      });
+    }
+    const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/git-sources/import`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...authHeaders },
+        body: JSON.stringify(parsed.data),
+      }),
+      app.log,
+      "POST /imports/git-sources/import"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
   app.post("/imports/git-sources/bind", async (request, reply) => {
     const parsed = gitSourceBindingSchema.safeParse(request.body);
     if (!parsed.success) {

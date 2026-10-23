@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
+from pydantic import ConfigDict
+from typing import Literal
 from pydantic import BaseModel
 
 from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
@@ -23,6 +25,8 @@ from app.jobs.import_jobs import (
     queue_github_import,
     run_github_import,
 )
+from app.ingest.git_provider_clients import GitProviderError
+from app.jobs.public_git_import import queue_public_git_import
 from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.workspaces import WorkspaceRepository
 
@@ -64,6 +68,48 @@ class GitSourceBindingRequest(BaseModel):
     source_ref: str | None = None
     source_label: str | None = None
     workspace_slug: str | None = None
+
+
+class PublicGitImportRequest(BaseModel):
+    """Public-only GitLab/Gitee import. Extra keys such as tokens are rejected."""
+    model_config = ConfigDict(extra="forbid")
+    provider: Literal["gitlab", "gitee"]
+    repo: str
+    mode: Literal["full", "since_last_sync"] = "full"
+    workspace_slug: str | None = None
+
+
+@router.post("/git-sources/import")
+def import_public_git(
+    request: PublicGitImportRequest,
+    background_tasks: BackgroundTasks,
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    require_scope_role(auth, owner_scope=auth.owner_scope, required_role="admin")
+    try:
+        job = queue_public_git_import(
+            provider=request.provider,
+            repo=request.repo,
+            mode=request.mode,
+            owner_scope=auth.owner_scope,
+            workspace_slug=request.workspace_slug,
+        )
+        background_tasks.add_task(
+            run_github_import,
+            job_id=str(job["job_id"]),
+            workspace_slug=str(job["workspace_slug"]),
+            repo=str(job["repo"]),
+            mode=request.mode,
+            provider=request.provider,
+        )
+        return job
+    except ActiveImportConflict as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={"message": str(exc), "active_import": exc.active_job},
+        ) from exc
+    except GitProviderError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.post("/github")
