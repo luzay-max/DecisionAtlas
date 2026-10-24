@@ -114,7 +114,8 @@ def test_bound_or_private_workspace_is_refused(tmp_path, access_type):
 ])
 def test_untrusted_source_url_never_exports_stored_content(tmp_path, url):
     path = seeded_db(tmp_path, url=url)
-    with pytest.raises(ValueError, match="source URL"):
+    # The Artifact URL can be rejected before the matching SourceRef URL.
+    with pytest.raises(ValueError, match="URL"):
         export_from_db(path, public_data_approved=True)
 
 
