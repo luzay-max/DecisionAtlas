@@ -142,6 +142,78 @@ def test_workspace_not_found_is_not_fallback_to_another_scope(tmp_path):
     engine.dispose()
 
 
+
+def test_public_mode_with_stale_private_source_binding_is_refused(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        workspace = session.scalar(select(Workspace))
+        workspace.access_source_ref = "previous-private-credential"
+        session.commit()
+    engine.dispose()
+    with pytest.raises(ValueError, match="private or bound"):
+        export_from_db(path, public_data_approved=True)
+
+
+def test_workspace_repo_identity_mismatch_is_refused(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        workspace = session.scalar(select(Workspace))
+        workspace.repo_identity = "other/secret"
+        session.commit()
+    engine.dispose()
+    with pytest.raises(ValueError, match="repository identity"):
+        export_from_db(path, public_data_approved=True)
+
+
+def test_artifact_repo_mismatch_is_refused(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        artifact = session.scalar(select(Artifact))
+        artifact.repo = "other/secret"
+        session.commit()
+    engine.dispose()
+    with pytest.raises(ValueError, match="artifact repository"):
+        export_from_db(path, public_data_approved=True)
+
+
+def test_artifact_url_cannot_be_masked_by_valid_source_reference(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        artifact = session.scalar(select(Artifact))
+        artifact.url = "https://github.com/private-org/secret/blob/main/README.md"
+        session.commit()
+    engine.dispose()
+    with pytest.raises(ValueError, match="artifact URL"):
+        export_from_db(path, public_data_approved=True)
+
+
+def test_source_url_cannot_disagree_with_artifact_url(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        ref = session.scalar(select(SourceRef))
+        ref.url = "https://github.com/example/project/blob/main/other.md"
+        session.commit()
+    engine.dispose()
+    with pytest.raises(ValueError, match="disagree"):
+        export_from_db(path, public_data_approved=True)
+
+
+@pytest.mark.parametrize("url", [
+    " https://github.com/example/project/blob/main/adr.md",
+    "https://github.com/example/project/blob/main/adr.md\n",
+    "https://github.com/example/project/blob/../private",
+])
+def test_controls_and_dot_segments_not_exported(tmp_path, url):
+    path = seeded_db(tmp_path, url=url)
+    with pytest.raises(ValueError, match="URL"):
+        export_from_db(path, public_data_approved=True)
+
+
 def test_cli_requires_public_approval_refuses_checkout_and_never_overwrites(tmp_path):
     path = seeded_db(tmp_path)
     output = tmp_path / "snapshot.json"

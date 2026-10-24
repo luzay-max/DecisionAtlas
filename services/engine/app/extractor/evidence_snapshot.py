@@ -16,7 +16,7 @@ from app.extractor.evidence import evaluate_evidence
 
 
 def _repository_identity(url: str | None) -> tuple[str, str] | None:
-    if not isinstance(url, str):
+    if not isinstance(url, str) or any(ord(char) <= 32 or ord(char) == 127 for char in url):
         return None
     try:
         parsed = urlsplit(url)
@@ -38,7 +38,7 @@ def _repository_identity(url: str | None) -> tuple[str, str] | None:
 
 
 def _source_is_in_repo(url: str | None, identity: tuple[str, str]) -> bool:
-    if not isinstance(url, str):
+    if not isinstance(url, str) or any(ord(char) <= 32 or ord(char) == 127 for char in url):
         return False
     try:
         parsed = urlsplit(url)
@@ -49,7 +49,11 @@ def _source_is_in_repo(url: str | None, identity: tuple[str, str]) -> bool:
     except ValueError:
         return False
     parts = parsed.path.strip("/").split("/")
-    return len(parts) >= 3 and (parts[0].casefold(), parts[1].casefold()) == identity
+    return (
+        len(parts) >= 3
+        and not any(part in {"", ".", ".."} for part in parts)
+        and (parts[0].casefold(), parts[1].casefold()) == identity
+    )
 
 
 def export_workspace_evidence(
@@ -71,11 +75,13 @@ def export_workspace_evidence(
     workspace = session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
     if workspace is None:
         raise ValueError("workspace not found")
-    if workspace.access_source_type != "public":
+    if workspace.access_source_type != "public" or workspace.access_source_ref is not None:
         raise ValueError("private or bound-access workspace export is prohibited")
     repo = _repository_identity(workspace.repo_url)
     if repo is None:
         raise ValueError("workspace must be linked to a canonical public GitHub repository URL")
+    if workspace.repo_identity is not None and workspace.repo_identity.casefold() != "/".join(repo):
+        raise ValueError("workspace repository identity conflicts with public GitHub URL")
 
     rows = []
     decisions = session.scalars(
@@ -87,6 +93,14 @@ def export_workspace_evidence(
             artifact = session.get(Artifact, ref.artifact_id)
             if artifact is None or artifact.workspace_id != workspace.id:
                 raise ValueError("source reference has a missing or cross-workspace artifact")
+            if not isinstance(artifact.repo, str) or artifact.repo.casefold() != "/".join(repo):
+                raise ValueError("artifact repository identity conflicts with public workspace")
+            if artifact.url is not None and not _source_is_in_repo(artifact.url, repo):
+                raise ValueError("artifact URL conflicts with public workspace")
+            if ref.url is not None and not _source_is_in_repo(ref.url, repo):
+                raise ValueError("source URL is missing, outside the repository, or includes a query string")
+            if ref.url is not None and artifact.url is not None and ref.url != artifact.url:
+                raise ValueError("source and artifact URL disagree")
             url = ref.url or artifact.url
             if not _source_is_in_repo(url, repo):
                 raise ValueError("source URL is missing, outside the repository, or includes a query string")
