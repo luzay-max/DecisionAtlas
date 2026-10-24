@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "repository": "pallets/click",
+  "captured_on": "2026-10-24",
+  "provenance_note": "Recorded from public GitHub REST pull endpoints and pinned raw commit/blob content on capture date. This checked-in manifest is an auditable local snapshot, NOT GitHub-signed authenticity proof; PR state is mutable over time.",
+  "sources": [
+    {
+      "kind": "github_blob",
+      "url": "https://github.com/pallets/click/blob/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/contributing.md",
+      "commit_sha": "2247b35ea1c47c727d7a06e51fa280e12a863ff6",
+      "path": "docs/contributing.md",
+      "git_blob_sha": "25a2426928a85fe087d49048350a7118b84d70dc",
+      "content": "# Contributing\n\nThis is a quick reference for Click-specific development\ntasks. For setting up the development environment and the\ngeneral contribution workflow, see the Pallets [quick\nreference](https://palletsprojects.com/contributing/quick/)\nand the [detailed contributing\nguide](https://palletsprojects.com/contributing/).\n\n## Extra Test Environments\n\nClick includes some extra test environments:\n\n-   `tox r -e stress` runs stress tests for race conditions\n    in Click's test runner.\n\n    ```shell-session\n    $ tox r -e stress\n    ```\n\n-   `tox r -e random` runs tests in parallel in a random\n    order to detect test pollution.\n\n    ```shell-session\n    $ tox r -e random\n    ```\n\n-   The nightly workflow\n    (`.github/workflows/nightly.yaml`) runs Flask's test\n    suite against `main` and `stable` to catch downstream\n    regressions.\n\n## Code Style\n\nAvoid ternary expressions (`x if cond else y`): coverage\ncannot measure both branches. Use an explicit `if`/`else`\nblock instead.\n\nDo not add unnecessary dependencies. If a feature can be\nimplemented with the standard library, do not pull in an\nexternal package for it.\n\n## Formatting\n\nWrap lines in Markdown files at 80 characters.\n",
+      "original_url": "https://raw.githubusercontent.com/pallets/click/2247b35ea1c47c727d7a06e51fa280e12a863ff6/docs/contributing.md"
+    },
+    {
+      "kind": "github_pull_request",
+      "url": "https://github.com/pallets/click/pull/2559",
+      "capture_api_url": "https://api.github.com/repos/pallets/click/pulls/2559",
+      "number": 2559,
+      "state": "closed",
+      "merged": false,
+      "merged_at": null,
+      "closed_at": "2023-07-10T13:48:57Z",
+      "merge_commit_sha": "9c98daa2070ba89f78da9ddb608cdfd7effe2e5d"
+    },
+    {
+      "kind": "github_pull_request",
+      "url": "https://github.com/pallets/click/pull/2562",
+      "capture_api_url": "https://api.github.com/repos/pallets/click/pulls/2562",
+      "number": 2562,
+      "state": "closed",
+      "merged": true,
+      "merged_at": "2023-07-13T14:56:13Z",
+      "closed_at": "2023-07-13T14:56:13Z",
+      "merge_commit_sha": "449d38f517845f39b0ffd4df64f90403933b0e0e"
+    }
+  ]
+}
