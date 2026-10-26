@@ -361,6 +361,120 @@ def seed_smoke_demo() -> None:
                 )
             )
 
+        # Import-style synthetic preview fixture for Playwright only. This is
+        # not an actual repository import and must never be treated as proof
+        # of original GitHub source or reviewer identity.
+        preview_slug = "ci-evidence-preview"
+        preview_workspace = session.scalar(select(Workspace).where(Workspace.slug == preview_slug))
+        if preview_workspace is None:
+            preview_workspace = Workspace(
+                slug=preview_slug,
+                name="CI SYNTHETIC evidence preview (not an imported project)",
+                repo_url="https://github.com/example/ci-evidence-preview",
+                owner_scope=settings.default_owner_scope,
+                access_source_type="public",
+            )
+            session.add(preview_workspace)
+            session.flush()
+
+        preview_text = (
+            "CI SYNTHETIC FIXTURE ONLY: We propose caching repeated reads to reduce latency. "
+            "This fictional note does not demonstrate adoption or verification."
+        )
+        preview_quote = "We propose caching repeated reads to reduce latency."
+        preview_url = "https://github.com/example/ci-evidence-preview/blob/main/docs/fictional-adr.md"
+        preview_artifact = session.scalar(
+            select(Artifact).where(
+                Artifact.workspace_id == preview_workspace.id,
+                Artifact.source_id == "ci-preview-public-fictional-adr",
+            )
+        )
+        if preview_artifact is None:
+            preview_artifact = Artifact(
+                workspace_id=preview_workspace.id,
+                type="doc",
+                source_id="ci-preview-public-fictional-adr",
+                repo="example/ci-evidence-preview",
+                title="CI SYNTHETIC: fictional decision note",
+                content=preview_text,
+                author="ci-synthetic",
+                url=preview_url,
+                timestamp=baseline,
+                metadata_json={"ci_synthetic_fixture": True},
+            )
+            session.add(preview_artifact)
+            session.flush()
+
+        missing_artifact = session.scalar(
+            select(Artifact).where(
+                Artifact.workspace_id == preview_workspace.id,
+                Artifact.source_id == "ci-preview-missing-ref",
+            )
+        )
+        if missing_artifact is None:
+            missing_artifact = Artifact(
+                workspace_id=preview_workspace.id,
+                type="doc",
+                source_id="ci-preview-missing-ref",
+                repo="example/ci-evidence-preview",
+                title="CI SYNTHETIC: incomplete source metadata",
+                content="No verifiable quote has been recorded for this fictional source.",
+                author="ci-synthetic",
+                url=None,
+                timestamp=baseline,
+                metadata_json={"ci_synthetic_fixture": True},
+            )
+            session.add(missing_artifact)
+            session.flush()
+
+        preview_decision = session.scalar(
+            select(Decision).where(
+                Decision.workspace_id == preview_workspace.id,
+                Decision.title == "CI SYNTHETIC: Cache proposal (NOT VERIFIED)",
+            )
+        )
+        if preview_decision is None:
+            preview_decision = Decision(
+                workspace_id=preview_workspace.id,
+                title="CI SYNTHETIC: Cache proposal (NOT VERIFIED)",
+                status="active",
+                review_state="candidate",
+                problem="Fictional repeated reads may be slow; this is test-only data.",
+                context="CI-only visual check of imported-workspace review layout",
+                constraints="No actual upstream claim or review acceptance",
+                chosen_option="Propose a cache, pending independent evidence review",
+                tradeoffs="More maintenance and potential stale values",
+                confidence=0.85,
+                created_at=baseline,
+            )
+            session.add(preview_decision)
+            session.flush()
+
+        existing_preview_refs = session.scalars(
+            select(SourceRef).where(SourceRef.decision_id == preview_decision.id)
+        ).all()
+        if not existing_preview_refs:
+            session.add_all([
+                SourceRef(
+                    decision_id=preview_decision.id,
+                    artifact_id=preview_artifact.id,
+                    span_start=preview_text.index(preview_quote),
+                    span_end=preview_text.index(preview_quote) + len(preview_quote),
+                    quote=preview_quote,
+                    url=preview_url,
+                    relevance_score=0.9,
+                ),
+                SourceRef(
+                    decision_id=preview_decision.id,
+                    artifact_id=missing_artifact.id,
+                    span_start=None,
+                    span_end=None,
+                    quote="",
+                    url=None,
+                    relevance_score=None,
+                ),
+            ])
+
         session.commit()
     engine.dispose()
 
