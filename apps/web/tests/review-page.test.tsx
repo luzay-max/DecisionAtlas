@@ -135,7 +135,7 @@ describe("ReviewPageContent", () => {
     );
 
     expect(screen.getByText("Demo Workspace")).toBeInTheDocument();
-    expect(screen.getByText("This workspace is using seeded demo data for a guided product walkthrough.")).toBeInTheDocument();
+    expect(screen.getByText("Seeded demo data for a guided product walkthrough.")).toBeInTheDocument();
     expect(screen.queryByText("Imported Workspace")).not.toBeInTheDocument();
     expect(screen.getByText("CI SYNTHETIC: Cache proposal (NOT VERIFIED)")).toBeInTheDocument();
   });
