@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
+import pytest
 
 from app.db.models import Artifact, Workspace
 from app.ingest.github_importer import GitHubImporter
@@ -127,6 +129,48 @@ def test_github_importer_persists_artifacts(tmp_path: Path, monkeypatch) -> None
     assert artifacts[1].url == "https://github.com/org/repo/blob/main/README.md"
     assert artifacts[3].author == "alice"
     assert artifacts[4].source_id == "2"
+    for artifact in artifacts:
+        capture = artifact.metadata_json["decisionatlas_capture"]
+        assert capture["schema_version"] == 1
+        assert capture["method"] in {"github_api", "github_contents_api"}
+        assert capture["content_sha256"] == hashlib.sha256(artifact.content.encode("utf-8")).hexdigest()
+        assert capture["captured_at"].endswith("+00:00")
+    assert artifacts[1].metadata_json["blob_sha"] is None  # Fake fixture IDs are not real Git object IDs.
+
+
+
+def test_importer_fails_closed_when_markdown_changes_after_tree_listing(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "importer-race.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    class MovingBranchClient(FakeGitHubClient):
+        def list_repository_files(self, repo: str, *, ref: str | None = None):
+            files = super().list_repository_files(repo, ref=ref)
+            expected_content = b"# Earlier README"
+            git_blob = hashlib.sha1(
+                f"blob {len(expected_content)}\0".encode("ascii") + expected_content,
+                usedforsecurity=False,
+            ).hexdigest()
+            files[0] = GitHubRepositoryFile(path="README.md", sha=git_blob, size=len(expected_content))
+            return files
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        session.add(Workspace(slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    with Session(engine) as session:
+        importer = GitHubImporter(session, MovingBranchClient())
+        with pytest.raises(ValueError, match="changed between tree listing and content fetch"):
+            importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+        session.rollback()
+
+    with Session(engine) as session:
+        assert session.scalar(select(Artifact.id)) is None
+    engine.dispose()
 
 
 def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatch) -> None:

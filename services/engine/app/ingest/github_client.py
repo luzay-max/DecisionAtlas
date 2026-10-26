@@ -61,7 +61,13 @@ class GitHubClient:
                     author=(item.get("user") or {}).get("login"),
                     url=item.get("html_url"),
                     timestamp=self._parse_datetime(item.get("created_at")),
-                    metadata_json={"number": item.get("number"), "state": item.get("state")},
+                    metadata_json={
+                        "source_metadata_origin": "github_api",
+                        "number": item.get("number"),
+                        "state": item.get("state"),
+                        "updated_at": item.get("updated_at"),
+                        "closed_at": item.get("closed_at"),
+                    },
                 )
             )
         return issues
@@ -88,7 +94,18 @@ class GitHubClient:
                     author=(item.get("user") or {}).get("login"),
                     url=item.get("html_url"),
                     timestamp=self._parse_datetime(item.get("created_at")),
-                    metadata_json={"number": item.get("number"), "state": item.get("state")},
+                    metadata_json={
+                        "source_metadata_origin": "github_api",
+                        "number": item.get("number"),
+                        "state": item.get("state"),
+                        "updated_at": item.get("updated_at"),
+                        "merged_at": item.get("merged_at"),
+                        "merge_state_observed": "github_api" if "merged_at" in item else "unknown",
+                        "merged": (item.get("merged_at") is not None) if "merged_at" in item else None,
+                        "merge_commit_sha": item.get("merge_commit_sha"),
+                        "head_sha": (item.get("head") or {}).get("sha"),
+                        "base_ref": (item.get("base") or {}).get("ref"),
+                    },
                 )
             )
         return pulls
@@ -113,7 +130,12 @@ class GitHubClient:
                     author=author,
                     url=item.get("html_url"),
                     timestamp=self._parse_datetime((commit.get("author") or {}).get("date")),
-                    metadata_json={},
+                    metadata_json={
+                        "source_metadata_origin": "github_api",
+                        "commit_sha": item.get("sha"),
+                        "committer_date": self._parse_datetime((commit.get("committer") or {}).get("date")).isoformat()
+                        if self._parse_datetime((commit.get("committer") or {}).get("date")) else None,
+                    },
                 )
             )
         return commits

@@ -86,6 +86,18 @@ def evaluate_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
             add(prefix + ".snapshot", "pass" if matches else "fail", "snapshot_integrity_only" if matches else "snapshot_hash_mismatch")
         else:
             add(prefix + ".snapshot", "not_evaluated", "snapshot_integrity_unverified")
+
+        if "import_snapshot_sha256" in citation:
+            import_digest = citation.get("import_snapshot_sha256")
+            if isinstance(text, str) and isinstance(import_digest, str):
+                matches = hashlib.sha256(text.encode("utf-8")).hexdigest() == import_digest
+                add(
+                    prefix + ".import_snapshot",
+                    "pass" if matches else "fail",
+                    "import_snapshot_hash_match" if matches else "import_snapshot_hash_mismatch",
+                )
+            else:
+                add(prefix + ".import_snapshot", "not_evaluated", "import_capture_hash_missing")
         if citation.get("kind") == "pull_request":
             merged = citation.get("merged")
             if merged is False:
