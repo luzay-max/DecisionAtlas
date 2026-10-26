@@ -7,6 +7,7 @@ import { reviewDecision, ReviewDecision, ReviewState } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { useI18n } from "../i18n/language-provider";
 import { ReviewActions } from "./review-actions";
+import { EvidenceReviewPanel } from "../evidence/evidence-review-panel";
 
 function confidenceLabel(confidence: number, messages: ReturnType<typeof useI18n>["messages"]) {
   if (confidence >= 0.8) {
@@ -212,6 +213,11 @@ export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDeci
                     <strong>{messages.review.sourceQuote}:</strong> {sourceRef.quote}
                   </blockquote>
                 ))}
+                <EvidenceReviewPanel
+                  sourceRefs={evidence?.source_ref_preview ?? []}
+                  totalSourceCount={evidence?.source_ref_count ?? 0}
+                  compact
+                />
                 <Link href={detailHref} className="action-link">
                   {messages.review.openDetail}
                 </Link>

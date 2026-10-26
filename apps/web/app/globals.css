@@ -2233,3 +2233,215 @@ html[data-theme="light"] .workspace-nav-tabs .demo-nav-link.active {
 html[data-theme="light"] .language-toggle-active {
   color: var(--ink);
 }
+
+
+/* Phase D: make evidence availability visible without implying verification. */
+.evidence-review-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: clamp(16px, 2.5vw, 24px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--card-bg);
+}
+
+.evidence-review-panel-compact {
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.evidence-review-heading,
+.evidence-source-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.evidence-review-heading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  background: none;
+  color: var(--ink);
+  -webkit-text-fill-color: currentColor;
+}
+
+.evidence-review-source-count {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.evidence-review-scope-badge {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.evidence-review-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.evidence-review-metric {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.evidence-review-metric span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.evidence-review-metric strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.evidence-review-sources {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-source-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.evidence-source-heading {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.evidence-source-heading h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.evidence-source-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evidence-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.evidence-status-present {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 35%, transparent);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+}
+
+.evidence-status-missing {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+}
+
+.evidence-source-quote {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--card-bg);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.evidence-source-span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.evidence-source-link {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.evidence-source-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.evidence-source-url {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.evidence-review-boundary {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--warning);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--warning) 7%, transparent);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.evidence-review-unverified {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .evidence-review-heading {
+    flex-direction: column;
+  }
+
+  .evidence-review-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-review-metric {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .evidence-source-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
