@@ -386,14 +386,14 @@ def seed_smoke_demo() -> None:
         preview_artifact = session.scalar(
             select(Artifact).where(
                 Artifact.workspace_id == preview_workspace.id,
-                Artifact.source_id == "ci-preview-public-fictional-adr",
+                Artifact.source_id == "seed-ci-preview-public-fictional-adr",
             )
         )
         if preview_artifact is None:
             preview_artifact = Artifact(
                 workspace_id=preview_workspace.id,
                 type="doc",
-                source_id="ci-preview-public-fictional-adr",
+                source_id="seed-ci-preview-public-fictional-adr",
                 repo="example/ci-evidence-preview",
                 title="CI SYNTHETIC: fictional decision note",
                 content=preview_text,
@@ -408,14 +408,14 @@ def seed_smoke_demo() -> None:
         missing_artifact = session.scalar(
             select(Artifact).where(
                 Artifact.workspace_id == preview_workspace.id,
-                Artifact.source_id == "ci-preview-missing-ref",
+                Artifact.source_id == "seed-ci-preview-missing-ref",
             )
         )
         if missing_artifact is None:
             missing_artifact = Artifact(
                 workspace_id=preview_workspace.id,
                 type="doc",
-                source_id="ci-preview-missing-ref",
+                source_id="seed-ci-preview-missing-ref",
                 repo="example/ci-evidence-preview",
                 title="CI SYNTHETIC: incomplete source metadata",
                 content="No verifiable quote has been recorded for this fictional source.",

@@ -36,3 +36,12 @@ credentials are involved.
 
 Review screenshot artifacts separately from real model/accuracy claims; these
 are UI appearance tests only.
+
+
+### Source labeling correction
+
+The CI-only fixture now uses `seed-` prefixed artifact IDs, so the
+existing provenance resolver correctly labels it as demo/synthetic data. The
+review page also prefers `workspace_mode` and `source_summary` from
+its actual API response over inferring authenticity from the workspace slug.
+This avoids falsely describing fictional CI screenshots as actual GitHub imports.

@@ -110,6 +110,36 @@ describe("ReviewPageContent", () => {
     expect(screen.queryByText(/Accept the first well-supported imported candidate/i)).not.toBeInTheDocument();
   });
 
+  it("uses response provenance instead of inferring real imports from a non-demo slug", () => {
+    render(
+      <ReviewPageContent
+        workspaceSlug="ci-evidence-preview"
+        decisions={[
+          {
+            id: 201,
+            workspace_id: 55,
+            title: "CI SYNTHETIC: Cache proposal (NOT VERIFIED)",
+            status: "active",
+            review_state: "candidate",
+            problem: "Fictional latency issue",
+            context: null,
+            constraints: null,
+            chosen_option: "Proposal only",
+            tradeoffs: "Maintenance",
+            confidence: 0.85,
+            workspace_mode: "demo",
+            source_summary: "This workspace is using seeded demo data for a guided product walkthrough.",
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Demo Workspace")).toBeInTheDocument();
+    expect(screen.getByText("This workspace is using seeded demo data for a guided product walkthrough.")).toBeInTheDocument();
+    expect(screen.queryByText("Imported Workspace")).not.toBeInTheDocument();
+    expect(screen.getByText("CI SYNTHETIC: Cache proposal (NOT VERIFIED)")).toBeInTheDocument();
+  });
+
   it("renders imported review evidence and first-baseline guidance", () => {
     render(
       <ReviewPageContent
