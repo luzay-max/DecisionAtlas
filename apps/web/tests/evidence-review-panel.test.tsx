@@ -51,8 +51,8 @@ describe("EvidenceReviewPanel", () => {
   it("shows the compact queue notice and source preview count", () => {
     render(<EvidenceReviewPanel sourceRefs={[goodRef]} totalSourceCount={3} compact />);
 
-    expect(screen.getByText("3 source references")).toBeInTheDocument();
-    expect(screen.getByText("1 refs previewed")).toBeInTheDocument();
+    expect(screen.getByText(/3 source references/)).toBeInTheDocument();
+    expect(screen.getByText(/1 refs previewed/)).toBeInTheDocument();
     expect(screen.getByText(/quote and link previews below come from stored import metadata/i)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Open source/ })).not.toBeInTheDocument();
   });
@@ -61,6 +61,6 @@ describe("EvidenceReviewPanel", () => {
     render(<EvidenceReviewPanel sourceRefs={[]} />);
 
     expect(screen.getByText("No source references are attached to this decision.")).toBeInTheDocument();
-    expect(screen.getByText("0 / 0")).toBeInTheDocument();
+    expect(screen.getAllByText("0 / 0")).toHaveLength(3);
   });
 });
