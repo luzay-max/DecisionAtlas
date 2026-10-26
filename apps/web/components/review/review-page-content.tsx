@@ -17,7 +17,9 @@ export function ReviewPageContent({
   workspaceSlug: string;
 }) {
   const { messages } = useI18n();
-  const inferredWorkspaceMode = workspaceSlug === "demo-workspace" ? "demo" : "imported";
+  const inferredWorkspaceMode = decisions[0]?.workspace_mode
+    ?? (workspaceSlug === "demo-workspace" ? "demo" : "imported");
+  const sourceSummary = decisions[0]?.source_summary;
   const isGuidedDemoWorkspace = workspaceSlug === "demo-workspace";
 
   return (
@@ -27,7 +29,7 @@ export function ReviewPageContent({
         <p className="eyebrow">{messages.review.eyebrow}</p>
         <h1>{messages.review.title}</h1>
         <p>{messages.review.lede}</p>
-        <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} />
+        <ProvenanceBanner context="review" workspaceMode={inferredWorkspaceMode} sourceSummary={sourceSummary} />
         {isGuidedDemoWorkspace ? (
           <GuidedDemoPanel
             step={2}

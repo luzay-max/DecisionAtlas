@@ -81,7 +81,7 @@ jobs:
         run: pnpm --filter @decisionatlas/web exec playwright test
 
       - name: Upload UI preview screenshots
-        # The screenshots contain CI's seeded public demo only.
+        # The screenshots contain CI's seeded public demo and fictional import-style preview only.
         # Preserve any successfully captured pages even if a later E2E assertion fails.
         if: always()
         uses: actions/upload-artifact@v4
