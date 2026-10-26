@@ -114,6 +114,40 @@ def test_fetch_pull_requests_preserves_observed_merge_metadata() -> None:
     assert pull.metadata_json["base_ref"] == "main"
 
 
+def test_fetch_pull_requests_preserves_explicit_unmerged_state() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/pulls"):
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": 5,
+                        "number": 101,
+                        "title": "Unmerged proposal",
+                        "body": "Not adopted",
+                        "user": {"login": "reviewer"},
+                        "html_url": "https://github.com/org/repo/pull/101",
+                        "state": "closed",
+                        "created_at": "2026-03-18T00:00:00Z",
+                        "updated_at": "2026-03-19T00:00:00Z",
+                        "merged_at": None,
+                        "merge_commit_sha": None,
+                        "head": {"sha": "d" * 40},
+                        "base": {"ref": "main"},
+                    }
+                ],
+            )
+        return httpx.Response(200, json=[])
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+    pull = client.fetch_pull_requests("org/repo")[0]
+
+    assert pull.metadata_json["merge_state_observed"] == "github_api"
+    assert pull.metadata_json["merged"] is False
+    assert pull.metadata_json["merged_at"] is None
+    assert pull.metadata_json["merge_commit_sha"] is None
+
+
 def test_fetch_commits_maps_commit_message() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/commits"):
