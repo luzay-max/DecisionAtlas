@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime
+from datetime import UTC, datetime
+import hashlib
+import re
 from pathlib import PurePosixPath
 from typing import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -60,7 +62,11 @@ class GitHubImporter:
                 author=payload.author,
                 url=payload.url,
                 timestamp=payload.timestamp,
-                metadata_json=payload.metadata_json,
+                metadata_json=_capture_metadata(
+                    payload.metadata_json,
+                    payload.content,
+                    method="github_api",
+                ),
             )
             total += 1
             artifact_counts[payload.artifact_type] += 1
@@ -71,12 +77,20 @@ class GitHubImporter:
             source_id = repository_file.path
             signal_category = classify_repository_document(source_id)
             content = self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch)
-            return source_id, signal_category, content
+            expected_blob_sha = repository_file.sha
+            if isinstance(expected_blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", expected_blob_sha):
+                actual_blob_sha = _git_blob_sha(content)
+                if actual_blob_sha != expected_blob_sha:
+                    raise ValueError(
+                        f"GitHub document changed between tree listing and content fetch: {source_id}"
+                    )
+            return repository_file, signal_category, content
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
             for future in as_completed(futures):
-                source_id, signal_category, content = future.result()
+                repository_file, signal_category, content = future.result()
+                source_id = repository_file.path
                 self.artifacts.upsert(
                     workspace_id=workspace.id,
                     artifact_type="doc",
@@ -87,12 +101,21 @@ class GitHubImporter:
                     author=None,
                     url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
                     timestamp=None,
-                    metadata_json={
-                        "path": source_id,
-                        "ref": default_branch,
-                        "source": "github_repo_doc",
-                        "signal_category": signal_category,
-                    },
+                    metadata_json=_capture_metadata(
+                        {
+                            "source_metadata_origin": "github_contents_api",
+                            "path": source_id,
+                            "ref": default_branch,
+                            "source": "github_repo_doc",
+                            "signal_category": signal_category,
+                            "blob_sha": repository_file.sha
+                            if isinstance(repository_file.sha, str)
+                            and re.fullmatch(r"[0-9a-f]{40}", repository_file.sha)
+                            else None,
+                        },
+                        content,
+                        method="github_contents_api",
+                    ),
                 )
                 total += 1
                 artifact_counts["doc"] += 1
@@ -108,6 +131,25 @@ class GitHubImporter:
             skipped_document_counts=skipped_document_counts,
             selected_document_categories=dict(selected_document_categories),
         )
+
+
+def _capture_metadata(metadata: dict | None, content: str, *, method: str) -> dict:
+    """Record local import-time integrity metadata without claiming remote attestation."""
+    result = dict(metadata or {})
+    result["decisionatlas_capture"] = {
+        "schema_version": 1,
+        "captured_at": datetime.now(UTC).isoformat(),
+        "method": method,
+        "content_sha256": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    }
+    return result
+
+
+def _git_blob_sha(content: str) -> str:
+    """Return Git's SHA-1 object id for UTF-8 text, for tree/content race checks."""
+    payload = content.encode("utf-8")
+    header = f"blob {len(payload)}\0".encode("ascii")
+    return hashlib.sha1(header + payload, usedforsecurity=False).hexdigest()
 
 
 def _repo_doc_url(repo_url: str | None, *, repo: str, ref: str, path: str) -> str:

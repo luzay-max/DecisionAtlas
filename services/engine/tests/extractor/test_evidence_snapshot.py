@@ -88,6 +88,108 @@ def test_read_only_export_preserves_original_quote_and_does_not_invent_adoption(
     engine.dispose()
 
 
+
+def test_import_capture_integrity_detects_mutated_stored_content(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        artifact = session.scalar(select(Artifact))
+        ref = session.scalar(select(SourceRef))
+        artifact.type = "pr"
+        artifact.source_id = "42"
+        artifact.url = "https://github.com/example/project/pull/42"
+        ref.url = artifact.url
+        artifact.metadata_json = {
+            "source_metadata_origin": "github_api",
+            "number": 42,
+            "state": "closed",
+            "updated_at": "2026-10-24T12:00:00Z",
+            "merged_at": None,
+            "merge_state_observed": "github_api",
+            "merged": False,
+            "decisionatlas_capture": {
+                "schema_version": 1,
+                "captured_at": "2026-10-26T00:00:00+00:00",
+                "method": "github_api",
+                "content_sha256": hashlib.sha256(TEXT.encode("utf-8")).hexdigest(),
+            },
+        }
+        session.commit()
+        artifact.content = "Tampered after import."
+        session.commit()
+
+    with Session(engine) as session:
+        report = export_workspace_evidence(session, workspace_slug="public-project", public_data_approved=True)
+    engine.dispose()
+
+    citation = report["rows"][0]["candidate"]["citations"][0]
+    assert citation["merged"] is False
+    assert citation["upstream_metadata"]["merge_state_observed"] == "github_api"
+    assert citation["upstream_metadata"]["number"] == 42
+    assert citation["import_capture_status"] == "fail"
+    checks = {check["field"]: check for check in report["rows"][0]["diagnostics"]["checks"]}
+    assert checks["citations[0].import_snapshot"]["status"] == "fail"
+    assert checks["citations[0].adoption"]["status"] == "fail"
+    assert report["source_authenticity"] == "remote_not_verified"
+    assert report["rows"][0]["diagnostics"]["automatic_acceptance"] is False
+
+
+def test_import_capture_pass_does_not_turn_merged_pr_into_accepted_decision(tmp_path):
+    path = seeded_db(tmp_path)
+    engine = create_engine(f"sqlite:///{path}")
+    with Session(engine) as session:
+        artifact = session.scalar(select(Artifact))
+        ref = session.scalar(select(SourceRef))
+        artifact.type = "pr"
+        artifact.source_id = "43"
+        artifact.url = "https://github.com/example/project/pull/43"
+        ref.url = artifact.url
+        artifact.metadata_json = {
+            "source_metadata_origin": "github_api",
+            "number": 43,
+            "state": "closed",
+            "updated_at": "2026-10-24T12:00:00Z",
+            "merged_at": "2026-10-24T12:30:00Z",
+            "merge_state_observed": "github_api",
+            "merged": True,
+            "merge_commit_sha": "b" * 40,
+            "head_sha": "c" * 40,
+            "base_ref": "main",
+            "decisionatlas_capture": {
+                "schema_version": 1,
+                "captured_at": "2026-10-26T00:00:00+00:00",
+                "method": "github_api",
+                "content_sha256": hashlib.sha256(TEXT.encode("utf-8")).hexdigest(),
+            },
+        }
+        session.commit()
+
+    with Session(engine) as session:
+        report = export_workspace_evidence(session, workspace_slug="public-project", public_data_approved=True)
+    engine.dispose()
+
+    citation = report["rows"][0]["candidate"]["citations"][0]
+    assert citation["merged"] is True
+    assert citation["import_capture_status"] == "pass"
+    checks = {check["field"]: check for check in report["rows"][0]["diagnostics"]["checks"]}
+    assert checks["citations[0].import_snapshot"]["status"] == "pass"
+    assert checks["citations[0].adoption"]["reason"] == "merged_does_not_prove_decision_adoption"
+    assert checks["semantic_support"]["status"] == "not_evaluated"
+    assert report["source_authenticity"] == "remote_not_verified"
+    assert report["human_review"] == "not_run"
+    assert report["rows"][0]["diagnostics"]["automatic_acceptance"] is False
+
+
+def test_legacy_artifact_keeps_capture_and_merge_state_unknown(tmp_path):
+    path = seeded_db(tmp_path)
+    report = export_from_db(path, public_data_approved=True)
+    citation = report["rows"][0]["candidate"]["citations"][0]
+    assert citation["import_capture_status"] == "not_evaluated"
+    assert citation["merged"] is None
+    checks = {check["field"]: check for check in report["rows"][0]["diagnostics"]["checks"]}
+    assert checks["citations[0].import_snapshot"]["status"] == "not_evaluated"
+
+
 def test_operator_declares_fake_but_cannot_claim_unverified_live(tmp_path):
     path = seeded_db(tmp_path)
     assert export_from_db(path, public_data_approved=True, provider_kind="fake")["rows"][0]["candidate"]["provider_kind"] == "fake"

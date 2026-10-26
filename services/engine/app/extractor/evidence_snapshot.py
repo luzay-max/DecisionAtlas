@@ -105,6 +105,37 @@ def export_workspace_evidence(
             if not _source_is_in_repo(url, repo):
                 raise ValueError("source URL is missing, outside the repository, or includes a query string")
             snapshot_text = artifact.content
+            metadata = artifact.metadata_json if isinstance(artifact.metadata_json, dict) else {}
+            capture = metadata.get("decisionatlas_capture")
+            if not isinstance(capture, dict):
+                capture = {}
+            import_digest = capture.get("content_sha256")
+            if isinstance(import_digest, str):
+                import_capture_status = (
+                    "pass"
+                    if hashlib.sha256(snapshot_text.encode("utf-8")).hexdigest() == import_digest
+                    else "fail"
+                )
+            else:
+                import_capture_status = "not_evaluated"
+            merge_state_observed = (
+                metadata.get("source_metadata_origin") == "github_api"
+                and metadata.get("merge_state_observed") == "github_api"
+                and type(metadata.get("merged")) is bool
+            )
+            upstream_metadata = {
+                "origin": metadata.get("source_metadata_origin")
+                if isinstance(metadata.get("source_metadata_origin"), str) else "not_recorded",
+                "number": metadata.get("number") if type(metadata.get("number")) is int else None,
+                "state": metadata.get("state") if isinstance(metadata.get("state"), str) else None,
+                "updated_at": metadata.get("updated_at") if isinstance(metadata.get("updated_at"), str) else None,
+                "closed_at": metadata.get("closed_at") if isinstance(metadata.get("closed_at"), str) else None,
+                "merged_at": metadata.get("merged_at") if isinstance(metadata.get("merged_at"), str) else None,
+                "merge_state_observed": "github_api" if merge_state_observed else "unknown",
+                "merge_commit_sha": metadata.get("merge_commit_sha") if isinstance(metadata.get("merge_commit_sha"), str) else None,
+                "head_sha": metadata.get("head_sha") if isinstance(metadata.get("head_sha"), str) else None,
+                "base_ref": metadata.get("base_ref") if isinstance(metadata.get("base_ref"), str) else None,
+            }
             citation = {
                 "source_ref_id": ref.id,
                 "artifact_id": artifact.id,
@@ -117,8 +148,13 @@ def export_workspace_evidence(
                 "end": ref.span_end,
                 "snapshot_text": snapshot_text,
                 "snapshot_sha256": hashlib.sha256(snapshot_text.encode("utf-8")).hexdigest(),
-                # The import record does not reliably contain merge status.
-                "merged": None,
+                "import_snapshot_sha256": import_digest if isinstance(import_digest, str) else None,
+                "import_capture_status": import_capture_status,
+                "import_captured_at": capture.get("captured_at") if isinstance(capture.get("captured_at"), str) else None,
+                "import_capture_method": capture.get("method") if isinstance(capture.get("method"), str) else None,
+                "upstream_metadata": upstream_metadata,
+                # Old imports and partial API payloads remain explicitly unknown.
+                "merged": metadata.get("merged") if merge_state_observed else None,
             }
             # An immutable-looking URL can only indicate syntax. This does not
             # assert that the stored body was fetched from that remote revision.
