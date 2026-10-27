@@ -182,6 +182,32 @@ class GitHubClient:
         if encoded and encoding == "base64":
             return base64.b64decode(encoded).decode("utf-8")
 
+        # Prefer the authenticated Contents API raw media type. Unlike a
+        # cross-origin download URL, this also works for private repositories
+        # without sending their token to another host.
+        raw_response = self._get(
+            f"/repos/{repo}/contents/{path}",
+            params={"ref": ref},
+            headers={"Accept": "application/vnd.github.raw+json"},
+        )
+        if raw_response.is_redirect:
+            raise ValueError("GitHub raw content API redirected unexpectedly")
+        raw_response.raise_for_status()
+        if "json" not in raw_response.headers.get("content-type", "").lower():
+            return raw_response.text
+
+        # Some API proxies/fixtures ignore Accept and send the same object.
+        # Fall back to the explicitly validated, unauthenticated public URL
+        # only if the raw media response is still a Contents metadata object.
+        try:
+            raw_payload = raw_response.json()
+        except ValueError:
+            return raw_response.text
+        if not isinstance(raw_payload, dict) or "encoding" not in raw_payload:
+            return raw_response.text
+        if raw_payload.get("encoding") == "base64" and raw_payload.get("content"):
+            return base64.b64decode(raw_payload["content"]).decode("utf-8")
+
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
             return self._fetch_public_markdown_download(download_url, repo=repo)
@@ -261,11 +287,13 @@ class GitHubClient:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
 
-    def _get(self, path: str, *, params: dict[str, Any] | None = None) -> httpx.Response:
+    def _get(
+        self, path: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None
+    ) -> httpx.Response:
         attempts = self.transport_retry_attempts + 1
         for attempt in range(1, attempts + 1):
             try:
-                return self.client.get(path, params=params)
+                return self.client.get(path, params=params, headers=headers, follow_redirects=False)
             except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
                 if attempt >= attempts:
                     raise GitHubNetworkError(

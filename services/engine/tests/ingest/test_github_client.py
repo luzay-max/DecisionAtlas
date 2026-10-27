@@ -367,7 +367,7 @@ def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
         assert "not trusted" in str(exc)
     else:
         raise AssertionError("Expected unsafe raw download to be blocked")
-    assert len(requests) == 1
+    assert len(requests) == 2
 
 
 def test_raw_markdown_fallback_refuses_redirects() -> None:
@@ -389,7 +389,67 @@ def test_raw_markdown_fallback_refuses_redirects() -> None:
         assert "redirected unexpectedly" in str(exc)
     else:
         raise AssertionError("Expected redirect to be blocked")
-    assert len(requests) == 2
+    assert len(requests) == 3
+
+
+def test_raw_media_fallback_keeps_private_token_on_github_api_only() -> None:
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append({
+            "host": request.url.host,
+            "accept": request.headers.get("Accept"),
+            "authorization": request.headers.get("Authorization"),
+        })
+        if request.url.host != "api.github.com":
+            raise AssertionError("No cross-origin request is needed for a private repository")
+        if request.headers.get("Accept") == "application/vnd.github.raw+json":
+            return httpx.Response(200, text="# Large private Markdown")
+        return httpx.Response(
+            200,
+            json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/private.md",
+            },
+        )
+
+    client = GitHubClient(
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-pass"),
+        )
+    )
+    result = client.fetch_markdown_document("org/repo", path="private.md", ref="main")
+    assert result == "# Large private Markdown"
+    assert [row["host"] for row in seen] == ["api.github.com", "api.github.com"]
+    assert seen[1]["accept"] == "application/vnd.github.raw+json"
+    assert all(row["authorization"] is not None for row in seen)
+
+
+def test_raw_media_fallback_does_not_follow_authenticated_redirects() -> None:
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.host)
+        if request.headers.get("Accept") == "application/vnd.github.raw+json":
+            return httpx.Response(302, headers={"Location": "https://example.invalid/steal"})
+        return httpx.Response(200, json={"encoding": "none", "content": ""})
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        headers={"Authorization": "Bearer private-token"},
+        follow_redirects=True,
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "raw content API redirected" in str(exc)
+    else:
+        raise AssertionError("Expected authenticated cross-host redirect to be blocked")
+    assert seen == ["api.github.com", "api.github.com"]
 
 
 def test_fetch_pull_requests_accepts_naive_since_datetime() -> None:
