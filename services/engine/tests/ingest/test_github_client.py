@@ -314,6 +314,84 @@ def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_conte
     assert content == "# Changelog\n\nLarge markdown body"
 
 
+def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
+    observed = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed[str(request.url.host)] = {
+            "authorization": request.headers.get("Authorization"),
+            "cookie": request.headers.get("Cookie"),
+        }
+        if request.url.host == "api.github.com":
+            return httpx.Response(
+                200,
+                json={
+                    "encoding": "none",
+                    "content": "",
+                    "download_url": "https://raw.githubusercontent.com/org/repo/main/CHANGELOG.md",
+                },
+            )
+        if request.url.host == "raw.githubusercontent.com":
+            return httpx.Response(200, text="# Safe raw content")
+        raise AssertionError("Unexpected outbound request")
+
+    transport = httpx.MockTransport(handler)
+    client = GitHubClient(
+        client=httpx.Client(
+            transport=transport,
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-pass"),
+            headers={"Cookie": "session=private-cookie"},
+        )
+    )
+    assert client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main") == "# Safe raw content"
+    assert observed["api.github.com"]["authorization"] is not None
+    assert observed["api.github.com"]["cookie"] == "session=private-cookie"
+    assert observed["raw.githubusercontent.com"] == {"authorization": None, "cookie": None}
+
+
+def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        return httpx.Response(
+            200,
+            json={"encoding": "none", "download_url": "https://example.invalid/org/repo/main/README.md"},
+        )
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "not trusted" in str(exc)
+    else:
+        raise AssertionError("Expected unsafe raw download to be blocked")
+    assert len(requests) == 1
+
+
+def test_raw_markdown_fallback_refuses_redirects() -> None:
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        if request.url.host == "api.github.com":
+            return httpx.Response(
+                200,
+                json={"encoding": "none", "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md"},
+            )
+        return httpx.Response(302, headers={"Location": "https://example.invalid/steal"})
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "redirected unexpectedly" in str(exc)
+    else:
+        raise AssertionError("Expected redirect to be blocked")
+    assert len(requests) == 2
+
+
 def test_fetch_pull_requests_accepts_naive_since_datetime() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/pulls"):

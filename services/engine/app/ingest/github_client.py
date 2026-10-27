@@ -4,6 +4,7 @@ import base64
 from datetime import datetime, timezone
 from time import sleep
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -183,11 +184,46 @@ class GitHubClient:
 
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            download_response = self._get(download_url)
-            download_response.raise_for_status()
-            return download_response.text
+            return self._fetch_public_markdown_download(download_url, repo=repo)
 
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
+
+    def _fetch_public_markdown_download(self, download_url: str, *, repo: str) -> str:
+        """Fetch public raw content without forwarding GitHub API credentials.
+
+        Content-API download_url is upstream-controlled. A cross-origin GET
+        through the authenticated API client must never inherit its token.
+        """
+        try:
+            parsed = urlsplit(download_url)
+            trusted = (
+                parsed.scheme == "https"
+                and parsed.hostname == "raw.githubusercontent.com"
+                and parsed.username is None
+                and parsed.password is None
+                and parsed.port in (None, 443)
+                and not parsed.netloc.endswith(":")
+                and not parsed.query
+                and not parsed.fragment
+                and parsed.path.startswith(f"/{repo}/")
+                and all(part not in {"", ".", ".."} for part in parsed.path.split("/")[1:])
+            )
+        except ValueError:
+            trusted = False
+        if not trusted:
+            raise ValueError("GitHub raw content download URL is not trusted")
+
+        # build_request merges client defaults, so explicitly strip credentials
+        # and override client-level auth before sending. Redirects must not be
+        # followed to another host.
+        request = self.client.build_request("GET", download_url)
+        request.headers.pop("Authorization", None)
+        request.headers.pop("Cookie", None)
+        response = self.client.send(request, auth=httpx.Auth(), follow_redirects=False)
+        if response.is_redirect:
+            raise ValueError("GitHub raw content download redirected unexpectedly")
+        response.raise_for_status()
+        return response.text
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         page = 1
