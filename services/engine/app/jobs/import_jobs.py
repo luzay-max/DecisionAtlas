@@ -13,7 +13,7 @@ import httpx
 from app.config import get_settings
 from app.db.session import get_db_session
 from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
-from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError, GitHubNetworkError
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
@@ -811,6 +811,8 @@ def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
 
 
 def _classify_failure(exc: Exception) -> str:
+    if isinstance(exc, GitHubIncompleteCoverageError):
+        return "incomplete_source_coverage"
     if isinstance(exc, RepositoryAccessError):
         return exc.failure_category
     if isinstance(exc, GitHubNetworkError):
