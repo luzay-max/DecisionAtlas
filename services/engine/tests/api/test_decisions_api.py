@@ -295,9 +295,10 @@ def test_decision_evidence_flags_quote_missing_after_artifact_overwrite_without_
         ref["quote"] for ref in original["source_refs"]
     ]
     assert body["review_state"] == original["review_state"] == "candidate"
-    assert client.get("/decisions", params={"workspace_slug": "imported-workspace"}).json()[0][
-        "review_evidence"
-    ]["current_quote_integrity"]["status"] == "current_quote_missing"
+    listed = client.get("/decisions", params={"workspace_slug": "imported-workspace"})
+    assert listed.status_code == 200
+    matching = next(item for item in listed.json() if item["id"] == body["id"])
+    assert matching["review_evidence"]["current_quote_integrity"]["status"] == "current_quote_missing"
 
 
 def test_current_quote_integrity_does_not_conflate_unverifiable_with_mismatch() -> None:
