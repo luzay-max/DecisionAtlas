@@ -15,6 +15,7 @@ from app.db.models import (
     ArtifactCurrentRevision,
     ArtifactExtractionRun,
     ArtifactRevision,
+    Decision,
     SourceRef,
     Workspace,
 )
@@ -100,6 +101,13 @@ def test_revision_schema_enforces_identity_and_pointer_same_artifact(
         session.add_all(artifacts)
         session.flush()
         first_id, second_id = artifacts[0].id, artifacts[1].id
+        decision = Decision(
+            workspace_id=workspace.id, title="Initial source choice", problem="Review",
+            chosen_option="Use the original", tradeoffs="Other options",
+        )
+        session.add(decision)
+        session.flush()
+        decision_id = decision.id
         original = ArtifactRevision(
             artifact_id=first_id,
             revision_number=1,
@@ -129,6 +137,33 @@ def test_revision_schema_enforces_identity_and_pointer_same_artifact(
             candidate_count=0,
         ))
         session.commit()
+
+    # SourceRefs may only bind a revision belonging to their Artifact.
+    # Legacy unbound refs (nullable revision_id) must remain legal.
+    with Session(engine) as session:
+        session.add_all([
+            SourceRef(
+                decision_id=decision_id, artifact_id=first_id,
+                artifact_revision_id=revision_id, quote="Matching source revision",
+            ),
+            SourceRef(
+                decision_id=decision_id, artifact_id=second_id,
+                artifact_revision_id=None, quote="Legacy evidence not bound",
+            ),
+        ])
+        session.commit()
+
+    with Session(engine) as session:
+        session.add(SourceRef(
+            decision_id=decision_id, artifact_id=second_id,
+            artifact_revision_id=revision_id, quote="Mismatched source revision",
+        ))
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
+
+    with Session(engine) as session:
+        assert len(session.scalars(select(SourceRef).where(SourceRef.decision_id == decision_id)).all()) == 2
 
     with Session(engine) as session:
         session.add(ArtifactRevision(

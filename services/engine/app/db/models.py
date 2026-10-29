@@ -270,14 +270,19 @@ class Decision(Base):
 
 class SourceRef(Base):
     __tablename__ = "source_refs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["artifact_id", "artifact_revision_id"],
+            ["artifact_revisions.artifact_id", "artifact_revisions.id"],
+            name="fk_source_refs_artifact_revision_same_artifact",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), nullable=False)
     artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id"), nullable=False)
     # Existing SourceRefs remain NULL: the migration cannot infer reviewed bytes.
-    artifact_revision_id: Mapped[int | None] = mapped_column(
-        ForeignKey("artifact_revisions.id"), nullable=True
-    )
+    artifact_revision_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     span_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     span_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     quote: Mapped[str] = mapped_column(Text, nullable=False)

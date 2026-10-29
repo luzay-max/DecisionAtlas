@@ -81,10 +81,10 @@ def upgrade() -> None:
     with op.batch_alter_table("source_refs") as batch:
         batch.add_column(sa.Column("artifact_revision_id", sa.Integer(), nullable=True))
         batch.create_foreign_key(
-            "fk_source_refs_artifact_revision",
+            "fk_source_refs_artifact_revision_same_artifact",
             "artifact_revisions",
-            ["artifact_revision_id"],
-            ["id"],
+            ["artifact_id", "artifact_revision_id"],
+            ["artifact_id", "id"],
         )
     op.create_index("ix_source_refs_artifact_revision", "source_refs", ["artifact_revision_id"])
 
@@ -104,7 +104,7 @@ def downgrade() -> None:
 
     op.drop_index("ix_source_refs_artifact_revision", table_name="source_refs")
     with op.batch_alter_table("source_refs") as batch:
-        batch.drop_constraint("fk_source_refs_artifact_revision", type_="foreignkey")
+        batch.drop_constraint("fk_source_refs_artifact_revision_same_artifact", type_="foreignkey")
         batch.drop_column("artifact_revision_id")
     op.drop_table("artifact_extraction_runs")
     op.drop_table("artifact_current_revisions")
