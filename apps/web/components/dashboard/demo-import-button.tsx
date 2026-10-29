@@ -31,6 +31,9 @@ export function DemoImportButton({
     latestImport?.summary?.stage ?? (initialJobId ? "queued" : importStatus ?? null)
   );
   const [loading, setLoading] = useState(false);
+  const [jobActionPending, setJobActionPending] = useState(false);
+  const [jobActionError, setJobActionError] = useState<string | null>(null);
+  const jobActionInFlight = useRef(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(latestImport?.job_id ?? initialJobId ?? null);
   const [jobStatus, setJobStatus] = useState<string | null>(
     latestImport?.status ?? (initialJobId ? "queued" : importStatus ?? null)
@@ -222,22 +225,28 @@ export function DemoImportButton({
     return null;
   }
 
-  async function handlePause() {
-    if (!activeJobId) return;
+  async function handleJobAction(action: "pause" | "resume") {
+    if (!activeJobId || jobActionInFlight.current) return;
+    jobActionInFlight.current = true;
+    setJobActionPending(true);
+    setJobActionError(null);
     try {
-      await pauseGithubImport(activeJobId);
-      setJobStatus("paused");
+      const job = action === "pause"
+        ? await pauseGithubImport(activeJobId)
+        : await resumeGithubImport(activeJobId);
+      const expectedStatus = action === "pause" ? "paused" : "running";
+      if (!job || job.status !== expectedStatus) {
+        throw new Error("Import status change was not confirmed by the server");
+      }
+      applyJobState(job);
       router.refresh();
-    } catch (err) {}
-  }
-
-  async function handleResume() {
-    if (!activeJobId) return;
-    try {
-      await resumeGithubImport(activeJobId);
-      setJobStatus("running");
-      router.refresh();
-    } catch (err) {}
+    } catch (error) {
+      // Preserve the previous status on 401/403/404/409/network errors.
+      setJobActionError(error instanceof Error ? error.message : "Could not update import status");
+    } finally {
+      jobActionInFlight.current = false;
+      setJobActionPending(false);
+    }
   }
 
   async function handleClick() {
@@ -345,16 +354,17 @@ export function DemoImportButton({
           {loading ? messages.importButton.importing : messages.importButton.runDemoImport}
         </button>
         {activeJobId && jobStatus === "running" && (
-          <button type="button" onClick={handlePause} className="action-button-secondary">
+          <button type="button" onClick={() => void handleJobAction("pause")} disabled={jobActionPending} className="action-button-secondary">
             暂停 (Pause)
           </button>
         )}
         {activeJobId && jobStatus === "paused" && (
-          <button type="button" onClick={handleResume} className="action-button-primary">
+          <button type="button" onClick={() => void handleJobAction("resume")} disabled={jobActionPending} className="action-button-primary">
             恢复 (Resume)
           </button>
         )}
       </div>
+      {jobActionError ? <p className="guided-demo-status" role="alert">{jobActionError}</p> : null}
       <p>
         {messages.importButton.repoLabel} {repo}
       </p>

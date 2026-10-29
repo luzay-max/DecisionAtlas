@@ -503,6 +503,61 @@ describe("POST /imports/github", () => {
     global.fetch = originalFetch;
   });
 
+
+  it.each([
+    { action: "pause", status: 200, payload: { job_id: "job-123", status: "paused" } },
+    { action: "resume", status: 200, payload: { job_id: "job-123", status: "running" } },
+    { action: "pause", status: 401, payload: { detail: "Authentication required" } },
+    { action: "resume", status: 403, payload: { detail: "Forbidden" } },
+    { action: "pause", status: 404, payload: { detail: "Import job not found" } },
+    { action: "resume", status: 400, payload: { detail: "Cannot resume job in status: succeeded" } },
+  ])("forwards $action control status $status and request credentials", async ({ action, status, payload }) => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status,
+      ok: status >= 200 && status < 300,
+      text: async () => JSON.stringify(payload),
+    } as Response);
+
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: `/imports/job-123/${action}`,
+        ...(status === 401 ? {} : { headers: { cookie: "decisionatlas_session=admin-token" } }),
+      });
+      expect(response.statusCode).toBe(status);
+      expect(response.json()).toEqual(payload);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledWith(
+        `http://localhost:8000/imports/job-123/${action}`,
+        {
+          method: "POST",
+          headers: status === 401 ? {} : { "x-decisionatlas-session-token": "admin-token" },
+        }
+      );
+    } finally {
+      global.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
+  it("does not forward malformed job ids or unsupported import actions", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn();
+    const app = buildServer();
+    try {
+      const invalid = await app.inject({ method: "POST", url: "/imports/job!bad/pause" });
+      expect(invalid.statusCode).toBe(400);
+      const unsupported = await app.inject({ method: "POST", url: "/imports/job-123/cancel" });
+      expect(unsupported.statusCode).toBe(404);
+      expect(global.fetch).not.toHaveBeenCalled();
+    } finally {
+      global.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
   it("returns 502 when the engine request itself fails", async () => {
     const originalFetch = global.fetch;
     global.fetch = vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED"));
