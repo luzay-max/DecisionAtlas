@@ -10,6 +10,15 @@ import httpx
 from app.ingest.github_types import GitHubArtifactPayload, GitHubRepositoryFile
 
 
+class GitHubIncompleteCoverageError(ValueError):
+    """A bounded GitHub fetch could not establish complete requested coverage."""
+
+    def __init__(self, *, reason: str, scope: str, detail: str) -> None:
+        self.reason = reason
+        self.scope = scope
+        super().__init__(f"GitHub import incomplete ({reason}) for {scope}: {detail}")
+
+
 class GitHubNetworkError(Exception):
     def __init__(self, message: str, *, cause: Exception | None = None) -> None:
         super().__init__(message)
@@ -161,6 +170,12 @@ class GitHubClient:
         response = self._get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})
         response.raise_for_status()
         payload = response.json()
+        if payload.get("truncated") is True:
+            raise GitHubIncompleteCoverageError(
+                reason="tree_truncated",
+                scope=f"{repo}@{branch}",
+                detail="recursive Git tree response was truncated; repository file selection cannot be complete",
+            )
         tree = payload.get("tree") or []
         return [
             GitHubRepositoryFile(
@@ -190,26 +205,39 @@ class GitHubClient:
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        if self.max_pages < 1:
+            raise GitHubIncompleteCoverageError(
+                reason="invalid_page_limit",
+                scope=path,
+                detail=f"max_pages must be positive (got {self.max_pages})",
+            )
         page = 1
         results: list[dict[str, Any]] = []
         while True:
-            if page > self.max_pages:
-                break
             request_params = {"per_page": 100, "page": page}
             if params:
                 request_params.update(params)
             response = self._get(path, params=request_params)
             if response.status_code == 422 and page > 1:
-                break
+                raise GitHubIncompleteCoverageError(
+                    reason="pagination_rejected",
+                    scope=path,
+                    detail=f"GitHub rejected page {page} with HTTP 422 after {len(results)} records",
+                )
             response.raise_for_status()
             payload = response.json()
             if not payload:
-                break
+                return results
             results.extend(payload)
             if "next" not in response.links:
-                break
+                return results
+            if page >= self.max_pages:
+                raise GitHubIncompleteCoverageError(
+                    reason="page_limit",
+                    scope=path,
+                    detail=f"GitHub provided a next page after limit {self.max_pages}; fetched {len(results)} records",
+                )
             page += 1
-        return results
 
     @staticmethod
     def _parse_datetime(value: str | None) -> datetime | None:

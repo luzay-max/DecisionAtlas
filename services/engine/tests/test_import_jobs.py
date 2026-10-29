@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
-from app.ingest.github_client import GitHubNetworkError
+from app.ingest.github_client import GitHubIncompleteCoverageError, GitHubNetworkError
 from app.ingest.github_types import GitHubImportResult
 from app.jobs.import_jobs import (
     _classify_failure,
@@ -360,6 +360,9 @@ def test_classify_failure_distinguishes_network_provider_and_repository_access()
     http_error = httpx.HTTPStatusError("not found", request=request, response=response)
 
     assert _classify_failure(GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))) == "network_failure"
+    assert _classify_failure(GitHubIncompleteCoverageError(
+        reason="page_limit", scope="/repos/org/repo/issues", detail="next page exists"
+    )) == "incomplete_source_coverage"
     assert _classify_failure(http_error) == "repository_access_failure"
     assert _classify_failure(ProviderTimeoutError("provider timeout")) == "provider_failure"
 
