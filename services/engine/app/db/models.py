@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -172,6 +172,73 @@ class Artifact(Base):
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
+class ArtifactRevision(Base):
+    """Append-only captured source bytes; no writer is activated in schema phase."""
+
+    __tablename__ = "artifact_revisions"
+    __table_args__ = (
+        UniqueConstraint("artifact_id", "revision_number", name="uq_artifact_revisions_number"),
+        UniqueConstraint("artifact_id", "capture_fingerprint", name="uq_artifact_revisions_fingerprint"),
+        # SQLite needs a unique parent pair for the composite pointer FK.
+        UniqueConstraint("artifact_id", "id", name="uq_artifact_revisions_artifact_id"),
+        CheckConstraint("revision_number >= 1", name="ck_artifact_revisions_number_positive"),
+        Index("ix_artifact_revisions_artifact_captured", "artifact_id", "captured_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id"), nullable=False)
+    revision_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    capture_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    source_metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    capture_method: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_git_blob_sha: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    verification_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ArtifactCurrentRevision(Base):
+    """Current pointer cannot target a revision owned by a different Artifact."""
+
+    __tablename__ = "artifact_current_revisions"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["artifact_id", "revision_id"],
+            ["artifact_revisions.artifact_id", "artifact_revisions.id"],
+            name="fk_artifact_current_revision_same_artifact",
+        ),
+    )
+
+    artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id"), primary_key=True)
+    revision_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ArtifactExtractionRun(Base):
+    """One revision/extractor fingerprint claim; execution behavior is deferred."""
+
+    __tablename__ = "artifact_extraction_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "artifact_revision_id", "extractor_fingerprint",
+            name="uq_artifact_extraction_revision_extractor",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    artifact_revision_id: Mapped[int] = mapped_column(ForeignKey("artifact_revisions.id"), nullable=False)
+    extractor_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    candidate_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class ArtifactChunk(Base):
     __tablename__ = "artifact_chunks"
 
@@ -207,6 +274,10 @@ class SourceRef(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"), nullable=False)
     artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id"), nullable=False)
+    # Existing SourceRefs remain NULL: the migration cannot infer reviewed bytes.
+    artifact_revision_id: Mapped[int | None] = mapped_column(
+        ForeignKey("artifact_revisions.id"), nullable=True
+    )
     span_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
     span_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
     quote: Mapped[str] = mapped_column(Text, nullable=False)
