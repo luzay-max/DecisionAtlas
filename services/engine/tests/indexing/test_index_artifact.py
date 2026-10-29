@@ -135,7 +135,7 @@ def test_empty_reindex_clears_stale_chunks_and_allows_future_reindex(tmp_path: P
         artifact_id = artifact.id
 
     with Session(engine) as session:
-        assert index_artifact(session=session, artifact_id=artifact_id, content="Alpha\\n\\nBeta", embedder=FakeEmbedder()) == 1
+        assert index_artifact(session=session, artifact_id=artifact_id, content="Alpha\n\nBeta", embedder=FakeEmbedder()) == 1
     with Session(engine) as session:
         assert len(session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all()) == 1
 
