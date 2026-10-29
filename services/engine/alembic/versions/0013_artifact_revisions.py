@@ -74,16 +74,18 @@ def upgrade() -> None:
         ),
     )
 
-    # Nullable and unpopulated: existing SourceRefs stay legacy/unbound.
-    op.add_column(
-        "source_refs",
-        sa.Column(
-            "artifact_revision_id",
-            sa.Integer(),
-            sa.ForeignKey("artifact_revisions.id"),
-            nullable=True,
-        ),
-    )
+    # SQLite does not support adding an FK constraint to an existing table
+    # with ordinary ALTER TABLE. Alembic batch mode recreates source_refs on
+    # SQLite while preserving existing legacy refs (and runs native ALTER on
+    # other supported backends).
+    with op.batch_alter_table("source_refs") as batch:
+        batch.add_column(sa.Column("artifact_revision_id", sa.Integer(), nullable=True))
+        batch.create_foreign_key(
+            "fk_source_refs_artifact_revision",
+            "artifact_revisions",
+            ["artifact_revision_id"],
+            ["id"],
+        )
     op.create_index("ix_source_refs_artifact_revision", "source_refs", ["artifact_revision_id"])
 
 
@@ -102,6 +104,7 @@ def downgrade() -> None:
 
     op.drop_index("ix_source_refs_artifact_revision", table_name="source_refs")
     with op.batch_alter_table("source_refs") as batch:
+        batch.drop_constraint("fk_source_refs_artifact_revision", type_="foreignkey")
         batch.drop_column("artifact_revision_id")
     op.drop_table("artifact_extraction_runs")
     op.drop_table("artifact_current_revisions")
