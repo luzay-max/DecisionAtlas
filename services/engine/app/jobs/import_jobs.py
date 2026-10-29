@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from time import monotonic
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -13,7 +13,7 @@ import httpx
 from app.config import get_settings
 from app.db.session import get_db_session
 from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
-from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError, GitHubNetworkError
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
@@ -41,6 +41,11 @@ QUALIFYING_WEBHOOK_EVENTS = {"push", "pull_request", "issues"}
 PRIVATE_ACCESS_AUTH_DETAIL = "GitHub token is unauthorized, expired, revoked, or lacks access to this repository."
 PRIVATE_ACCESS_NOT_FOUND_DETAIL = "Repository was not found for the selected private access source."
 PRIVATE_ACCESS_NETWORK_DETAIL = "GitHub provider or network failure while validating private repository access."
+
+# Overlap provides a bounded retry window for equal-second timestamps and
+# changes during the previous import. It is NOT a substitute for per-stream
+# cursors or immutable source revisions (F05/F06 follow-up design).
+INCREMENTAL_SYNC_OVERLAP = timedelta(minutes=5)
 
 
 class RepositoryAccessError(ValueError):
@@ -152,7 +157,26 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         if mode == "since_last_sync":
             last_success = jobs.latest_success_for_repo(workspace.id, repo)
             if last_success is not None and last_success.job_id != job_id:
-                since = last_success.finished_at or last_success.started_at or last_success.created_at
+                # Use the preceding import's *start*, not its completion:
+                # updates made during its extract/index phases were not
+                # necessarily visible to GitHub listing calls performed earlier.
+                since = _incremental_since_for_success(last_success)
+
+        if mode == "since_last_sync":
+            jobs.update_stage(
+                job_id,
+                stage=current_stage,
+                summary_json={
+                    "sync_window": {
+                        "source_since": since.isoformat() if since is not None else None,
+                        "basis": "last_success_started_at_with_overlap" if since else "full_initial_scan",
+                        "overlap_seconds": int(INCREMENTAL_SYNC_OVERLAP.total_seconds()) if since else 0,
+                    }
+                },
+            )
+            # Safe before importer begins writing artifacts; if import fails,
+            # the failure record retains the requested source window.
+            session.commit()
 
         importer = GitHubImporter(
             session,
@@ -812,7 +836,23 @@ def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
     return f"github-{scope_normalized}-{normalized}".strip("-")[:120]
 
 
+def _incremental_since_for_success(job) -> datetime:
+    """Conservative inclusive lower bound for re-reading previous import work.
+
+    SQLAlchemy/SQLite commonly return naive UTC timestamps. Normalize before
+    subtracting the fixed overlap, and never use finished_at as a cursor.
+    """
+    start = job.started_at or job.created_at
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    else:
+        start = start.astimezone(timezone.utc)
+    return start - INCREMENTAL_SYNC_OVERLAP
+
+
 def _classify_failure(exc: Exception) -> str:
+    if isinstance(exc, GitHubIncompleteCoverageError):
+        return "incomplete_source_coverage"
     if isinstance(exc, RepositoryAccessError):
         return exc.failure_category
     if isinstance(exc, GitHubNetworkError):

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 import httpx
+import pytest
 
-from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError, GitHubNetworkError
 
 
 def test_fetch_issues_skips_pull_requests() -> None:
@@ -222,7 +223,7 @@ def test_paginate_stops_without_next_link_even_when_page_is_full() -> None:
     assert request_pages == ["1"]
 
 
-def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
+def test_paginate_rejects_422_after_next_link_instead_of_claiming_complete() -> None:
     request_pages: list[str | None] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -249,13 +250,14 @@ def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
 
     client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
 
-    issues = client.fetch_issues("org/repo")
+    with pytest.raises(GitHubIncompleteCoverageError, match="pagination_rejected") as exc:
+        client.fetch_issues("org/repo")
 
-    assert len(issues) == 1
+    assert exc.value.scope == "/repos/org/repo/issues"
     assert request_pages == ["1", "2"]
 
 
-def test_paginate_respects_max_pages_limit() -> None:
+def test_paginate_fails_closed_at_max_pages_with_next_link() -> None:
     request_pages: list[str | None] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -284,11 +286,65 @@ def test_paginate_respects_max_pages_limit() -> None:
         client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
     )
 
-    issues = client.fetch_issues("org/repo")
+    with pytest.raises(GitHubIncompleteCoverageError, match="page_limit") as exc:
+        client.fetch_issues("org/repo")
 
-    assert len(issues) == 3
+    assert exc.value.scope == "/repos/org/repo/issues"
     assert request_pages == ["1", "2", "3"]
 
+
+
+
+def test_tree_truncation_fails_before_document_selection() -> None:
+    request_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_paths.append(request.url.path)
+        return httpx.Response(
+            200,
+            json={
+                "sha": "abc",
+                "truncated": True,
+                "tree": [{"path": "docs/architecture.md", "type": "blob", "sha": "123"}],
+            },
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="tree_truncated") as exc:
+        client.list_repository_files("org/repo", ref="main")
+
+    assert exc.value.scope == "org/repo@main"
+    assert request_paths == ["/repos/org/repo/git/trees/main"]
+
+
+def test_complete_tree_and_last_page_without_next_link_remain_accepted() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/issues"):
+            return httpx.Response(200, json=[{
+                "id": 1,
+                "number": 1,
+                "title": "One issue",
+                "body": "Content",
+                "user": {"login": "maintainer"},
+                "state": "open",
+                "created_at": "2026-03-18T00:00:00Z",
+            }])
+        return httpx.Response(200, json={
+            "truncated": False,
+            "tree": [{"path": "docs/architecture.md", "type": "blob", "sha": "a" * 40, "size": 4}],
+        })
+
+    client = GitHubClient(max_pages=1, client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    assert len(client.fetch_issues("org/repo")) == 1
+    assert [x.path for x in client.list_repository_files("org/repo", ref="main")] == [
+        "docs/architecture.md"
+    ]
 
 def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_content() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
