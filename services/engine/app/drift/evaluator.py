@@ -133,7 +133,8 @@ class DriftEvaluator:
                         created_alerts += 1
                     rule_flagged_artifact_ids.add(artifact.id)
 
-        self.alerts.delete_by_workspace_and_types(workspace.id, SEMANTIC_ALERT_TYPES)
+        # Keep manually handled alerts and the ID referenced by audit events.
+        self.alerts.delete_unhandled_by_workspace_and_types(workspace.id, SEMANTIC_ALERT_TYPES)
 
         for artifact in artifacts:
             if artifact.id in source_artifact_ids or artifact.id in rule_flagged_artifact_ids:

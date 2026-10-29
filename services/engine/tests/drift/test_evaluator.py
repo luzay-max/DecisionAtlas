@@ -773,3 +773,115 @@ def test_evaluator_keeps_semantic_checks_after_rule_checks(tmp_path: Path, monke
 
     assert len(alerts) == 1
     assert alerts[0].alert_type == "possible_drift"
+
+
+def test_reviewed_semantic_alert_survives_repeated_detection(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-reviewed-repeated.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="reviewed-workspace", name="Reviewed", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints="Redis stays cache-only.",
+            chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+            tradeoffs="Extra dependency",
+            confidence=0.92,
+            created_at=baseline,
+        ))
+        session.add(Artifact(
+            workspace_id=workspace.id,
+            type="pull_request",
+            source_id="42",
+            repo="org/repo",
+            title="Replace Redis cache with Dragonfly",
+            content="This PR will replace the Redis cache with Dragonfly to reduce cost.",
+            author="maintainer",
+            url="https://github.com/org/repo/pull/42",
+            timestamp=baseline + timedelta(days=2),
+            metadata_json=None,
+        ))
+        session.commit()
+
+    _patch_semantic_recall(monkeypatch)
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("reviewed-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert result.created_alerts == 1
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == "possible_supersession"
+        alert_id = alerts[0].id
+        original_summary = alerts[0].summary
+        DriftAlertRepository(session).update_disposition(
+            alerts[0],
+            status="false_positive",
+            handled_by="reviewer@example.com",
+            handled_at=baseline + timedelta(days=3),
+            disposition_rationale="Reviewed: no architecture decision changed.",
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        again = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("reviewed-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert again.created_alerts == 0
+        assert len(alerts) == 1
+        assert alerts[0].id == alert_id
+        assert alerts[0].status == "false_positive"
+        assert alerts[0].handled_by == "reviewer@example.com"
+        assert alerts[0].disposition_rationale == "Reviewed: no architecture decision changed."
+        assert alerts[0].summary == original_summary
+
+
+def test_rule_redetection_does_not_reopen_handled_status(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-reviewed-rule.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="rule-workspace", name="Rule", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        repo = DriftAlertRepository(session)
+        alert, created = repo.create_or_update(
+            workspace_id=workspace.id, artifact_id=None, decision_id=None,
+            alert_type="possible_drift", summary="Original rule signal", status="open",
+        )
+        assert created
+        alert_id = alert.id
+        repo.update_disposition(
+            alert,
+            status="acknowledged",
+            handled_by="reviewer",
+            handled_at=datetime(2026, 10, 29, 9, 0, 0),
+            disposition_rationale="Investigating existing signal",
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        repo = DriftAlertRepository(session)
+        alert, created = repo.create_or_update(
+            workspace_id=1, artifact_id=None, decision_id=None,
+            alert_type="possible_drift", summary="New detection summary", status="open",
+        )
+        assert not created
+        assert alert.id == alert_id
+        assert alert.status == "acknowledged"
+        assert alert.handled_by == "reviewer"
+        assert alert.disposition_rationale == "Investigating existing signal"
+        assert alert.summary == "Original rule signal"
