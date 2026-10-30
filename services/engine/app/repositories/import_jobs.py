@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import case, select, update
 from sqlalchemy.orm import Session
 
 ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
@@ -170,18 +170,37 @@ class ImportJobRepository:
         job = self._require(job_id)
         if job.status not in ("queued", "running"):
             raise ValueError(f"Cannot pause job in status: {job.status}")
-        job.status = "paused"
-        self.session.flush()
+        # The state may have changed in another session after _require().
+        # Only update a still-active job, never resurrect a terminal one.
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status.in_(("queued", "running")))
+            .values(status="paused")
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot pause job in status: {job.status}")
         return job
 
     def mark_resumed(self, job_id: str) -> ImportJob:
         job = self._require(job_id)
         if job.status != "paused":
             raise ValueError(f"Cannot resume job in status: {job.status}")
-        # Paused before startup: preserve the background worker's queued
-        # claim. Only workers which already started resume as "running".
-        job.status = "queued" if job.started_at is None else "running"
-        self.session.flush()
+        # The database chooses queued for never-started work; a stale ORM
+        # started_at value must not decide the state of a concurrent resume.
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "paused")
+            .values(
+                status=case(
+                    (ImportJob.started_at.is_(None), "queued"),
+                    else_="running",
+                )
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot resume job in status: {job.status}")
         return job
 
     def _require(self, job_id: str) -> ImportJob:

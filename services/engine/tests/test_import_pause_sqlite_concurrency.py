@@ -1,7 +1,7 @@
-"""Reproducers for issue #36: import worker status races and SQLite writer locks.
+"""Regression contracts for issue #36: import lifecycle and SQLite writer locks.
 
-The strict xfails are intended safety contracts for work not yet implemented.
-They must be removed when the worker lifecycle is fixed, not silently skipped.
+Worker start, pause and resume transitions now use state-conditional updates.
+The separate SQLite writer-lock contention is still intentionally reproduced.
 All tests use a real file-backed SQLite database and isolated local sessions.
 """
 
@@ -164,6 +164,72 @@ def test_queued_pause_resume_worker_claims_exactly_once(
             if job is not None and job.status == "paused":
                 ImportJobRepository(session).mark_resumed("job-pause-race")
                 session.commit()
+        engine.dispose()
+
+
+
+def test_stale_pause_session_does_not_overwrite_committed_terminal_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """An admin with cached running state must not clobber a completed job."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as session:
+            ImportJobRepository(session).mark_running("job-pause-race")
+            session.commit()
+
+        with Session(engine) as stale_admin:
+            repo = ImportJobRepository(stale_admin)
+            cached = repo.get_by_job_id("job-pause-race")
+            assert cached is not None and cached.status == "running"
+
+            with Session(engine) as worker:
+                ImportJobRepository(worker).mark_succeeded(
+                    "job-pause-race", imported_count=3
+                )
+                worker.commit()
+
+            with pytest.raises(ValueError, match="Cannot pause job in status: succeeded"):
+                repo.mark_paused("job-pause-race")
+            stale_admin.rollback()
+
+        assert _status(engine) == "succeeded"
+    finally:
+        engine.dispose()
+
+
+def test_stale_resume_session_does_not_resurrect_failed_job(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A late resume must not turn a newly failed job back into running."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            repo.mark_running("job-pause-race")
+            repo.mark_paused("job-pause-race")
+            session.commit()
+
+        with Session(engine) as stale_admin:
+            repo = ImportJobRepository(stale_admin)
+            cached = repo.get_by_job_id("job-pause-race")
+            assert cached is not None and cached.status == "paused"
+
+            with Session(engine) as worker:
+                ImportJobRepository(worker).mark_failed(
+                    "job-pause-race",
+                    error_message="Synthetic terminal worker failure",
+                    stage="indexing_artifacts",
+                    failure_category="analysis_execution_failed",
+                )
+                worker.commit()
+
+            with pytest.raises(ValueError, match="Cannot resume job in status: failed"):
+                repo.mark_resumed("job-pause-race")
+            stale_admin.rollback()
+
+        assert _status(engine) == "failed"
+    finally:
         engine.dispose()
 
 
