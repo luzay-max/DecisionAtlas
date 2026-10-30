@@ -174,7 +174,7 @@
 
 | 任务 | 当前处置 | 最终/当前 SHA 与 CI | 下一道门禁 |
 | --- | --- | --- | --- |
-| **A01 / PR #26** | **Merged**，维护者在对话中确认“ A01 没毛病，过 ” | PR head `ffeecc5755e0ba6501894c7d9f61f1a6754f68f4`；[PR CI #41032428318](https://github.com/luzay-max/DecisionAtlas/actions/runs/41032428318) 第一次浏览器冒烟失败、同 SHA 第 2 次全部成功；合并 commit `e2204cc32d6bc55204c56125b8a85141ec44acd1` | [main push CI #41036933915](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036933915) 与可控制的真实导入验证仍需单独记录；浏览器偶发失败见 #38 |
+| **A01 / PR #26** | **Merged**，维护者在对话中确认“ A01 没毛病，过 ” | PR head `ffeecc5755e0ba6501894c7d9f61f1a6754f68f4`；[PR CI #41032428318](https://github.com/luzay-max/DecisionAtlas/actions/runs/41032428318) 第一次浏览器冒烟失败、同 SHA 第 2 次全部成功；合并 commit `e2204cc32d6bc55204c56125b8a85141ec44acd1` | [main push CI #41036933915](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036933915) **SUCCESS**；可控制的真实导入仍属于独立环境验收；浏览器偶发失败见 #38 |
 | **A02 / PR #35** | **Draft，已将 A01 main 整合进原有堆叠分支；不得直接合并** | 原 head `88ede010` → 双亲合并 commit `26b76773e4c2b90db1237537ab2ed58052c0a476`（第 2 亲为 `main@e2204cc3`）；PR base 已改为 `main`；[CI #41037840710](https://github.com/luzay-max/DecisionAtlas/actions/runs/41037840710) 运行中 | 已三方整合 A01 raw 安全与 #35 F04/F05 bounded streaming、同步水位；仍需当前 head CI、#36 SQLite 暂停限制和人工评审；不得自动关闭 #30/#31 或合并 #35 |
 | **A03 / PR #28** | Draft，最新 head 自动化 CI 通过 | `4d06e2c6` / [CI #41029036360](https://github.com/luzay-max/DecisionAtlas/actions/runs/41029036360) | 人工验收；Issue #36 后台 worker / SQLite 暂停语义不能假称解决 |
 | **A04 / PR #29** | Draft，自动化通过 | `eb611f9b` / [CI #41024366795](https://github.com/luzay-max/DecisionAtlas/actions/runs/41024366795) | 已 resolved 信号消失后重现仍缺事件身份，保留明确待办 |
