@@ -34,3 +34,14 @@ A new SQLite integration regression runs an import that commits one Artifact, in
 - After PR #26 is eventually approved and merged, explicitly rebase/retarget this integration PR onto `main`, rerun CI on the new head and reconcile standalone PRs #30/#31 (avoid duplicate merges).
 - This does not merge any PR, does not rewrite `main`, and leaves #26/#30/#31 unchanged.
 - Real private repo, provider pagination limit, hard 1000-result API boundaries, cross-workspace auth and worker cancellation need controlled end-to-end acceptance; the overlap is not a full exactly-once cursor protocol.
+
+## P0 import pause/resume concurrency reproducers (issue #36, 2026-10-30)
+
+**Added SQLite file-backed tests** in `services/engine/tests/test_import_pause_sqlite_concurrency.py`. These are not claims that pause/resume is implemented correctly:
+- `test_paused_queued_job_cannot_be_overwritten_by_late_worker_start` is a **strict expected failure (xfail)** until worker start becomes a state-guarded claim. Current `mark_running` unconditionally changes `paused` to `running`.
+- `test_completed_job_cannot_be_resurrected_by_duplicate_worker_start` is also **strict xfail** until a duplicate worker cannot move `succeeded` back to `running`.
+- `test_uncommitted_artifact_write_blocks_separate_sqlite_pause_update` is a positive reproduction: an import-phase uncommitted SQLite Artifact writer causes a separate pause update to encounter a database lock under a deliberately short busy timeout. It cleans up the transaction and checks no partial source data or admin pause survived.
+
+These tests validate a **risk**, not a safe end-to-end pause feature. Strict xfails should turn into normal passing tests when worker lifecycle code is changed; unexpected success must not go unnoticed. The production DB timeout is longer than the test's 150ms timeout, so a real UI may wait much longer. No change to the live worker scheduling, API, source import transaction, or pause-state machine is made here.
+
+**Remaining acceptance:** real file-backed concurrent worker+HTTP requests (not only two connection reproduction), pause-before-start and resume exactly once across process restart, pause-during-import and pause-during-extraction liveness, crash recovery, MySQL semantics if supported, and permission testing. [Issue #36](https://github.com/luzay-max/DecisionAtlas/issues/36) blocks pause UI readiness. Keep both #28 and #35 Draft; no merges.
