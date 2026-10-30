@@ -773,3 +773,229 @@ def test_evaluator_keeps_semantic_checks_after_rule_checks(tmp_path: Path, monke
 
     assert len(alerts) == 1
     assert alerts[0].alert_type == "possible_drift"
+
+
+def test_reviewed_semantic_alert_survives_repeated_detection(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-reviewed-repeated.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="reviewed-workspace", name="Reviewed", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        session.add(Decision(
+            workspace_id=workspace.id,
+            title="Use Redis Cache",
+            status="active",
+            review_state="accepted",
+            problem="Latency too high",
+            context=None,
+            constraints="Redis stays cache-only.",
+            chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+            tradeoffs="Extra dependency",
+            confidence=0.92,
+            created_at=baseline,
+        ))
+        session.add(Artifact(
+            workspace_id=workspace.id,
+            type="pull_request",
+            source_id="42",
+            repo="org/repo",
+            title="Replace Redis cache with Dragonfly",
+            content="This PR will replace the Redis cache with Dragonfly to reduce cost.",
+            author="maintainer",
+            url="https://github.com/org/repo/pull/42",
+            timestamp=baseline + timedelta(days=2),
+            metadata_json=None,
+        ))
+        session.commit()
+
+    _patch_semantic_recall(monkeypatch)
+    with Session(engine) as session:
+        result = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("reviewed-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert result.created_alerts == 1
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == "possible_supersession"
+        alert_id = alerts[0].id
+        original_summary = alerts[0].summary
+        DriftAlertRepository(session).update_disposition(
+            alerts[0],
+            status="false_positive",
+            handled_by="reviewer@example.com",
+            handled_at=baseline + timedelta(days=3),
+            disposition_rationale="Reviewed: no architecture decision changed.",
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        again = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace("reviewed-workspace")
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert again.created_alerts == 0
+        assert len(alerts) == 1
+        assert alerts[0].id == alert_id
+        assert alerts[0].status == "false_positive"
+        assert alerts[0].handled_by == "reviewer@example.com"
+        assert alerts[0].disposition_rationale == "Reviewed: no architecture decision changed."
+        assert alerts[0].summary == original_summary
+
+
+def test_rule_redetection_does_not_reopen_handled_status(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "drift-reviewed-rule.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="rule-workspace", name="Rule", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        repo = DriftAlertRepository(session)
+        alert, created = repo.create_or_update(
+            workspace_id=workspace.id, artifact_id=None, decision_id=None,
+            alert_type="possible_drift", summary="Original rule signal", status="open",
+        )
+        assert created
+        alert_id = alert.id
+        repo.update_disposition(
+            alert,
+            status="acknowledged",
+            handled_by="reviewer",
+            handled_at=datetime(2026, 10, 29, 9, 0, 0),
+            disposition_rationale="Investigating existing signal",
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        repo = DriftAlertRepository(session)
+        alert, created = repo.create_or_update(
+            workspace_id=1, artifact_id=None, decision_id=None,
+            alert_type="possible_drift", summary="New detection summary", status="open",
+        )
+        assert not created
+        assert alert.id == alert_id
+        assert alert.status == "acknowledged"
+        assert alert.handled_by == "reviewer"
+        assert alert.disposition_rationale == "Investigating existing signal"
+        assert alert.summary == "Original rule signal"
+
+
+def test_resolved_rule_alert_disappears_then_returns_without_new_episode(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Characterize F03's current boundary; this is NOT recurrence detection.
+
+    A reviewed alert remains resolved when the rule stops matching and later
+    matches again. A future observation/episode identity must be designed
+    before a reappearance can safely produce a new notification.
+    """
+    db_path = tmp_path / "drift-resolved-reappearance.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    baseline = datetime(2026, 3, 18, 9, 0, 0)
+
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="resolved-reappearance", name="Resolved test",
+            repo_url="https://github.com/org/repo",
+        )
+        session.add(workspace)
+        session.flush()
+        source = Artifact(
+            workspace_id=workspace.id, type="issue", source_id="1",
+            repo="org/repo", title="Cache rationale",
+            content="Use Redis as cache only because latency is high.",
+            author=None, url="https://github.com/org/repo/issues/1",
+            timestamp=baseline, metadata_json=None,
+        )
+        observed = Artifact(
+            workspace_id=workspace.id, type="pull_request", source_id="2",
+            repo="org/repo", title="Persist sessions in Redis",
+            content="This PR will persist session state in Redis as the primary database for auth reads.",
+            author=None, url="https://github.com/org/repo/pull/2",
+            timestamp=baseline + timedelta(days=1), metadata_json=None,
+        )
+        decision = Decision(
+            workspace_id=workspace.id, title="Use Redis Cache",
+            status="active", review_state="accepted",
+            problem="Latency too high", context=None,
+            constraints="Redis stays cache-only.",
+            chosen_option="Use Redis as cache only and keep PostgreSQL primary.",
+            tradeoffs="Extra dependency", confidence=0.92, created_at=baseline,
+        )
+        session.add_all([source, observed, decision])
+        session.flush()
+        session.add(SourceRef(
+            decision_id=decision.id, artifact_id=source.id,
+            span_start=0, span_end=len(source.content), quote=source.content,
+            url=source.url, relevance_score=0.9,
+        ))
+        session.commit()
+
+    # Isolate deterministic rule recurrence from unrelated semantic detection.
+    monkeypatch.setattr(
+        "app.drift.evaluator.recall_related_decisions", lambda **kwargs: []
+    )
+
+    with Session(engine) as session:
+        first = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace(
+            "resolved-reappearance"
+        )
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert first.created_alerts == 1
+        assert len(alerts) == 1
+        assert alerts[0].alert_type == "possible_drift"
+        reviewed_id = alerts[0].id
+        original_summary = alerts[0].summary
+        DriftAlertRepository(session).update_disposition(
+            alerts[0], status="resolved", handled_by="reviewer",
+            handled_at=baseline + timedelta(days=2),
+            disposition_rationale="Rule was addressed.",
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        observed = session.query(Artifact).filter_by(source_id="2").one()
+        observed.title = "Maintain cache-only behavior"
+        observed.content = "Redis remains a cache. PostgreSQL continues storing the system data."
+        session.commit()
+    with Session(engine) as session:
+        absent = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace(
+            "resolved-reappearance"
+        )
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert absent.created_alerts == 0
+        assert len(alerts) == 1
+        assert alerts[0].id == reviewed_id
+        assert alerts[0].status == "resolved"
+
+    with Session(engine) as session:
+        observed = session.query(Artifact).filter_by(source_id="2").one()
+        observed.title = "Persist sessions in Redis"
+        observed.content = (
+            "This PR will persist session state in Redis as the primary database for auth reads."
+        )
+        session.commit()
+    with Session(engine) as session:
+        recurrence = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace(
+            "resolved-reappearance"
+        )
+        alerts = DriftAlertRepository(session).list_by_workspace(1)
+        assert recurrence.created_alerts == 0
+        assert len(alerts) == 1
+        assert alerts[0].id == reviewed_id
+        assert alerts[0].status == "resolved"
+        assert alerts[0].summary == original_summary
+        assert alerts[0].handled_by == "reviewer"
+        assert alerts[0].disposition_rationale == "Rule was addressed."
+    # Deliberately documents the gap: no new alert is raised for recurrence.

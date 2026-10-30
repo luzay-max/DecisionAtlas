@@ -111,3 +111,47 @@ def test_index_artifact_persists_chunk_metadata(tmp_path: Path, monkeypatch) -> 
     assert stored[0].metadata_json is not None
     assert stored[0].metadata_json["section_title"] == "Architecture"
     assert stored[0].metadata_json["heading_path"] == ["Architecture"]
+
+
+def test_empty_reindex_clears_stale_chunks_and_allows_future_reindex(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "index-empty-revision.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="empty-revision", name="Empty revision", repo_url="https://github.com/org/repo")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(
+            workspace_id=workspace.id, type="doc", source_id="docs/old.md",
+            repo="org/repo", title="Old doc", content="Old material",
+            author=None, url=None, timestamp=None, metadata_json=None,
+        )
+        session.add(artifact)
+        session.commit()
+        artifact_id = artifact.id
+
+    with Session(engine) as session:
+        assert index_artifact(session=session, artifact_id=artifact_id, content="Alpha\n\nBeta", embedder=FakeEmbedder()) == 1
+    with Session(engine) as session:
+        assert len(session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all()) == 1
+
+    with Session(engine) as session:
+        assert index_artifact(session=session, artifact_id=artifact_id, content="", embedder=FakeEmbedder()) == 0
+    with Session(engine) as session:
+        assert session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all() == []
+
+    with Session(engine) as session:
+        assert index_artifact(session=session, artifact_id=artifact_id, content="   ", embedder=FakeEmbedder()) == 0
+    with Session(engine) as session:
+        assert session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all() == []
+
+    with Session(engine) as session:
+        assert index_artifact(session=session, artifact_id=artifact_id, content="New content for indexing.", embedder=FakeEmbedder()) == 1
+    with Session(engine) as session:
+        chunks = session.scalars(select(ArtifactChunk).where(ArtifactChunk.artifact_id == artifact_id)).all()
+        assert len(chunks) == 1
+        assert "New content" in chunks[0].content
