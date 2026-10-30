@@ -49,6 +49,31 @@ class GitHubImporter:
         selected_documents, skipped_document_counts = select_high_signal_repository_documents(repository_files)
         selected_document_categories = Counter(classify_repository_document(file.path) for file in selected_documents)
 
+        # Complete all remote document downloads and validate their blob IDs
+        # before the first Artifact INSERT/UPDATE. Holding SQLite's writer lock
+        # while waiting on GitHub network futures blocks independent pause and
+        # resume requests for the whole download duration.
+        def fetch_doc(repository_file):
+            source_id = repository_file.path
+            signal_category = classify_repository_document(source_id)
+            content = self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch)
+            expected_blob_sha = repository_file.sha
+            if isinstance(expected_blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", expected_blob_sha):
+                actual_blob_sha = _git_blob_sha(content)
+                if actual_blob_sha != expected_blob_sha:
+                    raise ValueError(
+                        f"GitHub document changed between tree listing and content fetch: {source_id}"
+                    )
+            return repository_file, signal_category, content
+
+        prefetched_documents = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
+            for future in as_completed(futures):
+                prefetched_documents.append(future.result())
+
+        # All sources are now locally fetched/validated. Persist Artifacts in
+        # one transaction, keeping the import-stage failure rollback guarantee.
         total = 0
         artifact_counts = {"issue": 0, "pr": 0, "commit": 0, "doc": 0}
         for payload in issues + pulls + commits:
@@ -73,54 +98,38 @@ class GitHubImporter:
             if progress_callback:
                 progress_callback(total)
 
-        def fetch_doc(repository_file):
+        for repository_file, signal_category, content in prefetched_documents:
             source_id = repository_file.path
-            signal_category = classify_repository_document(source_id)
-            content = self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch)
-            expected_blob_sha = repository_file.sha
-            if isinstance(expected_blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", expected_blob_sha):
-                actual_blob_sha = _git_blob_sha(content)
-                if actual_blob_sha != expected_blob_sha:
-                    raise ValueError(
-                        f"GitHub document changed between tree listing and content fetch: {source_id}"
-                    )
-            return repository_file, signal_category, content
-
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
-            for future in as_completed(futures):
-                repository_file, signal_category, content = future.result()
-                source_id = repository_file.path
-                self.artifacts.upsert(
-                    workspace_id=workspace.id,
-                    artifact_type="doc",
-                    source_id=source_id,
-                    repo=repo,
-                    title=PurePosixPath(source_id).stem,
-                    content=content,
-                    author=None,
-                    url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
-                    timestamp=None,
-                    metadata_json=_capture_metadata(
-                        {
-                            "source_metadata_origin": "github_contents_api",
-                            "path": source_id,
-                            "ref": default_branch,
-                            "source": "github_repo_doc",
-                            "signal_category": signal_category,
-                            "blob_sha": repository_file.sha
-                            if isinstance(repository_file.sha, str)
-                            and re.fullmatch(r"[0-9a-f]{40}", repository_file.sha)
-                            else None,
-                        },
-                        content,
-                        method="github_contents_api",
-                    ),
-                )
-                total += 1
-                artifact_counts["doc"] += 1
-                if progress_callback:
-                    progress_callback(total)
+            self.artifacts.upsert(
+                workspace_id=workspace.id,
+                artifact_type="doc",
+                source_id=source_id,
+                repo=repo,
+                title=PurePosixPath(source_id).stem,
+                content=content,
+                author=None,
+                url=_repo_doc_url(workspace.repo_url, repo=repo, ref=default_branch, path=source_id),
+                timestamp=None,
+                metadata_json=_capture_metadata(
+                    {
+                        "source_metadata_origin": "github_contents_api",
+                        "path": source_id,
+                        "ref": default_branch,
+                        "source": "github_repo_doc",
+                        "signal_category": signal_category,
+                        "blob_sha": repository_file.sha
+                        if isinstance(repository_file.sha, str)
+                        and re.fullmatch(r"[0-9a-f]{40}", repository_file.sha)
+                        else None,
+                    },
+                    content,
+                    method="github_contents_api",
+                ),
+            )
+            total += 1
+            artifact_counts["doc"] += 1
+            if progress_callback:
+                progress_callback(total)
 
         self.session.commit()
         return GitHubImportResult(

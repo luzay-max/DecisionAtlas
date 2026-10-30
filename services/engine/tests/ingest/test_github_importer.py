@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 import hashlib
 
 from alembic import command
@@ -14,6 +16,7 @@ from app.ingest.github_importer import GitHubImporter
 from app.ingest.github_document_selection import select_high_signal_repository_documents
 from app.ingest.github_types import GitHubArtifactPayload
 from app.ingest.github_types import GitHubRepositoryFile
+from app.repositories.import_jobs import ImportJobRepository
 
 
 class FakeGitHubClient:
@@ -198,3 +201,119 @@ def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatc
         artifacts = session.scalars(select(Artifact)).all()
 
     assert len(artifacts) == 5
+
+
+def test_slow_markdown_prefetch_does_not_block_pause_write_on_sqlite(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """An admin can pause while network fetch is blocked, before source writes."""
+    db_path = tmp_path / "prefetch-pause-control.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"timeout": 0.25})
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        )
+        session.add(workspace)
+        session.flush()
+        job = ImportJobRepository(session).create(
+            job_id="prefetch-pause-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full",
+        )
+        ImportJobRepository(session).mark_running(job.job_id)
+        session.commit()
+
+    entered_download = Event()
+    allow_download = Event()
+
+    class SlowGitHubClient(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            if path == "README.md":
+                entered_download.set()
+                if not allow_download.wait(timeout=12):
+                    raise TimeoutError("Test did not release document fetch")
+            return super().fetch_markdown_document(repo, path=path, ref=ref)
+
+    def perform_import():
+        with Session(engine) as session:
+            importer = GitHubImporter(session, SlowGitHubClient())
+            return importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            running = workers.submit(perform_import)
+            try:
+                assert entered_download.wait(timeout=5)
+                # Must not wait for the slow remote document to release its lock.
+                with Session(engine) as admin:
+                    paused = ImportJobRepository(admin).mark_paused("prefetch-pause-job")
+                    admin.commit()
+                    assert paused.status == "paused"
+
+                # The importer itself is not responsible for orchestration:
+                # resume before allowing the document to finish.
+                with Session(engine) as admin:
+                    resumed = ImportJobRepository(admin).mark_resumed("prefetch-pause-job")
+                    admin.commit()
+                    assert resumed.status == "running"
+
+                # No source writes have happened during the remote wait.
+                with Session(engine) as inspector:
+                    assert inspector.scalars(select(Artifact)).all() == []
+            finally:
+                allow_download.set()
+            result = running.result(timeout=12)
+            assert result.imported_count == 5
+
+        with Session(engine) as session:
+            assert len(session.scalars(select(Artifact)).all()) == 5
+    finally:
+        engine.dispose()
+
+
+def test_remote_markdown_failure_leaves_no_imported_artifact_writes(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Even issue/PR source writes should not begin before doc verification."""
+    db_path = tmp_path / "doc-download-error.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"timeout": 0.25})
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class FailingDocs(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            # A separate writer must still be able to write while this failure
+            # is raised, proving importer has not flushed issue rows yet.
+            if path == "README.md":
+                with Session(engine) as independent:
+                    independent.add(Workspace(
+                        slug="concurrent-check", name="Write check",
+                        repo_url="https://github.com/org/other",
+                    ))
+                    independent.commit()
+                raise RuntimeError("synthetic GitHub Markdown download failure")
+            return super().fetch_markdown_document(repo, path=path, ref=ref)
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(session, FailingDocs())
+            with pytest.raises(RuntimeError, match="synthetic GitHub Markdown"):
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
+            assert session.scalar(select(Workspace).where(Workspace.slug == "concurrent-check")) is not None
+    finally:
+        engine.dispose()
