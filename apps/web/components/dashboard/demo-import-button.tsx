@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DashboardSummary, ImportSummary, getImportJob, startGithubImport, pauseGithubImport, resumeGithubImport } from "../../lib/api";
+import { useProductSession } from "../auth/session-provider";
 import { useI18n } from "../i18n/language-provider";
 
 const progressStages = ["queued", "importing_artifacts", "indexing_artifacts", "extracting_decisions", "completed"] as const;
@@ -21,7 +22,18 @@ type DemoImportButtonProps = {
 // Workspace changes must remount the job controller. Otherwise a pending poll
 // from a previous workspace could publish the old job's status in the new view.
 export function DemoImportButton(props: DemoImportButtonProps) {
-  return <WorkspaceImportControls key={JSON.stringify([props.workspaceSlug, props.repo])} {...props} />;
+  const { session, status } = useProductSession();
+  // The same slug can exist under different owner scopes. A scope switch
+  // must invalidate a pending import poll/action even when the URL and repo
+  // do not change. Do not put the session token into a React key.
+  const controllerIdentity = [
+    props.workspaceSlug,
+    props.repo,
+    status,
+    session?.actor.id ?? null,
+    session?.current_owner_scope ?? null,
+  ];
+  return <WorkspaceImportControls key={JSON.stringify(controllerIdentity)} {...props} />;
 }
 
 function WorkspaceImportControls({
