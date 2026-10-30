@@ -4,7 +4,7 @@ import base64
 from datetime import datetime, timezone
 from time import sleep
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -216,11 +216,11 @@ class GitHubClient:
 
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            return self._fetch_public_markdown_download(download_url, repo=repo)
+            return self._fetch_public_markdown_download(download_url, repo=repo, path=path)
 
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
 
-    def _fetch_public_markdown_download(self, download_url: str, *, repo: str) -> str:
+    def _fetch_public_markdown_download(self, download_url: str, *, repo: str, path: str) -> str:
         """Fetch public raw content without forwarding GitHub API credentials.
 
         Content-API download_url is upstream-controlled. A cross-origin GET
@@ -228,6 +228,26 @@ class GitHubClient:
         """
         try:
             parsed = urlsplit(download_url)
+            # Verify the *requested file*, not only the repo prefix. URL
+            # percent-encoding otherwise hides "..", "/" and nested escapes
+            # from a check against raw path segments. Do not resolve
+            # ambiguous paths: failing closed is safer than misattributing
+            # arbitrary upstream content to the requested Artifact.
+            segments = [unquote(part) for part in parsed.path.split("/")[1:]]
+            repo_segments = repo.split("/")
+            file_segments = path.split("/")
+            trustworthy_segments = (
+                len(segments) > len(repo_segments) + len(file_segments)
+                and segments[:len(repo_segments)] == repo_segments
+                and segments[-len(file_segments):] == file_segments
+                and all(
+                    part not in {"", ".", ".."}
+                    and "/" not in part
+                    and "\\" not in part
+                    and "%" not in part
+                    for part in segments
+                )
+            )
             trusted = (
                 parsed.scheme == "https"
                 and parsed.hostname == "raw.githubusercontent.com"
@@ -237,8 +257,7 @@ class GitHubClient:
                 and not parsed.netloc.endswith(":")
                 and not parsed.query
                 and not parsed.fragment
-                and parsed.path.startswith(f"/{repo}/")
-                and all(part not in {"", ".", ".."} for part in parsed.path.split("/")[1:])
+                and trustworthy_segments
             )
         except ValueError:
             trusted = False
