@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 import hashlib
 
 from alembic import command
@@ -411,4 +411,83 @@ def test_downloaded_bytes_budget_rejects_underreported_tree_without_committing(
         with Session(engine) as session:
             assert session.scalars(select(Artifact)).all() == []
     finally:
+        engine.dispose()
+
+
+def test_markdown_prefetch_submits_only_bounded_in_flight_futures(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Queued futures must not hold 256 decoded documents outside the budget."""
+    db_path = tmp_path / "bounded-markdown-futures.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    first_five_started = Event()
+    release_downloads = Event()
+    lock = Lock()
+    started_count = 0
+    submitted: list[str] = []
+
+    class ManyDocuments(FakeGitHubClient):
+        def list_repository_files(self, repo: str, *, ref: str | None = None):
+            return [
+                GitHubRepositoryFile(path=f"docs/adr/{i:03d}.md", sha=None, size=7)
+                for i in range(12)
+            ]
+
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str):
+            nonlocal started_count
+            with lock:
+                started_count += 1
+                if started_count == 5:
+                    first_five_started.set()
+            if not release_downloads.wait(timeout=10):
+                raise TimeoutError("Bounded future test was not released")
+            return "# tiny"
+
+    class CountingExecutor(ThreadPoolExecutor):
+        def submit(self, fn, *args, **kwargs):
+            with lock:
+                submitted.append(args[0].path)
+            return super().submit(fn, *args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.ingest.github_importer.ThreadPoolExecutor", CountingExecutor
+    )
+
+    def do_import():
+        with Session(engine) as session:
+            return GitHubImporter(session, ManyDocuments()).import_repo(
+                workspace_slug="demo-workspace", repo="org/repo"
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as runner:
+            future = runner.submit(do_import)
+            try:
+                assert first_five_started.wait(timeout=5)
+                with lock:
+                    assert len(submitted) == 5, (
+                        "Must not eagerly submit all document futures before "
+                        "the first five complete"
+                    )
+            finally:
+                release_downloads.set()
+            result = future.result(timeout=12)
+            assert result.imported_count == 15
+
+        with Session(engine) as session:
+            assert len(session.scalars(select(Artifact)).all()) == 15
+        assert len(submitted) == 12
+    finally:
+        release_downloads.set()
         engine.dispose()

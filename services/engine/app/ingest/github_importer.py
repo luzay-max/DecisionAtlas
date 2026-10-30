@@ -6,7 +6,8 @@ import hashlib
 import re
 from pathlib import PurePosixPath
 from typing import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from itertools import islice
 
 from sqlalchemy.orm import Session
 
@@ -131,17 +132,30 @@ class GitHubImporter:
         prefetched_documents = []
         downloaded_bytes = 0
         with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
-            for future in as_completed(futures):
-                downloaded = future.result()
-                downloaded_bytes += len(downloaded[2].encode("utf-8"))
-                if downloaded_bytes > self.max_total_document_bytes:
-                    raise GitHubIncompleteCoverageError(
-                        reason="document_total_budget",
-                        scope=f"{repo}@{default_branch}",
-                        detail=f"downloaded Markdown exceeds {self.max_total_document_bytes} bytes",
-                    )
-                prefetched_documents.append(downloaded)
+            # Bounded in-flight futures: submitting all selected documents at
+            # once lets completed futures retain decoded text before their
+            # results are charged against the aggregate byte budget.
+            remaining_documents = iter(selected_documents)
+            in_flight = {
+                executor.submit(fetch_doc, document)
+                for document in islice(remaining_documents, 5)
+            }
+            while in_flight:
+                completed, _ = wait(in_flight, return_when=FIRST_COMPLETED)
+                for future in completed:
+                    in_flight.remove(future)
+                    downloaded = future.result()
+                    downloaded_bytes += len(downloaded[2].encode("utf-8"))
+                    if downloaded_bytes > self.max_total_document_bytes:
+                        raise GitHubIncompleteCoverageError(
+                            reason="document_total_budget",
+                            scope=f"{repo}@{default_branch}",
+                            detail=f"downloaded Markdown exceeds {self.max_total_document_bytes} bytes",
+                        )
+                    prefetched_documents.append(downloaded)
+                    next_document = next(remaining_documents, None)
+                    if next_document is not None:
+                        in_flight.add(executor.submit(fetch_doc, next_document))
 
         # All sources are now locally fetched/validated. Persist Artifacts in
         # one transaction, keeping the import-stage failure rollback guarantee.
