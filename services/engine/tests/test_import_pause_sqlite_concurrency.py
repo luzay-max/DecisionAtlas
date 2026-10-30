@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 from threading import Event
 
 from alembic import command
@@ -19,7 +20,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
-from app.ingest.github_types import GitHubArtifactPayload
+from app.ingest.github_types import GitHubArtifactPayload, GitHubImportResult
 from app.jobs.import_jobs import _wait_for_import_safe_checkpoint, run_github_import
 from app.repositories.import_jobs import ImportJobRepository
 
@@ -436,5 +437,156 @@ def test_safe_checkpoint_releases_its_read_transaction_before_resume(
                     if current and current.status == "paused":
                         ImportJobRepository(admin).mark_resumed("job-pause-race")
                         admin.commit()
+    finally:
+        engine.dispose()
+
+
+
+def test_stale_completion_cannot_override_pause_or_existing_terminal_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A worker holding a stale ORM 'running' job cannot erase an admin pause."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as worker:
+            repo = ImportJobRepository(worker)
+            repo.mark_running("job-pause-race")
+            worker.commit()
+            cached = repo.get_by_job_id("job-pause-race")
+            assert cached is not None and cached.status == "running"
+
+            with Session(engine) as admin:
+                ImportJobRepository(admin).mark_paused("job-pause-race")
+                admin.commit()
+
+            with pytest.raises(ValueError, match="Cannot complete job in status: paused"):
+                repo.mark_succeeded("job-pause-race", imported_count=7)
+            worker.rollback()
+
+        assert _status(engine) == "paused"
+        with Session(engine) as admin:
+            ImportJobRepository(admin).mark_resumed("job-pause-race")
+            admin.commit()
+        with Session(engine) as worker:
+            ImportJobRepository(worker).mark_succeeded("job-pause-race", imported_count=7)
+            worker.commit()
+        assert _status(engine) == "succeeded"
+
+        with Session(engine) as duplicate:
+            with pytest.raises(ValueError, match="Cannot complete job in status: succeeded"):
+                ImportJobRepository(duplicate).mark_succeeded(
+                    "job-pause-race", imported_count=8
+                )
+            duplicate.rollback()
+        assert _status(engine) == "succeeded"
+    finally:
+        engine.dispose()
+
+
+def test_stale_failure_cannot_replace_success_or_duplicate_terminal_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as stale_worker:
+            repo = ImportJobRepository(stale_worker)
+            repo.mark_running("job-pause-race")
+            stale_worker.commit()
+            cached = repo.get_by_job_id("job-pause-race")
+            assert cached is not None
+
+            with Session(engine) as winner:
+                ImportJobRepository(winner).mark_succeeded(
+                    "job-pause-race", imported_count=2,
+                )
+                winner.commit()
+
+            with pytest.raises(ValueError, match="Cannot fail job in status: succeeded"):
+                repo.mark_failed(
+                    "job-pause-race", error_message="late worker exception",
+                    stage="extracting_decisions", failure_category="analysis_execution_failed",
+                )
+            stale_worker.rollback()
+        assert _status(engine) == "succeeded"
+    finally:
+        engine.dispose()
+
+
+def test_worker_paused_at_final_checkpoint_cannot_mark_success_until_resume(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A real run pauses during extraction completion and stays paused at finalization."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    reached_final_checkpoint = Event()
+    real_checkpoint = _wait_for_import_safe_checkpoint
+    checkpoint_count = 0
+
+    def observed_checkpoint(*, session, job_id):
+        nonlocal checkpoint_count
+        checkpoint_count += 1
+        if checkpoint_count == 4:
+            reached_final_checkpoint.set()
+        return real_checkpoint(session=session, job_id=job_id)
+
+    class EmptyImporter:
+        def __init__(self, session, client):
+            self.session = session
+
+        def import_repo(self, *, workspace_slug, repo, mode="full",
+                        since=None, progress_callback=None):
+            assert progress_callback is not None
+            progress_callback(0)
+            return GitHubImportResult(
+                imported_count=0,
+                artifact_counts={"issue": 0, "pr": 0, "commit": 0, "doc": 0},
+                selected_document_count=0, imported_document_count=0,
+                skipped_document_counts={}, selected_document_categories={},
+            )
+
+    class PausingExtractionPipeline:
+        def __init__(self, session, provider):
+            self.last_run_stats = SimpleNamespace(to_summary=lambda: {})
+
+        def run(self, *, workspace_slug, progress_callback=None):
+            with Session(engine) as admin:
+                ImportJobRepository(admin).mark_paused("job-pause-race")
+                admin.commit()
+            return 0
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", EmptyImporter)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.CandidateExtractionPipeline", PausingExtractionPipeline
+    )
+    monkeypatch.setattr(
+        "app.jobs.import_jobs._wait_for_import_safe_checkpoint", observed_checkpoint,
+    )
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(embedder=object(), extraction_provider=object()),
+    )
+    try:
+        with ThreadPoolExecutor(max_workers=1) as worker:
+            future = worker.submit(
+                run_github_import, job_id="job-pause-race",
+                workspace_slug="github-pause-race",
+                repo="org/repo", mode="full",
+            )
+            try:
+                assert reached_final_checkpoint.wait(timeout=8)
+                assert _status(engine) == "paused"
+                assert not future.done(), "Worker must not complete before admin resume"
+                with Session(engine) as admin:
+                    job = ImportJobRepository(admin).mark_resumed("job-pause-race")
+                    assert job.status == "running"
+                    admin.commit()
+            finally:
+                with Session(engine) as admin:
+                    current = ImportJobRepository(admin).get_by_job_id("job-pause-race")
+                    if current is not None and current.status == "paused":
+                        ImportJobRepository(admin).mark_resumed("job-pause-race")
+                        admin.commit()
+            result = future.result(timeout=12)
+            assert result["status"] == "succeeded"
+        assert _status(engine) == "succeeded"
     finally:
         engine.dispose()

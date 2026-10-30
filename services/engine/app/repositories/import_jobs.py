@@ -134,16 +134,25 @@ class ImportJobRepository:
         return job
 
     def mark_succeeded(self, job_id: str, *, imported_count: int, summary_json: dict | None = None) -> ImportJob:
+        """Complete only a still-running job; never overwrite a late pause."""
         job = self._require(job_id)
-        job.status = "succeeded"
-        job.imported_count = imported_count
+        if job.status != "running":
+            raise ValueError(f"Cannot complete job in status: {job.status}")
         summary = dict(job.summary_json or {})
         if summary_json:
             summary.update(summary_json)
         summary["stage"] = "completed"
-        job.summary_json = summary
-        job.finished_at = datetime.now(UTC)
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "running")
+            .values(
+                status="succeeded", imported_count=imported_count,
+                summary_json=summary, finished_at=datetime.now(UTC),
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot complete job in status: {job.status}")
         return job
 
     def mark_failed(
@@ -155,14 +164,22 @@ class ImportJobRepository:
         failure_category: str,
     ) -> ImportJob:
         job = self._require(job_id)
-        job.status = "failed"
-        job.error_message = error_message
+        if job.status not in ACTIVE_IMPORT_STATUSES:
+            raise ValueError(f"Cannot fail job in status: {job.status}")
         summary = dict(job.summary_json or {})
         summary["stage"] = stage
         summary["failure_category"] = failure_category
-        job.summary_json = summary
-        job.finished_at = datetime.now(UTC)
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status.in_(ACTIVE_IMPORT_STATUSES))
+            .values(
+                status="failed", error_message=error_message,
+                summary_json=summary, finished_at=datetime.now(UTC),
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot fail job in status: {job.status}")
         return job
 
 

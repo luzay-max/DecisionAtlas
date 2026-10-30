@@ -328,23 +328,37 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         has_decision_signal = created_candidates > 0 or any(
             decision_counts.get(state, 0) > 0 for state in ("candidate", "accepted", "superseded")
         )
-        job = jobs.mark_succeeded(
-            job_id,
-            imported_count=import_result.imported_count,
-            summary_json={
-                "artifact_counts": import_result.artifact_counts,
-                "document_summary": {
-                    "selected": import_result.selected_document_count,
-                    "imported": import_result.imported_document_count,
-                    "skipped": import_result.skipped_document_counts,
-                    "categories": import_result.selected_document_categories,
-                },
-                "extraction_summary": extraction_pipeline.last_run_stats.to_summary(),
-                "evidence_summary": evidence_summary,
-                "outcome": "ok" if has_decision_signal else "insufficient_evidence",
+        completion_summary = {
+            "artifact_counts": import_result.artifact_counts,
+            "document_summary": {
+                "selected": import_result.selected_document_count,
+                "imported": import_result.imported_document_count,
+                "skipped": import_result.skipped_document_counts,
+                "categories": import_result.selected_document_categories,
             },
-        )
-        session.commit()
+            "extraction_summary": extraction_pipeline.last_run_stats.to_summary(),
+            "evidence_summary": evidence_summary,
+            "outcome": "ok" if has_decision_signal else "insufficient_evidence",
+        }
+        # CandidateExtractionPipeline.run() has committed its writes. Pause
+        # requests arriving near completion must not be overwritten by a
+        # stale ORM job object or a terminal status update.
+        while True:
+            _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
+            try:
+                job = jobs.mark_succeeded(
+                    job_id,
+                    imported_count=import_result.imported_count,
+                    summary_json=completion_summary,
+                )
+            except ValueError:
+                session.rollback()
+                current = jobs.get_by_job_id(job_id)
+                if current is not None and current.status == "paused":
+                    continue
+                raise
+            session.commit()
+            break
         logger.info(
             "github import completed",
             extra=build_log_context(job_id=job_id, workspace_id=workspace.id),
@@ -355,12 +369,20 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         jobs = ImportJobRepository(session)
         job = jobs.get_by_job_id(job_id)
         if job is not None:
-            failed_job = jobs.mark_failed(
-                job_id,
-                error_message=str(exc),
-                stage=current_stage,
-                failure_category=_classify_failure(exc),
-            )
+            try:
+                failed_job = jobs.mark_failed(
+                    job_id,
+                    error_message=str(exc),
+                    stage=current_stage,
+                    failure_category=_classify_failure(exc),
+                )
+            except ValueError:
+                session.rollback()
+                # Do not resurrect a terminal job with a stale worker error.
+                existing = jobs.get_by_job_id(job_id)
+                if existing is not None and existing.status in ("succeeded", "failed"):
+                    return serialize_import_job(session=session, job=existing)
+                raise
             session.commit()
             return serialize_import_job(session=session, job=failed_job)
         raise
