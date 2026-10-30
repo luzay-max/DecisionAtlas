@@ -166,10 +166,10 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /恢复 \\(Resume\\)/ }));
+    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
     expect(resumeGithubImport).toHaveBeenCalledWith("job-not-started");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /恢复 \\(Resume\\)/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
     expect(refresh).toHaveBeenCalled();
   });
 
