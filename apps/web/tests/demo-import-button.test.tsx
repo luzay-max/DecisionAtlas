@@ -3,6 +3,18 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
+const sessionIdentity = vi.hoisted(() => ({ actorId: 1, ownerScope: "owner-a" }));
+vi.mock("../components/auth/session-provider", () => ({
+  useProductSession: () => ({
+    status: "ready",
+    session: {
+      actor: { id: sessionIdentity.actorId, username: "maintainer" },
+      current_owner_scope: sessionIdentity.ownerScope,
+      role: "admin",
+    },
+  }),
+}));
+
 import { DemoImportButton } from "../components/dashboard/demo-import-button";
 import { LanguageProvider } from "../components/i18n/language-provider";
 
@@ -27,6 +39,8 @@ vi.mock("../lib/api", () => ({
 
 describe("DemoImportButton", () => {
   beforeEach(() => {
+    sessionIdentity.actorId = 1;
+    sessionIdentity.ownerScope = "owner-a";
     vi.useRealTimers();
     refresh.mockReset();
     startGithubImport.mockReset();
@@ -413,6 +427,62 @@ describe("DemoImportButton", () => {
     expect(getImportJob).toHaveBeenCalledTimes(25);
   });
 
+
+
+  it("ignores an old poll when owner scope changes but workspace slug stays the same", async () => {
+    let finishOldPoll: ((job: {
+      job_id: string; status: string; repo: string; imported_count: number;
+      summary: { stage: string };
+    }) => void) | undefined;
+    let pollCalls = 0;
+    getImportJob.mockImplementation(() => {
+      pollCalls += 1;
+      if (pollCalls === 1) {
+        return new Promise((resolve) => { finishOldPoll = resolve; });
+      }
+      return new Promise(() => {});
+    });
+
+    const view = () => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="shared-workspace"
+          repo="org/shared"
+          latestImport={{
+            job_id: "job-same-slug",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view());
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledTimes(1));
+
+    sessionIdentity.ownerScope = "owner-b";
+    rerender(view());
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      finishOldPoll?.({
+        job_id: "job-same-slug",
+        status: "succeeded",
+        repo: "org/shared",
+        imported_count: 99,
+        summary: { stage: "completed" },
+      });
+    });
+
+    expect(screen.queryByText("Imported 99 artifacts from org/shared")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow", "100");
+    expect(refresh).not.toHaveBeenCalled();
+  });
 
   it("does not apply a late previous-workspace poll after workspace navigation", async () => {
     let resolveOldPoll: ((value: {
