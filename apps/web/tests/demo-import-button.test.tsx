@@ -378,4 +378,119 @@ describe("DemoImportButton", () => {
     expect(screen.getAllByText("Imported 1202 artifacts from psf/requests").length).toBeGreaterThan(0);
     expect(getImportJob).toHaveBeenCalledTimes(25);
   });
+
+
+  it("does not apply a late previous-workspace poll after workspace navigation", async () => {
+    let resolveOldPoll: ((value: {
+      job_id: string; status: string; imported_count: number; repo: string;
+      summary: { stage: string };
+    }) => void) | undefined;
+    getImportJob.mockImplementation((jobId: string) => {
+      if (jobId === "job-a") {
+        return new Promise((resolve) => { resolveOldPoll = resolve; });
+      }
+      return new Promise(() => {});
+    });
+
+    const view = (workspaceSlug: string, repo: string, jobId: string) => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug={workspaceSlug}
+          repo={repo}
+          latestImport={{
+            job_id: jobId,
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view("workspace-a", "org/one", "job-a"));
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledWith("job-a"));
+
+    rerender(view("workspace-b", "org/two", "job-b"));
+    expect(screen.getByText(/Import job: job-b/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Import job: job-a/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveOldPoll?.({
+        job_id: "job-a", status: "succeeded", imported_count: 100,
+        repo: "org/one", summary: { stage: "completed" },
+      });
+    });
+
+    expect(screen.getByText(/Import job: job-b/i)).toBeInTheDocument();
+    expect(screen.queryByText("Imported 100 artifacts from org/one")).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("rejects a pause response for a different job without changing control state", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    pauseGithubImport.mockResolvedValue({
+      job_id: "job-other", status: "paused", summary: { stage: "importing_artifacts" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-a",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("not confirmed");
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not refresh or change UI after an action completes on an unmounted workspace", async () => {
+    const user = userEvent.setup();
+    let resolvePause: ((value: { job_id: string; status: string }) => void) | undefined;
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    pauseGithubImport.mockImplementation(() => new Promise((resolve) => { resolvePause = resolve; }));
+
+    const { unmount } = render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-a",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(pauseGithubImport).toHaveBeenCalledWith("job-a");
+    unmount();
+    await act(async () => { resolvePause?.({ job_id: "job-a", status: "paused" }); });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
 });
