@@ -3,12 +3,26 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
+const sessionIdentity = vi.hoisted(() => ({ actorId: 1, ownerScope: "owner-a" }));
+vi.mock("../components/auth/session-provider", () => ({
+  useProductSession: () => ({
+    status: "ready",
+    session: {
+      actor: { id: sessionIdentity.actorId, username: "maintainer" },
+      current_owner_scope: sessionIdentity.ownerScope,
+      role: "admin",
+    },
+  }),
+}));
+
 import { DemoImportButton } from "../components/dashboard/demo-import-button";
 import { LanguageProvider } from "../components/i18n/language-provider";
 
 const refresh = vi.fn();
 const startGithubImport = vi.fn();
 const getImportJob = vi.fn();
+const pauseGithubImport = vi.fn();
+const resumeGithubImport = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -19,14 +33,254 @@ vi.mock("next/navigation", () => ({
 vi.mock("../lib/api", () => ({
   startGithubImport: (...args: unknown[]) => startGithubImport(...args),
   getImportJob: (...args: unknown[]) => getImportJob(...args),
+  pauseGithubImport: (...args: unknown[]) => pauseGithubImport(...args),
+  resumeGithubImport: (...args: unknown[]) => resumeGithubImport(...args),
 }));
 
 describe("DemoImportButton", () => {
   beforeEach(() => {
+    sessionIdentity.actorId = 1;
+    sessionIdentity.ownerScope = "owner-a";
     vi.useRealTimers();
     refresh.mockReset();
     startGithubImport.mockReset();
     getImportJob.mockReset();
+    pauseGithubImport.mockReset();
+    resumeGithubImport.mockReset();
+  });
+
+
+  it("waits for a confirmed pause, disables duplicate clicks, and then shows resume", async () => {
+    const user = userEvent.setup();
+    // Keep background polling isolated; this test drives only the control action.
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    let confirmPause: ((value: { job_id: string; status: string; summary: { stage: string } }) => void) | undefined;
+    pauseGithubImport.mockImplementation(
+      () => new Promise((resolve) => { confirmPause = resolve; })
+    );
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const pauseButton = screen.getByRole("button", { name: /暂停 \(Pause\)/ });
+    await user.click(pauseButton);
+    expect(pauseGithubImport).toHaveBeenCalledExactlyOnceWith("job-running");
+    expect(pauseButton).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    await user.click(pauseButton);
+    expect(pauseGithubImport).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      confirmPause?.({ job_id: "job-running", status: "paused", summary: { stage: "importing_artifacts" } });
+    });
+    expect(screen.getByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("shows a failed pause without falsely marking the import as paused", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    pauseGithubImport.mockRejectedValue(new Error("Forbidden"));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Forbidden");
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { problem: "409 conflict", message: "Concurrent status transition" },
+    { problem: "network failure", message: "Upstream engine request failed" },
+  ])("keeps paused status on resume $problem with a visible error", async ({ message }) => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    resumeGithubImport.mockRejectedValue(new Error(message));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-paused",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "extracting_decisions" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /暂停 \(Pause\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "Authentication required",
+    "connect ECONNREFUSED",
+  ])("shows a status polling error (%s) without claiming import failure", async (message) => {
+    getImportJob.mockRejectedValue(new Error(message));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("rejects a polling result from another job without publishing its completion", async () => {
+    getImportJob.mockResolvedValue({
+      job_id: "job-unrelated",
+      status: "succeeded",
+      imported_count: 99,
+      repo: "org/other",
+      summary: { stage: "completed" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("did not match the requested job");
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.queryByText("Imported 99 artifacts from org/other")).not.toBeInTheDocument();
+    expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
+  });
+
+  it("shows running only after resume confirmation", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    resumeGithubImport.mockResolvedValue({
+      job_id: "job-paused",
+      status: "running",
+      summary: { stage: "extracting_decisions" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-paused",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "extracting_decisions" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    expect(resumeGithubImport).toHaveBeenCalledWith("job-paused");
+    expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+  });
+
+  it("accepts queued as successful resume for a paused job that has not started", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    resumeGithubImport.mockResolvedValue({
+      job_id: "job-not-started",
+      status: "queued",
+      summary: { stage: "queued" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-not-started",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "queued" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    expect(resumeGithubImport).toHaveBeenCalledWith("job-not-started");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("refreshes the dashboard after a successful import job completes", async () => {
@@ -268,4 +522,216 @@ describe("DemoImportButton", () => {
     expect(screen.getAllByText("Imported 1202 artifacts from psf/requests").length).toBeGreaterThan(0);
     expect(getImportJob).toHaveBeenCalledTimes(25);
   });
+
+
+
+  it("ignores an old poll when owner scope changes but workspace slug stays the same", async () => {
+    let finishOldPoll: ((job: {
+      job_id: string; status: string; repo: string; imported_count: number;
+      summary: { stage: string };
+    }) => void) | undefined;
+    let pollCalls = 0;
+    getImportJob.mockImplementation(() => {
+      pollCalls += 1;
+      if (pollCalls === 1) {
+        return new Promise((resolve) => { finishOldPoll = resolve; });
+      }
+      return new Promise(() => {});
+    });
+
+    const view = () => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="shared-workspace"
+          repo="org/shared"
+          latestImport={{
+            job_id: "job-same-slug",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view());
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledTimes(1));
+
+    sessionIdentity.ownerScope = "owner-b";
+    rerender(view());
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      finishOldPoll?.({
+        job_id: "job-same-slug",
+        status: "succeeded",
+        repo: "org/shared",
+        imported_count: 99,
+        summary: { stage: "completed" },
+      });
+    });
+
+    expect(screen.queryByText("Imported 99 artifacts from org/shared")).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow", "100");
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+
+  it("ignores a late pause confirmation after switching owner scope on the same slug", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    let finishOldPause: ((value: { job_id: string; status: string }) => void) | undefined;
+    pauseGithubImport.mockImplementation(
+      () => new Promise((resolve) => { finishOldPause = resolve; })
+    );
+
+    const view = () => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="shared-workspace"
+          repo="org/shared"
+          latestImport={{
+            job_id: "job-same-slug",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view());
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(pauseGithubImport).toHaveBeenCalledWith("job-same-slug");
+
+    sessionIdentity.ownerScope = "owner-b";
+    rerender(view());
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+
+    await act(async () => { finishOldPause?.({ job_id: "job-same-slug", status: "paused" }); });
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not apply a late previous-workspace poll after workspace navigation", async () => {
+    let resolveOldPoll: ((value: {
+      job_id: string; status: string; imported_count: number; repo: string;
+      summary: { stage: string };
+    }) => void) | undefined;
+    getImportJob.mockImplementation((jobId: string) => {
+      if (jobId === "job-a") {
+        return new Promise((resolve) => { resolveOldPoll = resolve; });
+      }
+      return new Promise(() => {});
+    });
+
+    const view = (workspaceSlug: string, repo: string, jobId: string) => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug={workspaceSlug}
+          repo={repo}
+          latestImport={{
+            job_id: jobId,
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view("workspace-a", "org/one", "job-a"));
+    await waitFor(() => expect(getImportJob).toHaveBeenCalledWith("job-a"));
+
+    rerender(view("workspace-b", "org/two", "job-b"));
+    expect(screen.getByText(/Import job: job-b/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Import job: job-a/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveOldPoll?.({
+        job_id: "job-a", status: "succeeded", imported_count: 100,
+        repo: "org/one", summary: { stage: "completed" },
+      });
+    });
+
+    expect(screen.getByText(/Import job: job-b/i)).toBeInTheDocument();
+    expect(screen.queryByText("Imported 100 artifacts from org/one")).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("rejects a pause response for a different job without changing control state", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    pauseGithubImport.mockResolvedValue({
+      job_id: "job-other", status: "paused", summary: { stage: "importing_artifacts" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-a",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("not confirmed");
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not refresh or change UI after an action completes on an unmounted workspace", async () => {
+    const user = userEvent.setup();
+    let resolvePause: ((value: { job_id: string; status: string }) => void) | undefined;
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    pauseGithubImport.mockImplementation(() => new Promise((resolve) => { resolvePause = resolve; }));
+
+    const { unmount } = render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-a",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(pauseGithubImport).toHaveBeenCalledWith("job-a");
+    unmount();
+    await act(async () => { resolvePause?.({ job_id: "job-a", status: "paused" }); });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
 });

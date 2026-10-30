@@ -184,6 +184,77 @@ def test_get_import_job_status_returns_job(tmp_path: Path, monkeypatch) -> None:
     assert response.json()["summary"]["outcome"] == "insufficient_evidence"
 
 
+def test_import_job_controls_reject_old_workspace_after_owner_scope_switch(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Changing current owner scope revokes old job reads and mutations."""
+    db_path = tmp_path / "job-control-scope-switch.db"
+    _upgrade(db_path, monkeypatch)
+    token = _create_actor_session(
+        db_path, username="scope-operator", role="admin", scope_key="team-alpha"
+    )
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        auth_repo = AuthRepository(session)
+        actor = auth_repo.get_actor_by_username("scope-operator")
+        assert actor is not None
+        beta = auth_repo.create_scope(
+            scope_key="team-beta", display_name="Team Beta", scope_type="team"
+        )
+        auth_repo.ensure_membership(
+            actor_id=actor.id, owner_scope_id=beta.id, role="admin"
+        )
+        workspace = Workspace(
+            slug="alpha-import-workspace",
+            name="Alpha Import",
+            repo_url="https://github.com/org/repo",
+            owner_scope="team-alpha",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(ImportJob(
+            job_id="alpha-queued-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full", status="queued",
+            imported_count=0,
+        ))
+        session.commit()
+
+    client = TestClient(create_app())
+    headers = {SESSION_HEADER: token}
+    initial = client.get("/imports/alpha-queued-job", headers=headers)
+    assert initial.status_code == 200
+    assert initial.json()["status"] == "queued"
+
+    paused = client.post("/imports/alpha-queued-job/pause", headers=headers)
+    assert paused.status_code == 200
+    assert paused.json()["status"] == "paused"
+
+    switched = client.post(
+        "/auth/scope", headers=headers, json={"owner_scope": "team-beta"}
+    )
+    assert switched.status_code == 200
+    assert switched.json()["current_owner_scope"] == "team-beta"
+
+    # An admin in the new scope must not access or mutate the prior scope's job.
+    for method, url in (
+        ("GET", "/imports/alpha-queued-job"),
+        ("POST", "/imports/alpha-queued-job/pause"),
+        ("POST", "/imports/alpha-queued-job/resume"),
+    ):
+        response = client.request(method, url, headers=headers)
+        assert response.status_code == 404
+
+    with Session(engine) as session:
+        stored = session.query(ImportJob).filter_by(job_id="alpha-queued-job").one()
+        assert stored.status == "paused"
+
+    back = client.post(
+        "/auth/scope", headers=headers, json={"owner_scope": "team-alpha"}
+    )
+    assert back.status_code == 200
+    assert client.get("/imports/alpha-queued-job", headers=headers).json()["status"] == "paused"
+
+
 def test_post_imports_github_creates_live_workspace_when_slug_missing(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "live-import.db"
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
