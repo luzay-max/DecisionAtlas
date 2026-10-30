@@ -23,9 +23,9 @@ type DemoImportButtonProps = {
 // from a previous workspace could publish the old job's status in the new view.
 export function DemoImportButton(props: DemoImportButtonProps) {
   const { session, status } = useProductSession();
-  // The same slug can exist under different owner scopes. A scope switch
-  // must invalidate a pending import poll/action even when the URL and repo
-  // do not change. Do not put the session token into a React key.
+  // Workspace slugs are globally unique, but the URL may stay mounted
+  // after a scope switch that revokes access. Invalidate any in-flight poll
+  // or action before it can publish stale data; never key on a session token.
   const controllerIdentity = [
     props.workspaceSlug,
     props.repo,
