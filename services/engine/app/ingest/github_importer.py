@@ -10,17 +10,38 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from sqlalchemy.orm import Session
 
-from app.ingest.github_client import GitHubClient
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError
 from app.ingest.github_document_selection import classify_repository_document, select_high_signal_repository_documents
 from app.ingest.github_types import GitHubImportResult
 from app.repositories.artifacts import ArtifactRepository
 from app.repositories.workspaces import WorkspaceRepository
 
 
+# Fail closed rather than silently omitting expensive source documents. These
+# caps bound accepted prefetch content, not HTTP response allocation while a
+# single remote response is being downloaded or all GitHub API payloads.
+MAX_SELECTED_MARKDOWN_DOCUMENTS = 256
+MAX_SINGLE_MARKDOWN_BYTES = 4 * 1024 * 1024
+MAX_TOTAL_MARKDOWN_BYTES = 32 * 1024 * 1024
+
+
 class GitHubImporter:
-    def __init__(self, session: Session, client: GitHubClient) -> None:
+    def __init__(
+        self,
+        session: Session,
+        client: GitHubClient,
+        *,
+        max_selected_documents: int = MAX_SELECTED_MARKDOWN_DOCUMENTS,
+        max_single_document_bytes: int = MAX_SINGLE_MARKDOWN_BYTES,
+        max_total_document_bytes: int = MAX_TOTAL_MARKDOWN_BYTES,
+    ) -> None:
+        if min(max_selected_documents, max_single_document_bytes, max_total_document_bytes) < 1:
+            raise ValueError("GitHub document prefetch limits must be positive")
         self.session = session
         self.client = client
+        self.max_selected_documents = max_selected_documents
+        self.max_single_document_bytes = max_single_document_bytes
+        self.max_total_document_bytes = max_total_document_bytes
         self.artifacts = ArtifactRepository(session)
         self.workspaces = WorkspaceRepository(session)
 
@@ -49,6 +70,40 @@ class GitHubImporter:
         selected_documents, skipped_document_counts = select_high_signal_repository_documents(repository_files)
         selected_document_categories = Counter(classify_repository_document(file.path) for file in selected_documents)
 
+        # The recursive tree includes Git blob sizes. Reject oversized
+        # selections before starting any source writes or document downloads.
+        # Never truncate the selection: it would silently lose decision evidence.
+        if len(selected_documents) > self.max_selected_documents:
+            raise GitHubIncompleteCoverageError(
+                reason="document_count_budget",
+                scope=f"{repo}@{default_branch}",
+                detail=f"selected {len(selected_documents)} documents exceeds {self.max_selected_documents} allowed",
+            )
+        advertised_bytes = 0
+        for document in selected_documents:
+            size = document.size
+            if size is None:
+                continue
+            if not isinstance(size, int) or size < 0:
+                raise GitHubIncompleteCoverageError(
+                    reason="invalid_document_size",
+                    scope=f"{repo}@{default_branch}",
+                    detail=f"invalid Git tree size for {document.path}",
+                )
+            if size > self.max_single_document_bytes:
+                raise GitHubIncompleteCoverageError(
+                    reason="document_size_budget",
+                    scope=f"{repo}@{default_branch}",
+                    detail=f"document {document.path} exceeds {self.max_single_document_bytes} bytes",
+                )
+            advertised_bytes += size
+            if advertised_bytes > self.max_total_document_bytes:
+                raise GitHubIncompleteCoverageError(
+                    reason="document_total_budget",
+                    scope=f"{repo}@{default_branch}",
+                    detail=f"selected document tree size exceeds {self.max_total_document_bytes} bytes",
+                )
+
         # Complete all remote document downloads and validate their blob IDs
         # before the first Artifact INSERT/UPDATE. Holding SQLite's writer lock
         # while waiting on GitHub network futures blocks independent pause and
@@ -57,6 +112,13 @@ class GitHubImporter:
             source_id = repository_file.path
             signal_category = classify_repository_document(source_id)
             content = self.client.fetch_markdown_document(repo, path=source_id, ref=default_branch)
+            actual_bytes = len(content.encode("utf-8"))
+            if actual_bytes > self.max_single_document_bytes:
+                raise GitHubIncompleteCoverageError(
+                    reason="document_size_budget",
+                    scope=f"{repo}@{default_branch}",
+                    detail=f"downloaded document {source_id} exceeds {self.max_single_document_bytes} bytes",
+                )
             expected_blob_sha = repository_file.sha
             if isinstance(expected_blob_sha, str) and re.fullmatch(r"[0-9a-f]{40}", expected_blob_sha):
                 actual_blob_sha = _git_blob_sha(content)
@@ -67,10 +129,19 @@ class GitHubImporter:
             return repository_file, signal_category, content
 
         prefetched_documents = []
+        downloaded_bytes = 0
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = {executor.submit(fetch_doc, doc): doc for doc in selected_documents}
             for future in as_completed(futures):
-                prefetched_documents.append(future.result())
+                downloaded = future.result()
+                downloaded_bytes += len(downloaded[2].encode("utf-8"))
+                if downloaded_bytes > self.max_total_document_bytes:
+                    raise GitHubIncompleteCoverageError(
+                        reason="document_total_budget",
+                        scope=f"{repo}@{default_branch}",
+                        detail=f"downloaded Markdown exceeds {self.max_total_document_bytes} bytes",
+                    )
+                prefetched_documents.append(downloaded)
 
         # All sources are now locally fetched/validated. Persist Artifacts in
         # one transaction, keeping the import-stage failure rollback guarantee.

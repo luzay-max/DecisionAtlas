@@ -13,6 +13,8 @@ import pytest
 
 from app.db.models import Artifact, Workspace
 from app.ingest.github_importer import GitHubImporter
+from app.ingest.github_client import GitHubIncompleteCoverageError
+from app.jobs.import_jobs import _classify_failure
 from app.ingest.github_document_selection import select_high_signal_repository_documents
 from app.ingest.github_types import GitHubArtifactPayload
 from app.ingest.github_types import GitHubRepositoryFile
@@ -315,5 +317,98 @@ def test_remote_markdown_failure_leaves_no_imported_artifact_writes(
         with Session(engine) as session:
             assert session.scalars(select(Artifact)).all() == []
             assert session.scalar(select(Workspace).where(Workspace.slug == "concurrent-check")) is not None
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("budget_name", "budget_value", "expected_reason"),
+    [
+        ("max_selected_documents", 1, "document_count_budget"),
+        ("max_single_document_bytes", 64, "document_size_budget"),
+        ("max_total_document_bytes", 128, "document_total_budget"),
+    ],
+)
+def test_markdown_tree_budget_fails_before_document_fetch_or_source_writes(
+    tmp_path: Path, monkeypatch, budget_name: str, budget_value: int,
+    expected_reason: str,
+) -> None:
+    db_path = tmp_path / f"tree-budget-{budget_name}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class NoDocumentRequests(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            pytest.fail("Budget should fail before any document fetch")
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(
+                session, NoDocumentRequests(), **{budget_name: budget_value}
+            )
+            with pytest.raises(GitHubIncompleteCoverageError) as raised:
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            assert raised.value.reason == expected_reason
+            assert _classify_failure(raised.value) == "incomplete_source_coverage"
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("max_single", "max_total", "reason"),
+    [
+        (5, 512, "document_size_budget"),
+        (64, 13, "document_total_budget"),
+    ],
+)
+def test_downloaded_bytes_budget_rejects_underreported_tree_without_committing(
+    tmp_path: Path, monkeypatch, max_single: int, max_total: int, reason: str
+) -> None:
+    db_path = tmp_path / f"actual-budget-{reason}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class UnderreportedGitTree(FakeGitHubClient):
+        def list_repository_files(self, repo: str, *, ref: str | None = None):
+            files = super().list_repository_files(repo, ref=ref)
+            for file in files:
+                file.size = 1
+            return files
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(
+                session, UnderreportedGitTree(),
+                max_single_document_bytes=max_single,
+                max_total_document_bytes=max_total,
+            )
+            with pytest.raises(GitHubIncompleteCoverageError) as raised:
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            assert raised.value.reason == reason
+            assert _classify_failure(raised.value) == "incomplete_source_coverage"
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
     finally:
         engine.dispose()
