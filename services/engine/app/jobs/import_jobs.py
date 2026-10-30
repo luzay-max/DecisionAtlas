@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-from datetime import datetime, timezone
+import time
+from datetime import datetime, timedelta, timezone
 from time import monotonic
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -13,7 +14,7 @@ import httpx
 from app.config import get_settings
 from app.db.session import get_db_session
 from app.extractor.pipeline import CandidateExtractionPipeline, ExtractionRunStats
-from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError, GitHubNetworkError
 from app.ingest.github_importer import GitHubImporter
 from app.indexing.index_artifact import index_artifact
 from app.llm.base import ProviderConfigurationError, ProviderRateLimitError, ProviderRequestError, ProviderResponseError, ProviderTimeoutError
@@ -41,6 +42,11 @@ QUALIFYING_WEBHOOK_EVENTS = {"push", "pull_request", "issues"}
 PRIVATE_ACCESS_AUTH_DETAIL = "GitHub token is unauthorized, expired, revoked, or lacks access to this repository."
 PRIVATE_ACCESS_NOT_FOUND_DETAIL = "Repository was not found for the selected private access source."
 PRIVATE_ACCESS_NETWORK_DETAIL = "GitHub provider or network failure while validating private repository access."
+
+# Overlap provides a bounded retry window for equal-second timestamps and
+# changes during the previous import. It is NOT a substitute for per-stream
+# cursors or immutable source revisions (F05/F06 follow-up design).
+INCREMENTAL_SYNC_OVERLAP = timedelta(minutes=5)
 
 
 class RepositoryAccessError(ValueError):
@@ -145,14 +151,57 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
 
         jobs = ImportJobRepository(session)
         current_stage = "importing_artifacts"
-        jobs.mark_running(job_id, stage=current_stage)
-        session.commit()
+        job = jobs.get_by_job_id(job_id)
+        if job is None:
+            raise ValueError(f"Import job not found: {job_id}")
+
+        # A queued job may be paused before FastAPI starts its background
+        # task. Wait without holding a DB transaction. A concurrent second
+        # worker must not restart or fail an already-claimed/terminal job.
+        while True:
+            session.refresh(job)
+            if job.status == "paused" and job.started_at is None:
+                session.rollback()
+                time.sleep(0.2)
+                continue
+            if job.status != "queued":
+                return serialize_import_job(session=session, job=job)
+            try:
+                jobs.mark_running(job_id, stage=current_stage)
+            except ValueError:
+                # State changed during the conditional UPDATE; re-check.
+                session.rollback()
+                session.refresh(job)
+                if job.status == "paused" and job.started_at is None:
+                    continue
+                return serialize_import_job(session=session, job=job)
+            session.commit()
+            break
 
         since = None
         if mode == "since_last_sync":
             last_success = jobs.latest_success_for_repo(workspace.id, repo)
             if last_success is not None and last_success.job_id != job_id:
-                since = last_success.finished_at or last_success.started_at or last_success.created_at
+                # Use the preceding import's *start*, not its completion:
+                # updates made during its extract/index phases were not
+                # necessarily visible to GitHub listing calls performed earlier.
+                since = _incremental_since_for_success(last_success)
+
+        if mode == "since_last_sync":
+            jobs.update_stage(
+                job_id,
+                stage=current_stage,
+                summary_json={
+                    "sync_window": {
+                        "source_since": since.isoformat() if since is not None else None,
+                        "basis": "last_success_started_at_with_overlap" if since else "full_initial_scan",
+                        "overlap_seconds": int(INCREMENTAL_SYNC_OVERLAP.total_seconds()) if since else 0,
+                    }
+                },
+            )
+            # Safe before importer begins writing artifacts; if import fails,
+            # the failure record retains the requested source window.
+            session.commit()
 
         importer = GitHubImporter(
             session,
@@ -170,28 +219,20 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         last_progress_time = monotonic()
         def on_progress(count: int):
             nonlocal last_progress_time
-            now = monotonic()
-            
-            # Check pause status
-            latest_job = jobs.get_by_job_id(job_id)
-            if latest_job:
-                session.refresh(latest_job)
-            if latest_job and latest_job.status == "paused":
-                while True:
-                    session.refresh(latest_job)
-                    if latest_job.status != "paused":
-                        break
-                    import time
-                    time.sleep(2.0)
-            if latest_job:
-                session.refresh(latest_job)
-            if latest_job and latest_job.status == "cancelled":
-                raise Exception("Import cancelled")
 
-            # Keep progress and artifacts in the SAME uncommitted transaction.
-            # Committing here would persist partially imported artifacts before
-            # the importer verifies document integrity; failures must roll back.
-            # Import-phase progress becomes visible only at the final commit.
+            if count == 0:
+                # GitHubImporter calls this AFTER prefetch and BEFORE its
+                # first Artifact upsert. It is safe to release our read
+                # transaction and wait for an admin resume here.
+                _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
+                return
+
+            # Never wait for resume while an Artifact INSERT/UPDATE is
+            # uncommitted. SQLite will block the admin's resume write until
+            # this transaction completes. Pause takes effect at the next
+            # transaction-free checkpoint, not at each row's progress event.
+            # Committing here would persist partially imported Artifacts.
+            now = monotonic()
             if now - last_progress_time > 1.0:
                 jobs.update_stage(job_id, stage=current_stage, summary_json={"imported_count": count})
                 last_progress_time = monotonic()
@@ -218,6 +259,9 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             },
         )
         session.commit()
+        # A pause requested while sources were being written is durable only
+        # after the batch commits. Acknowledge it before indexing begins.
+        _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
 
         artifacts = ArtifactRepository(session).list_by_workspace(workspace.id)
         for artifact in artifacts:
@@ -261,6 +305,9 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             },
         )
         session.commit()
+        # Indexing must finish its transaction before waiting on an admin
+        # pause. Extraction itself still needs separate mid-stage checkpoints.
+        _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
 
         extraction_pipeline = CandidateExtractionPipeline(session, runtime.extraction_provider)
         progress_reporter = _build_extraction_progress_reporter(job_id=job_id, session=session)
@@ -281,23 +328,37 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         has_decision_signal = created_candidates > 0 or any(
             decision_counts.get(state, 0) > 0 for state in ("candidate", "accepted", "superseded")
         )
-        job = jobs.mark_succeeded(
-            job_id,
-            imported_count=import_result.imported_count,
-            summary_json={
-                "artifact_counts": import_result.artifact_counts,
-                "document_summary": {
-                    "selected": import_result.selected_document_count,
-                    "imported": import_result.imported_document_count,
-                    "skipped": import_result.skipped_document_counts,
-                    "categories": import_result.selected_document_categories,
-                },
-                "extraction_summary": extraction_pipeline.last_run_stats.to_summary(),
-                "evidence_summary": evidence_summary,
-                "outcome": "ok" if has_decision_signal else "insufficient_evidence",
+        completion_summary = {
+            "artifact_counts": import_result.artifact_counts,
+            "document_summary": {
+                "selected": import_result.selected_document_count,
+                "imported": import_result.imported_document_count,
+                "skipped": import_result.skipped_document_counts,
+                "categories": import_result.selected_document_categories,
             },
-        )
-        session.commit()
+            "extraction_summary": extraction_pipeline.last_run_stats.to_summary(),
+            "evidence_summary": evidence_summary,
+            "outcome": "ok" if has_decision_signal else "insufficient_evidence",
+        }
+        # CandidateExtractionPipeline.run() has committed its writes. Pause
+        # requests arriving near completion must not be overwritten by a
+        # stale ORM job object or a terminal status update.
+        while True:
+            _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
+            try:
+                job = jobs.mark_succeeded(
+                    job_id,
+                    imported_count=import_result.imported_count,
+                    summary_json=completion_summary,
+                )
+            except ValueError:
+                session.rollback()
+                current = jobs.get_by_job_id(job_id)
+                if current is not None and current.status == "paused":
+                    continue
+                raise
+            session.commit()
+            break
         logger.info(
             "github import completed",
             extra=build_log_context(job_id=job_id, workspace_id=workspace.id),
@@ -308,12 +369,20 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         jobs = ImportJobRepository(session)
         job = jobs.get_by_job_id(job_id)
         if job is not None:
-            failed_job = jobs.mark_failed(
-                job_id,
-                error_message=str(exc),
-                stage=current_stage,
-                failure_category=_classify_failure(exc),
-            )
+            try:
+                failed_job = jobs.mark_failed(
+                    job_id,
+                    error_message=str(exc),
+                    stage=current_stage,
+                    failure_category=_classify_failure(exc),
+                )
+            except ValueError:
+                session.rollback()
+                # Do not resurrect a terminal job with a stale worker error.
+                existing = jobs.get_by_job_id(job_id)
+                if existing is not None and existing.status in ("succeeded", "failed"):
+                    return serialize_import_job(session=session, job=existing)
+                raise
             session.commit()
             return serialize_import_job(session=session, job=failed_job)
         raise
@@ -812,7 +881,23 @@ def _workspace_slug(repo_ref: str, *, owner_scope: str) -> str:
     return f"github-{scope_normalized}-{normalized}".strip("-")[:120]
 
 
+def _incremental_since_for_success(job) -> datetime:
+    """Conservative inclusive lower bound for re-reading previous import work.
+
+    SQLAlchemy/SQLite commonly return naive UTC timestamps. Normalize before
+    subtracting the fixed overlap, and never use finished_at as a cursor.
+    """
+    start = job.started_at or job.created_at
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    else:
+        start = start.astimezone(timezone.utc)
+    return start - INCREMENTAL_SYNC_OVERLAP
+
+
 def _classify_failure(exc: Exception) -> str:
+    if isinstance(exc, GitHubIncompleteCoverageError):
+        return "incomplete_source_coverage"
     if isinstance(exc, RepositoryAccessError):
         return exc.failure_category
     if isinstance(exc, GitHubNetworkError):
@@ -1022,6 +1107,25 @@ def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: s
         raise ValueError("Invalid GitHub webhook signature")
 
 
+def _wait_for_import_safe_checkpoint(*, session, job_id: str) -> None:
+    """Poll pause status only at a boundary with no pending source writes.
+
+    Roll back each read-only transaction before sleeping. This intentionally
+    must NOT be called from an Artifact/candidate write progress callback.
+    """
+    while True:
+        session.rollback()
+        current = ImportJobRepository(session).get_by_job_id(job_id)
+        state = current.status if current is not None else None
+        session.rollback()
+        if state == "running":
+            return
+        if state == "paused":
+            time.sleep(0.2)
+            continue
+        raise ValueError(f"Import job not running at safe checkpoint: {state}")
+
+
 def _build_extraction_progress_reporter(*, job_id: str, session=None):
     last_reported_processed = -1
     last_reported_at = 0.0
@@ -1045,22 +1149,9 @@ def _build_extraction_progress_reporter(*, job_id: str, session=None):
         try:
             jobs_repo = ImportJobRepository(progress_session)
             
-            # Check pause status
-            latest_job = jobs_repo.get_by_job_id(job_id)
-            if latest_job:
-                progress_session.refresh(latest_job)
-            if latest_job and latest_job.status == "paused":
-                while True:
-                    progress_session.refresh(latest_job)
-                    if latest_job.status != "paused":
-                        break
-                    import time
-                    time.sleep(2.0)
-            if latest_job:
-                progress_session.refresh(latest_job)
-            if latest_job and latest_job.status == "cancelled":
-                raise Exception("Import cancelled")
-
+            # Do not sleep on "paused" here: candidate writes may already
+            # hold SQLite's writer lock, making the admin resume impossible.
+            # Pending pauses can be checked only at safe transaction boundaries.
             jobs_repo.merge_summary(
                 job_id,
                 summary_json={
