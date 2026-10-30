@@ -448,6 +448,65 @@ def test_raw_markdown_fallback_refuses_redirects() -> None:
     assert len(requests) == 3
 
 
+def test_raw_media_rejects_success_status_with_unexpected_json() -> None:
+    observed: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed.append(str(request.url))
+        if len(observed) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        if len(observed) == 2:
+            # An API gateway/error proxy may return 200 with an error object.
+            # It is not valid Markdown and must not become decision evidence.
+            return httpx.Response(200, json={"message": "GitHub source unavailable"})
+        raise AssertionError("Unexpected request after invalid source response")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "unexpected JSON" in str(exc)
+    else:
+        raise AssertionError("Expected unexpected raw JSON response to fail closed")
+    assert len(observed) == 2
+    assert all(url.startswith("https://api.github.com/") for url in observed)
+
+
+def test_raw_media_rejects_malformed_json_response() -> None:
+    requests: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        if len(requests) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(
+            200, content=b"not-a-json-object",
+            headers={"content-type": "application/json"},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "malformed JSON" in str(exc)
+    else:
+        raise AssertionError("Expected malformed raw JSON response to fail closed")
+    assert len(requests) == 2
+
+
 def test_raw_media_fallback_keeps_private_token_on_github_api_only() -> None:
     seen = []
 

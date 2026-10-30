@@ -216,10 +216,16 @@ class GitHubClient:
         # only if the raw media response is still a Contents metadata object.
         try:
             raw_payload = raw_response.json()
-        except ValueError:
-            return raw_response.text
+        except ValueError as exc:
+            raise ValueError(
+                f"GitHub raw content API returned malformed JSON for {path}"
+            ) from exc
         if not isinstance(raw_payload, dict) or "encoding" not in raw_payload:
-            return raw_response.text
+            # Some API gateways return a 200 OK with an error JSON object.
+            # Never index this response as source Markdown.
+            raise ValueError(
+                f"GitHub raw content API returned unexpected JSON for {path}"
+            )
         if raw_payload.get("encoding") == "base64" and raw_payload.get("content"):
             return base64.b64decode(raw_payload["content"]).decode("utf-8")
 
