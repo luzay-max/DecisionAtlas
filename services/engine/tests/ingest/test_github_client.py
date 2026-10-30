@@ -697,3 +697,142 @@ def test_get_repository_metadata_maps_private_flag() -> None:
         "private": True,
         "default_branch": "main",
     }
+
+
+def test_streamed_public_raw_refuses_large_unknown_length_without_forwarding_auth() -> None:
+    seen = []
+    chunks_read = []
+
+    def raw_chunks():
+        for i in range(50):
+            chunks_read.append(i)
+            yield b"a" * 4096
+
+    class RawStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield from raw_chunks()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.host, request.headers.get("authorization"), request.headers.get("cookie")))
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(200, stream=RawStream())
+
+    client = GitHubClient(
+        max_markdown_bytes=16 * 1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-password"),
+            headers={"Cookie": "session=secret"},
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    assert seen[-1] == ("raw.githubusercontent.com", None, None)
+    assert len(chunks_read) < 50  # Stream aborted before the complete body arrived.
+
+
+def test_streamed_private_raw_refuses_oversize_without_following_redirects() -> None:
+    observed = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed.append((request.url.host, request.headers.get("accept"), request.headers.get("authorization")))
+        if len(observed) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/private.md",
+            })
+        return httpx.Response(
+            200, content=b"x" * 4096, headers={"content-type": "text/plain"}
+        )
+
+    client = GitHubClient(
+        max_markdown_bytes=1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-password"),
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="private.md", ref="main")
+    assert [host for host, _, _ in observed] == ["api.github.com", "api.github.com"]
+    assert all(auth is not None for _, _, auth in observed)
+
+
+def test_streamed_contents_base64_enforces_decoded_document_size() -> None:
+    import base64 as base64_library
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={
+            "encoding": "base64",
+            "content": base64_library.b64encode(b"123456789").decode("ascii"),
+        })
+
+    client = GitHubClient(
+        max_markdown_bytes=8,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+
+
+def test_streamed_raw_accepts_valid_small_gzip_response() -> None:
+    import gzip
+
+    expected = "# Valid UTF-8 Markdown\n"
+    encoded = gzip.compress(expected.encode("utf-8"))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("accept") == "application/vnd.github.raw+json":
+            return httpx.Response(
+                200, content=encoded, headers={
+                    "content-type": "text/plain",
+                    "content-encoding": "gzip",
+                },
+            )
+        return httpx.Response(200, json={"encoding": "none"})
+
+    client = GitHubClient(
+        max_markdown_bytes=4096,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    assert client.fetch_markdown_document("org/repo", path="README.md", ref="main") == expected
+
+
+def test_streamed_raw_rejects_large_decompressed_gzip_response() -> None:
+    import gzip
+
+    compressed = gzip.compress(b"a" * 256 * 1024)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("accept") == "application/vnd.github.raw+json":
+            return httpx.Response(
+                200, content=compressed, headers={
+                    "content-type": "text/plain",
+                    "content-encoding": "gzip",
+                },
+            )
+        return httpx.Response(200, json={"encoding": "none"})
+
+    client = GitHubClient(
+        max_markdown_bytes=32 * 1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
