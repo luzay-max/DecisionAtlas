@@ -1,0 +1,185 @@
+# DecisionAtlas 后续开发执行计划：可信证据 → 真实价值 → Agent 闭环
+
+> **状态：PROPOSED / 待维护者审批；不是已完成记录。**  
+> **制定：2026-10-30。基线：`main@8aa461f5bc30f16e023c9c00f0d641794fd16f86`。**  
+> **适用范围：** 后续开发的统一待办入口；分支 / PR / CI / 人工验收按本文逐项推进。本文仅是计划，**没有修复任何生产代码、没有合并任何 PR、没有授权任何付费 LLM 请求或真实私有数据处理**。  
+> **历史材料：** [仓库内部 2026-10-28 深度审查](../reviews/2026-10-28-strategy-architecture-code-ui-review.md)、[2026-10-21 安全与真实仓库计划](2026-10-21-security-hardening-and-real-repo-validation-plan.md)、[历史计划归档索引](archive/2026-10-21-reviewed-plan-index.md)；另结合维护者提供的两版《DecisionAtlas 深度分析与迭代建议》（2026-10-30，第二版增加第 15 节）。外部评审是**问题线索与建议**，并非已独立验证的验收凭据；须以固定代码基线和回归结果复核。  
+> **维护原则：** 每次开始新任务，先核对 `main`、在途 PR 和本表状态；已合并并满足验收门槛才可将任务标记完成。旧计划保留作为历史，不重写历史“已完成”断言。
+
+## 0. 一页执行决策
+
+**产品定位（建议）：** Evidence-first Engineering Decision Memory —— 从代码托管仓库的历史及讨论中发现**候选**工程决策，给出可核对的原始证据，由人审核形成可信的决策记忆，再供 Web / CLI / MCP / ADR 使用。
+
+**本轮唯一优先主线：**
+
+1. **可信：** 凭据与导入事务安全、完整覆盖、同步水位、历史证据不可被静默改写、审核与漂移处置不丢失。
+2. **有用：** 补全评论和 PR review 信号，真实模型 + 人类标注验证候选精确率 / 可恢复 ADR 召回 / Why 引用质量。
+3. **可用：** 中英文检索、可理解的审核流程、一键试用与可迁移 ADR、只读 Agent 入口。
+4. **可维护：** 契约测试、Linux + PostgreSQL CI、明确持久化任务语义、可观测性与真实部署说明。
+
+**本轮不做：** 删除 Fastify / 改写整套栈；把低可信 LLM 判断当治理阻断；全面重做漂移规则引擎；在没有真实质量数据前拓展收费、SaaS、多租户计费或海量接入源；为了“使用 pgvector”而无评测地改数据库；无结论地清空历史文档。已有 Web、漂移、治理、权限保持原状并按证据渐进改进。
+
+**交付原则：** CLI 负责启动和自动化；Web 是人工证据审核台；MCP/ADR 负责交付给开发者与 Agent。默认只暴露 **accepted** 决策，治理建议不阻断、不自动批准。
+
+## 1. 任务状态、优先级与验收口径
+
+- **P0：安全 / 不可恢复数据完整性风险**。在相关功能继续扩展前先处理。
+- **P1：核心可信链路缺陷或首次价值阻塞**。当前开发主线。
+- **P2：成本、体验和中期维护改进**。与主线绑定，不抢占 P0/P1。
+- **Proposed** = 未开始；**Draft PR** = 实现仅在在途分支，主分支尚无；**Merged-unverified** = 已合并但必要验收缺失；**Done** = main 中已实现且通过明确门槛；**Deferred** = 有条件后置。
+- 任务表为**建议执行顺序，不是日历承诺**；若前置条件未满足，后续阶段不应以“并行开发”绕过安全和质量闸门。
+- **每个代码 PR** 必须列明：任务 ID / 固定 base SHA / 改动范围 / 非目标 / 风险与回滚 / CI 结果 / 未验证事项 / 所需人工验收。单 PR 尽量只覆盖一个可独立验收问题；有堆叠依赖的明确标注。
+- 合并门禁：最新 head CI 通过；必要的跨层、生命周期、权限/数据隔离测试通过；维护者完成代码评审；无新的凭据泄漏、审核历史被改写、错误成功状态；文档与实际能力一致。**CI 绿不等于真实用户价值、私有部署或真实模型已验证。**
+
+## 2. Stage A — 收敛已有 Draft PR，先止血（优先执行）
+
+> 这里是“处理**已有**改动”的顺序，不新开一批重复修复 PR。截至本文基线，#26、#28–#35 均为未合并 Draft（请在执行前重新检查状态）。不可将 Draft 功能算作 main 已有能力。
+
+| ID | 优先级 | 现有 PR / 问题 | 建议行动与合并顺序 | 验收与剩余边界 |
+| --- | --- | --- | --- | --- |
+| A01 | P0 | [#26](https://github.com/luzay-max/DecisionAtlas/pull/26) / K01 | 审查跨源下载 Authorization、Cookie、client auth/redirect 隔离与进度回调事务；优先独立确认并合并 #26 | 私有/公开 mock raw 下载无凭据外泄；导入失败没有已提交的半截 Artifact；当前 SHA 的 CI、失败测试与人工安全审查完成 |
+| A02 | P1 | [#35](https://github.com/luzay-max/DecisionAtlas/pull/35)（**base 是 #26 分支**）/ F04、F05、F14 部分 | #26 进入 main 后重新评估 #35 差异、rebase/retarget 到 main 并验证；#35 已集成 #30 和 #31 的主要改动，先对照差异，**不得把 #30/#31/#35 作为互不重叠的三个 PR 直接逐个合并** | 分页继续 next、后页 422、tree 截断 fail-closed；失败不推进成功水位，进度事务不留部分 Artifact；开始时间+重叠窗口的回归；SQLite 暂停并发、孤儿任务人工恢复检查。**不宣称已拥有通用 durable worker、租约或自动重启恢复** |
+| A03 | P1 | [#28](https://github.com/luzay-max/DecisionAtlas/pull/28) / F01、F02 | 独立审核 Web → BFF → Engine 的 pause/resume 转发、scope SessionDTO 和失败反馈；可在 A01/A02 期间并行审查，合并时以最新 main 重跑 CI | 200/400/403/404/409 及重复点击、权限切换、跨 scope 数据失效、网络错误有契约/E2E 回归；暂停不保证中途任意指令即时中断 |
+| A04 | P1 | [#29](https://github.com/luzay-max/DecisionAtlas/pull/29) / F03、F07 | 审核重复检测保留人工处置、空内容清索引的修复；补一条 **resolved 后信号消失再出现** 的行为测试或登记明确 follow-up，再决定合并 | `false_positive` / `acknowledged` 对相同事实保持状态；空→非空索引替换正确；审计 ID 不丢。注意同一告警键缺版本/发生周期，**不要把重复出现等同真正回归** |
+| A05 | P1 | [#32](https://github.com/luzay-max/DecisionAtlas/pull/32) / F06a | 审查当前 quote 在最新 Artifact 中的匹配诊断，作为只读警告优先落地 | `current_quotes_found / current_quote_missing / unverifiable / no_refs` 的列表与详情一致；审核记录不被改变；“文本现在存在”**不是历史快照或来源真实性证明** |
+| A06 | P1 | [#33](https://github.com/luzay-max/DecisionAtlas/pull/33)、[#34](https://github.com/luzay-max/DecisionAtlas/pull/34) / F06b | **先审 RFC、再审迁移原型**；单独决定旧 SourceRef 不可追溯版本如何表达、hash 规范、数据库兼容、并发写入、隐私保留和回滚。#34 是**schema-only**，不应越过这些闸门启用运行时代码 | SQLite 与 PostgreSQL 迁移验证；旧审核引用保持 legacy-unbound、不可虚构历史快照；FK/唯一性约束与升级安全；禁止无条件自动重抽取或“看似成功”的 backfill |
+
+**A02 的重复 PR 处理路线：** 优先选择“#26 → 整合后的 #35（经核实包含 #30/#31 的所需语义）”；对照 #30、#31 的测试和行为是否全部覆盖，仅在确认不丢功能/历史记录后再关闭或标记 superseded。若 #35 因并发修改风险不宜整体合并，则拆出安全、覆盖、水位、恢复的小 PR；不得盲目 cherry-pick 两套导入逻辑。**本文不自动合并、关闭或改动任何既有 PR。**
+
+**Stage A 出口：** 维护者记录各 PR 的最终去向（merged / revised / deferred / superseded）、最终 commit SHA、相关 CI URL、已知残余问题；有一份可追溯的 main 回归结果。任何对 SQLite 锁竞争的测试只能算“已复现”，不能记为“已经解决”。
+
+## 3. Stage B — 核心工程质量和检索可靠性（Stage A 安全收口后）
+
+| ID | 优先级 | 目标与建议改动 | 测试 / Done 闸门 |
+| --- | --- | --- | --- |
+| B01 | P1 | F08/N6：决策 Embedding 按决策内容版本/模型/维度缓存，更新时失效；查询只 embed query、验证向量维度/有限值；先小数据集有界方案，再根据真实规模决定 PostgreSQL pgvector/HNSW | 同查询重复执行不重算未变决策；更新版本正确失效；不同模型、维度拒绝混用；测 p95 延迟/调用数与迁移兼容性 |
+| B02 | P1 | F09：中文/中英混合检索（字符 bigram + 英文技术词；或 FTS5/PG FTS 对照）和词法 fallback；真实向量不可用时不让 FakeEmbedder 伪装生产语义召回，响应明示 retrieval_mode | 至少覆盖纯中文、混合技术词、英文与负例；对比 recall@k、错误命中和拒答；只证明词法失败的部分，不捏造端到端中文命中率 |
+| B03 | P1 | F10/F13：修复浏览器请求 `127.0.0.1:3001` 的远程部署风险；建立同源代理或经验证的公开地址策略；修复非法 Cookie 百分号转义解析，避免单个坏 Cookie 影响所有请求 | 远程浏览器访问正确 API；本地 demo 不回归；安全 Cookie、非法 Cookie、401/403、CORS/CSRF 边界的接口和浏览器测试 |
+| B04 | P1 | N4：在既有 Windows CI 外增加 Ubuntu + PostgreSQL 真实集成作业；校验 SQLite 和 PG 的迁移、索引/证据/导入事务行为。任何尚未使用的 pgvector/Redis 在文档里标为“安装但未接入” | 两个平台 CI 绿；真实 PG 测试而非仅换 connection string；必要时矩阵拆分快慢作业，不让 Fake tests 冒充真实服务 |
+| B05 | P1/P2 | N5：Argon2id 优先（或经审核的 scrypt），新 hash 格式版本化；旧 PBKDF2 登录成功后迁移重哈希，采用安全比较；权限与密钥迁移回归 | 旧账号可登录并无损升级；错误密码/畸形 hash 不泄露细节；不会改变 Fernet GitHub token 加密/轮换语义 |
+| B06 | P2 | F15：Engine OpenAPI → TypeScript 类型/客户端自动生成；Web/BFF 路由契约检查、统一错误 DTO / 环境变量校验。当前保留 Fastify BFF | 新增或删改 API 时 CI 能检测缺 BFF 转发/不兼容；UI 显示真实失败原因；避免引入另一套手写类型 |
+| B07 | P1（专项设计） | F14：设计 DB jobs 租约/心跳/claim/进程重启协议，或成熟任务队列；先定义原子暂停与重试幂等语义，不在未验证时自动重放导入、审核或付费抽取 | 模拟 worker 终止/重复执行/并发 pause-resume；确保不会重复提交或无界扣费；人工恢复只在确认 worker 停止后触发 |
+
+**依赖选择：** 在 B07 做出后台任务方案之前，不急着删除 Redis；如果最终采用 DB 队列，移除无用 Redis 与 Compose/README 声明；若用 Redis 队列，就真正接入并有崩溃恢复测试。pgvector 同理：用真实性能与维护成本决定，不靠架构图决定。
+
+## 4. Stage C — 输入与证据完整性（证明核心价值的前置条件）
+
+### C01 — N1：GitHub 讨论评论采集（P1，建议独立 PR 切片）
+
+- 按来源区分 Issue comments、PR conversation comments、PR review summaries、PR review inline comments；保留稳定 ID、thread/parent 关系、作者、created/updated、原文 URL/锚点以及可见的采纳/合并状态。**讨论中的建议不等于已采纳架构决定**。
+- 初始范围限 GitHub 公共仓库的只读采集；复用现有 GitHubClient/import job/Artifact 等模型，不直接开 GitLab/Gitee、Slack/Jira 的并行项目。
+- 分页上限、API 错误、删除/编辑、率限制、增量与重试须与 F04/F05 一致；每个数据流覆盖、游标、水位和失败情况独立记录。超过范围应明确 partial 或 fail-closed，不能静默成功。
+- 线程上下文保留赞成/反对/最终决议；长线程先安全截断和标记上下文缺失；不把评论正文里的 prompt 指令当系统指令。
+- **Done：** 公共 fixtures + mock HTTPX 覆盖分页、review/inline、评论更新、去重、权限、安全边界；真实公开仓库 dry-run 的捕获数量、覆盖率、成本报告；可证明评论与原 PR/Issue 来源关联正确。
+- 后续私有仓库导入必须有**显式授权、脱敏/保留策略和人工安全验收**；不得把源文本、Token 或人名直接上传到 CI artifact。
+
+### C02 — F06：真正不可变的来源与审核链（P1）
+
+- 以 #33 RFC / #34 迁移为参考，阶段实施 ArtifactRevision、SourceRef 修订关联、当前指针、删除墓碑和 revision-scoped extraction outcomes。
+- 原有 accepted/rejected 审核、Quote、ReviewAuditEvent 永不因重新导入被静默改写；旧资料没有历史版本时返回 **unverifiable / legacy-unbound**，不在迁移时假造。
+- 只对**新版本**生成候选或“需复审”，不自动替人重新接受；导入缺失不得直接认定上游删除。
+- **Done：** v1→v2→删除→恢复、同时重导入、旧 Schema 迁移、失败回滚、跨 workspace 权限隔离和私有快照保留策略均有测试；新旧证据在 UI/API 中可区分。
+
+### C03 — 抽取质量与提示注入防护（P1）
+
+- 保留当前“候选筛选→结构化抽取→可定位 SourceRef→人工审核”的基本设计；新增线程上下文抽取、合并重复候选、采纳/否决/取代信号分层。
+- 使用明确分隔的不可信来源数据区、结构化 schema、长度上限、失败重试上限；防止来源文本中“忽略指令”等内容污染提取过程。引用逐字定位不等于语义支持，更不等于来源真实性。
+- 报告每 100 条 source 的时间、Token、费用**估算**与失败率；模型、Prompt、输入快照和版本与结果绑定；对模型供应商/付费额度先获得维护者批准。
+- **Done：** prompt injection 与负样本回归；低证据候选不自动接受；按来源类型报告拒绝原因及重复候选比例。
+
+## 5. Stage D — 建立真实评测门禁（C01 有基线后优先完成）
+
+> 评测不是宣传材料；在没有通过之前，不得把 FakeProvider 结果、“运行了 452 个单测”或 ADR 存在与否当成抽取精度证明。**先做小样本核实，再扩大样本**。
+
+| ID | 项目 | 样本与指标 | 评测注意 |
+| --- | --- | --- | --- |
+| D01 | 候选精确率 | 3–5 个真实公开仓库，每库前 50 条候选；人工独立判断是否是真决策、是否采纳、证据支撑、是否过期；precision@10/@50，分源报告 | 至少两名标注者独立评审，有分歧记录/仲裁；条件不足时显式“待第二标注者”，不能假称人工金标准 |
+| D02 | ADR 可恢复召回 | 输入剔除 ADR/重复设计文档；对“公开历史中可恢复”的 ADR 做 recall@N | 金标准先分“有公开证据/无公开证据”；避免将不可恢复项目算失败，防止既有模型训练资料泄漏影响解读 |
+| D03 | Why 与引用 | 每仓 20–30 个为什么问题，中英各半和拒答负例；recall@5、引用正确率、拒答正确率、p95 延迟、token | 只针对 accepted，不能用候选或 FakeEmbedder 制作看似真实的成绩 |
+| D04 | 评论价值消融 | 同样的仓库/模型/Prompt/预算对比“有评论 vs 无评论” | 看精确率、可恢复召回、审核耗时和增量成本；不要只比较候选数量 |
+| D05 | Agent 应用实验 | 选可重现的 diff 修改任务，测“无决策上下文 vs MCP 提供 accepted 证据”的历史决策冲突率 | 先只读和提示、不阻断；比较相同任务、控制可见上下文、人工核对结论 |
+
+**验收输出（存 `docs/validation/` 或合适目录）：** 固定仓库 SHA、采集覆盖/截断状态、模型/Prompt/Embedding 版本、样本定义、标注规则与分歧、指标计算脚本、成本、限制与可复现命令。敏感数据不得提交；公开仓库结果也要最小化保存个人信息。
+
+**Go / No-Go 决策：** 指标门槛应在基线评测前预登记并由维护者签字；报告中“10 分钟 5 条决策 / 审核 60 秒 / 30% precision / 3/10 留存”仅为候选目标，**不是强制承诺**。若真实抽取质量差、评论改善有限，考虑缩小到“针对 PR / diff 辅助起草 ADR”，而非继续堆界面功能。
+
+## 6. Stage E — 完整产品闭环与开源可用性（通过 D 的价值门禁后）
+
+| ID | 交付切片 | 范围与非目标 | 验收 |
+| --- | --- | --- | --- |
+| E01 | ADR 导出 / 回写 | accepted → MADR Markdown + frontmatter、证据引用、来源版本、状态；先本地导出，再可选 GitHub PR。未经用户确认不直接写入目标仓库 | 幂等输出、可读 diff、不会泄露私有来源、不会把候选当已接受；外部 ADR 工具可读取 |
+| E02 | MCP 二期 | 继续只读 accepted，补 `applicable_to(path/diff)` 返回适用决策及证据；保留 owner scope 与 loopback/授权边界 | 用真实 MCP host 验证权限、错误、路径作用域、引用定位，不把基础 SDK in-process 测试当宿主联调 |
+| E03 | GitHub Action / PR 提醒 | 在 PR 中提示相关历史决策，默认 advisory，不自动 block、不自动批准 | 与手工 diff 对照，提供证据链接；误报、无匹配和局部数据覆盖均可解释 |
+| E04 | 审核台 UX | 证据/原文并排、一键接受/拒绝/合并、键盘快捷键、错误恢复、评论上下文、证据版本变化提示 | 做真实浏览器 + 键盘/移动端测试；量测审核耗时与错误操作，禁止无依据“高置信”装饰 |
+| E05 | UI 可信语义 | F11/F12：拓扑图由真实关系驱动或明确标注示意；“pause”展示必须说明是**建议状态还是实际执行** | 不将服务自身仓库的治理检测误说成用户仓库已暂停，不将时间顺序误画成架构依赖 |
+| E06 | 开源试用与发布 | 一条命令试用（优先 SQLite、可选 PG）；清晰的 Fake demo vs 真模型标识；英文/中文 README、真实可复现 Demo 和贡献者入口 | Windows/Linux 干净环境验证、无 Key 能跑示例、有 Key 能在获批准范围跑真实公开仓库；部署组件与 README 一致 |
+| E07 | 生态扩展（Deferred） | [#15](https://github.com/luzay-max/DecisionAtlas/pull/15) / [#16](https://github.com/luzay-max/DecisionAtlas/pull/16) GitLab/Gitee 仍为独立堆叠 Draft；付费/企业能力按外部反馈后再决定 | 先确认 GitHub 真实质量闭环及依赖安全，再重审是否扩大平台；不在此计划中自动合并旧 Draft |
+
+## 7. 技术设计中的保留与禁止事项
+
+1. **保留 Fastify BFF 当前职责**（会话、Cookie、权限/Scope 边界），优先 OpenAPI 生成类型与契约测试。只有测得确切重复开发成本并通过认证迁移设计评审，才讨论并入 Next.js。
+2. **保留漂移与治理作为可选、保守能力**。优先“这次改动涉及哪些已接受决策”，确定性规则只覆盖能从 diff 判定的类型；`continue/caution/pause` 不自动执行阻断。#29 修复重复处理后，另外设计 signal observation / disposition 分离：同事实重复扫描不重开；`resolved` 的事实消失后再次出现、或新 revision 出现时才按策略重新发告警并保留历史。
+3. **SQLite 为开发/单实例试用的一等公民，PostgreSQL 为已验证的扩展**；不要把 SQLite 多进程并发与 Pg 锁模型混为一谈。后台任务可靠性方案确定后再决定 Redis 去留。
+4. **来源边界优先**：任何未合并 PR、Issue 中反对意见、未证实评论、Fake LLM 结果都只能是候选信号；必须保留审核人、来源、时间和“无法核实”状态。
+5. **安全第一**：Token/个人数据不得写测试输出、日志、快照或 PR 描述；真实私有仓库/付费模型/对外托管部署必须分别经维护者批准，使用最小权限与有界成本。
+6. **去掉虚假的能力宣称**：pgvector 未接入就不要声称“pgvector 检索”；Redis 未协调任务就不要画成协调层；未验证的 Linux/PG、真实模型、MCP 宿主、UI 不得标已通过。
+
+## 8. 给接手开发者的下一步任务顺序（可直接按顺序执行）
+
+1. [ ] **确认基线：** 获取当前 main SHA、所有开放 PR 的 base/head/CI。与 Stage A 表对照并标出过期内容；不修改尚未审过的其他 Draft。
+2. [ ] **A01：** 审 #26 安全、事务及回归；CI + 人工风险检查后才提出合并建议。
+3. [ ] **A02：** 以 #26 为基线审 #35 的 P0/F04/F05 合并差异和 F14 部分安全；列出 #30/#31 的覆盖矩阵，消除重叠后再决定合并顺序。
+4. [ ] **A03/A04：** 独立审 #28 与 #29；为 #29 增加 resolved→消失→复发的测试/设计记录。
+5. [ ] **A05/A06：** 审 #32 只读诊断；审 #33 RFC 后再决定 #34 schema 的合并门槛。不要把 schema-only 误称已实现来源版本化。
+6. [ ] **B01–B04：** 分别建独立小 PR 改向量重复计算、中文检索、远程 URL/Cookie、Ubuntu/PostgreSQL CI（每项含回归）。
+7. [ ] **B05–B07：** 安全 hash 迁移、契约生成和后台任务模型，以明确安全/性能证据排序。
+8. [ ] **C01→C02→C03→D01–D05：** 补评论、可靠证据版本、抽取与真实质量评测；**仅在评测可信后**推动 E 阶段产品增强。
+9. [ ] **E01–E06：** ADR 导出、MCP diff 适用性、只读 Action、Web 审核台、开源安装与真实案例。
+10. [ ] **收尾：** 每个 merged PR 更新本文件“状态追踪”、README/部署文档、验收报告；未达门槛或已推迟的项目保留为 Deferred，不伪造 Done。
+
+### 8.1 开发 PR 模板（可复制到每个 PR）
+
+- **Task ID / 问题 ID：** 例如 B02 / F09。
+- **Baseline：** main SHA、依赖 PR、是否堆叠。
+- **目标与非目标：** 本 PR 只解决什么；明确不动什么。
+- **源码证据：** 受影响路径、现有问题复现（前/后对比）。
+- **变更与兼容：** API/Schema、老数据、权限、迁移、失败恢复。
+- **验证：** 单测、契约、真实 SQLite/PG、Web/MCP、最新 CI 链接；哪些 `not_run`。
+- **安全与成本：** 数据/凭据隔离、真实 LLM 调用次数和授权、日志脱敏。
+- **结论：** Ready for review / blocked / needs evidence，不将 CI pass 自动等同 merge permission。
+
+## 9. 长期质量追踪（只用真实证据更新）
+
+| 指标 | 当前状态（本计划制定时） | 达成规则 |
+| --- | --- | --- |
+| main 的导入安全/事务与复原 | 已有 Draft #26、#35；**未合并** | 安全复核、事务回归及 CI 达标并入主分支 |
+| main 的跨层 pause/scope、告警与索引 | 已有 Draft #28、#29；**未合并** | 生命周期/权限/索引回归通过并入 main |
+| SourceRef 版本化 | #32 只读诊断，#33 RFC，#34 schema-only；**未形成运行时版本化** | 来源版本与审核不可变语义通过迁移与重导入端到端验证 |
+| GitHub 讨论采集 | 基线缺失评论 | 采集完整性与溯源、增量、隐私门禁通过 |
+| 真实模型候选精确率 | **未验证**；此前 `pallets/click` 8 条 FakeProvider 候选独立核查结果不是模型分数 | 人类独立标注、真实模型/Prompt、可复现样本报告 |
+| 中文 Why / 检索成本 | 词法中文缺口、重复 Embedding 已有代码证据 | 分层评测 + p95/call 统计，不用单一 happy-path 代替 |
+| MCP 真实宿主与真实 UI | SDK in-process / CI 截图存在；真实宿主与外部 UX 尚未充分验证 | 独立 MCP host、浏览器、部署与用户任务实测 |
+| 社区/价值反馈 | 公开 Star/Fork 不足以判断用户数 | 记录真实试用、首次成功、审核完成率、复用意愿，不猜测安装量 |
+
+## 10. 维护与变更记录
+
+- **变更入口：** 后续新增需求先在这里映射已有 ID/是否重复，必要时开 Issue，不直接修改多份旧路线图；PR 合并后更新状态、commit SHA、验证证据。
+- **阶段闸门：** Stage A 安全/数据可信 → Stage B 质量基建与可靠检索 → Stage C 来源/抽取 → Stage D 实证 → Stage E 生态/体验；可独立并行的低风险设计研究不等于允许绕过前置验收。
+- **历史与开源：** 旧计划路径保持可用；历史 Done 仅表示当时定义的代码阶段；新计划放 `docs/plans/` 而不是 README 中贴大篇清单。
+- **首次记录（2026-10-30）：** 依据仓库内审查、两版第三方审查与 #26/#28–#35 当前 Draft 状态形成可执行路线；特别纠正外部审查第 15 节对 #32 的误读，识别 #35 的堆叠和 #29 的 resolved 告警语义。**尚未执行任何开发、合并或真实模型验证。**
+
+## 11. Stage A 执行记录（2026-10-30，持续更新）
+
+> 以下是后续执行的**事实记录**，不同于上方制定计划时的历史基线。仅 A01 已获维护者明确合并授权；其余事项未随此授权自动批准。
+
+| 任务 | 当前处置 | 最终/当前 SHA 与 CI | 下一道门禁 |
+| --- | --- | --- | --- |
+| **A01 / PR #26** | **Merged**，维护者在对话中确认“ A01 没毛病，过 ” | PR head `ffeecc5755e0ba6501894c7d9f61f1a6754f68f4`；[PR CI #41032428318](https://github.com/luzay-max/DecisionAtlas/actions/runs/41032428318) 第一次浏览器冒烟失败、同 SHA 第 2 次全部成功；合并 commit `e2204cc32d6bc55204c56125b8a85141ec44acd1` | [main push CI #41036933915](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036933915) **SUCCESS**；可控制的真实导入仍属于独立环境验收；浏览器偶发失败见 #38 |
+| **A02 / PR #35** | **Draft，已将 A01 main 整合进原有堆叠分支；不得直接合并** | 原 head `88ede010` → 双亲合并 commit `26b76773e4c2b90db1237537ab2ed58052c0a476`（第 2 亲为 `main@e2204cc3`）；PR base 已改为 `main`；[CI #41037840710](https://github.com/luzay-max/DecisionAtlas/actions/runs/41037840710) 运行中 | 已三方整合 A01 raw 安全与 #35 F04/F05 bounded streaming、同步水位；仍需当前 head CI、#36 SQLite 暂停限制和人工评审；不得自动关闭 #30/#31 或合并 #35 |
+| **A03 / PR #28** | Draft，最新 head 自动化 CI 通过 | `4d06e2c6` / [CI #41029036360](https://github.com/luzay-max/DecisionAtlas/actions/runs/41029036360) | 人工验收；Issue #36 后台 worker / SQLite 暂停语义不能假称解决 |
+| **A04 / PR #29** | Draft，自动化通过 | `eb611f9b` / [CI #41024366795](https://github.com/luzay-max/DecisionAtlas/actions/runs/41024366795) | 已 resolved 信号消失后重现仍缺事件身份，保留明确待办 |
+| **A05 / PR #32** | Draft，自动化通过 | `e5973761` / [CI #41024573642](https://github.com/luzay-max/DecisionAtlas/actions/runs/41024573642) | 只读当前 quote 匹配不能代替历史快照 |
+| **A06 / PR #33/#34** | Draft / RFC 未批准 | RFC 和 schema-only 原型已审 | RFC hash、旧 SourceRef、隐私、并发和数据库迁移门禁未解除 |
+| **附属 Issue #38 / PR #39** | E2E 诊断 Draft | `2d569fd3` / [CI #41036104378](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036104378) | 定位偶发语言/权限渲染问题，不因单次绿灯而关闭 |
+
+合并 #26 **不代表** A02、#39、Stage B/C 或付费/私有数据测试获得批准。凡仅在 Draft PR 中的行为仍不计入 main。记录新的 head/CI 时必须更新上表，不能复用过期的 CI 结果。
