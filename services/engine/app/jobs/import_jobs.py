@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import time
 from datetime import datetime, timedelta, timezone
 from time import monotonic
 from urllib.parse import urlparse
@@ -150,8 +151,32 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
 
         jobs = ImportJobRepository(session)
         current_stage = "importing_artifacts"
-        jobs.mark_running(job_id, stage=current_stage)
-        session.commit()
+        job = jobs.get_by_job_id(job_id)
+        if job is None:
+            raise ValueError(f"Import job not found: {job_id}")
+
+        # A queued job may be paused before FastAPI starts its background
+        # task. Wait without holding a DB transaction. A concurrent second
+        # worker must not restart or fail an already-claimed/terminal job.
+        while True:
+            session.refresh(job)
+            if job.status == "paused" and job.started_at is None:
+                session.rollback()
+                time.sleep(0.2)
+                continue
+            if job.status != "queued":
+                return serialize_import_job(session=session, job=job)
+            try:
+                jobs.mark_running(job_id, stage=current_stage)
+            except ValueError:
+                # State changed during the conditional UPDATE; re-check.
+                session.rollback()
+                session.refresh(job)
+                if job.status == "paused" and job.started_at is None:
+                    continue
+                return serialize_import_job(session=session, job=job)
+            session.commit()
+            break
 
         since = None
         if mode == "since_last_sync":

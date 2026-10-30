@@ -7,7 +7,9 @@ All tests use a real file-backed SQLite database and isolated local sessions.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event
 
 from alembic import command
 from alembic.config import Config
@@ -17,6 +19,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
+from app.jobs.import_jobs import queue_github_import, run_github_import
 from app.repositories.import_jobs import ImportJobRepository
 
 
@@ -53,10 +56,6 @@ def _status(engine) -> str:
         return job.status
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issue #36: mark_running overwrites a queued job paused before worker startup",
-)
 def test_paused_queued_job_cannot_be_overwritten_by_late_worker_start(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -82,10 +81,6 @@ def test_paused_queued_job_cannot_be_overwritten_by_late_worker_start(
         engine.dispose()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="issue #36: mark_running can resurrect an already-completed job",
-)
 def test_completed_job_cannot_be_resurrected_by_duplicate_worker_start(
     tmp_path: Path, monkeypatch
 ) -> None:
@@ -109,6 +104,66 @@ def test_completed_job_cannot_be_resurrected_by_duplicate_worker_start(
         # Terminal state must remain terminal across duplicate tasks.
         assert _status(engine) == "succeeded"
     finally:
+        engine.dispose()
+
+
+
+def test_queued_pause_resume_worker_claims_exactly_once(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A paused queued job is not started until resume re-queues its claim."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    started = Event()
+    class StopAfterStartImporter:
+        def __init__(self, session, client):
+            pass
+
+        def import_repo(self, *, workspace_slug, repo, mode="full",
+                        since=None, progress_callback=None):
+            started.set()
+            raise RuntimeError("synthetic stop after start")
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.GitHubImporter", StopAfterStartImporter
+    )
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: type("Providers", (), {
+            "embedder": object(), "extraction_provider": object()
+        })(),
+    )
+    with Session(engine) as session:
+        ImportJobRepository(session).mark_paused("job-pause-race")
+        session.commit()
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            future = workers.submit(
+                run_github_import, job_id="job-pause-race",
+                workspace_slug="github-pause-race",
+                repo="org/repo", mode="full",
+            )
+            assert not started.wait(timeout=0.3)
+            assert _status(engine) == "paused"
+            with Session(engine) as session:
+                resumed = ImportJobRepository(session).mark_resumed("job-pause-race")
+                assert resumed.status == "queued"
+                session.commit()
+            failed = future.result(timeout=12)
+            assert started.is_set()
+            assert failed["status"] == "failed"
+        with Session(engine) as session:
+            job = ImportJobRepository(session).get_by_job_id("job-pause-race")
+            assert job is not None and job.started_at is not None
+            assert job.status == "failed"
+    finally:
+        # Ensure a broken assertion does not leave a background task paused
+        # indefinitely. The worker can only start after this cleanup.
+        with Session(engine) as session:
+            job = ImportJobRepository(session).get_by_job_id("job-pause-race")
+            if job is not None and job.status == "paused":
+                ImportJobRepository(session).mark_resumed("job-pause-race")
+                session.commit()
         engine.dispose()
 
 

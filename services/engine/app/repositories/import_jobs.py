@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
@@ -93,14 +93,26 @@ class ImportJobRepository:
         return self.session.scalar(stmt)
 
     def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
+        """Atomically claim a queued job without overwriting paused/terminal state."""
         job = self._require(job_id)
-        job.status = "running"
-        job.started_at = datetime.now(UTC)
-        job.error_message = None
+        if job.status != "queued":
+            raise ValueError(f"Cannot start job in status: {job.status}")
         summary = dict(job.summary_json or {})
         summary["stage"] = stage
-        job.summary_json = summary
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "queued")
+            .values(
+                status="running",
+                started_at=datetime.now(UTC),
+                error_message=None,
+                summary_json=summary,
+            )
+        )
+        if result.rowcount != 1:
+            self.session.refresh(job)
+            raise ValueError(f"Cannot start job in status: {job.status}")
+        self.session.refresh(job)
         return job
 
     def update_stage(self, job_id: str, *, stage: str, summary_json: dict | None = None) -> ImportJob:
@@ -166,7 +178,9 @@ class ImportJobRepository:
         job = self._require(job_id)
         if job.status != "paused":
             raise ValueError(f"Cannot resume job in status: {job.status}")
-        job.status = "running"
+        # Paused before startup: preserve the background worker's queued
+        # claim. Only workers which already started resume as "running".
+        job.status = "queued" if job.started_at is None else "running"
         self.session.flush()
         return job
 
