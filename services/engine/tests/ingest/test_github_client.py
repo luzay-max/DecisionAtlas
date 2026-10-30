@@ -322,6 +322,7 @@ def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
         observed[str(request.url.host)] = {
             "authorization": request.headers.get("Authorization"),
             "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
         }
         if request.url.host == "api.github.com":
             return httpx.Response(
@@ -342,13 +343,19 @@ def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
             transport=transport,
             base_url="https://api.github.com",
             auth=httpx.BasicAuth("private-user", "private-pass"),
-            headers={"Cookie": "session=private-cookie"},
+            headers={
+                "Cookie": "session=private-cookie",
+                "X-Internal-Api-Key": "sensitive-custom-api-key",
+            },
         )
     )
     assert client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main") == "# Safe raw content"
     assert observed["api.github.com"]["authorization"] is not None
     assert observed["api.github.com"]["cookie"] == "session=private-cookie"
-    assert observed["raw.githubusercontent.com"] == {"authorization": None, "cookie": None}
+    assert observed["api.github.com"]["custom_key"] == "sensitive-custom-api-key"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
 
 
 def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
