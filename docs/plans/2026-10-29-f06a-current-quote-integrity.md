@@ -23,3 +23,19 @@ This does **not** preserve the historical artifact content or SHA snapshot and d
 - [ ] Human review and operator-controlled integration acceptance remain separate.
 
 No database migration, new GitHub calls, private data, real tokens, paid model calls or automatic merge.
+
+
+## Stage A / A05 independent verification (2026-10-30)
+
+A read-only regression on the existing Draft PR verifies **mixed evidence**
+from a single mutable Artifact: retain the shorter exact stored quote while
+the longer quote no longer occurs in the current content. List/detail APIs
+must both report `current_quote_missing`, with found=1, missing=1, unknown=0,
+and identical per-SourceRef match flags. Historical quote bytes, ref IDs and
+review state must remain untouched.
+
+This complements the prior all-found, all-missing and unverifiable tests. An
+exact match still provides no historical revision authenticity; immutable
+SourceRef-to-ArtifactRevision binding is gated by the separate F06b RFC.
+No data rewrite, source backfill or automatic re-review is permitted here.
+Current-head CI and maintainer approval are still separate gates.
