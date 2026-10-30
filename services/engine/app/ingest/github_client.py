@@ -181,7 +181,13 @@ class GitHubClient:
                 scope=f"{repo}@{branch}",
                 detail="recursive Git tree response was truncated; repository file selection cannot be complete",
             )
-        tree = payload.get("tree") or []
+        tree = payload.get("tree") if isinstance(payload, dict) else None
+        if not isinstance(tree, list) or not all(isinstance(item, dict) for item in tree):
+            raise GitHubIncompleteCoverageError(
+                reason="malformed_tree",
+                scope=f"{repo}@{branch}",
+                detail="GitHub recursive tree response omitted or malformed its tree array",
+            )
         return [
             GitHubRepositoryFile(
                 path=item["path"],
@@ -407,7 +413,19 @@ class GitHubClient:
                 )
             response.raise_for_status()
             payload = response.json()
+            if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
+                raise GitHubIncompleteCoverageError(
+                    reason="malformed_pagination",
+                    scope=path,
+                    detail=f"GitHub page {page} did not return an array of objects",
+                )
             if not payload:
+                if "next" in response.links:
+                    raise GitHubIncompleteCoverageError(
+                        reason="empty_page_with_next",
+                        scope=path,
+                        detail=f"GitHub page {page} was empty but still advertised a next page",
+                    )
                 return results
             results.extend(payload)
             if "next" not in response.links:

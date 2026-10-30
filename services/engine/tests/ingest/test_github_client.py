@@ -836,3 +836,83 @@ def test_streamed_raw_rejects_large_decompressed_gzip_response() -> None:
     )
     with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
         client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+
+
+@pytest.mark.parametrize(
+    "tree_payload",
+    [
+        {"truncated": False},
+        {"truncated": False, "tree": None},
+        {"truncated": False, "tree": {"path": "README.md"}},
+        {"truncated": False, "tree": ["README.md"]},
+    ],
+)
+def test_malformed_git_tree_fails_closed_instead_of_claiming_empty_repository(
+    tree_payload: dict,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=tree_payload)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_tree") as exc:
+        client.list_repository_files("org/repo", ref="main")
+    assert exc.value.scope == "org/repo@main"
+
+
+def test_valid_empty_git_tree_still_succeeds() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"truncated": False, "tree": []})
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    assert client.list_repository_files("org/repo", ref="main") == []
+
+
+def test_empty_paginated_page_with_next_link_fails_closed() -> None:
+    pages: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        pages.append(request.url.params.get("page"))
+        if pages[-1] == "1":
+            return httpx.Response(
+                200,
+                headers={"Link": '<https://api.github.com/repos/org/repo/issues?per_page=100&page=2>; rel="next"'},
+                json=[{
+                    "id": 1, "number": 1, "title": "Issue",
+                    "body": "Some evidence", "state": "open",
+                    "created_at": "2026-10-30T00:00:00Z",
+                }],
+            )
+        return httpx.Response(
+            200,
+            headers={"Link": '<https://api.github.com/repos/org/repo/issues?per_page=100&page=3>; rel="next"'},
+            json=[],
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="empty_page_with_next") as exc:
+        client.fetch_issues("org/repo")
+    assert exc.value.scope == "/repos/org/repo/issues"
+    assert pages == ["1", "2"]
+
+
+@pytest.mark.parametrize("page", [{"message": "Internal error"}, ["unexpected-item"], None])
+def test_malformed_pagination_result_fails_with_coverage_error(page) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=page)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
+        client.fetch_issues("org/repo")
+
