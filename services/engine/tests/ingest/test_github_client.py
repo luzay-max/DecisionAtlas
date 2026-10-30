@@ -904,14 +904,42 @@ def test_empty_paginated_page_with_next_link_fails_closed() -> None:
     assert pages == ["1", "2"]
 
 
-@pytest.mark.parametrize("page", [{"message": "Internal error"}, ["unexpected-item"], None])
+@pytest.mark.parametrize(
+    "page", [{"message": "Internal error"}, ["unexpected-item"], None]
+)
 def test_malformed_pagination_result_fails_with_coverage_error(page) -> None:
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json=page)
+        # json=None would produce an empty body in HTTPX, not JSON null.
+        return httpx.Response(200, content=b"null" if page is None else None, json=page if page is not None else None)
 
     client = GitHubClient(client=httpx.Client(
         transport=httpx.MockTransport(handler),
         base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
+        client.fetch_issues("org/repo")
+
+
+
+@pytest.mark.parametrize("body", [b"", b"{not-json", b"null", b"[]"])
+def test_malformed_tree_http_200_does_not_escape_typed_coverage_error(body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_tree"):
+        client.list_repository_files("org/repo", ref="main")
+
+
+@pytest.mark.parametrize("body", [b"", b"{not-json", b"null"])
+def test_malformed_paginated_http_200_reports_coverage_error(body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com",
     ))
     with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
         client.fetch_issues("org/repo")

@@ -174,7 +174,20 @@ class GitHubClient:
         branch = ref or self.get_default_branch(repo)
         response = self._get(f"/repos/{repo}/git/trees/{branch}", params={"recursive": "1"})
         response.raise_for_status()
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise GitHubIncompleteCoverageError(
+                reason="malformed_tree",
+                scope=f"{repo}@{branch}",
+                detail="GitHub recursive tree response was not valid JSON",
+            ) from exc
+        if not isinstance(payload, dict):
+            raise GitHubIncompleteCoverageError(
+                reason="malformed_tree",
+                scope=f"{repo}@{branch}",
+                detail="GitHub recursive tree response was not an object",
+            )
         if payload.get("truncated") is True:
             raise GitHubIncompleteCoverageError(
                 reason="tree_truncated",
@@ -412,7 +425,14 @@ class GitHubClient:
                     detail=f"GitHub rejected page {page} with HTTP 422 after {len(results)} records",
                 )
             response.raise_for_status()
-            payload = response.json()
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                raise GitHubIncompleteCoverageError(
+                    reason="malformed_pagination",
+                    scope=path,
+                    detail=f"GitHub page {page} did not contain valid JSON",
+                ) from exc
             if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
                 raise GitHubIncompleteCoverageError(
                     reason="malformed_pagination",
