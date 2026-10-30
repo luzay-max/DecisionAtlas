@@ -967,7 +967,7 @@ def test_resolved_rule_alert_disappears_then_returns_without_new_episode(
     with Session(engine) as session:
         observed = session.query(Artifact).filter_by(source_id="2").one()
         observed.title = "Maintain cache-only behavior"
-        observed.content = "Redis remains a cache, while PostgreSQL stays the primary database."
+        observed.content = "Redis remains a cache. PostgreSQL continues storing the system data."
         session.commit()
     with Session(engine) as session:
         absent = DriftEvaluator(session, embedder=FakeEmbedder()).evaluate_workspace(
