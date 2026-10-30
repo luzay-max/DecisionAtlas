@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import case, select, update
+from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session
 
 ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
@@ -220,8 +220,83 @@ class ImportJobRepository:
             raise ValueError(f"Cannot resume job in status: {job.status}")
         return job
 
+    def list_offline_recovery_candidates(
+        self, *, older_than: datetime, limit: int = 20, job_id: str | None = None
+    ) -> list[ImportJob]:
+        """Inspect old active jobs only; age is NOT proof of worker death."""
+        if limit < 1 or limit > 100:
+            raise ValueError("Recovery inspection limit must be between 1 and 100")
+        cutoff = _database_utc(older_than)
+        stmt = select(ImportJob).where(
+            ImportJob.status.in_(ACTIVE_IMPORT_STATUSES),
+            func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
+        )
+        if job_id is not None:
+            stmt = stmt.where(ImportJob.job_id == job_id)
+        stmt = stmt.order_by(ImportJob.created_at, ImportJob.id).limit(limit)
+        return list(self.session.scalars(stmt))
+
+    def mark_interrupted_offline(
+        self, job_id: str, *, older_than: datetime,
+        workers_stopped: bool = False, interrupted_at: datetime | None = None,
+    ) -> ImportJob:
+        """Operator-only repair. Never call automatically on process startup.
+
+        This CAS does not fence a still-running worker; it is safe ONLY once
+        all worker processes using this database have been stopped externally.
+        """
+        if not workers_stopped:
+            raise ValueError("Stop all import workers before offline recovery")
+        cutoff = _database_utc(older_than)
+        now = interrupted_at or datetime.now(UTC)
+        job = self._require(job_id)
+        if job.status not in ACTIVE_IMPORT_STATUSES:
+            raise ValueError(f"Cannot recover job in status: {job.status}")
+        age_anchor = _database_utc(job.started_at or job.created_at)
+        if age_anchor > cutoff:
+            raise ValueError("Import job is newer than the recovery cutoff")
+
+        summary = dict(job.summary_json or {})
+        summary["failure_category"] = "worker_interrupted"
+        summary["recovery"] = {
+            "method": "offline_operator_reconciliation",
+            "previous_status": job.status,
+            "recorded_at": now.astimezone(UTC).isoformat(),
+            "automatic_retry": False,
+        }
+        # Preserve the previous stage, previously committed source rows and
+        # original import metadata; do not auto-replay non-idempotent stages.
+        result = self.session.execute(
+            update(ImportJob)
+            .where(
+                ImportJob.job_id == job_id,
+                ImportJob.status == job.status,
+                func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
+            )
+            .values(
+                status="failed",
+                error_message=(
+                    "Import worker interrupted; no automatic replay. "
+                    "Verify stopped workers and start a new import to retry."
+                ),
+                summary_json=summary,
+                finished_at=now,
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError("Job state changed during offline recovery")
+        return job
+
     def _require(self, job_id: str) -> ImportJob:
         job = self.get_by_job_id(job_id)
         if job is None:
             raise ValueError(f"Import job not found: {job_id}")
         return job
+
+
+def _database_utc(value: datetime) -> datetime:
+    """Normalize UTC timestamps for the project's timezone-naive SQL columns."""
+    if value.tzinfo is not None:
+        return value.astimezone(UTC).replace(tzinfo=None)
+    return value
