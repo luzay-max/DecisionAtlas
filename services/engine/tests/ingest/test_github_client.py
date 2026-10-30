@@ -708,3 +708,66 @@ def test_raw_fallback_accepts_encoded_space_in_exact_requested_file_path() -> No
         "org/repo", path="docs/Release Notes.md", ref="main",
     ) == "# Exact source"
     assert hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]
+
+
+@pytest.mark.parametrize(
+    "download_url",
+    [
+        "https://raw.githubusercontent.com/org/repo/other/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/unrelated/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/../README.md",
+    ],
+)
+def test_raw_fallback_rejects_mismatched_ref_or_extra_path_before_network(
+    download_url: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.host != "api.github.com":
+            pytest.fail("Mismatched source reached raw host")
+        return httpx.Response(
+            200, json={"encoding": "none", "download_url": download_url},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    with pytest.raises(ValueError, match="not trusted"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    assert len(requests) == 2
+    assert all(request.url.host == "api.github.com" for request in requests)
+
+
+def test_raw_fallback_accepts_ref_containing_slash_with_exact_document() -> None:
+    observed_hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed_hosts.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": (
+                    "https://raw.githubusercontent.com/org/repo/"
+                    "release/v1/docs/Release%20Notes.md"
+                ),
+            })
+        assert request.headers.get("Authorization") is None
+        assert request.headers.get("Cookie") is None
+        return httpx.Response(200, text="# Document")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    assert client.fetch_markdown_document(
+        "org/repo", path="docs/Release Notes.md", ref="release/v1",
+    ) == "# Document"
+    assert observed_hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]
