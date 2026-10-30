@@ -105,6 +105,13 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[0]["review_evidence"]["state"] == "grounded"
     assert body[0]["review_evidence"]["source_ref_count"] == 2
     assert body[0]["review_evidence"]["source_ref_preview"][0]["quote"].startswith("We decided to use Redis")
+    assert body[0]["review_evidence"]["current_quote_integrity"] == {
+        "status": "current_quotes_found",
+        "found_count": 2,
+        "missing_count": 0,
+        "unverifiable_count": 0,
+    }
+    assert all(ref["current_quote_match"] is True for ref in body[0]["review_evidence"]["source_ref_preview"])
     assert body[0]["candidate_quality"]["label"] == "strong"
     assert body[0]["candidate_quality"]["summary"] == (
         "Multiple grounded refs with previewable evidence, provenance, and source URL support."
@@ -123,6 +130,12 @@ def test_list_decisions_by_review_state(tmp_path: Path, monkeypatch) -> None:
     assert body[1]["review_evidence"]["state"] == "missing"
     assert body[1]["review_evidence"]["source_ref_count"] == 0
     assert body[1]["review_evidence"]["source_ref_preview"] == []
+    assert body[1]["review_evidence"]["current_quote_integrity"] == {
+        "status": "no_refs",
+        "found_count": 0,
+        "missing_count": 0,
+        "unverifiable_count": 0,
+    }
     assert body[1]["review_evidence"]["primary_artifact"] is None
     assert body[1]["candidate_quality"]["label"] == "thin"
     assert body[1]["candidate_quality"]["reasons"] == [
@@ -240,6 +253,115 @@ def test_get_decision_detail_includes_source_refs(tmp_path: Path, monkeypatch) -
     assert "source_summary" in body
     assert body["candidate_quality"]["label"] == "strong"
     assert len(body["source_refs"]) == 2
+
+
+
+
+def test_decision_evidence_flags_quote_missing_after_artifact_overwrite_without_review_mutation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "source-ref-drift.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    _seed_review_fixture(db_path)
+    client = TestClient(create_app())
+
+    before = client.get("/decisions/1")
+    assert before.status_code == 200
+    original = before.json()
+    source_ref_ids = [ref["id"] for ref in original["source_refs"]]
+    assert all(ref["current_quote_match"] is True for ref in original["source_refs"])
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        artifact = session.query(Artifact).filter_by(source_id="1").one()
+        artifact.content = "The updated issue now recommends SQLite, not the original Redis quote."
+        session.commit()
+
+    after = client.get("/decisions/1")
+    assert after.status_code == 200
+    body = after.json()
+    assert body["review_evidence"]["current_quote_integrity"] == {
+        "status": "current_quote_missing",
+        "found_count": 0,
+        "missing_count": 2,
+        "unverifiable_count": 0,
+    }
+    assert all(ref["current_quote_match"] is False for ref in body["source_refs"])
+    assert [ref["id"] for ref in body["source_refs"]] == source_ref_ids
+    assert [ref["quote"] for ref in body["source_refs"]] == [
+        ref["quote"] for ref in original["source_refs"]
+    ]
+    assert body["review_state"] == original["review_state"] == "candidate"
+    listed = client.get("/decisions", params={"workspace_slug": "imported-workspace"})
+    assert listed.status_code == 200
+    matching = next(item for item in listed.json() if item["id"] == body["id"])
+    assert matching["review_evidence"]["current_quote_integrity"]["status"] == "current_quote_missing"
+
+
+def test_mixed_current_quote_matches_agree_in_list_detail_and_preview(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A changed source can retain one quote but lose another without mutating review state."""
+    db_path = tmp_path / "mixed-source-ref-integrity.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    _seed_review_fixture(db_path)
+    client = TestClient(create_app())
+
+    before = client.get("/decisions/1")
+    assert before.status_code == 200
+    original = before.json()
+    refs = original["source_refs"]
+    assert len(refs) == 2
+    assert refs[1]["quote"] in refs[0]["quote"]
+
+    # Keep only the shorter second quote: it still matches, but the full
+    # first quote does not. The original SourceRef rows must remain unchanged.
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        artifact = session.query(Artifact).filter_by(source_id="1").one()
+        artifact.content = refs[1]["quote"]
+        session.commit()
+
+    detail_response = client.get("/decisions/1")
+    list_response = client.get("/decisions", params={"workspace_slug": "imported-workspace"})
+    assert detail_response.status_code == 200
+    assert list_response.status_code == 200
+    detail = detail_response.json()
+    listed = next(item for item in list_response.json() if item["id"] == detail["id"])
+    expected = {
+        "status": "current_quote_missing",
+        "found_count": 1,
+        "missing_count": 1,
+        "unverifiable_count": 0,
+    }
+    assert detail["review_evidence"]["current_quote_integrity"] == expected
+    assert listed["review_evidence"]["current_quote_integrity"] == expected
+    assert [ref["current_quote_match"] for ref in detail["source_refs"]] == [False, True]
+    assert [ref["current_quote_match"] for ref in listed["review_evidence"]["source_ref_preview"]] == [False, True]
+    assert [ref["id"] for ref in detail["source_refs"]] == [ref["id"] for ref in refs]
+    assert [ref["quote"] for ref in detail["source_refs"]] == [ref["quote"] for ref in refs]
+    assert detail["review_state"] == original["review_state"] == "candidate"
+
+
+def test_current_quote_integrity_does_not_conflate_unverifiable_with_mismatch() -> None:
+    from types import SimpleNamespace
+
+    from app.api.decisions import _source_ref_integrity
+
+    no_quote = SimpleNamespace(quote="", artifact_id=10)
+    summary = _source_ref_integrity([no_quote], artifacts=None)
+    assert summary == {
+        "status": "unverifiable",
+        "found_count": 0,
+        "missing_count": 0,
+        "unverifiable_count": 1,
+    }
 
 
 def test_review_decision_updates_review_state(tmp_path: Path, monkeypatch) -> None:
