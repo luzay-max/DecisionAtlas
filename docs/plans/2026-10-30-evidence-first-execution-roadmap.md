@@ -167,3 +167,19 @@
 - **阶段闸门：** Stage A 安全/数据可信 → Stage B 质量基建与可靠检索 → Stage C 来源/抽取 → Stage D 实证 → Stage E 生态/体验；可独立并行的低风险设计研究不等于允许绕过前置验收。
 - **历史与开源：** 旧计划路径保持可用；历史 Done 仅表示当时定义的代码阶段；新计划放 `docs/plans/` 而不是 README 中贴大篇清单。
 - **首次记录（2026-10-30）：** 依据仓库内审查、两版第三方审查与 #26/#28–#35 当前 Draft 状态形成可执行路线；特别纠正外部审查第 15 节对 #32 的误读，识别 #35 的堆叠和 #29 的 resolved 告警语义。**尚未执行任何开发、合并或真实模型验证。**
+
+## 11. Stage A 执行记录（2026-10-30，持续更新）
+
+> 以下是后续执行的**事实记录**，不同于上方制定计划时的历史基线。仅 A01 已获维护者明确合并授权；其余事项未随此授权自动批准。
+
+| 任务 | 当前处置 | 最终/当前 SHA 与 CI | 下一道门禁 |
+| --- | --- | --- | --- |
+| **A01 / PR #26** | **Merged**，维护者在对话中确认“ A01 没毛病，过 ” | PR head `ffeecc5755e0ba6501894c7d9f61f1a6754f68f4`；[PR CI #41032428318](https://github.com/luzay-max/DecisionAtlas/actions/runs/41032428318) 第一次浏览器冒烟失败、同 SHA 第 2 次全部成功；合并 commit `e2204cc32d6bc55204c56125b8a85141ec44acd1` | [main push CI #41036933915](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036933915) 与可控制的真实导入验证仍需单独记录；浏览器偶发失败见 #38 |
+| **A02 / PR #35** | Draft，**不得直接合并** | 旧集成 head `88ede010`；基于旧 #26 commit `782de863`；相对最新 A01 分叉，缺少安全修复 | 在 main CI 通过后处理重叠两文件的三方合并，核实 #30/#31 的 F04/F05 语义、SQLite 暂停限制，重跑新 head CI；单独申请合并审批 |
+| **A03 / PR #28** | Draft，最新 head 自动化 CI 通过 | `4d06e2c6` / [CI #41029036360](https://github.com/luzay-max/DecisionAtlas/actions/runs/41029036360) | 人工验收；Issue #36 后台 worker / SQLite 暂停语义不能假称解决 |
+| **A04 / PR #29** | Draft，自动化通过 | `eb611f9b` / [CI #41024366795](https://github.com/luzay-max/DecisionAtlas/actions/runs/41024366795) | 已 resolved 信号消失后重现仍缺事件身份，保留明确待办 |
+| **A05 / PR #32** | Draft，自动化通过 | `e5973761` / [CI #41024573642](https://github.com/luzay-max/DecisionAtlas/actions/runs/41024573642) | 只读当前 quote 匹配不能代替历史快照 |
+| **A06 / PR #33/#34** | Draft / RFC 未批准 | RFC 和 schema-only 原型已审 | RFC hash、旧 SourceRef、隐私、并发和数据库迁移门禁未解除 |
+| **附属 Issue #38 / PR #39** | E2E 诊断 Draft | `2d569fd3` / [CI #41036104378](https://github.com/luzay-max/DecisionAtlas/actions/runs/41036104378) | 定位偶发语言/权限渲染问题，不因单次绿灯而关闭 |
+
+合并 #26 **不代表** A02、#39、Stage B/C 或付费/私有数据测试获得批准。凡仅在 Draft PR 中的行为仍不计入 main。记录新的 head/CI 时必须更新上表，不能复用过期的 CI 结果。
