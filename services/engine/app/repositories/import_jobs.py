@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 
 from sqlalchemy import case, func, select, update
@@ -237,7 +239,7 @@ class ImportJobRepository:
         return list(self.session.scalars(stmt))
 
     def mark_interrupted_offline(
-        self, job_id: str, *, older_than: datetime,
+        self, job_id: str, *, older_than: datetime, expected_snapshot: str,
         workers_stopped: bool = False, interrupted_at: datetime | None = None,
     ) -> ImportJob:
         """Operator-only repair. Never call automatically on process startup.
@@ -250,8 +252,15 @@ class ImportJobRepository:
         cutoff = _database_utc(older_than)
         now = interrupted_at or datetime.now(UTC)
         job = self._require(job_id)
+        # Refresh even when the caller previously loaded this job. An offline
+        # recovery must require the operator's exact inspection snapshot.
+        self.session.refresh(job)
         if job.status not in ACTIVE_IMPORT_STATUSES:
             raise ValueError(f"Cannot recover job in status: {job.status}")
+        if not expected_snapshot or expected_snapshot != offline_recovery_snapshot(job):
+            raise ValueError(
+                "Recovery snapshot is missing or stale; inspect this job again"
+            )
         age_anchor = _database_utc(job.started_at or job.created_at)
         if age_anchor > cutoff:
             raise ValueError("Import job is newer than the recovery cutoff")
@@ -266,11 +275,18 @@ class ImportJobRepository:
         }
         # Preserve the previous stage, previously committed source rows and
         # original import metadata; do not auto-replay non-idempotent stages.
+        started_predicate = (
+            ImportJob.started_at.is_(None)
+            if job.started_at is None
+            else ImportJob.started_at == job.started_at
+        )
         result = self.session.execute(
             update(ImportJob)
             .where(
                 ImportJob.job_id == job_id,
                 ImportJob.status == job.status,
+                started_predicate,
+                ImportJob.created_at == job.created_at,
                 func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
             )
             .values(
@@ -300,3 +316,31 @@ def _database_utc(value: datetime) -> datetime:
     if value.tzinfo is not None:
         return value.astimezone(UTC).replace(tzinfo=None)
     return value
+
+
+def offline_recovery_snapshot(job: ImportJob) -> str:
+    """Fingerprint an exact inspection snapshot; never use as an auth token.
+
+    Status/start/creation time are also CAS-checked in SQL when applying.
+    The operator must still physically stop all app and worker processes.
+    """
+    payload = {
+        "job_id": job.job_id,
+        "workspace_id": job.workspace_id,
+        "repo": job.repo,
+        "mode": job.mode,
+        "status": job.status,
+        "created_at": _database_utc(job.created_at).isoformat(),
+        "started_at": (
+            _database_utc(job.started_at).isoformat()
+            if job.started_at is not None else None
+        ),
+        "summary": job.summary_json,
+        "imported_count": job.imported_count,
+        "error_message": job.error_message,
+    }
+    serialized = json.dumps(
+        payload, sort_keys=True, ensure_ascii=False, default=str,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

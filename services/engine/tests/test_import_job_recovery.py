@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import json
 from pathlib import Path
 
 from alembic import command
@@ -13,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
 from app.jobs.recover_import_jobs import main
-from app.repositories.import_jobs import ImportJobRepository
+from app.repositories.import_jobs import ImportJobRepository, offline_recovery_snapshot
 
 
 def _database(tmp_path: Path, monkeypatch):
@@ -90,11 +91,15 @@ def test_explicit_offline_reconciliation_marks_one_old_active_job_failed(
         with Session(engine) as session:
             repo = ImportJobRepository(session)
             cutoff = datetime.now(UTC) - timedelta(hours=1)
+            snapshot = offline_recovery_snapshot(repo.get_by_job_id(job_id))
             with pytest.raises(ValueError, match="Stop all import workers"):
-                repo.mark_interrupted_offline(job_id, older_than=cutoff)
+                repo.mark_interrupted_offline(
+                    job_id, older_than=cutoff, expected_snapshot=snapshot,
+                )
             session.rollback()
             job = repo.mark_interrupted_offline(
-                job_id, older_than=cutoff, workers_stopped=True,
+                job_id, older_than=cutoff, expected_snapshot=snapshot,
+                workers_stopped=True,
             )
             session.commit()
             assert job.status == "failed"
@@ -104,7 +109,8 @@ def test_explicit_offline_reconciliation_marks_one_old_active_job_failed(
 
             with pytest.raises(ValueError, match="Cannot recover job in status: failed"):
                 repo.mark_interrupted_offline(
-                    job_id, older_than=cutoff, workers_stopped=True,
+                    job_id, older_than=cutoff, expected_snapshot=snapshot,
+                    workers_stopped=True,
                 )
             session.rollback()
         with Session(engine) as session:
@@ -121,13 +127,17 @@ def test_recovery_does_not_mark_recent_or_terminal_job(tmp_path, monkeypatch) ->
         with Session(engine) as session:
             repo = ImportJobRepository(session)
             cutoff = datetime.now(UTC) - timedelta(hours=1)
+            recent = offline_recovery_snapshot(repo.get_by_job_id("recent-running"))
+            completed = offline_recovery_snapshot(repo.get_by_job_id("completed"))
             with pytest.raises(ValueError, match="newer than the recovery cutoff"):
                 repo.mark_interrupted_offline(
-                    "recent-running", older_than=cutoff, workers_stopped=True,
+                    "recent-running", older_than=cutoff,
+                    expected_snapshot=recent, workers_stopped=True,
                 )
             with pytest.raises(ValueError, match="Cannot recover job in status: succeeded"):
                 repo.mark_interrupted_offline(
-                    "completed", older_than=cutoff, workers_stopped=True,
+                    "completed", older_than=cutoff,
+                    expected_snapshot=completed, workers_stopped=True,
                 )
             session.rollback()
     finally:
@@ -137,14 +147,23 @@ def test_recovery_does_not_mark_recent_or_terminal_job(tmp_path, monkeypatch) ->
 def test_cli_requires_exact_id_and_stopped_worker_assertion(tmp_path, monkeypatch) -> None:
     engine = _database(tmp_path, monkeypatch)
     try:
-        for argv in (["--apply"], ["--apply", "--job-id", "stale-running"]):
+        with Session(engine) as session:
+            snapshot = offline_recovery_snapshot(
+                ImportJobRepository(session).get_by_job_id("stale-running")
+            )
+        for argv in (
+            ["--apply"],
+            ["--apply", "--job-id", "stale-running"],
+            ["--apply", "--job-id", "stale-running", "--workers-stopped"],
+            ["--apply", "--job-id", "stale-running", "--workers-stopped", "--snapshot", "wrong"],
+        ):
             with pytest.raises(SystemExit) as exc:
                 main(argv)
             assert exc.value.code == 2
 
         assert main([
             "--apply", "--job-id", "stale-running", "--workers-stopped",
-            "--minimum-age-minutes", "60",
+            "--snapshot", snapshot, "--minimum-age-minutes", "60",
         ]) == 0
         with Session(engine) as session:
             repo = ImportJobRepository(session)
@@ -152,6 +171,85 @@ def test_cli_requires_exact_id_and_stopped_worker_assertion(tmp_path, monkeypatc
             assert repo.get_by_job_id("stale-paused").status == "paused"
         assert main([
             "--apply", "--job-id", "stale-running", "--workers-stopped",
+            "--snapshot", snapshot,
         ]) == 1
+    finally:
+        engine.dispose()
+
+
+
+def test_recovery_snapshot_must_match_the_exact_inspected_job(
+    tmp_path, monkeypatch
+) -> None:
+    """A valid snapshot for a different job must never select this one."""
+    engine = _database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            snapshot = offline_recovery_snapshot(repo.get_by_job_id("stale-paused"))
+            with pytest.raises(ValueError, match="snapshot is missing or stale"):
+                repo.mark_interrupted_offline(
+                    "stale-running",
+                    older_than=datetime.now(UTC) - timedelta(hours=1),
+                    expected_snapshot=snapshot,
+                    workers_stopped=True,
+                )
+            session.rollback()
+        assert main([
+            "--job-id", "stale-running", "--snapshot", snapshot,
+            "--apply", "--workers-stopped",
+        ]) == 1
+        with Session(engine) as session:
+            assert ImportJobRepository(session).get_by_job_id("stale-running").status == "running"
+    finally:
+        engine.dispose()
+
+
+def test_snapshot_rejected_after_same_status_job_restarts(
+    tmp_path, monkeypatch
+) -> None:
+    """Even running -> running with a new started_at must invalidate preview."""
+    engine = _database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            old_job = repo.get_by_job_id("stale-running")
+            snapshot = offline_recovery_snapshot(old_job)
+            session.rollback()
+
+        with Session(engine) as session:
+            changed = ImportJobRepository(session).get_by_job_id("stale-running")
+            changed.started_at += timedelta(hours=1)
+            session.commit()
+
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            with pytest.raises(ValueError, match="snapshot is missing or stale"):
+                repo.mark_interrupted_offline(
+                    "stale-running",
+                    older_than=datetime.now(UTC) - timedelta(hours=1),
+                    expected_snapshot=snapshot,
+                    workers_stopped=True,
+                )
+            session.rollback()
+            assert repo.get_by_job_id("stale-running").status == "running"
+    finally:
+        engine.dispose()
+
+
+def test_cli_dry_run_exposes_snapshot_without_writing(
+    tmp_path, monkeypatch, capsys,
+) -> None:
+    engine = _database(tmp_path, monkeypatch)
+    try:
+        assert main(["--job-id", "stale-running"]) == 0
+        report = json.loads(capsys.readouterr().out)
+        assert report["mode"] == "dry_run"
+        assert len(report["candidates"]) == 1
+        assert report["candidates"][0]["job_id"] == "stale-running"
+        with Session(engine) as session:
+            job = ImportJobRepository(session).get_by_job_id("stale-running")
+            assert report["candidates"][0]["snapshot"] == offline_recovery_snapshot(job)
+            assert job.status == "running"
     finally:
         engine.dispose()

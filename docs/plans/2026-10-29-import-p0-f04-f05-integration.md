@@ -117,3 +117,17 @@ The Engine currently uses FastAPI `BackgroundTasks`, which have **no durable wor
 A new operator command `python -m app.jobs.recover_import_jobs` is **read-only by default**. It enumerates old active jobs using the earlier of `started_at` (if present) or `created_at`, with a minimum age of 60 minutes. To reconcile a single identified job, an operator must stop **all API and worker processes using the database**, back up the database, then explicitly invoke `--job-id <id> --apply --workers-stopped`. The command conditionally marks that old active job as `failed` with auditable `summary.failure_category = worker_interrupted` and preserves the previous stage and committed source/decision rows. It never replays a partially executed job; the operator creates a **new** job afterward through the existing idempotent import/retry path.
 
 SQLite regression tests cover inspection-only behavior, explicit worker-stopped gating, old queued/running/paused reconciliation, preservation of existing Artifact rows, protection of recent and terminal tasks, CLI argument gating, and repeat invocation. The acknowledgment flag **does not technically stop or fence a live worker**; running it without actually stopping workers risks concurrent writes. A future production solution needs a durable leased queue with fencing tokens, worker heartbeats, safe recovery policy, and multi-process coverage. This is a conservative manual unblock, **not** automatic crash recovery and does not close [Issue #36](https://github.com/luzay-max/DecisionAtlas/issues/36).
+
+## Operator stale-snapshot guard for offline import recovery (2026-10-30)
+
+To reduce the risk of accidentally reconciling a different or changed execution after preview, the read-only `recover_import_jobs` command now emits a SHA-256 **inspection snapshot** for each old active job (job ID, workspace/repo/mode, current status, creation/start times and summary). `--apply` now **requires** `--snapshot <64-character lowercase hex>` from that job's dry-run output in addition to `--job-id` and `--workers-stopped`. The repository refreshes the actual row, refuses missing/stale snapshot values, and its conditional database UPDATE additionally matches status, exact start timestamp (or NULL), creation timestamp and cutoff. A snapshot for another job or one taken before a worker's new start is rejected; no status or Artifact rows are altered. This is an operator safety guard, not an authentication token or live-worker fence. The operator must still stop **all** app/worker processes using the database and take a backup before apply; neither a SHA-256 value nor the `--workers-stopped` flag proves this. SQLite tests verify exact-job preview, wrong-job snapshot rejection, same-status/new-start rejection, and CLI snapshot requirement. The existing manual command syntax without `--snapshot` is intentionally no longer accepted.
+
+Example (from `services/engine` after setting the proper `DATABASE_URL`):
+
+```bash
+uv run python -m app.jobs.recover_import_jobs --job-id <id>
+# Inspect JSON snapshot, stop all processes, back up DB.
+uv run python -m app.jobs.recover_import_jobs --job-id <id> --snapshot <snapshot-from-preview> --apply --workers-stopped
+```
+
+**Still pending under Issue #36**: real lease/heartbeat with monotonic fencing, multi-process arbitration, bounded control response during SQLite writes, and crash/restart acceptance tests. No automatic retry is introduced.

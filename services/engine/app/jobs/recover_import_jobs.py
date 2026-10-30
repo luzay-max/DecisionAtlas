@@ -6,7 +6,7 @@ after a crash. This command defaults to an inspection-only report. Only use
 
 Run from services/engine after setting DATABASE_URL:
     uv run python -m app.jobs.recover_import_jobs
-    uv run python -m app.jobs.recover_import_jobs --job-id <id> --apply --workers-stopped
+    uv run python -m app.jobs.recover_import_jobs --job-id <id> --snapshot <hex> --apply --workers-stopped
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import json
 from typing import Sequence
 
 from app.db.session import get_db_session
-from app.repositories.import_jobs import ImportJobRepository
+from app.repositories.import_jobs import ImportJobRepository, offline_recovery_snapshot
 
 
 def _job_report(job) -> dict[str, str | int | None]:
@@ -30,6 +30,7 @@ def _job_report(job) -> dict[str, str | int | None]:
         "stage": (job.summary_json or {}).get("stage"),
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "started_at": job.started_at.isoformat() if job.started_at else None,
+        "snapshot": offline_recovery_snapshot(job),
     }
 
 
@@ -41,6 +42,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     )
     parser.add_argument("--job-id", help="Exact job ID to recover; required with --apply")
+    parser.add_argument(
+        "--snapshot", help="Exact SHA-256 snapshot from a recent inspection; required with --apply",
+    )
     parser.add_argument(
         "--minimum-age-minutes", type=int, default=60,
         help="Minimum age since job start (or queue creation), default 60",
@@ -56,8 +60,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--minimum-age-minutes must be positive")
     if not 1 <= args.limit <= 100:
         parser.error("--limit must be between 1 and 100")
-    if args.apply and (not args.job_id or not args.workers_stopped):
-        parser.error("--apply requires --job-id and --workers-stopped")
+    if args.apply and (not args.job_id or not args.snapshot or not args.workers_stopped):
+        parser.error("--apply requires --job-id, --snapshot and --workers-stopped")
+    if args.apply and (
+        len(args.snapshot) != 64 or any(ch not in "0123456789abcdef" for ch in args.snapshot)
+    ):
+        parser.error("--snapshot must be a lowercase 64-character SHA-256 hex digest")
     cutoff = datetime.now(UTC) - timedelta(minutes=args.minimum_age_minutes)
 
     session = get_db_session()
@@ -79,7 +87,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         try:
             job = repo.mark_interrupted_offline(
-                args.job_id, older_than=cutoff, workers_stopped=True,
+                args.job_id, older_than=cutoff,
+                expected_snapshot=args.snapshot, workers_stopped=True,
             )
             session.commit()
         except ValueError as exc:
