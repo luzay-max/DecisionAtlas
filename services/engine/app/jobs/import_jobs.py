@@ -219,28 +219,20 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
         last_progress_time = monotonic()
         def on_progress(count: int):
             nonlocal last_progress_time
-            now = monotonic()
-            
-            # Check pause status
-            latest_job = jobs.get_by_job_id(job_id)
-            if latest_job:
-                session.refresh(latest_job)
-            if latest_job and latest_job.status == "paused":
-                while True:
-                    session.refresh(latest_job)
-                    if latest_job.status != "paused":
-                        break
-                    import time
-                    time.sleep(2.0)
-            if latest_job:
-                session.refresh(latest_job)
-            if latest_job and latest_job.status == "cancelled":
-                raise Exception("Import cancelled")
 
-            # Keep progress and artifacts in the SAME uncommitted transaction.
-            # Committing here would persist partially imported artifacts before
-            # the importer verifies document integrity; failures must roll back.
-            # Import-phase progress becomes visible only at the final commit.
+            if count == 0:
+                # GitHubImporter calls this AFTER prefetch and BEFORE its
+                # first Artifact upsert. It is safe to release our read
+                # transaction and wait for an admin resume here.
+                _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
+                return
+
+            # Never wait for resume while an Artifact INSERT/UPDATE is
+            # uncommitted. SQLite will block the admin's resume write until
+            # this transaction completes. Pause takes effect at the next
+            # transaction-free checkpoint, not at each row's progress event.
+            # Committing here would persist partially imported Artifacts.
+            now = monotonic()
             if now - last_progress_time > 1.0:
                 jobs.update_stage(job_id, stage=current_stage, summary_json={"imported_count": count})
                 last_progress_time = monotonic()
@@ -267,6 +259,9 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             },
         )
         session.commit()
+        # A pause requested while sources were being written is durable only
+        # after the batch commits. Acknowledge it before indexing begins.
+        _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
 
         artifacts = ArtifactRepository(session).list_by_workspace(workspace.id)
         for artifact in artifacts:
@@ -310,6 +305,9 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             },
         )
         session.commit()
+        # Indexing must finish its transaction before waiting on an admin
+        # pause. Extraction itself still needs separate mid-stage checkpoints.
+        _wait_for_import_safe_checkpoint(session=session, job_id=job_id)
 
         extraction_pipeline = CandidateExtractionPipeline(session, runtime.extraction_provider)
         progress_reporter = _build_extraction_progress_reporter(job_id=job_id, session=session)
@@ -1087,6 +1085,25 @@ def _validate_webhook_signature(*, body: bytes, signature: str | None, secret: s
         raise ValueError("Invalid GitHub webhook signature")
 
 
+def _wait_for_import_safe_checkpoint(*, session, job_id: str) -> None:
+    """Poll pause status only at a boundary with no pending source writes.
+
+    Roll back each read-only transaction before sleeping. This intentionally
+    must NOT be called from an Artifact/candidate write progress callback.
+    """
+    while True:
+        session.rollback()
+        current = ImportJobRepository(session).get_by_job_id(job_id)
+        state = current.status if current is not None else None
+        session.rollback()
+        if state == "running":
+            return
+        if state == "paused":
+            time.sleep(0.2)
+            continue
+        raise ValueError(f"Import job not running at safe checkpoint: {state}")
+
+
 def _build_extraction_progress_reporter(*, job_id: str, session=None):
     last_reported_processed = -1
     last_reported_at = 0.0
@@ -1110,22 +1127,9 @@ def _build_extraction_progress_reporter(*, job_id: str, session=None):
         try:
             jobs_repo = ImportJobRepository(progress_session)
             
-            # Check pause status
-            latest_job = jobs_repo.get_by_job_id(job_id)
-            if latest_job:
-                progress_session.refresh(latest_job)
-            if latest_job and latest_job.status == "paused":
-                while True:
-                    progress_session.refresh(latest_job)
-                    if latest_job.status != "paused":
-                        break
-                    import time
-                    time.sleep(2.0)
-            if latest_job:
-                progress_session.refresh(latest_job)
-            if latest_job and latest_job.status == "cancelled":
-                raise Exception("Import cancelled")
-
+            # Do not sleep on "paused" here: candidate writes may already
+            # hold SQLite's writer lock, making the admin resume impossible.
+            # Pending pauses can be checked only at safe transaction boundaries.
             jobs_repo.merge_summary(
                 job_id,
                 summary_json={

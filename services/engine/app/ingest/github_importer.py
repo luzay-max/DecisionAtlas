@@ -157,6 +157,12 @@ class GitHubImporter:
                     if next_document is not None:
                         in_flight.add(executor.submit(fetch_doc, next_document))
 
+        # This is the last write-free checkpoint. The caller may wait for a
+        # paused job here, before any Artifact INSERT/UPDATE holds SQLite's
+        # single-writer lock. A zero count explicitly means "pre-write".
+        if progress_callback:
+            progress_callback(0)
+
         # All sources are now locally fetched/validated. Persist Artifacts in
         # one transaction, keeping the import-stage failure rollback guarantee.
         total = 0

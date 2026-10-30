@@ -91,3 +91,14 @@ A Git Trees 200 response **without a valid `tree` array** must not be interprete
 ## CI #278 regression repair — invalid JSON under HTTP 200 (2026-10-30)
 
 [CI #278](https://github.com/luzay-max/DecisionAtlas/actions/runs/41013364394) failed at `test_malformed_pagination_result_fails_with_coverage_error[None]`: `httpx.Response(200, json=None)` creates an empty response rather than the intended literal JSON `null`, so `response.json()` raised a raw `JSONDecodeError`. Fixed the fixture to send `content=b"null"` and made both Git Tree and list pagination fail closed on malformed/empty HTTP 200 JSON with their existing typed coverage categories (`malformed_tree` / `malformed_pagination`). Additional parameterized tests cover empty, broken, `null`, and non-object Tree bodies. This fix is additive to F04, does not change successful empty Tree/list semantics, and does not close Issue #36.
+
+
+## Safe import-stage pause checkpoints; no sleep in uncommitted writer (2026-10-30)
+
+The importer previously invoked its progress callback only **after** Artifact upserts. If the admin paused just before the first INSERT, a callback could observe `paused` and sleep while holding SQLite's single-writer lock, preventing the independent resume request from committing. A similar sleep loop existed in the candidate-extraction reporter. Those in-write pause wait loops have now been removed.
+
+The real GitHubImporter calls `progress_callback(0)` **after successful remote collection/Markdown integrity verification but before its first Artifact upsert**. The job handler interprets this zero count as a transaction-free control checkpoint: it rolls back any *read-only* transaction, reads the latest job status, closes the read transaction before sleeping 200ms if paused, and continues only once resumed. The same helper is invoked after the source import transaction commits (before indexing) and after indexing's stage commit (before extraction). In-flight writes are **never committed simply to implement a pause**; existing rollback tests remain mandatory.
+
+A real file-backed SQLite job test pauses while a controlled GitHub fetch is in flight, releases the fetch, verifies no Artifact appears and an independent admin resume can commit, then observes source import and expected downstream indexing failure. A separate test confirms the checkpoint releases read transactions while paused.
+
+**Not complete:** Requests arriving *during* a long Artifact or candidate write transaction may still be delayed/locked by SQLite, and pause during active indexing/extraction can be deferred until a later safe checkpoint (or finish). The extraction pipeline's final transition, worker restarts/leases, multi-process orchestration, and cancel API still require separate design and concurrency acceptance. Never promise immediate pause or full durable pause semantics yet. [Issue #36](https://github.com/luzay-max/DecisionAtlas/issues/36) stays open and #28/#35 remain Draft.

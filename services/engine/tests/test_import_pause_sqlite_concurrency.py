@@ -19,7 +19,8 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.db.models import Artifact, Workspace
-from app.jobs.import_jobs import queue_github_import, run_github_import
+from app.ingest.github_types import GitHubArtifactPayload
+from app.jobs.import_jobs import _wait_for_import_safe_checkpoint, run_github_import
 from app.repositories.import_jobs import ImportJobRepository
 
 
@@ -275,5 +276,165 @@ def test_uncommitted_artifact_write_blocks_separate_sqlite_pause_update(
         assert _status(engine) == "running"
         with Session(engine) as session:
             assert session.query(Artifact).count() == 0
+    finally:
+        engine.dispose()
+
+
+
+def test_paused_during_github_fetch_waits_before_first_artifact_write(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Actual importer must not hold SQLite's write lock while paused pre-write."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    downloading = Event()
+    release_download = Event()
+    checkpoint_reached = Event()
+    real_checkpoint = _wait_for_import_safe_checkpoint
+
+    def observed_checkpoint(*, session, job_id):
+        checkpoint_reached.set()
+        return real_checkpoint(session=session, job_id=job_id)
+
+    monkeypatch.setattr(
+        "app.jobs.import_jobs._wait_for_import_safe_checkpoint",
+        observed_checkpoint,
+    )
+
+    class ControlledClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def fetch_issues(self, repo: str, *, since=None):
+            downloading.set()
+            if not release_download.wait(timeout=12):
+                raise TimeoutError("Controlled GitHub fetch was not released")
+            return [GitHubArtifactPayload(
+                artifact_type="issue", source_id="test-issue", repo=repo,
+                title="Evidence", content="Verified issue body", author="tester",
+                url=None, timestamp=None, metadata_json={},
+            )]
+
+        def fetch_pull_requests(self, repo: str, *, since=None):
+            return []
+
+        def fetch_commits(self, repo: str, *, since=None):
+            return []
+
+        def get_default_branch(self, repo: str):
+            return "main"
+
+        def list_repository_files(self, repo: str, *, ref=None):
+            return []
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubClient", ControlledClient)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: type("Providers", (), {
+            "embedder": object(), "extraction_provider": object(),
+        })(),
+    )
+
+    def stop_after_source_commit(**kwargs):
+        raise RuntimeError("Synthetic stop after the verified import commit")
+
+    monkeypatch.setattr("app.jobs.import_jobs.index_artifact", stop_after_source_commit)
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            future = workers.submit(
+                run_github_import, job_id="job-pause-race",
+                workspace_slug="github-pause-race", repo="org/repo", mode="full",
+            )
+            try:
+                assert downloading.wait(timeout=5)
+                with Session(engine) as admin:
+                    ImportJobRepository(admin).mark_paused("job-pause-race")
+                    admin.commit()
+                release_download.set()
+                assert checkpoint_reached.wait(timeout=5), (
+                    "Worker did not reach the pre-write pause checkpoint"
+                )
+                # The worker reached the checkpoint BEFORE an Artifact INSERT.
+                assert _status(engine) == "paused"
+                with Session(engine) as inspector:
+                    assert inspector.query(Artifact).count() == 0
+                with Session(engine) as admin:
+                    resumed = ImportJobRepository(admin).mark_resumed("job-pause-race")
+                    assert resumed.status == "running"
+                    admin.commit()
+            finally:
+                release_download.set()
+                # Never leave a test background worker waiting after a failure.
+                with Session(engine) as admin:
+                    current = ImportJobRepository(admin).get_by_job_id("job-pause-race")
+                    if current and current.status == "paused":
+                        ImportJobRepository(admin).mark_resumed("job-pause-race")
+                        admin.commit()
+            outcome = future.result(timeout=12)
+            assert outcome["status"] == "failed"
+            assert outcome["summary"]["stage"] == "indexing_artifacts"
+
+        with Session(engine) as inspector:
+            artifacts = inspector.query(Artifact).all()
+            assert len(artifacts) == 1
+            assert artifacts[0].source_id == "test-issue"
+    finally:
+        engine.dispose()
+
+
+def test_safe_checkpoint_releases_its_read_transaction_before_resume(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A paused checkpoint polls without pinning a transaction or SQLite writer."""
+    engine, _ = _prepare_database(tmp_path, monkeypatch)
+    entered = Event()
+    polling_while_paused = Event()
+    exit_checkpoint = Event()
+    import time as clock
+
+    real_sleep = clock.sleep
+
+    def observed_sleep(duration):
+        polling_while_paused.set()
+        return real_sleep(duration)
+
+    monkeypatch.setattr("app.jobs.import_jobs.time.sleep", observed_sleep)
+
+    with Session(engine) as admin:
+        repo = ImportJobRepository(admin)
+        repo.mark_running("job-pause-race")
+        repo.mark_paused("job-pause-race")
+        admin.commit()
+
+    def wait_for_checkpoint():
+        with Session(engine) as worker:
+            entered.set()
+            _wait_for_import_safe_checkpoint(
+                session=worker, job_id="job-pause-race",
+            )
+            exit_checkpoint.set()
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(wait_for_checkpoint)
+            try:
+                assert entered.wait(timeout=5)
+                assert polling_while_paused.wait(timeout=5), (
+                    "Worker never observed the paused status"
+                )
+                with Session(engine) as admin:
+                    # SQLite busy timeout is 150ms: this independent control
+                    # write cannot succeed if the worker holds a writer lock.
+                    resumed = ImportJobRepository(admin).mark_resumed("job-pause-race")
+                    assert resumed.status == "running"
+                    admin.commit()
+                future.result(timeout=5)
+                assert exit_checkpoint.is_set()
+            finally:
+                with Session(engine) as admin:
+                    current = ImportJobRepository(admin).get_by_job_id("job-pause-race")
+                    if current and current.status == "paused":
+                        ImportJobRepository(admin).mark_resumed("job-pause-race")
+                        admin.commit()
     finally:
         engine.dispose()
