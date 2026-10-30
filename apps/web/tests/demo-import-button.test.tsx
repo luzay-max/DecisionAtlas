@@ -155,6 +155,69 @@ describe("DemoImportButton", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "Authentication required",
+    "connect ECONNREFUSED",
+  ])("shows a status polling error (%s) without claiming import failure", async (message) => {
+    getImportJob.mockRejectedValue(new Error(message));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow", "100");
+  });
+
+  it("rejects a polling result from another job without publishing its completion", async () => {
+    getImportJob.mockResolvedValue({
+      job_id: "job-unrelated",
+      status: "succeeded",
+      imported_count: 99,
+      repo: "org/other",
+      summary: { stage: "completed" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("did not match the requested job");
+    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(screen.queryByText("Imported 99 artifacts from org/other")).not.toBeInTheDocument();
+    expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
+  });
+
   it("shows running only after resume confirmation", async () => {
     const user = userEvent.setup();
     getImportJob.mockImplementation(() => new Promise(() => {}));
