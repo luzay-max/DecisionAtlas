@@ -37,7 +37,43 @@ test("synthetic imported-style evidence renders via real API on desktop and mobi
 
   async function inspectReviewQueue() {
     await page.goto(reviewUrl);
-    await expect(page.getByRole("heading", { name: "等待审阅的候选决策" })).toBeVisible();
+    try {
+      // The server first renders in English; the language provider then reads
+      // the synthetic test's localStorage preference during hydration. Wait
+      // for that separate readiness condition before asserting Chinese copy.
+      await expect(page.locator("html")).toHaveAttribute("lang", "zh", { timeout: 10_000 });
+      await expect(page.getByRole("heading", { name: "等待审阅的候选决策" })).toBeVisible();
+    } catch (error) {
+      // Diagnostic metadata only: never dump the full DOM, cookies, tokens,
+      // response bodies, or any imported source text into CI logs/artifacts.
+      const readiness = await page.evaluate(() => {
+        const headings = Array.from(document.querySelectorAll("h1, h2"));
+        return {
+          htmlLanguage: document.documentElement.lang,
+          storedLanguage: localStorage.getItem("decisionatlas-language"),
+          chineseReviewHeading: headings.some(
+            (heading) => heading.textContent?.trim() === "等待审阅的候选决策"
+          ),
+          englishReviewHeading: headings.some(
+            (heading) => heading.textContent?.trim() === "Candidate decisions waiting for review"
+          ),
+          scopedUnavailable: Array.from(document.querySelectorAll("p.eyebrow")).some(
+            (element) => element.textContent?.trim() === "Workspace unavailable in current scope"
+          ),
+          headingCount: headings.length,
+          candidateLinkPresent: Array.from(document.querySelectorAll("a")).some(
+            (link) => link.textContent?.trim() === "CI SYNTHETIC: Cache proposal (NOT VERIFIED)"
+          ),
+        };
+      }).catch(() => ({ browserEvaluationFailed: true }));
+      const diagnostics = { route: new URL(page.url()).pathname, ...readiness };
+      await test.info().attach("synthetic-review-readiness", {
+        body: JSON.stringify(diagnostics, null, 2),
+        contentType: "application/json",
+      });
+      console.warn("Synthetic review readiness failure:", JSON.stringify(diagnostics));
+      throw error;
+    }
     await expect(page.getByRole("link", { name: candidateTitle })).toBeVisible();
     const evidence = page.locator(".evidence-review-panel-compact");
     await expect(evidence).toBeVisible();
