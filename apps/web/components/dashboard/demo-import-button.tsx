@@ -226,9 +226,24 @@ function WorkspaceImportControls({
   async function waitForJob(jobId: string) {
     pollingRef.current = true;
     while (mountedRef.current) {
-      const job = await getImportJob(jobId);
-      if (!mountedRef.current || (job?.job_id && job.job_id !== jobId)) {
+      let job: Awaited<ReturnType<typeof getImportJob>>;
+      try {
+        job = await getImportJob(jobId);
+      } catch (error) {
         pollingRef.current = false;
+        // Polling failure is not evidence that the import itself failed.
+        if (mountedRef.current) {
+          setJobActionError(error instanceof Error ? error.message : "Could not check import status");
+        }
+        return null;
+      }
+      if (!mountedRef.current) {
+        pollingRef.current = false;
+        return null;
+      }
+      if (job?.job_id && job.job_id !== jobId) {
+        pollingRef.current = false;
+        setJobActionError("Import status did not match the requested job");
         return null;
       }
       if (!job) {
