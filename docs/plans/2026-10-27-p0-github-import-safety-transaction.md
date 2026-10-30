@@ -24,3 +24,19 @@
 
 ## Validation boundary
 No local host, private data, live tokens, or paid model calls are required or used for these tests. Mocked/CI tests do **not** establish the later real public-import or external environment acceptance gate.
+
+
+## Stage A / A01 independent security review (2026-10-30)
+
+**Fixed baseline:** `main@8aa461f5`. **Existing implementation PR:** #26 (Draft; base main), no parallel duplicate feature PR. The existing [CI #268](https://github.com/luzay-max/DecisionAtlas/actions/runs/40988302629) passed at `782de863` before this review amendment, but that CI is historical.
+
+| Review control | Evidence and result | Remaining limit |
+| --- | --- | --- |
+| API credential isolation | HTTPX mock tests verify authenticated GitHub Contents API raw-media fallback, public raw download `Authorization`/`Cookie` removal and override of client-level auth. | Does not prove behavior against a real private GitHub repository. |
+| Redirects and untrusted origin | Existing tests refuse API or public-raw redirect and untrusted host before outbound GET. | Provider-controlled Contents JSON is treated as untrusted source metadata. |
+| **NEW: exact source file identity** | The raw download URL must identify the exact requested repo **and** file path. Previously only the repo prefix was verified, allowing a misleading URL within the same repository to be indexed as another file. | Ref/branch is not pinned; SHA capture and source snapshot strategy require separate review (#35/F06b). |
+| **NEW: percent-encoded path evasion** | Reject decoded traversal, encoded slashes/backslashes, nested percent escapes and empty path components; allow ordinary percent-encoded spaces in file names. Mock HTTPX tests assert rejected URL does not issue public cross-origin request. | Unusual filenames containing literal percent signs fail closed in this rare fallback, rather than silently misidentifying evidence. |
+| Import transaction | Existing `test_run_github_import_rolls_back_partial_artifacts_on_failure` flushes an Artifact, invokes progress, forces import failure and asserts no committed Artifact remains. | Import-phase progress is not externally durable until success. `on_progress` still contains a pause-wait loop while Artifacts may hold SQLite's writer lock: **NOT solved by #26**; the additional safety checkpoints in Draft #35 require separate review. |
+| Validation | Offline mocked HTTPX + file-backed SQLite and current-head full CI are required. No live token, private repo, or paid LLM authorization granted. | Maintainership review and explicit merge authorization still outstanding. |
+
+**A01 conclusion:** Security follow-up submitted to existing Draft #26. Mark **review in progress**, not `Done` or merged. A02's integration/rebase depends on explicit A01 approval and #26 entering `main`; leave #35, #30 and #31 untouched until then.

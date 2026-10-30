@@ -4,7 +4,7 @@ import base64
 from datetime import datetime, timezone
 from time import sleep
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -269,11 +269,11 @@ class GitHubClient:
 
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            return self._fetch_public_markdown_download(download_url, repo=repo)
+            return self._fetch_public_markdown_download(download_url, repo=repo, path=path, ref=ref)
 
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
 
-    def _fetch_public_markdown_download(self, download_url: str, *, repo: str) -> str:
+    def _fetch_public_markdown_download(self, download_url: str, *, repo: str, path: str, ref: str) -> str:
         """Fetch public raw content without forwarding GitHub API credentials.
 
         Content-API download_url is upstream-controlled. A cross-origin GET
@@ -281,6 +281,31 @@ class GitHubClient:
         """
         try:
             parsed = urlsplit(download_url)
+            # Verify the *requested file*, not only the repo prefix. URL
+            # percent-encoding otherwise hides "..", "/" and nested escapes
+            # from a check against raw path segments. Do not resolve
+            # ambiguous paths: failing closed is safer than misattributing
+            # arbitrary upstream content to the requested Artifact.
+            segments = [unquote(part) for part in parsed.path.split("/")[1:]]
+            repo_segments = repo.split("/")
+            ref_segments = ref.split("/")
+            file_segments = path.split("/")
+            trustworthy_segments = (
+                # raw URLs encode the requested repository, ref and exact
+                # document path. A different branch/commit cannot be silently
+                # indexed as evidence for the requested ref.
+                len(segments) == len(repo_segments) + len(ref_segments) + len(file_segments)
+                and segments[:len(repo_segments)] == repo_segments
+                and segments[len(repo_segments):len(repo_segments) + len(ref_segments)] == ref_segments
+                and segments[-len(file_segments):] == file_segments
+                and all(
+                    part not in {"", ".", ".."}
+                    and "/" not in part
+                    and "\\" not in part
+                    and "%" not in part
+                    for part in segments
+                )
+            )
             trusted = (
                 parsed.scheme == "https"
                 and parsed.hostname == "raw.githubusercontent.com"
@@ -290,20 +315,23 @@ class GitHubClient:
                 and not parsed.netloc.endswith(":")
                 and not parsed.query
                 and not parsed.fragment
-                and parsed.path.startswith(f"/{repo}/")
-                and all(part not in {"", ".", ".."} for part in parsed.path.split("/")[1:])
+                and trustworthy_segments
             )
         except ValueError:
             trusted = False
         if not trusted:
             raise ValueError("GitHub raw content download URL is not trusted")
 
-        # build_request merges client defaults, so explicitly strip credentials
-        # and override client-level auth before sending. Redirects must not be
-        # followed to another host.
-        request = self.client.build_request("GET", download_url)
-        request.headers.pop("Authorization", None)
-        request.headers.pop("Cookie", None)
+        # Do not use client.build_request() here: it merges all client-level
+        # default headers, including custom API-key or session headers that
+        # would survive stripping Authorization/Cookie. A standalone Request
+        # carries only the explicitly allowed public headers; the injected
+        # client still provides transport and is forced to use no auth.
+        request = httpx.Request(
+            "GET",
+            download_url,
+            headers={"User-Agent": "DecisionAtlas", "Accept": "text/plain"},
+        )
         response = self._consume_bounded_response(
             self.client.send(
                 request, auth=httpx.Auth(), follow_redirects=False, stream=True,

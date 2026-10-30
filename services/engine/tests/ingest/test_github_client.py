@@ -377,6 +377,7 @@ def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
         observed[str(request.url.host)] = {
             "authorization": request.headers.get("Authorization"),
             "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
         }
         if request.url.host == "api.github.com":
             return httpx.Response(
@@ -397,13 +398,54 @@ def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
             transport=transport,
             base_url="https://api.github.com",
             auth=httpx.BasicAuth("private-user", "private-pass"),
-            headers={"Cookie": "session=private-cookie"},
+            headers={
+                "Cookie": "session=private-cookie",
+                "X-Internal-Api-Key": "sensitive-custom-api-key",
+            },
         )
     )
     assert client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main") == "# Safe raw content"
     assert observed["api.github.com"]["authorization"] is not None
     assert observed["api.github.com"]["cookie"] == "session=private-cookie"
-    assert observed["raw.githubusercontent.com"] == {"authorization": None, "cookie": None}
+    assert observed["api.github.com"]["custom_key"] == "sensitive-custom-api-key"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
+
+
+
+def test_raw_markdown_fallback_does_not_inherit_client_cookie_jar() -> None:
+    """Public raw downloads must not inherit cookies from the API client."""
+    observed: dict[str, dict[str, str | None]] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed[str(request.url.host)] = {
+            "authorization": request.headers.get("Authorization"),
+            "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
+        }
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(200, text="# public source")
+
+    client = GitHubClient(client=httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        auth=httpx.BasicAuth("private-user", "private-pass"),
+        headers={"X-Internal-Api-Key": "client-internal-secret"},
+        cookies={"private-session": "cookie-jar-secret"},
+    ))
+
+    assert client.fetch_markdown_document("org/repo", path="README.md", ref="main") == "# public source"
+    assert observed["api.github.com"]["authorization"] is not None
+    assert "private-session=cookie-jar-secret" in (observed["api.github.com"]["cookie"] or "")
+    assert observed["api.github.com"]["custom_key"] == "client-internal-secret"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
 
 
 def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
@@ -944,3 +986,130 @@ def test_malformed_paginated_http_200_reports_coverage_error(body: bytes) -> Non
     with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
         client.fetch_issues("org/repo")
 
+@pytest.mark.parametrize(
+    "download_url",
+    [
+        "https://raw.githubusercontent.com/org/repo/main/OTHER.md",
+        "https://raw.githubusercontent.com/org/repo/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%2e%2e/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%252e%252e/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%2F/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%5c/README.md",
+    ],
+)
+def test_raw_fallback_rejects_wrong_file_or_encoded_traversal_before_network(
+    download_url: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.host != "api.github.com":
+            pytest.fail("Untrusted URL reached the raw host")
+        return httpx.Response(
+            200, json={"encoding": "none", "download_url": download_url},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    with pytest.raises(ValueError, match="not trusted"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    # Both requests must stay at the authenticated API host.
+    assert len(requests) == 2
+    assert all(request.url.host == "api.github.com" for request in requests)
+
+
+def test_raw_fallback_accepts_encoded_space_in_exact_requested_file_path() -> None:
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": (
+                    "https://raw.githubusercontent.com/"
+                    "org/repo/main/docs/Release%20Notes.md"
+                ),
+            })
+        assert request.headers.get("Authorization") is None
+        assert request.headers.get("Cookie") is None
+        return httpx.Response(200, text="# Exact source")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    assert client.fetch_markdown_document(
+        "org/repo", path="docs/Release Notes.md", ref="main",
+    ) == "# Exact source"
+    assert hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]
+
+
+@pytest.mark.parametrize(
+    "download_url",
+    [
+        "https://raw.githubusercontent.com/org/repo/other/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/unrelated/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/../README.md",
+    ],
+)
+def test_raw_fallback_rejects_mismatched_ref_or_extra_path_before_network(
+    download_url: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.host != "api.github.com":
+            pytest.fail("Mismatched source reached raw host")
+        return httpx.Response(
+            200, json={"encoding": "none", "download_url": download_url},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    with pytest.raises(ValueError, match="not trusted"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    assert len(requests) == 2
+    assert all(request.url.host == "api.github.com" for request in requests)
+
+
+def test_raw_fallback_accepts_ref_containing_slash_with_exact_document() -> None:
+    observed_hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed_hosts.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": (
+                    "https://raw.githubusercontent.com/org/repo/"
+                    "release/v1/docs/Release%20Notes.md"
+                ),
+            })
+        assert request.headers.get("Authorization") is None
+        assert request.headers.get("Cookie") is None
+        return httpx.Response(200, text="# Document")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    assert client.fetch_markdown_document(
+        "org/repo", path="docs/Release Notes.md", ref="release/v1",
+    ) == "# Document"
+    assert observed_hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]
