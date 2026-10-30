@@ -269,12 +269,16 @@ class GitHubClient:
         if not trusted:
             raise ValueError("GitHub raw content download URL is not trusted")
 
-        # build_request merges client defaults, so explicitly strip credentials
-        # and override client-level auth before sending. Redirects must not be
-        # followed to another host.
-        request = self.client.build_request("GET", download_url)
-        request.headers.pop("Authorization", None)
-        request.headers.pop("Cookie", None)
+        # Do not use client.build_request() here: it merges all client-level
+        # default headers, including custom API-key or session headers that
+        # would survive stripping Authorization/Cookie. A standalone Request
+        # carries only the explicitly allowed public headers; the injected
+        # client still provides transport and is forced to use no auth.
+        request = httpx.Request(
+            "GET",
+            download_url,
+            headers={"User-Agent": "DecisionAtlas", "Accept": "text/plain"},
+        )
         response = self.client.send(request, auth=httpx.Auth(), follow_redirects=False)
         if response.is_redirect:
             raise ValueError("GitHub raw content download redirected unexpectedly")
