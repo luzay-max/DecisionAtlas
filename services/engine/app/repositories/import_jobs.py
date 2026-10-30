@@ -286,7 +286,11 @@ class ImportJobRepository:
                 ImportJob.job_id == job_id,
                 ImportJob.status == job.status,
                 started_predicate,
-                ImportJob.created_at == job.created_at,
+                # Do not compare SQLite CURRENT_TIMESTAMP-created values by
+                # raw datetime equality: SQLite stores whole seconds while
+                # SQLAlchemy binds Python datetime with fractional seconds.
+                # The validated preview snapshot includes created_at; job_id
+                # itself is unique and immutable.
                 func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
             )
             .values(

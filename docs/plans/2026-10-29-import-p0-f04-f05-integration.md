@@ -131,3 +131,7 @@ uv run python -m app.jobs.recover_import_jobs --job-id <id> --snapshot <snapshot
 ```
 
 **Still pending under Issue #36**: real lease/heartbeat with monotonic fencing, multi-process arbitration, bounded control response during SQLite writes, and crash/restart acceptance tests. No automatic retry is introduced.
+
+## SQLite CURRENT_TIMESTAMP precision regression (2026-10-30)
+
+The first snapshot-CAS implementation compared `ImportJob.created_at == job.created_at` in SQL. SQLite `CURRENT_TIMESTAMP` (the model's server default) stores a string without fractional seconds while SQLAlchemy's datetime bind parameter includes `.000000`; exact string equality can match **zero rows** despite an unchanged job. An isolated SQLAlchemy+SQLite reproduction confirmed the mismatch. The correction retains **exact operator snapshot validation of `created_at`** after refreshing the ORM row, but the SQL CAS uses unique immutable `job_id`, active status, exact `started_at` (or `IS NULL`) and age cutoff, omitting the unreliable `created_at` equality. A new queued-job integration regression verifies an old server-generated timestamp can be safely reconciled and preserves previously committed Artifact rows. The operator must still physically stop all workers before applying.

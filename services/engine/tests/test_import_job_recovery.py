@@ -9,10 +9,10 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 import pytest
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Workspace
+from app.db.models import Artifact, ImportJob, Workspace
 from app.jobs.recover_import_jobs import main
 from app.repositories.import_jobs import ImportJobRepository, offline_recovery_snapshot
 
@@ -251,5 +251,57 @@ def test_cli_dry_run_exposes_snapshot_without_writing(
             job = ImportJobRepository(session).get_by_job_id("stale-running")
             assert report["candidates"][0]["snapshot"] == offline_recovery_snapshot(job)
             assert job.status == "running"
+    finally:
+        engine.dispose()
+
+
+
+
+def test_offline_cas_handles_sqlite_server_default_timestamp_precision(
+    tmp_path, monkeypatch,
+) -> None:
+    """Old SQLite whole-second timestamps must not defeat valid recovery."""
+    engine = _database(tmp_path, monkeypatch)
+    try:
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            job = repo.get_by_job_id("stale-queued")
+            assert job is not None and job.started_at is None
+            stale_snapshot = offline_recovery_snapshot(job)
+            # SQLite datetime('now') uses the same whole-second serialization
+            # as CURRENT_TIMESTAMP server defaults; SQLAlchemy equality binds
+            # a Python datetime with .000000, which SQLite does not match.
+            session.execute(
+                text(
+                    "UPDATE import_jobs SET created_at = datetime('now', '-2 days') "
+                    "WHERE job_id = :job_id"
+                ),
+                {"job_id": "stale-queued"},
+            )
+            session.commit()
+            session.refresh(job)
+            assert job.created_at.microsecond == 0
+            actual_snapshot = offline_recovery_snapshot(job)
+            assert actual_snapshot != stale_snapshot
+            assert session.scalar(
+                select(ImportJob).where(ImportJob.created_at == job.created_at)
+            ) is None
+
+        with Session(engine) as session:
+            repo = ImportJobRepository(session)
+            cutoff = datetime.now(UTC) - timedelta(hours=1)
+            with pytest.raises(ValueError, match="snapshot is missing or stale"):
+                repo.mark_interrupted_offline(
+                    "stale-queued", older_than=cutoff,
+                    expected_snapshot=stale_snapshot, workers_stopped=True,
+                )
+            session.rollback()
+            updated = repo.mark_interrupted_offline(
+                "stale-queued", older_than=cutoff,
+                expected_snapshot=actual_snapshot, workers_stopped=True,
+            )
+            session.commit()
+            assert updated.status == "failed"
+            assert session.scalar(select(Artifact)).source_id == "already-committed"
     finally:
         engine.dispose()
