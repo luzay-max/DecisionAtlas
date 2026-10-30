@@ -248,8 +248,12 @@ function WorkspaceImportControls({
         ? await pauseGithubImport(requestedJobId)
         : await resumeGithubImport(requestedJobId);
       if (!mountedRef.current) return;
-      const expectedStatus = action === "pause" ? "paused" : "running";
-      if (!job || job.job_id !== requestedJobId || job.status !== expectedStatus) {
+      // A never-started paused import resumes to queued, while an already
+      // running worker resumes to running. Both are confirmed transitions.
+      const confirmed = action === "pause"
+        ? job?.status === "paused"
+        : job?.status === "queued" || job?.status === "running";
+      if (!job || job.job_id !== requestedJobId || !confirmed) {
         throw new Error("Import status change was not confirmed by the server");
       }
       applyJobState(job);
