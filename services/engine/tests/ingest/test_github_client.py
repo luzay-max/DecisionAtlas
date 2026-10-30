@@ -358,6 +358,41 @@ def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
     }
 
 
+
+def test_raw_markdown_fallback_does_not_inherit_client_cookie_jar() -> None:
+    """Public raw downloads must not inherit cookies from the API client."""
+    observed: dict[str, dict[str, str | None]] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed[str(request.url.host)] = {
+            "authorization": request.headers.get("Authorization"),
+            "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
+        }
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(200, text="# public source")
+
+    client = GitHubClient(client=httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        auth=httpx.BasicAuth("private-user", "private-pass"),
+        headers={"X-Internal-Api-Key": "client-internal-secret"},
+        cookies={"private-session": "cookie-jar-secret"},
+    ))
+
+    assert client.fetch_markdown_document("org/repo", path="README.md", ref="main") == "# public source"
+    assert observed["api.github.com"]["authorization"] is not None
+    assert "private-session=cookie-jar-secret" in (observed["api.github.com"]["cookie"] or "")
+    assert observed["api.github.com"]["custom_key"] == "client-internal-secret"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
+
+
 def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
     requests = []
 
