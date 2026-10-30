@@ -484,6 +484,47 @@ describe("DemoImportButton", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+
+  it("ignores a late pause confirmation after switching owner scope on the same slug", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    let finishOldPause: ((value: { job_id: string; status: string }) => void) | undefined;
+    pauseGithubImport.mockImplementation(
+      () => new Promise((resolve) => { finishOldPause = resolve; })
+    );
+
+    const view = () => (
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="shared-workspace"
+          repo="org/shared"
+          latestImport={{
+            job_id: "job-same-slug",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    const { rerender } = render(view());
+    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    expect(pauseGithubImport).toHaveBeenCalledWith("job-same-slug");
+
+    sessionIdentity.ownerScope = "owner-b";
+    rerender(view());
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+
+    await act(async () => { finishOldPause?.({ job_id: "job-same-slug", status: "paused" }); });
+    expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("does not apply a late previous-workspace poll after workspace navigation", async () => {
     let resolveOldPoll: ((value: {
       job_id: string; status: string; imported_count: number; repo: string;
