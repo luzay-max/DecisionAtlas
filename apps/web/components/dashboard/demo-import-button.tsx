@@ -10,19 +10,27 @@ import { useI18n } from "../i18n/language-provider";
 const progressStages = ["queued", "importing_artifacts", "indexing_artifacts", "extracting_decisions", "completed"] as const;
 const importPollIntervalMs = 500;
 
-export function DemoImportButton({
-  workspaceSlug,
-  repo,
-  latestImport,
-  importStatus,
-  initialJobId,
-}: {
+type DemoImportButtonProps = {
   workspaceSlug: string;
   repo: string;
   latestImport?: DashboardSummary["latest_import"];
   importStatus?: string;
   initialJobId?: string | null;
-}) {
+};
+
+// Workspace changes must remount the job controller. Otherwise a pending poll
+// from a previous workspace could publish the old job's status in the new view.
+export function DemoImportButton(props: DemoImportButtonProps) {
+  return <WorkspaceImportControls key={JSON.stringify([props.workspaceSlug, props.repo])} {...props} />;
+}
+
+function WorkspaceImportControls({
+  workspaceSlug,
+  repo,
+  latestImport,
+  importStatus,
+  initialJobId,
+}: DemoImportButtonProps) {
   const { messages } = useI18n();
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -207,6 +215,10 @@ export function DemoImportButton({
     pollingRef.current = true;
     while (mountedRef.current) {
       const job = await getImportJob(jobId);
+      if (!mountedRef.current || (job?.job_id && job.job_id !== jobId)) {
+        pollingRef.current = false;
+        return null;
+      }
       if (!job) {
         pollingRef.current = false;
         return null;
@@ -226,26 +238,30 @@ export function DemoImportButton({
   }
 
   async function handleJobAction(action: "pause" | "resume") {
-    if (!activeJobId || jobActionInFlight.current) return;
+    const requestedJobId = activeJobId;
+    if (!requestedJobId || jobActionInFlight.current) return;
     jobActionInFlight.current = true;
     setJobActionPending(true);
     setJobActionError(null);
     try {
       const job = action === "pause"
-        ? await pauseGithubImport(activeJobId)
-        : await resumeGithubImport(activeJobId);
+        ? await pauseGithubImport(requestedJobId)
+        : await resumeGithubImport(requestedJobId);
+      if (!mountedRef.current) return;
       const expectedStatus = action === "pause" ? "paused" : "running";
-      if (!job || job.status !== expectedStatus) {
+      if (!job || job.job_id !== requestedJobId || job.status !== expectedStatus) {
         throw new Error("Import status change was not confirmed by the server");
       }
       applyJobState(job);
       router.refresh();
     } catch (error) {
       // Preserve the previous status on 401/403/404/409/network errors.
-      setJobActionError(error instanceof Error ? error.message : "Could not update import status");
+      if (mountedRef.current) {
+        setJobActionError(error instanceof Error ? error.message : "Could not update import status");
+      }
     } finally {
       jobActionInFlight.current = false;
-      setJobActionPending(false);
+      if (mountedRef.current) setJobActionPending(false);
     }
   }
 
@@ -265,8 +281,10 @@ export function DemoImportButton({
     try {
       setMessage(messages.importButton.running);
       const response = await startGithubImport(workspaceSlug, repo);
+      if (!mountedRef.current) return;
       setActiveJobId(response.job_id);
       const job = await waitForJob(response.job_id);
+      if (!mountedRef.current) return;
       if (job === null) {
         setMessage(messages.importButton.background);
         setNextMessage(messages.importButton.backgroundNext);
@@ -276,17 +294,20 @@ export function DemoImportButton({
       }
       router.refresh();
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "unknown error";
-      setMessage(messages.importButton.failed.replace("{detail}", detail));
-      setNextMessage(messages.importButton.failedNext);
-      setProgressMessage(messages.importButton.failedHint);
-      router.refresh();
+      if (mountedRef.current) {
+        const detail = error instanceof Error ? error.message : "unknown error";
+        setMessage(messages.importButton.failed.replace("{detail}", detail));
+        setNextMessage(messages.importButton.failedNext);
+        setProgressMessage(messages.importButton.failedHint);
+        router.refresh();
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       pollingRef.current = false;
@@ -343,7 +364,7 @@ export function DemoImportButton({
       return;
     }
     void waitForJob(activeJobId).then(() => {
-      router.refresh();
+      if (mountedRef.current) router.refresh();
     });
   }, [activeJobId, jobStatus, router]);
 
