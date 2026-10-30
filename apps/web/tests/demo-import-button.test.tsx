@@ -122,6 +122,39 @@ describe("DemoImportButton", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { problem: "409 conflict", message: "Concurrent status transition" },
+    { problem: "network failure", message: "Upstream engine request failed" },
+  ])("keeps paused status on resume $problem with a visible error", async ({ message }) => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    resumeGithubImport.mockRejectedValue(new Error(message));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="github-org-repo"
+          repo="org/repo"
+          latestImport={{
+            job_id: "job-paused",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "extracting_decisions" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /暂停 \(Pause\)/ })).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("shows running only after resume confirmation", async () => {
     const user = userEvent.setup();
     getImportJob.mockImplementation(() => new Promise(() => {}));
