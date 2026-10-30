@@ -188,10 +188,12 @@ def run_github_import(*, job_id: str, workspace_slug: str, repo: str, mode: str 
             if latest_job and latest_job.status == "cancelled":
                 raise Exception("Import cancelled")
 
-            # Update DB at most once per second to avoid flooding
+            # Keep progress and artifacts in the SAME uncommitted transaction.
+            # Committing here would persist partially imported artifacts before
+            # the importer verifies document integrity; failures must roll back.
+            # Import-phase progress becomes visible only at the final commit.
             if now - last_progress_time > 1.0:
                 jobs.update_stage(job_id, stage=current_stage, summary_json={"imported_count": count})
-                session.commit()
                 last_progress_time = monotonic()
 
         import_result = importer.import_repo(

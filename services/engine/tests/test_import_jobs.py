@@ -57,9 +57,15 @@ def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Pat
                 )
             )
             self.session.flush()
+            # Force an import-phase progress update before the document fails.
+            # A commit in this callback would make the partial Artifact durable.
+            assert progress_callback is not None
+            progress_callback(1)
             raise ValueError("Unsupported GitHub content encoding for CHANGELOG.md")
 
     monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", FailingImporter)
+    ticks = iter([0.0, 2.0, 3.0])
+    monkeypatch.setattr("app.jobs.import_jobs.monotonic", lambda: next(ticks))
     monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
     monkeypatch.setattr(
         "app.jobs.import_jobs.build_runtime_providers",

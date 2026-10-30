@@ -4,6 +4,7 @@ import base64
 from datetime import datetime, timezone
 from time import sleep
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -181,13 +182,108 @@ class GitHubClient:
         if encoded and encoding == "base64":
             return base64.b64decode(encoded).decode("utf-8")
 
+        # Prefer the authenticated Contents API raw media type. Unlike a
+        # cross-origin download URL, this also works for private repositories
+        # without sending their token to another host.
+        raw_response = self._get(
+            f"/repos/{repo}/contents/{path}",
+            params={"ref": ref},
+            headers={"Accept": "application/vnd.github.raw+json"},
+        )
+        if raw_response.is_redirect:
+            raise ValueError("GitHub raw content API redirected unexpectedly")
+        raw_response.raise_for_status()
+        if "json" not in raw_response.headers.get("content-type", "").lower():
+            return raw_response.text
+
+        # Some API proxies/fixtures ignore Accept and send the same object.
+        # Fall back to the explicitly validated, unauthenticated public URL
+        # only if the raw media response is still a Contents metadata object.
+        try:
+            raw_payload = raw_response.json()
+        except ValueError as exc:
+            raise ValueError(
+                f"GitHub raw content API returned malformed JSON for {path}"
+            ) from exc
+        if not isinstance(raw_payload, dict) or "encoding" not in raw_payload:
+            # Some API gateways return a 200 OK with an error JSON object.
+            # Never index this response as source Markdown.
+            raise ValueError(
+                f"GitHub raw content API returned unexpected JSON for {path}"
+            )
+        if raw_payload.get("encoding") == "base64" and raw_payload.get("content"):
+            return base64.b64decode(raw_payload["content"]).decode("utf-8")
+
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            download_response = self._get(download_url)
-            download_response.raise_for_status()
-            return download_response.text
+            return self._fetch_public_markdown_download(download_url, repo=repo, path=path, ref=ref)
 
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
+
+    def _fetch_public_markdown_download(self, download_url: str, *, repo: str, path: str, ref: str) -> str:
+        """Fetch public raw content without forwarding GitHub API credentials.
+
+        Content-API download_url is upstream-controlled. A cross-origin GET
+        through the authenticated API client must never inherit its token.
+        """
+        try:
+            parsed = urlsplit(download_url)
+            # Verify the *requested file*, not only the repo prefix. URL
+            # percent-encoding otherwise hides "..", "/" and nested escapes
+            # from a check against raw path segments. Do not resolve
+            # ambiguous paths: failing closed is safer than misattributing
+            # arbitrary upstream content to the requested Artifact.
+            segments = [unquote(part) for part in parsed.path.split("/")[1:]]
+            repo_segments = repo.split("/")
+            ref_segments = ref.split("/")
+            file_segments = path.split("/")
+            trustworthy_segments = (
+                # raw URLs encode the requested repository, ref and exact
+                # document path. A different branch/commit cannot be silently
+                # indexed as evidence for the requested ref.
+                len(segments) == len(repo_segments) + len(ref_segments) + len(file_segments)
+                and segments[:len(repo_segments)] == repo_segments
+                and segments[len(repo_segments):len(repo_segments) + len(ref_segments)] == ref_segments
+                and segments[-len(file_segments):] == file_segments
+                and all(
+                    part not in {"", ".", ".."}
+                    and "/" not in part
+                    and "\\" not in part
+                    and "%" not in part
+                    for part in segments
+                )
+            )
+            trusted = (
+                parsed.scheme == "https"
+                and parsed.hostname == "raw.githubusercontent.com"
+                and parsed.username is None
+                and parsed.password is None
+                and parsed.port in (None, 443)
+                and not parsed.netloc.endswith(":")
+                and not parsed.query
+                and not parsed.fragment
+                and trustworthy_segments
+            )
+        except ValueError:
+            trusted = False
+        if not trusted:
+            raise ValueError("GitHub raw content download URL is not trusted")
+
+        # Do not use client.build_request() here: it merges all client-level
+        # default headers, including custom API-key or session headers that
+        # would survive stripping Authorization/Cookie. A standalone Request
+        # carries only the explicitly allowed public headers; the injected
+        # client still provides transport and is forced to use no auth.
+        request = httpx.Request(
+            "GET",
+            download_url,
+            headers={"User-Agent": "DecisionAtlas", "Accept": "text/plain"},
+        )
+        response = self.client.send(request, auth=httpx.Auth(), follow_redirects=False)
+        if response.is_redirect:
+            raise ValueError("GitHub raw content download redirected unexpectedly")
+        response.raise_for_status()
+        return response.text
 
     def _paginate(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         page = 1
@@ -225,11 +321,13 @@ class GitHubClient:
             return value.replace(tzinfo=timezone.utc)
         return value.astimezone(timezone.utc)
 
-    def _get(self, path: str, *, params: dict[str, Any] | None = None) -> httpx.Response:
+    def _get(
+        self, path: str, *, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None
+    ) -> httpx.Response:
         attempts = self.transport_retry_attempts + 1
         for attempt in range(1, attempts + 1):
             try:
-                return self.client.get(path, params=params)
+                return self.client.get(path, params=params, headers=headers, follow_redirects=False)
             except (httpx.ConnectError, httpx.ReadError, httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
                 if attempt >= attempts:
                     raise GitHubNetworkError(
