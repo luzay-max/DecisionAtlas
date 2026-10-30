@@ -216,11 +216,11 @@ class GitHubClient:
 
         download_url = payload.get("download_url")
         if isinstance(download_url, str) and download_url:
-            return self._fetch_public_markdown_download(download_url, repo=repo, path=path)
+            return self._fetch_public_markdown_download(download_url, repo=repo, path=path, ref=ref)
 
         raise ValueError(f"Unsupported GitHub content encoding for {path}")
 
-    def _fetch_public_markdown_download(self, download_url: str, *, repo: str, path: str) -> str:
+    def _fetch_public_markdown_download(self, download_url: str, *, repo: str, path: str, ref: str) -> str:
         """Fetch public raw content without forwarding GitHub API credentials.
 
         Content-API download_url is upstream-controlled. A cross-origin GET
@@ -235,10 +235,15 @@ class GitHubClient:
             # arbitrary upstream content to the requested Artifact.
             segments = [unquote(part) for part in parsed.path.split("/")[1:]]
             repo_segments = repo.split("/")
+            ref_segments = ref.split("/")
             file_segments = path.split("/")
             trustworthy_segments = (
-                len(segments) > len(repo_segments) + len(file_segments)
+                # raw URLs encode the requested repository, ref and exact
+                # document path. A different branch/commit cannot be silently
+                # indexed as evidence for the requested ref.
+                len(segments) == len(repo_segments) + len(ref_segments) + len(file_segments)
                 and segments[:len(repo_segments)] == repo_segments
+                and segments[len(repo_segments):len(repo_segments) + len(ref_segments)] == ref_segments
                 and segments[-len(file_segments):] == file_segments
                 and all(
                     part not in {"", ".", ".."}
