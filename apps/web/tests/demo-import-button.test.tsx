@@ -139,6 +139,40 @@ describe("DemoImportButton", () => {
     expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
   });
 
+  it("accepts queued as successful resume for a paused job that has not started", async () => {
+    const user = userEvent.setup();
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    resumeGithubImport.mockResolvedValue({
+      job_id: "job-not-started",
+      status: "queued",
+      summary: { stage: "queued" },
+    });
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-not-started",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "queued" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    await user.click(screen.getByRole("button", { name: /恢复 \\(Resume\\)/ }));
+    expect(resumeGithubImport).toHaveBeenCalledWith("job-not-started");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /恢复 \\(Resume\\)/ })).not.toBeInTheDocument();
+    expect(refresh).toHaveBeenCalled();
+  });
+
   it("refreshes the dashboard after a successful import job completes", async () => {
     const user = userEvent.setup();
     startGithubImport.mockResolvedValue({
