@@ -25,3 +25,28 @@
 - [ ] Human review and runtime acceptance remain separate.
 
 No private data, live tokens, real paid models, DB schema changes, or merge of Draft PRs #26/#28.
+
+
+## A04 lifecycle characterization — resolved → absent → reappears (2026-10-30)
+
+The new SQLite-backed evaluator regression
+`test_resolved_rule_alert_disappears_then_returns_without_new_episode`
+tests three successive scans of one accepted decision and one observed GitHub
+artifact: violation → reviewer marks the alert `resolved` → the rule no longer
+matches → the same artifact once again violates the rule.
+
+**Observed/expected behavior of this Draft (not a desired future behavior):**
+the historical reviewed alert keeps its ID, status, reviewer, rationale and
+original summary; no fresh alert is created on reappearance. Rule alerts are
+not currently cleared when signals disappear, and their lookup key lacks an
+observation/episode identity. Do not interpret this test passing as proof that
+true recurrence is detected.
+
+**Follow-up design gate (not implemented by F03):** separate observed signal
+presence (and source revision/fingerprint/episode) from human disposition,
+while preserving immutable review/audit history. Reappearance after a verified
+absence or a materially new version may require a distinct review event;
+identical repeated scans must not generate alert spam. Review this together with
+F06 ArtifactRevision rather than automatically reopening historical records.
+The test is a safety characterization only; CI on its final head and maintainer
+approval remain separate merge gates.
