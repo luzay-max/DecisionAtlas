@@ -1014,6 +1014,9 @@ def test_import_capabilities_require_auth_and_report_default_off_state(
 ) -> None:
     db_path = tmp_path / "import-capabilities.db"
     _upgrade(db_path, monkeypatch)
+    # Isolate this test from any runner or developer .env that enables the
+    # local development bootstrap; this endpoint must require an explicit session.
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "false")
     monkeypatch.delenv("IMPORT_PAUSE_RESUME_ENABLED", raising=False)
     token = _create_actor_session(
         db_path, username="capability-reader", role="admin"
