@@ -148,7 +148,7 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    const pauseButton = screen.getByRole("button", { name: /暂停 \(Pause\)/ });
+    const pauseButton = await screen.findByRole("button", { name: /暂停 \(Pause\)/ });
     await user.click(pauseButton);
     expect(pauseGithubImport).toHaveBeenCalledExactlyOnceWith("job-running");
     expect(pauseButton).toBeDisabled();
@@ -159,7 +159,7 @@ describe("DemoImportButton", () => {
     await act(async () => {
       confirmPause?.({ job_id: "job-running", status: "paused", summary: { stage: "importing_artifacts" } });
     });
-    expect(screen.getByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
     expect(refresh).toHaveBeenCalled();
   });
 
@@ -186,9 +186,9 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    await user.click(await screen.findByRole("button", { name: /暂停 \(Pause\)/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Forbidden");
-    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -219,9 +219,9 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    await user.click(await screen.findByRole("button", { name: /恢复 \(Resume\)/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
-    expect(screen.getByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /恢复 \(Resume\)/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /暂停 \(Pause\)/ })).not.toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -251,7 +251,7 @@ describe("DemoImportButton", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(message);
-    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
     expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).not.toHaveAttribute("aria-valuenow", "100");
   });
@@ -284,7 +284,7 @@ describe("DemoImportButton", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent("did not match the requested job");
-    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
     expect(screen.queryByText("Imported 99 artifacts from org/other")).not.toBeInTheDocument();
     expect(screen.getByText(/Import job: job-running/i)).toBeInTheDocument();
   });
@@ -315,7 +315,7 @@ describe("DemoImportButton", () => {
         />
       </LanguageProvider>
     );
-    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    await user.click(await screen.findByRole("button", { name: /恢复 \(Resume\)/ }));
     expect(resumeGithubImport).toHaveBeenCalledWith("job-paused");
     expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
   });
@@ -347,7 +347,7 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /恢复 \(Resume\)/ }));
+    await user.click(await screen.findByRole("button", { name: /恢复 \(Resume\)/ }));
     expect(resumeGithubImport).toHaveBeenCalledWith("job-not-started");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
@@ -680,7 +680,7 @@ describe("DemoImportButton", () => {
     );
 
     const { rerender } = render(view());
-    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    await user.click(await screen.findByRole("button", { name: /暂停 \(Pause\)/ }));
     expect(pauseGithubImport).toHaveBeenCalledWith("job-same-slug");
 
     sessionIdentity.ownerScope = "owner-b";
@@ -767,9 +767,9 @@ describe("DemoImportButton", () => {
       </LanguageProvider>
     );
 
-    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    await user.click(await screen.findByRole("button", { name: /暂停 \(Pause\)/ }));
     expect(await screen.findByRole("alert")).toHaveTextContent("not confirmed");
-    expect(screen.getByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /暂停 \(Pause\)/ })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /恢复 \(Resume\)/ })).not.toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();
   });
@@ -798,7 +798,7 @@ describe("DemoImportButton", () => {
         />
       </LanguageProvider>
     );
-    await user.click(screen.getByRole("button", { name: /暂停 \(Pause\)/ }));
+    await user.click(await screen.findByRole("button", { name: /暂停 \(Pause\)/ }));
     expect(pauseGithubImport).toHaveBeenCalledWith("job-a");
     unmount();
     await act(async () => { resolvePause?.({ job_id: "job-a", status: "paused" }); });
