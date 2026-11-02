@@ -252,6 +252,20 @@ async def github_webhook(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/capabilities")
+def get_import_capabilities(
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    """Expose the effective control-plane capability without mutating job state."""
+    enabled = get_settings().import_pause_resume_enabled
+    return {
+        "pause_resume": {
+            "enabled": enabled,
+            "reason_code": None if enabled else "worker_lifecycle_unverified",
+        }
+    }
+
+
 @router.get("/{job_id}")
 def get_import_job(
     job_id: str,
