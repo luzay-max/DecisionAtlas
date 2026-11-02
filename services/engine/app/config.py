@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Ordered id=FernetKey entries, newest active key first. Keep outside the database.
     github_token_encryption_keys: str | None = None
     github_import_max_pages: int = 5
+    # Issue #36: control-plane pause/resume is unsafe under active SQLite writes.
+    # Keep the API explicitly disabled until worker liveness is verified.
+    import_pause_resume_enabled: bool = False
     default_owner_scope: str = "local-default"
     auth_auto_bootstrap_local: bool = False
     allow_unsigned_webhooks_local: bool = False
