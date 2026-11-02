@@ -1007,3 +1007,38 @@ def test_import_job_controls_reject_old_workspace_after_owner_scope_switch(
     )
     assert back.status_code == 200
     assert client.get("/imports/alpha-queued-job", headers=headers).json()["status"] == "paused"
+
+
+def test_import_capabilities_require_auth_and_report_default_off_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "import-capabilities.db"
+    _upgrade(db_path, monkeypatch)
+    monkeypatch.delenv("IMPORT_PAUSE_RESUME_ENABLED", raising=False)
+    token = _create_actor_session(
+        db_path, username="capability-reader", role="admin"
+    )
+    client = TestClient(create_app())
+
+    assert client.get("/imports/capabilities").status_code == 401
+    disabled = client.get(
+        "/imports/capabilities", headers={SESSION_HEADER: token}
+    )
+    assert disabled.status_code == 200
+    assert disabled.json() == {
+        "pause_resume": {
+            "enabled": False,
+            "reason_code": "worker_lifecycle_unverified",
+        }
+    }
+
+    # Explicit opt-in is experimental only; this verifies the capability
+    # contract, not production worker safety or concurrent liveness.
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "true")
+    enabled = client.get(
+        "/imports/capabilities", headers={SESSION_HEADER: token}
+    )
+    assert enabled.status_code == 200
+    assert enabled.json() == {
+        "pause_resume": {"enabled": True, "reason_code": None}
+    }
