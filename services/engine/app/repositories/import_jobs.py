@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select, update
 from sqlalchemy.orm import Session
 
 ACTIVE_IMPORT_STATUSES = ("queued", "running", "paused")
@@ -93,14 +95,26 @@ class ImportJobRepository:
         return self.session.scalar(stmt)
 
     def mark_running(self, job_id: str, *, stage: str = "importing_artifacts") -> ImportJob:
+        """Atomically claim a queued job without overwriting paused/terminal state."""
         job = self._require(job_id)
-        job.status = "running"
-        job.started_at = datetime.now(UTC)
-        job.error_message = None
+        if job.status != "queued":
+            raise ValueError(f"Cannot start job in status: {job.status}")
         summary = dict(job.summary_json or {})
         summary["stage"] = stage
-        job.summary_json = summary
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "queued")
+            .values(
+                status="running",
+                started_at=datetime.now(UTC),
+                error_message=None,
+                summary_json=summary,
+            )
+        )
+        if result.rowcount != 1:
+            self.session.refresh(job)
+            raise ValueError(f"Cannot start job in status: {job.status}")
+        self.session.refresh(job)
         return job
 
     def update_stage(self, job_id: str, *, stage: str, summary_json: dict | None = None) -> ImportJob:
@@ -122,16 +136,25 @@ class ImportJobRepository:
         return job
 
     def mark_succeeded(self, job_id: str, *, imported_count: int, summary_json: dict | None = None) -> ImportJob:
+        """Complete only a still-running job; never overwrite a late pause."""
         job = self._require(job_id)
-        job.status = "succeeded"
-        job.imported_count = imported_count
+        if job.status != "running":
+            raise ValueError(f"Cannot complete job in status: {job.status}")
         summary = dict(job.summary_json or {})
         if summary_json:
             summary.update(summary_json)
         summary["stage"] = "completed"
-        job.summary_json = summary
-        job.finished_at = datetime.now(UTC)
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "running")
+            .values(
+                status="succeeded", imported_count=imported_count,
+                summary_json=summary, finished_at=datetime.now(UTC),
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot complete job in status: {job.status}")
         return job
 
     def mark_failed(
@@ -143,14 +166,22 @@ class ImportJobRepository:
         failure_category: str,
     ) -> ImportJob:
         job = self._require(job_id)
-        job.status = "failed"
-        job.error_message = error_message
+        if job.status not in ACTIVE_IMPORT_STATUSES:
+            raise ValueError(f"Cannot fail job in status: {job.status}")
         summary = dict(job.summary_json or {})
         summary["stage"] = stage
         summary["failure_category"] = failure_category
-        job.summary_json = summary
-        job.finished_at = datetime.now(UTC)
-        self.session.flush()
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status.in_(ACTIVE_IMPORT_STATUSES))
+            .values(
+                status="failed", error_message=error_message,
+                summary_json=summary, finished_at=datetime.now(UTC),
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot fail job in status: {job.status}")
         return job
 
 
@@ -158,16 +189,123 @@ class ImportJobRepository:
         job = self._require(job_id)
         if job.status not in ("queued", "running"):
             raise ValueError(f"Cannot pause job in status: {job.status}")
-        job.status = "paused"
-        self.session.flush()
+        # The state may have changed in another session after _require().
+        # Only update a still-active job, never resurrect a terminal one.
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status.in_(("queued", "running")))
+            .values(status="paused")
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot pause job in status: {job.status}")
         return job
 
     def mark_resumed(self, job_id: str) -> ImportJob:
         job = self._require(job_id)
         if job.status != "paused":
             raise ValueError(f"Cannot resume job in status: {job.status}")
-        job.status = "running"
-        self.session.flush()
+        # The database chooses queued for never-started work; a stale ORM
+        # started_at value must not decide the state of a concurrent resume.
+        result = self.session.execute(
+            update(ImportJob)
+            .where(ImportJob.job_id == job_id, ImportJob.status == "paused")
+            .values(
+                status=case(
+                    (ImportJob.started_at.is_(None), "queued"),
+                    else_="running",
+                )
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError(f"Cannot resume job in status: {job.status}")
+        return job
+
+    def list_offline_recovery_candidates(
+        self, *, older_than: datetime, limit: int = 20, job_id: str | None = None
+    ) -> list[ImportJob]:
+        """Inspect old active jobs only; age is NOT proof of worker death."""
+        if limit < 1 or limit > 100:
+            raise ValueError("Recovery inspection limit must be between 1 and 100")
+        cutoff = _database_utc(older_than)
+        stmt = select(ImportJob).where(
+            ImportJob.status.in_(ACTIVE_IMPORT_STATUSES),
+            func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
+        )
+        if job_id is not None:
+            stmt = stmt.where(ImportJob.job_id == job_id)
+        stmt = stmt.order_by(ImportJob.created_at, ImportJob.id).limit(limit)
+        return list(self.session.scalars(stmt))
+
+    def mark_interrupted_offline(
+        self, job_id: str, *, older_than: datetime, expected_snapshot: str,
+        workers_stopped: bool = False, interrupted_at: datetime | None = None,
+    ) -> ImportJob:
+        """Operator-only repair. Never call automatically on process startup.
+
+        This CAS does not fence a still-running worker; it is safe ONLY once
+        all worker processes using this database have been stopped externally.
+        """
+        if not workers_stopped:
+            raise ValueError("Stop all import workers before offline recovery")
+        cutoff = _database_utc(older_than)
+        now = interrupted_at or datetime.now(UTC)
+        job = self._require(job_id)
+        # Refresh even when the caller previously loaded this job. An offline
+        # recovery must require the operator's exact inspection snapshot.
+        self.session.refresh(job)
+        if job.status not in ACTIVE_IMPORT_STATUSES:
+            raise ValueError(f"Cannot recover job in status: {job.status}")
+        if not expected_snapshot or expected_snapshot != offline_recovery_snapshot(job):
+            raise ValueError(
+                "Recovery snapshot is missing or stale; inspect this job again"
+            )
+        age_anchor = _database_utc(job.started_at or job.created_at)
+        if age_anchor > cutoff:
+            raise ValueError("Import job is newer than the recovery cutoff")
+
+        summary = dict(job.summary_json or {})
+        summary["failure_category"] = "worker_interrupted"
+        summary["recovery"] = {
+            "method": "offline_operator_reconciliation",
+            "previous_status": job.status,
+            "recorded_at": now.astimezone(UTC).isoformat(),
+            "automatic_retry": False,
+        }
+        # Preserve the previous stage, previously committed source rows and
+        # original import metadata; do not auto-replay non-idempotent stages.
+        started_predicate = (
+            ImportJob.started_at.is_(None)
+            if job.started_at is None
+            else ImportJob.started_at == job.started_at
+        )
+        result = self.session.execute(
+            update(ImportJob)
+            .where(
+                ImportJob.job_id == job_id,
+                ImportJob.status == job.status,
+                started_predicate,
+                # Do not compare SQLite CURRENT_TIMESTAMP-created values by
+                # raw datetime equality: SQLite stores whole seconds while
+                # SQLAlchemy binds Python datetime with fractional seconds.
+                # The validated preview snapshot includes created_at; job_id
+                # itself is unique and immutable.
+                func.coalesce(ImportJob.started_at, ImportJob.created_at) <= cutoff,
+            )
+            .values(
+                status="failed",
+                error_message=(
+                    "Import worker interrupted; no automatic replay. "
+                    "Verify stopped workers and start a new import to retry."
+                ),
+                summary_json=summary,
+                finished_at=now,
+            )
+        )
+        self.session.refresh(job)
+        if result.rowcount != 1:
+            raise ValueError("Job state changed during offline recovery")
         return job
 
     def _require(self, job_id: str) -> ImportJob:
@@ -175,3 +313,38 @@ class ImportJobRepository:
         if job is None:
             raise ValueError(f"Import job not found: {job_id}")
         return job
+
+
+def _database_utc(value: datetime) -> datetime:
+    """Normalize UTC timestamps for the project's timezone-naive SQL columns."""
+    if value.tzinfo is not None:
+        return value.astimezone(UTC).replace(tzinfo=None)
+    return value
+
+
+def offline_recovery_snapshot(job: ImportJob) -> str:
+    """Fingerprint an exact inspection snapshot; never use as an auth token.
+
+    Status/start/creation time are also CAS-checked in SQL when applying.
+    The operator must still physically stop all app and worker processes.
+    """
+    payload = {
+        "job_id": job.job_id,
+        "workspace_id": job.workspace_id,
+        "repo": job.repo,
+        "mode": job.mode,
+        "status": job.status,
+        "created_at": _database_utc(job.created_at).isoformat(),
+        "started_at": (
+            _database_utc(job.started_at).isoformat()
+            if job.started_at is not None else None
+        ),
+        "summary": job.summary_json,
+        "imported_count": job.imported_count,
+        "error_message": job.error_message,
+    }
+    serialized = json.dumps(
+        payload, sort_keys=True, ensure_ascii=False, default=str,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -9,10 +10,12 @@ import httpx
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Workspace
-from app.ingest.github_client import GitHubNetworkError
+from app.db.models import Artifact, ImportJob, Workspace
+from app.ingest.github_client import GitHubIncompleteCoverageError, GitHubNetworkError
 from app.ingest.github_types import GitHubImportResult
 from app.jobs.import_jobs import (
+    INCREMENTAL_SYNC_OVERLAP,
+    _incremental_since_for_success,
     _classify_failure,
     _classify_private_access_validation_failure,
     _normalize_repo,
@@ -20,7 +23,105 @@ from app.jobs.import_jobs import (
     run_github_import,
 )
 from app.llm.base import DecisionScreeningRequest, ExtractionRequest, ProviderTimeoutError
+from app.repositories.artifacts import ArtifactRepository
+from app.repositories.import_jobs import ImportJobRepository
 
+
+
+
+def test_incremental_since_uses_previous_start_with_utc_overlap_not_finish() -> None:
+    started = datetime(2026, 10, 29, 10, 0, 0)
+    completed = datetime(2026, 10, 29, 10, 15, 0)
+    previous = SimpleNamespace(
+        started_at=started,
+        finished_at=completed,
+        created_at=datetime(2026, 10, 29, 9, 58, 0),
+    )
+    lower = _incremental_since_for_success(previous)
+    assert lower == datetime(2026, 10, 29, 9, 55, 0, tzinfo=timezone.utc)
+    # An update made after the issue listing but before extraction finishes
+    # must remain in the next import's selected interval.
+    changed_during_previous_run = datetime(2026, 10, 29, 10, 3, tzinfo=timezone.utc)
+    assert lower < changed_during_previous_run < completed.replace(tzinfo=timezone.utc)
+
+
+def test_incremental_since_falls_back_to_created_at_for_legacy_job() -> None:
+    created = datetime(2026, 10, 29, 9, 30, tzinfo=timezone.utc)
+    previous = SimpleNamespace(
+        started_at=None, finished_at=datetime(2026, 10, 29, 10, 0, tzinfo=timezone.utc),
+        created_at=created,
+    )
+    assert _incremental_since_for_success(previous) == created - INCREMENTAL_SYNC_OVERLAP
+
+
+def test_failed_incremental_retry_reuses_previous_success_start_window(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "incremental-start-window.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+    started = datetime(2026, 10, 29, 10, 0)
+    finished = datetime(2026, 10, 29, 10, 15)
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="github-org-repo", name="org/repo", repo_url="https://github.com/org/repo"
+        )
+        session.add(workspace)
+        session.flush()
+        history = ImportJobRepository(session)
+        previous = history.create(
+            job_id="previous-success",
+            workspace_id=workspace.id,
+            repo="org/repo",
+            mode="full",
+        )
+        previous.status = "succeeded"
+        previous.started_at = started
+        previous.finished_at = finished
+        session.commit()
+
+    observed_windows: list[datetime | None] = []
+
+    class FailingIncrementalImporter:
+        def __init__(self, session, client) -> None:
+            pass
+
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full",
+                        since=None, progress_callback=None):
+            assert mode == "since_last_sync"
+            observed_windows.append(since)
+            raise RuntimeError("Synthetic import failure")
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", FailingIncrementalImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(embedder=object(), extraction_provider=object()),
+    )
+    expected = datetime(2026, 10, 29, 9, 55, tzinfo=timezone.utc)
+    for _ in range(2):
+        queued = queue_github_import(
+            workspace_slug="github-org-repo", repo="org/repo", mode="since_last_sync",
+        )
+        failed = run_github_import(
+            job_id=str(queued["job_id"]),
+            workspace_slug="github-org-repo",
+            repo="org/repo",
+            mode="since_last_sync",
+        )
+        assert failed["status"] == "failed"
+        assert failed["summary"]["sync_window"] == {
+            "source_since": expected.isoformat(),
+            "basis": "last_success_started_at_with_overlap",
+            "overlap_seconds": 300,
+        }
+
+    assert observed_windows == [expected, expected]
+    with Session(engine) as session:
+        latest_success = ImportJobRepository(session).latest_success_for_repo(1, "org/repo")
+        assert latest_success is not None
+        assert latest_success.job_id == "previous-success"
 
 def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "import-job-failure.db"
@@ -89,6 +190,164 @@ def test_run_github_import_rolls_back_partial_artifacts_on_failure(tmp_path: Pat
         artifacts = session.scalars(select(Artifact)).all()
 
     assert artifacts == []
+
+
+
+def test_incomplete_coverage_failure_rolls_back_progressed_artifact_in_safety_stack(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "incomplete-coverage-atomicity.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(slug="github-org-repo", name="org/repo", repo_url="https://github.com/org/repo"))
+        session.commit()
+
+    class PartiallyWritingImporter:
+        def __init__(self, session, client) -> None:
+            self.session = session
+
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full",
+                        since=None, progress_callback=None):
+            workspace = self.session.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
+            assert workspace is not None
+            self.session.add(Artifact(
+                workspace_id=workspace.id, type="issue", source_id="unverified-partial",
+                repo=repo, title="Partially collected", content="Not trustworthy yet",
+                author=None, url=None, timestamp=None, metadata_json=None,
+            ))
+            self.session.flush()
+            assert progress_callback is not None
+            progress_callback(1)
+            raise GitHubIncompleteCoverageError(
+                reason="page_limit", scope="/repos/org/repo/issues",
+                detail="next page exists after bounded coverage",
+            )
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", PartiallyWritingImporter)
+    monkeypatch.setattr("app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(embedder=object(), extraction_provider=object()),
+    )
+    ticks = iter([0.0, 2.0, 3.0])
+    monkeypatch.setattr("app.jobs.import_jobs.monotonic", lambda: next(ticks))
+    queued = queue_github_import(workspace_slug="github-org-repo", repo="org/repo", mode="full")
+    result = run_github_import(
+        job_id=str(queued["job_id"]), workspace_slug="github-org-repo",
+        repo="org/repo", mode="full",
+    )
+    assert result["status"] == "failed"
+    assert result["imported_count"] == 0
+    assert result["summary"]["failure_category"] == "incomplete_source_coverage"
+    with Session(engine) as session:
+        assert session.scalars(select(Artifact)).all() == []
+    engine.dispose()
+
+
+
+
+def test_indexing_failure_preserves_committed_sources_and_retry_uses_success_anchor(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """The import phase commits independently of indexing; retries must remain idempotent."""
+    db_path = tmp_path / "index-failure-retains-import.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="github-org-repo", name="org/repo",
+            repo_url="https://github.com/org/repo",
+        )
+        session.add(workspace)
+        session.flush()
+        success = ImportJobRepository(session).create(
+            job_id="seeded-success", workspace_id=workspace.id,
+            repo="org/repo", mode="full",
+        )
+        success.status = "succeeded"
+        success.started_at = datetime(2026, 10, 29, 10, 0)
+        success.finished_at = datetime(2026, 10, 29, 10, 15)
+        session.commit()
+        workspace_id = workspace.id
+
+    seen_since: list[datetime | None] = []
+    seen_artifact_ids: list[int] = []
+
+    class CommittingImporter:
+        def __init__(self, session, client) -> None:
+            self.session = session
+
+        def import_repo(self, *, workspace_slug: str, repo: str, mode: str = "full",
+                        since=None, progress_callback=None):
+            assert mode == "since_last_sync"
+            seen_since.append(since)
+            artifact = ArtifactRepository(self.session).upsert(
+                workspace_id=workspace_id, artifact_type="issue",
+                source_id="issue-42", repo=repo, title="Imported and verified",
+                content="Stable source data", author="alice", url=None,
+                timestamp=None,
+            )
+            seen_artifact_ids.append(artifact.id)
+            # This models GitHubImporter.import_repo's post-document commit.
+            self.session.commit()
+            return GitHubImportResult(
+                imported_count=1,
+                artifact_counts={"issue": 1, "pr": 0, "commit": 0, "doc": 0},
+                selected_document_count=0, imported_document_count=0,
+                skipped_document_counts={}, selected_document_categories={},
+            )
+
+    def fail_indexing(**kwargs):
+        raise RuntimeError("Synthetic downstream indexing failure")
+
+    monkeypatch.setattr("app.jobs.import_jobs.GitHubImporter", CommittingImporter)
+    monkeypatch.setattr("app.jobs.import_jobs.index_artifact", fail_indexing)
+    monkeypatch.setattr(
+        "app.jobs.import_jobs._preflight_repository_access", lambda **kwargs: None
+    )
+    monkeypatch.setattr(
+        "app.jobs.import_jobs.build_runtime_providers",
+        lambda settings: SimpleNamespace(
+            embedder=object(), extraction_provider=object(),
+        ),
+    )
+
+    expected_since = datetime(2026, 10, 29, 9, 55, tzinfo=timezone.utc)
+    for _ in range(2):
+        queued = queue_github_import(
+            workspace_slug="github-org-repo", repo="org/repo",
+            mode="since_last_sync",
+        )
+        failed = run_github_import(
+            job_id=str(queued["job_id"]),
+            workspace_slug="github-org-repo", repo="org/repo",
+            mode="since_last_sync",
+        )
+        assert failed["status"] == "failed"
+        assert failed["summary"]["stage"] == "indexing_artifacts"
+        assert failed["summary"]["failure_category"] == "analysis_execution_failed"
+        assert failed["summary"]["sync_window"]["source_since"] == expected_since.isoformat()
+        with Session(engine) as session:
+            persisted = session.scalars(select(Artifact)).all()
+            assert len(persisted) == 1
+            assert persisted[0].content == "Stable source data"
+            success = ImportJobRepository(session).latest_success_for_repo(
+                workspace_id, "org/repo"
+            )
+            assert success is not None and success.job_id == "seeded-success"
+
+    assert seen_since == [expected_since, expected_since]
+    assert seen_artifact_ids[0] == seen_artifact_ids[1]
+    engine.dispose()
 
 
 def test_run_github_import_succeeds_when_extraction_provider_times_out(tmp_path: Path, monkeypatch) -> None:
@@ -366,6 +625,9 @@ def test_classify_failure_distinguishes_network_provider_and_repository_access()
     http_error = httpx.HTTPStatusError("not found", request=request, response=response)
 
     assert _classify_failure(GitHubNetworkError("network", cause=httpx.ConnectError("boom", request=request))) == "network_failure"
+    assert _classify_failure(GitHubIncompleteCoverageError(
+        reason="page_limit", scope="/repos/org/repo/issues", detail="next page exists"
+    )) == "incomplete_source_coverage"
     assert _classify_failure(http_error) == "repository_access_failure"
     assert _classify_failure(ProviderTimeoutError("provider timeout")) == "provider_failure"
 
