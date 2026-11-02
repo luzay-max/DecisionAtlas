@@ -21,6 +21,7 @@ import { LanguageProvider } from "../components/i18n/language-provider";
 const refresh = vi.fn();
 const startGithubImport = vi.fn();
 const getImportJob = vi.fn();
+const getImportControlCapabilities = vi.fn();
 const pauseGithubImport = vi.fn();
 const resumeGithubImport = vi.fn();
 
@@ -33,6 +34,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("../lib/api", () => ({
   startGithubImport: (...args: unknown[]) => startGithubImport(...args),
   getImportJob: (...args: unknown[]) => getImportJob(...args),
+  getImportControlCapabilities: (...args: unknown[]) => getImportControlCapabilities(...args),
   pauseGithubImport: (...args: unknown[]) => pauseGithubImport(...args),
   resumeGithubImport: (...args: unknown[]) => resumeGithubImport(...args),
 }));
@@ -45,10 +47,79 @@ describe("DemoImportButton", () => {
     refresh.mockReset();
     startGithubImport.mockReset();
     getImportJob.mockReset();
+    getImportControlCapabilities.mockReset();
+    getImportControlCapabilities.mockResolvedValue({
+      pause_resume: { enabled: true, reason_code: null },
+    });
     pauseGithubImport.mockReset();
     resumeGithubImport.mockReset();
   });
 
+
+  it("hides pause/resume controls when the Engine reports the feature disabled", async () => {
+    getImportControlCapabilities.mockResolvedValue({
+      pause_resume: {
+        enabled: false,
+        reason_code: "worker_lifecycle_unverified",
+      },
+    });
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-running",
+            mode: "full",
+            status: "running",
+            imported_count: 0,
+            summary: { stage: "importing_artifacts" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "worker lifecycle validation is complete"
+    );
+    expect(screen.queryByRole("button", { name: /暂停 \\(Pause\\)/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /恢复 \\(Resume\\)/ })).not.toBeInTheDocument();
+    expect(pauseGithubImport).not.toHaveBeenCalled();
+    expect(resumeGithubImport).not.toHaveBeenCalled();
+  });
+
+  it("fails closed and hides pause/resume controls when capability lookup fails", async () => {
+    getImportControlCapabilities.mockRejectedValue(new Error("Engine unavailable"));
+    getImportJob.mockImplementation(() => new Promise(() => {}));
+    render(
+      <LanguageProvider>
+        <DemoImportButton
+          workspaceSlug="workspace-a"
+          repo="org/one"
+          latestImport={{
+            job_id: "job-paused",
+            mode: "full",
+            status: "paused",
+            imported_count: 0,
+            summary: { stage: "extracting_decisions" },
+            error_message: null,
+            started_at: null,
+            finished_at: null,
+          }}
+        />
+      </LanguageProvider>
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Unable to verify pause/resume capability"
+    );
+    expect(screen.queryByRole("button", { name: /暂停 \\(Pause\\)/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /恢复 \\(Resume\\)/ })).not.toBeInTheDocument();
+  });
 
   it("waits for a confirmed pause, disables duplicate clicks, and then shows resume", async () => {
     const user = userEvent.setup();
