@@ -259,6 +259,19 @@ export async function importsRoute(app: FastifyInstance) {
     });
   }
 
+  // Read-only capability contract: the Engine is the single source of truth
+  // for whether pause/resume is enabled in this deployment.
+  app.get("/imports/capabilities", async (request, reply) => {
+    const env = getEnv();
+    const authHeaders = await authHeadersForRequest(request);
+    const upstream = await fetchUpstreamPayload(
+      fetch(`${env.ENGINE_BASE_URL}/imports/capabilities`, { headers: authHeaders }),
+      app.log,
+      "GET /imports/capabilities"
+    );
+    return reply.status(upstream.status).send(upstream.payload);
+  });
+
   app.get("/imports/:jobId", async (request, reply) => {
     const params = z.object({ jobId: z.string().min(1) }).safeParse(request.params);
     if (!params.success) {
