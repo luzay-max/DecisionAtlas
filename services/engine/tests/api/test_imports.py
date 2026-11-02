@@ -879,3 +879,57 @@ def test_webhook_accepts_valid_signature_and_rejects_tampering(monkeypatch) -> N
     _validate_webhook_signature(body=body, signature=signature, secret=secret)
     with pytest.raises(ValueError, match="Invalid GitHub webhook signature"):
         _validate_webhook_signature(body=body + b" ", signature=signature, secret=secret)
+
+
+def test_import_pause_resume_is_disabled_by_default_and_never_mutates_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Issue #36 cannot expose unverified worker controls on normal installs."""
+    db_path = tmp_path / "disabled-import-control.db"
+    _upgrade(db_path, monkeypatch)
+    monkeypatch.delenv("IMPORT_PAUSE_RESUME_ENABLED", raising=False)
+    token = _create_actor_session(db_path, username="import-control-admin", role="admin")
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="control-disabled", name="Control disabled",
+            repo_url="https://github.com/org/repo", owner_scope="local-default",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(ImportJob(
+            job_id="control-disabled-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full", status="queued", imported_count=0,
+        ))
+        session.commit()
+
+    client = TestClient(create_app())
+    headers = {SESSION_HEADER: token}
+    for action in ("pause", "resume"):
+        response = client.post(f"/imports/control-disabled-job/{action}", headers=headers)
+        assert response.status_code == 503
+        assert response.json()["detail"] == (
+            "Import pause/resume is disabled pending worker lifecycle validation"
+        )
+
+    with Session(engine) as session:
+        assert session.query(ImportJob).filter_by(
+            job_id="control-disabled-job"
+        ).one().status == "queued"
+
+    # Only a deliberate operator override unlocks the existing experimental
+    # state machine. This test does not claim concurrent worker liveness.
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "true")
+    paused = client.post("/imports/control-disabled-job/pause", headers=headers)
+    assert paused.status_code == 200
+    assert paused.json()["status"] == "paused"
+    resumed = client.post("/imports/control-disabled-job/resume", headers=headers)
+    assert resumed.status_code == 200
+    assert resumed.json()["status"] == "queued"
+    with Session(engine) as session:
+        assert session.query(ImportJob).filter_by(
+            job_id="control-disabled-job"
+        ).one().status == "queued"
+
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "false")
+    assert client.post("/imports/control-disabled-job/pause", headers=headers).status_code == 503
