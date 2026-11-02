@@ -1,6 +1,6 @@
 # Integration gate — P0 + F04 + F05 GitHub import correctness
 
-**Status:** Draft stacked integration PR, based on **unmerged PR #26 head** `8fa1e066`; not approved for merge.
+**Status:** Draft A02 integration PR #35, reconciled with merged A01 on `main@e2204cc3`; maintainer approved A02 conditionally, subject to latest-head CI and default-disabled Issue #36 risk control. Not yet merged.
 **Date:** 2026-10-29
 **Upstream:** PR #26 raw content credential isolation and progress transaction atomicity
 **In this stack:** PR #30 fail-closed source coverage + PR #31 conservative UTC start-time overlap.
@@ -135,3 +135,43 @@ uv run python -m app.jobs.recover_import_jobs --job-id <id> --snapshot <snapshot
 ## SQLite CURRENT_TIMESTAMP precision regression (2026-10-30)
 
 The first snapshot-CAS implementation compared `ImportJob.created_at == job.created_at` in SQL. SQLite `CURRENT_TIMESTAMP` (the model's server default) stores a string without fractional seconds while SQLAlchemy's datetime bind parameter includes `.000000`; exact string equality can match **zero rows** despite an unchanged job. An isolated SQLAlchemy+SQLite reproduction confirmed the mismatch. The correction retains **exact operator snapshot validation of `created_at`** after refreshing the ORM row, but the SQL CAS uses unique immutable `job_id`, active status, exact `started_at` (or `IS NULL`) and age cutoff, omitting the unreliable `created_at` equality. A new queued-job integration regression verifies an old server-generated timestamp can be safely reconciled and preserves previously committed Artifact rows. The operator must still physically stop all workers before applying.
+
+
+## Stage A / A02 approved with disabled-risk containment (2026-11-02)
+
+The maintainer replied "批准" to the A02 gate following A01 approval. The
+integrated branch is now based on `main@e2204cc3`; latest pre-mitigation
+integration head `26b76773` passed [CI #41037840710](https://github.com/luzay-max/DecisionAtlas/actions/runs/41037840710).
+That CI **did not** resolve Issue #36: the file-backed SQLite test
+`test_uncommitted_artifact_write_blocks_separate_sqlite_pause_update`
+demonstrates lock contention during an uncommitted Artifact transaction.
+Crash-safe worker leases, restart and resume guarantees are also absent.
+
+**Safe-release mitigation (not a concurrency fix):**
+- `Settings.import_pause_resume_enabled = False` is the default, including
+  development and test; `.env.example` explicitly uses
+  `IMPORT_PAUSE_RESUME_ENABLED=false`.
+- Both authenticated Engine `POST /imports/{job_id}/pause` and
+  `POST /imports/{job_id}/resume` fail closed with HTTP 503 and a
+  descriptive diagnostic while disabled, **before any job state write**.
+  Importing, F04 fail-closed coverage, and F05 incremental watermarks
+  continue operating normally.
+- Explicit `IMPORT_PAUSE_RESUME_ENABLED=true` is an experimental opt-in
+  ONLY for controlled, stopped/restart-aware worker evaluation and must not
+  be enabled in production or enabled by default in deployment templates
+  until Issue #36's controlled acceptance matrix is completed.
+- A file-backed SQLite API regression tests default-off, no state mutation,
+  experimental on transition, and re-disable. The positive SQLite writer
+  contention test remains in CI; its pass means the risk is **reproduced**.
+- PR #28's separate Web/BFF pause controls must not be interpreted as
+  functional pause/resume in a deployment whose Engine flag is off.
+  Before #28 merges, coordinate a read-only capability/disabled UI state or
+  keep its UI entry points hidden; never show a false "paused" success.
+- This mitigation does **not** implement durable background workers, leases,
+  process restart recovery, generalized cancellation, or cross-DB locking.
+
+**Merge gate:** post-mitigation exact-head CI PASS, independent review of
+the default-disabled behavior and this residual risk, the maintainer's
+A02 authorization, and post-merge main CI. If the disabled state cannot be
+verified, do not merge. Do not close Issue #36, do not close duplicate #30/#31
+without independent parity checks, and do not silently enable the feature.
