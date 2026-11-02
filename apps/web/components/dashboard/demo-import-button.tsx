@@ -4,7 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { DashboardSummary, ImportSummary, getImportJob, startGithubImport, pauseGithubImport, resumeGithubImport } from "../../lib/api";
+import { DashboardSummary, ImportSummary, getImportControlCapabilities, getImportJob, startGithubImport, pauseGithubImport, resumeGithubImport } from "../../lib/api";
 import { useProductSession } from "../auth/session-provider";
 import { useI18n } from "../i18n/language-provider";
 
@@ -53,6 +53,7 @@ function WorkspaceImportControls({
   const [loading, setLoading] = useState(false);
   const [jobActionPending, setJobActionPending] = useState(false);
   const [jobActionError, setJobActionError] = useState<string | null>(null);
+  const [pauseResumeCapability, setPauseResumeCapability] = useState<"loading" | "enabled" | "disabled" | "unavailable">("loading");
   const jobActionInFlight = useRef(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(latestImport?.job_id ?? initialJobId ?? null);
   const [jobStatus, setJobStatus] = useState<string | null>(
@@ -63,6 +64,25 @@ function WorkspaceImportControls({
   const [activeExtractionSummary, setActiveExtractionSummary] = useState(latestImport?.summary?.extraction_summary ?? null);
   const pollingRef = useRef(false);
   const mountedRef = useRef(true);
+
+  useEffect(() => {
+    let active = true;
+    getImportControlCapabilities()
+      .then((capabilities) => {
+        if (active) {
+          setPauseResumeCapability(
+            capabilities?.pause_resume?.enabled === true ? "enabled" : "disabled"
+          );
+        }
+      })
+      .catch(() => {
+        // Fail closed: a missing capability response must never expose controls.
+        if (active) setPauseResumeCapability("unavailable");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const activeStage = currentStage ?? jobStatus ?? "queued";
   const activeIndex = Math.max(progressStages.indexOf((activeStage as (typeof progressStages)[number]) ?? "queued"), 0);
@@ -405,17 +425,26 @@ function WorkspaceImportControls({
         <button type="button" onClick={handleClick} disabled={loading}>
           {loading ? messages.importButton.importing : messages.importButton.runDemoImport}
         </button>
-        {activeJobId && jobStatus === "running" && (
+        {activeJobId && jobStatus === "running" && pauseResumeCapability === "enabled" && (
           <button type="button" onClick={() => void handleJobAction("pause")} disabled={jobActionPending} className="action-button-secondary">
             暂停 (Pause)
           </button>
         )}
-        {activeJobId && jobStatus === "paused" && (
+        {activeJobId && jobStatus === "paused" && pauseResumeCapability === "enabled" && (
           <button type="button" onClick={() => void handleJobAction("resume")} disabled={jobActionPending} className="action-button-primary">
             恢复 (Resume)
           </button>
         )}
       </div>
+      {activeJobId && (jobStatus === "running" || jobStatus === "paused") && pauseResumeCapability !== "enabled" ? (
+        <p className="guided-demo-status" role="status">
+          {pauseResumeCapability === "disabled"
+            ? "暂停/恢复当前已禁用；后台 worker 生命周期安全验收完成前不会开放。 Pause/resume is disabled until worker lifecycle validation is complete."
+            : pauseResumeCapability === "unavailable"
+              ? "无法确认暂停/恢复能力，控制按钮已隐藏。 Unable to verify pause/resume capability; controls remain hidden."
+              : "正在确认暂停/恢复能力；确认前不会显示控制按钮。 Checking pause/resume capability; controls stay hidden until confirmed."}
+        </p>
+      ) : null}
       {jobActionError ? <p className="guided-demo-status" role="alert">{jobActionError}</p> : null}
       <p>
         {messages.importButton.repoLabel} {repo}
