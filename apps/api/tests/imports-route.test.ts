@@ -613,4 +613,64 @@ describe("POST /imports/github", () => {
 
     global.fetch = originalFetch;
   });
+
+  it("forwards the authenticated import-control capability contract", async () => {
+    const originalFetch = global.fetch;
+    const payload = {
+      pause_resume: {
+        enabled: false,
+        reason_code: "worker_lifecycle_unverified",
+      },
+    };
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify(payload),
+    } as Response);
+
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "GET",
+        url: "/imports/capabilities",
+        headers: { cookie: "decisionatlas_session=admin-token" },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual(payload);
+      expect(global.fetch).toHaveBeenCalledExactlyOnceWith(
+        "http://localhost:8000/imports/capabilities",
+        { headers: { "x-decisionatlas-session-token": "admin-token" } }
+      );
+    } finally {
+      global.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
+  it("does not leak import-control capability to unauthenticated callers", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 401,
+      ok: false,
+      text: async () => JSON.stringify({ detail: "Authentication required" }),
+    } as Response);
+
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "GET",
+        url: "/imports/capabilities",
+      });
+      expect(response.statusCode).toBe(401);
+      expect(response.json()).toEqual({ detail: "Authentication required" });
+      expect(global.fetch).toHaveBeenCalledExactlyOnceWith(
+        "http://localhost:8000/imports/capabilities",
+        { headers: {} }
+      );
+    } finally {
+      global.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
 });
