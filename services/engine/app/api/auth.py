@@ -130,10 +130,18 @@ def switch_scope(
             raise HTTPException(status_code=403, detail="Forbidden")
         repo.switch_scope(auth_session, owner_scope_id=target_scope.id)
         session.commit()
+        # /auth/scope must satisfy the same complete ProductSession contract
+        # as /auth/session; callers replace the entire browser session object.
+        memberships = repo.list_memberships_for_actor(auth.actor_id)
         return {
+            "session_token": auth.session_token,
+            "actor": {"id": auth.actor_id, "username": auth.username, "bootstrap": auth.bootstrap},
             "current_owner_scope": target_scope.scope_key,
             "role": membership.role,
-            "session_token": auth.session_token,
+            "available_scopes": [
+                {"owner_scope": scope.scope_key, "role": member.role}
+                for member, scope in memberships
+            ],
         }
     finally:
         session.close()

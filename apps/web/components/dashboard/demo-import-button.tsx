@@ -5,24 +5,44 @@ import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DashboardSummary, ImportSummary, getImportJob, startGithubImport, pauseGithubImport, resumeGithubImport } from "../../lib/api";
+import { useProductSession } from "../auth/session-provider";
 import { useI18n } from "../i18n/language-provider";
 
 const progressStages = ["queued", "importing_artifacts", "indexing_artifacts", "extracting_decisions", "completed"] as const;
 const importPollIntervalMs = 500;
 
-export function DemoImportButton({
-  workspaceSlug,
-  repo,
-  latestImport,
-  importStatus,
-  initialJobId,
-}: {
+type DemoImportButtonProps = {
   workspaceSlug: string;
   repo: string;
   latestImport?: DashboardSummary["latest_import"];
   importStatus?: string;
   initialJobId?: string | null;
-}) {
+};
+
+// Workspace changes must remount the job controller. Otherwise a pending poll
+// from a previous workspace could publish the old job's status in the new view.
+export function DemoImportButton(props: DemoImportButtonProps) {
+  const { session, status } = useProductSession();
+  // Workspace slugs are globally unique, but the URL may stay mounted
+  // after a scope switch that revokes access. Invalidate any in-flight poll
+  // or action before it can publish stale data; never key on a session token.
+  const controllerIdentity = [
+    props.workspaceSlug,
+    props.repo,
+    status,
+    session?.actor.id ?? null,
+    session?.current_owner_scope ?? null,
+  ];
+  return <WorkspaceImportControls key={JSON.stringify(controllerIdentity)} {...props} />;
+}
+
+function WorkspaceImportControls({
+  workspaceSlug,
+  repo,
+  latestImport,
+  importStatus,
+  initialJobId,
+}: DemoImportButtonProps) {
   const { messages } = useI18n();
   const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
@@ -31,6 +51,9 @@ export function DemoImportButton({
     latestImport?.summary?.stage ?? (initialJobId ? "queued" : importStatus ?? null)
   );
   const [loading, setLoading] = useState(false);
+  const [jobActionPending, setJobActionPending] = useState(false);
+  const [jobActionError, setJobActionError] = useState<string | null>(null);
+  const jobActionInFlight = useRef(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(latestImport?.job_id ?? initialJobId ?? null);
   const [jobStatus, setJobStatus] = useState<string | null>(
     latestImport?.status ?? (initialJobId ? "queued" : importStatus ?? null)
@@ -203,7 +226,26 @@ export function DemoImportButton({
   async function waitForJob(jobId: string) {
     pollingRef.current = true;
     while (mountedRef.current) {
-      const job = await getImportJob(jobId);
+      let job: Awaited<ReturnType<typeof getImportJob>>;
+      try {
+        job = await getImportJob(jobId);
+      } catch (error) {
+        pollingRef.current = false;
+        // Polling failure is not evidence that the import itself failed.
+        if (mountedRef.current) {
+          setJobActionError(error instanceof Error ? error.message : "Could not check import status");
+        }
+        return null;
+      }
+      if (!mountedRef.current) {
+        pollingRef.current = false;
+        return null;
+      }
+      if (job?.job_id && job.job_id !== jobId) {
+        pollingRef.current = false;
+        setJobActionError("Import status did not match the requested job");
+        return null;
+      }
       if (!job) {
         pollingRef.current = false;
         return null;
@@ -222,22 +264,36 @@ export function DemoImportButton({
     return null;
   }
 
-  async function handlePause() {
-    if (!activeJobId) return;
+  async function handleJobAction(action: "pause" | "resume") {
+    const requestedJobId = activeJobId;
+    if (!requestedJobId || jobActionInFlight.current) return;
+    jobActionInFlight.current = true;
+    setJobActionPending(true);
+    setJobActionError(null);
     try {
-      await pauseGithubImport(activeJobId);
-      setJobStatus("paused");
+      const job = action === "pause"
+        ? await pauseGithubImport(requestedJobId)
+        : await resumeGithubImport(requestedJobId);
+      if (!mountedRef.current) return;
+      // A never-started paused import resumes to queued, while an already
+      // running worker resumes to running. Both are confirmed transitions.
+      const confirmed = action === "pause"
+        ? job?.status === "paused"
+        : job?.status === "queued" || job?.status === "running";
+      if (!job || job.job_id !== requestedJobId || !confirmed) {
+        throw new Error("Import status change was not confirmed by the server");
+      }
+      applyJobState(job);
       router.refresh();
-    } catch (err) {}
-  }
-
-  async function handleResume() {
-    if (!activeJobId) return;
-    try {
-      await resumeGithubImport(activeJobId);
-      setJobStatus("running");
-      router.refresh();
-    } catch (err) {}
+    } catch (error) {
+      // Preserve the previous status on 401/403/404/409/network errors.
+      if (mountedRef.current) {
+        setJobActionError(error instanceof Error ? error.message : "Could not update import status");
+      }
+    } finally {
+      jobActionInFlight.current = false;
+      if (mountedRef.current) setJobActionPending(false);
+    }
   }
 
   async function handleClick() {
@@ -256,8 +312,10 @@ export function DemoImportButton({
     try {
       setMessage(messages.importButton.running);
       const response = await startGithubImport(workspaceSlug, repo);
+      if (!mountedRef.current) return;
       setActiveJobId(response.job_id);
       const job = await waitForJob(response.job_id);
+      if (!mountedRef.current) return;
       if (job === null) {
         setMessage(messages.importButton.background);
         setNextMessage(messages.importButton.backgroundNext);
@@ -267,17 +325,20 @@ export function DemoImportButton({
       }
       router.refresh();
     } catch (error) {
-      const detail = error instanceof Error ? error.message : "unknown error";
-      setMessage(messages.importButton.failed.replace("{detail}", detail));
-      setNextMessage(messages.importButton.failedNext);
-      setProgressMessage(messages.importButton.failedHint);
-      router.refresh();
+      if (mountedRef.current) {
+        const detail = error instanceof Error ? error.message : "unknown error";
+        setMessage(messages.importButton.failed.replace("{detail}", detail));
+        setNextMessage(messages.importButton.failedNext);
+        setProgressMessage(messages.importButton.failedHint);
+        router.refresh();
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       pollingRef.current = false;
@@ -334,7 +395,7 @@ export function DemoImportButton({
       return;
     }
     void waitForJob(activeJobId).then(() => {
-      router.refresh();
+      if (mountedRef.current) router.refresh();
     });
   }, [activeJobId, jobStatus, router]);
 
@@ -345,16 +406,17 @@ export function DemoImportButton({
           {loading ? messages.importButton.importing : messages.importButton.runDemoImport}
         </button>
         {activeJobId && jobStatus === "running" && (
-          <button type="button" onClick={handlePause} className="action-button-secondary">
+          <button type="button" onClick={() => void handleJobAction("pause")} disabled={jobActionPending} className="action-button-secondary">
             暂停 (Pause)
           </button>
         )}
         {activeJobId && jobStatus === "paused" && (
-          <button type="button" onClick={handleResume} className="action-button-primary">
+          <button type="button" onClick={() => void handleJobAction("resume")} disabled={jobActionPending} className="action-button-primary">
             恢复 (Resume)
           </button>
         )}
       </div>
+      {jobActionError ? <p className="guided-demo-status" role="alert">{jobActionError}</p> : null}
       <p>
         {messages.importButton.repoLabel} {repo}
       </p>

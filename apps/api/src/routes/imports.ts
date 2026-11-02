@@ -233,6 +233,32 @@ export async function importsRoute(app: FastifyInstance) {
     return reply.status(upstream.status).send(upstream.payload);
   });
 
+  // Explicit action routes: do not expose arbitrary Engine paths through a
+  // catch-all action segment. Engine remains the source of authorization.
+  for (const action of ["pause", "resume"] as const) {
+    app.post(`/imports/:jobId/${action}`, async (request, reply) => {
+      const params = z.object({ jobId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/) }).safeParse(request.params);
+      if (!params.success) {
+        return reply.status(400).send({
+          error: "Invalid import job id",
+          issues: params.error.issues
+        });
+      }
+
+      const env = getEnv();
+      const authHeaders = await authHeadersForRequest(request);
+      const upstream = await fetchUpstreamPayload(
+        fetch(`${env.ENGINE_BASE_URL}/imports/${encodeURIComponent(params.data.jobId)}/${action}`, {
+          method: "POST",
+          headers: authHeaders,
+        }),
+        app.log,
+        `POST /imports/:jobId/${action}`
+      );
+      return reply.status(upstream.status).send(upstream.payload);
+    });
+  }
+
   app.get("/imports/:jobId", async (request, reply) => {
     const params = z.object({ jobId: z.string().min(1) }).safeParse(request.params);
     if (!params.success) {
