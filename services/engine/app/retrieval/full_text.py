@@ -65,7 +65,9 @@ def full_text_search(*, session: Session, workspace_slug: str, query: str, revie
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_slug}")
 
-    query_terms = significant_query_terms(query)
+    # Generic English verbs (e.g. "why use ...") must not turn an
+    # unrelated Redis decision into a lexical match for PostgreSQL.
+    query_terms = [term for term in significant_query_terms(query) if term not in STOP_WORDS]
     if not query_terms:
         return []
     decisions = DecisionRepository(session).list_by_review_state(workspace.id, review_state)
