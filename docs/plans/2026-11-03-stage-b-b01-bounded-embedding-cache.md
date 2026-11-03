@@ -11,6 +11,7 @@ B01 now retains **only** validated decision vectors in a process-local, lock-pro
 - Repeated queries reuse unchanged accepted-decision vectors; content hash changes invalidate without a schema migration. Different provider namespace/model or dimension re-embeds rather than mixing vectors.
 - Reject empty, enormous (dimension >8192), boolean/non-numeric, NaN, Inf, dimension-mismatched vectors and malformed embedding batches through existing `ProviderResponseError` (Why API handles it as 502). No silent `zip` truncation.
 - Per-process lock and bounded entries reduce memory growth; double computation by concurrent cold requests is allowed and not claimed to be exactly-once.
+- **Privacy scope:** cache only if `Workspace.access_source_type == "public"` and embedder explicitly supplies a stable namespace. Credential-backed/private workspaces always recompute and never enter the process cache until F06b P privacy operations are separately approved. The cache holds vectors, never raw decision text or API credentials.
 - Redis/pgvector/HNSW/persistent embeddings, changes to source provenance, versioned `ArtifactRevision`, cross-worker invalidation, FakeEmbedder precision and paid LLM calls are **not** part of this PR.
 
 ## Verification and limits
