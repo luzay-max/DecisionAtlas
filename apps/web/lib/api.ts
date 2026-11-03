@@ -279,6 +279,13 @@ export type DriftAlertItem = {
   } | null;
 };
 
+export type ImportControlCapabilities = {
+  pause_resume: {
+    enabled: boolean;
+    reason_code: "worker_lifecycle_unverified" | null;
+  };
+};
+
 export type ImportResult = {
   job_id: string;
   workspace_slug?: string | null;
@@ -1022,6 +1029,14 @@ export async function getGovernanceGuardrail(): Promise<AgentGuardrailResult> {
   return response.json();
 }
 
+
+export async function getImportControlCapabilities(): Promise<ImportControlCapabilities> {
+  const response = await apiFetch(`${apiBaseUrl}/imports/capabilities`, { cache: "no-store" });
+  if (!response.ok) {
+    await readError(response, "Failed to load import-control capabilities");
+  }
+  return response.json();
+}
 
 export async function pauseGithubImport(jobId: string) {
   const response = await apiFetch(`${apiBaseUrl}/imports/${jobId}/pause`, { method: "POST" });

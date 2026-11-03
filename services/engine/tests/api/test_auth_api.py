@@ -91,6 +91,52 @@ def test_bootstrap_cannot_be_enabled_in_production(tmp_path: Path, monkeypatch) 
     assert client.get("/auth/session").status_code == 401
 
 
+
+def test_scope_switch_returns_complete_session_and_preserves_membership_permissions(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "auth-scope-switch-contract.db"
+    _upgrade(db_path, monkeypatch)
+    token = _create_actor_session(
+        db_path, username="multi-scope-user", role="admin", scope_key="team-alpha"
+    )
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        repo = AuthRepository(session)
+        actor = repo.get_actor_by_username("multi-scope-user")
+        assert actor is not None
+        beta = repo.create_scope(scope_key="team-beta", display_name="Team Beta", scope_type="team")
+        repo.ensure_membership(actor_id=actor.id, owner_scope_id=beta.id, role="viewer")
+        repo.create_scope(scope_key="team-denied", display_name="Team Denied", scope_type="team")
+        session.commit()
+
+    client = TestClient(create_app())
+    headers = {SESSION_HEADER: token}
+    before = client.get("/auth/session", headers=headers)
+    assert before.status_code == 200
+    original = before.json()
+    assert original["role"] == "admin"
+
+    denied = client.post("/auth/scope", headers=headers, json={"owner_scope": "team-denied"})
+    assert denied.status_code == 403
+    missing = client.post("/auth/scope", headers=headers, json={"owner_scope": "unknown-scope"})
+    assert missing.status_code == 404
+    assert client.get("/auth/session", headers=headers).json()["current_owner_scope"] == "team-alpha"
+
+    switched = client.post("/auth/scope", headers=headers, json={"owner_scope": "team-beta"})
+    assert switched.status_code == 200
+    current = switched.json()
+    assert current["actor"] == original["actor"]
+    assert current["session_token"] == token
+    assert current["current_owner_scope"] == "team-beta"
+    assert current["role"] == "viewer"
+    assert current["available_scopes"] == [
+        {"owner_scope": "team-alpha", "role": "admin"},
+        {"owner_scope": "team-beta", "role": "viewer"},
+    ]
+    assert client.get("/auth/session", headers=headers).json() == current
+    assert client.post(
+        "/imports/github", headers=headers, json={"repo": "org/repo", "mode": "full"}
+    ).status_code == 403
+
 def test_import_requires_admin_role(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "auth-import-role.db"
     _upgrade(db_path, monkeypatch)
