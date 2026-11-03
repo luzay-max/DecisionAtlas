@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer, JSON, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -201,10 +201,11 @@ class ArtifactRevision(Base):
 
 
 class ArtifactCurrentRevision(Base):
-    """Current pointer cannot target a revision owned by a different Artifact."""
+    """Current pointer must remain same-Artifact and carry a monotonic CAS generation."""
 
     __tablename__ = "artifact_current_revisions"
     __table_args__ = (
+        CheckConstraint("generation >= 1", name="ck_artifact_current_generation_positive"),
         ForeignKeyConstraint(
             ["artifact_id", "revision_id"],
             ["artifact_revisions.artifact_id", "artifact_revisions.id"],
@@ -214,6 +215,9 @@ class ArtifactCurrentRevision(Base):
 
     artifact_id: Mapped[int] = mapped_column(ForeignKey("artifacts.id"), primary_key=True)
     revision_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    # New current pointers begin at 1; each actual pointer transition must
+    # increment under a future reviewed CAS writer, including A -> B -> A.
+    generation: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="1", default=1)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
