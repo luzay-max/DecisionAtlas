@@ -21,7 +21,7 @@ Only **local development and test** mode can use bootstrap; `AUTH_AUTO_BOOTSTRAP
 - Reject preexisting normal actors, disabled bootstrap actors, and team-scope collisions without changing roles or creating sessions.
 - Explicit production and feature-default-off 403 with no DB writes.
 - Preserve Engine/Node/Playwright regression CI; review exact-head results and logs (particularly bootstrap tracebacks). Existing composed browser CI [#41595983746](https://github.com/luzay-max/DecisionAtlas/actions/runs/41595983746) was **green with a hidden log exception**, not a reproducible concurrency acceptance.
-- PostgreSQL advisory-lock path is implemented, but **a deterministic concurrent PG-specific test is still a separate gate** unless added to real PostgreSQL CI. Do not equate SQLite testing with multi-instance PG proof.
+- A separate **Ubuntu/PostgreSQL 17 advisory-lock concurrency workflow** `.github/workflows/ci-bootstrap-concurrency-pg17.yml` now starts a disposable empty `pgvector/pgvector:pg17` database and runs eight simultaneous real `POST /auth/bootstrap` requests, asserting one actor/scope/membership, eight durable sessions and authorized token roundtrips. Its **exact-head CI must succeed**; Windows SQLite tests alone do not prove PG behavior. This is multi-connection PostgreSQL proof, not a true multi-host load/chaos test.
 - Production reverse-proxy HTTPS, B03 Cookie/Origin hardening, #34 F06b migration, #36 worker recovery and P private data requirements remain independent and unchanged.
 
 **Status: Draft, no merge authorization; CI result to be filled from exact Head.**
