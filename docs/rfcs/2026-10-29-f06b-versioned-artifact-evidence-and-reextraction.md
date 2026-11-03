@@ -249,3 +249,21 @@ A future Windows/macOS/Linux build can embed the frontend and local Engine/API w
 - Before merging **#34**: (a) maintainer approves precise fingerprint v1 golden vectors, CAS/pointer fields, deletion/retention semantics and privilege model; (b) PostgreSQL 17 and realistic file-backed SQLite 0012→0013 migration/restore exercises PASS; (c) Alembic batch-copy cost and downgrade safeguards documented; (d) no runtime writer enabled in Phase 1. Schema CI alone does not satisfy these checks.
 
 **Decision request remaining:** approve or amend F06b-02 through F06b-08 and choose a concrete privacy retention/deletion window. Only F06b-01 (database scope) is considered formally confirmed. Do not silently mark the other architecture decisions approved.
+
+## 11. Proposed v1 privacy/retention policy — explicit maintainer approval required
+
+**Status: proposal, not an approved privacy promise or deployed feature.** This section turns the remaining open retention question into reviewable engineering defaults. Human sign-off and an operational ability to meet these limits must precede private-source revision capture or Phase 2 rollout.
+
+| Policy item | Proposed v1 default | Enforcement/acceptance gate |
+| --- | --- | --- |
+| Evidence-bound snapshots | Retain unchanged while the workspace exists and its SourceRefs require them; never silently prune cited evidence for quota pressure | DB referential-integrity and protected read-path tests; report storage per workspace |
+| Unreferenced snapshots | No automatic garbage collection in the schema-only phase; propose a **90-day** eligibility age for a later explicit, audited GC job | GC stays disabled until references, legal holds, quota and restore cases are tested; eligibility is not authorization to delete |
+| Workspace/user erasure | After an authorized deletion, remove or irreversibly redact private source bytes from active artifacts, revisions, derived search chunks and exports; preserve only minimal non-sensitive tombstone/audit metadata where lawful | **Target: active copies within 7 calendar days**; don't promise this until end-to-end deletion and tenant-authorization tests pass |
+| Backups and restore | Proposed maximum **30-day rolling retention** for encrypted backups containing private snapshots; prevent erased data from becoming accessible after restoring an older backup | Target backup expiry within 30 days; post-restore erasure-journal reconciliation and restore drill required |
+| Encryption and access | Require verified encryption at rest for server databases/backups and privately stored desktop data; enforce owner-scope authorization and access audit on revision reads/exports | Ordinary SQLite is **not encrypted**; local private-workspace support must remain blocked until a documented OS-encrypted store or reviewed DB encryption is available |
+| Operational budgets | Track current and historical bytes, revisions/artifact, backfill estimates, and quota rejection reasons; fail visibly instead of deleting cited snapshots | Set numeric workspace/instance quotas using representative measurements before enabling capture or GC |
+
+**Interpretation:** The 7-day active / 30-day backup targets and 90-day unreferenced eligibility are **proposed product defaults**, not legal standards, guarantees, or authorization for a destructive migration. Tenant/regional contractual requirements may require stricter rules. If the implementation cannot enforce the proposed timelines, remain in read-only/schema-only mode and amend the ADR before deployment. The backup/erasure process must be demonstrably recoverable and auditable; a UI 'deleted' label alone is insufficient.
+
+**Approval checklist:** maintainer separately accepts/changes (1) retention/erasure durations, (2) private-data encryption choice for PostgreSQL and local SQLite, (3) deletion/tombstone scope including SourceRefs, derived chunks and backups, (4) restore reconciliation procedure, and (5) storage budget/GC activation guard. No ordinary writer, auto-prune, schema rollout or private-source migration is unlocked by this document change.
+
