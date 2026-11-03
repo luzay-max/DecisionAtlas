@@ -454,28 +454,26 @@ export class ApiError extends Error {
   }
 }
 
-const apiBaseUrl = process.env.API_BASE_URL ?? "http://127.0.0.1:3001";
-const SESSION_HEADER = "x-decisionatlas-session-token";
+// Browsers must call a same-origin Next.js rewrite, never a hard-coded
+// machine-local port. SSR uses the internal API_BASE_URL (not client-exposed).
+const apiBaseUrl = typeof window === "undefined"
+  ? (process.env.API_BASE_URL ?? "http://127.0.0.1:3001")
+  : "/backend";
 const SESSION_STORAGE_KEY = "decisionatlas-session-token";
 
-export function saveProductSessionToken(sessionToken: string | null | undefined) {
-  if (typeof window === "undefined") {
-    return;
+// Compatibility method: migrate old localStorage sessions out, without
+// copying new HttpOnly session tokens into JavaScript-readable storage.
+export function saveProductSessionToken(_sessionToken: string | null | undefined) {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
   }
-  if (sessionToken) {
-    window.localStorage.setItem(SESSION_STORAGE_KEY, sessionToken);
-    return;
-  }
-  window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
-async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit | undefined> {
+async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit> {
   const headers = new Headers(initHeaders ?? {});
   if (typeof window !== "undefined") {
-    const sessionToken = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    if (sessionToken && !headers.has(SESSION_HEADER)) {
-      headers.set(SESSION_HEADER, sessionToken);
-    }
+    // Cookies are attached by the browser to same-origin /backend requests.
+    // Neither localStorage nor arbitrary JS session headers are used.
     return headers;
   }
   if (headers.has("cookie")) {
@@ -485,15 +483,15 @@ async function requestHeaders(initHeaders?: HeadersInit): Promise<HeadersInit | 
   try {
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
-    const cookieHeader = cookieStore
-      .getAll()
-      .map(({ name, value }) => `${name}=${encodeURIComponent(value)}`)
-      .join("; ");
-    if (cookieHeader) {
-      headers.set("cookie", cookieHeader);
+    // Forward only the configured session cookie to the internal BFF;
+    // never proxy unrelated browser cookies across service boundaries.
+    const sessionCookieName = process.env.AUTH_COOKIE_NAME ?? "decisionatlas_session";
+    const session = cookieStore.get(sessionCookieName);
+    if (session) {
+      headers.set("cookie", `${sessionCookieName}=${encodeURIComponent(session.value)}`);
     }
   } catch {
-    // Ignore request-context lookup failures and fall back to a header-less fetch.
+    // A call without a Next.js request context does not gain implicit auth.
   }
   return headers;
 }
@@ -503,7 +501,7 @@ async function apiFetch(input: string, init: RequestInit = {}): Promise<Response
   return fetch(input, {
     ...init,
     headers,
-    ...(typeof window !== "undefined" ? { credentials: "include" as const } : {}),
+    ...(typeof window !== "undefined" ? { credentials: "same-origin" as const } : {}),
   });
 }
 
