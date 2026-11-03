@@ -15,25 +15,26 @@ export function parseCookieHeader(header: string | undefined): Record<string, st
   if (parts.length > 64) {
     return result;
   }
-  const duplicates = new Set<string>();
+  const seen = new Set<string>();
   for (const part of parts) {
     const index = part.indexOf("=");
     if (index <= 0) continue;
     const name = part.slice(0, index).trim();
     const encoded = part.slice(index + 1).trim();
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(name) || encoded.length > 4096) continue;
-    if (Object.hasOwn(result, name) || duplicates.has(name)) {
+    if (seen.has(name)) {
+      // Even an invalid first cookie forbids a later same-name override.
       delete result[name];
-      duplicates.add(name);
       continue;
     }
+    seen.add(name);
     try {
       const value = decodeURIComponent(encoded);
       if (!value || Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) continue;
       result[name] = value;
     } catch {
       // Invalid %-encoding fails closed for this cookie, not the whole request.
-      duplicates.add(name);
+      // The name stays marked in "seen" to reject any subsequent override.
     }
   }
   return result;
