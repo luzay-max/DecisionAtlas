@@ -1,9 +1,9 @@
 # RFC F06b — Versioned Artifacts, stable evidence, and review-safe re-extraction
 
-**Status:** Proposed / design-only Draft PR — no schema or runtime changes
+**Status:** Proposed / design-only Draft PR — no schema or runtime changes; database-support scope confirmed, other design gates pending
 **Date:** 2026-10-29
-**Baseline:** `main@8aa461f5bc30f16e023c9c00f0d641794fd16f86` (merged strategic review PR #27)
-**Related:** F06a read-only quote diagnostics PR #32 (Draft); P0 import transaction integrity PR #26 (Draft); F04 coverage PR #30 and F05 watermark PR #31 (Draft)
+**Original baseline:** `main@8aa461f5bc30f16e023c9c00f0d641794fd16f86`; **reconciled with:** `main@28b58eb1388c25a0a1ab3f1cca3c1848da4c2a0c`
+**Related:** F06a current-quote diagnostics PR #32 (Draft); A01 safety PR #26 and F04/F05 integration PR #35 (merged); F04/F05 duplicate Drafts #30/#31; Issue #36 worker control-plane safety (open)
 **Decision required:** Approve or revise data model and rollout gates before starting the migration implementation.
 
 ## 1. Problem and evidence
@@ -120,7 +120,7 @@ Historical version text duplicates private source data and can grow without boun
 | Two concurrent imports complete out of order | Current pointer never regresses to stale source revision |
 | Failed/empty/timeout extraction | Explicit per-revision outcome; safe bounded retry, no duplicate accepted decision |
 | Unauthorized tenant requests another scope's revision | No private content leak, even when guessing revision ID |
-| SQLite migration + MySQL-compatible DDL | Existing data remains readable, constraints valid |
+| SQLite and PostgreSQL migration from representative existing data | Existing data stays readable, composite FKs/uniqueness behave correctly; SQLite desktop packaging and file recovery evaluated separately |
 | Large repeated capture + backfill interruption | Storage bounds visible, resumable/idempotent migration |
 
 **Required before any code merge:** schema/retention review, verified CI on final head, explicit rollback plan, migration rehearsal on a copy of test/representative data, authorizer test, approval for changed storage costs. **Do not claim live acceptance from synthetic CI.**
@@ -128,7 +128,7 @@ Historical version text duplicates private source data and can grow without boun
 ## 7. Explicitly undecided questions
 
 1. Canonical snapshot fingerprint fields and comparison semantics for metadata-only updates.
-2. Actual database deployment targets (SQLite vs MySQL/PostgreSQL) and portable transaction/locking strategy.
+2. **Database deployment choice confirmed 2026-11-03:** PostgreSQL + pgvector for server/full stack and SQLite for local/lightweight use, including a possible future packaged desktop edition. MySQL is out of scope; portable transaction/locking behavior still requires implementation decisions.
 3. Storage retention of private repo snapshots, backup and user-data deletion semantics.
 4. Source-specific immutable identity for issues/PRs (API doesn't provide Git blobs for editable bodies).
 5. Worker lease and model extraction fingerprint semantics, budget for automatic or manual re-extraction.
@@ -144,4 +144,52 @@ Historical version text duplicates private source data and can grow without boun
 - [ ] Rebase each implementation PR on accepted earlier PRs; do not stack changes on unmerged #26/#32 without declaring dependency.
 - [ ] Verify real operational import, failure recovery, and cost/retention before merging feature activation.
 
-This RFC itself changes **no code, schema, data, review state, or import activity**.
+This RFC itself changes **no code, schema, data, review state, or import activity**. The supported database pair is confirmed; the optional desktop-app packaging direction is a proposed product target, not a delivered capability or approval to activate F06b.
+
+
+## 9. Database support decision and future lightweight desktop edition (2026-11-03)
+
+### Confirmed support scope and product direction
+
+The maintainer confirmed **PostgreSQL + pgvector for the real/server full stack** and **SQLite as the lightweight/local database**. **MySQL is not a supported DecisionAtlas target** in this phase. Following the maintainer's question about packaging the app, a **future desktop edition backed by SQLite is the preferred product direction for investigation**, not a shipping guarantee or an approval to merge a packager now. SQLite must therefore be treated as a first-class local persistence target, not only as disposable CI fixture storage.
+
+| Deployment profile | Database | Expected topology | Constraints / release boundary |
+| --- | --- | --- | --- |
+| Server / team | PostgreSQL + pgvector | Web + Fastify + Engine, Docker/managed services | Multi-user authorization, server jobs, operational backup/monitoring; full acceptance on PostgreSQL |
+| Local / lightweight (current demo, future desktop) | SQLite database file | One locally controlled Engine process (and packaged frontend/API in the future) | Offline-first storage; one writer coordination; bounded startup/migrations, backup/restore, clean exit and local auth; not a multi-user server substitute |
+| MySQL | Not supported | None | Do not maintain unverified migration claims or block F06b on MySQL-only rehearsal |
+
+**The two databases use the same evidence invariants**: append-only revisions, SourceRef immutability, legacy-unbound historical references, valid same-Artifact composite FK, predictable uniqueness and atomic pointer changes. A passing SQLite test alone does not establish PostgreSQL correctness; likewise, a green PostgreSQL migration does not establish safe packaged SQLite behavior.
+
+### Packaging architecture — direction, not implementation
+
+A future Windows/macOS/Linux build can embed the frontend and local Engine/API with a per-user SQLite file. Packaging technology (Tauri, Electron, native WebView or another shell), distribution signing/notarization, auto-update strategy and bundled Python runtime are **separate future ADRs**. Do not add these dependencies to F06b Phase 1.
+
+- **User data directory:** put the SQLite file, import cache, attachments, backups and logs in the OS-recommended writable per-user application-data directory, **never** beside installed executable/resources or inside a read-only app bundle. Resolve paths independently of the current working directory. Prevent accidental path traversal and unsafe user-controlled database paths.
+- **Startup and schema compatibility:** run an explicit, versioned Alembic compatibility check before serving requests. Migrate only under a single-instance lock and after a verified backup. An older app opening a newer schema must **refuse incompatible writes** with a clear recovery path; app auto-update cannot blindly downgrade a user DB.
+- **SQLite connection policy:** enforce \`PRAGMA foreign_keys=ON\` on **every new connection**, not just on the first pooled connection; test this in production-like Engine factory paths. Explicitly evaluate WAL journal mode, short transactions, bounded \`busy_timeout\`, checkpointing, and multi-process single-writer contention. Current \`get_engine()\` only configures timeout and \`check_same_thread=False\` and executes \`PRAGMA busy_timeout\` once: this is a starting point, **not** completed desktop safety.
+- **Single-writer worker design:** keep importing/indexing/model jobs out of long SQLite write transactions; serialize local writes or queue them where necessary. \`SELECT ... FOR UPDATE\` is PostgreSQL-only; a SQLite \`BEGIN IMMEDIATE\` plus short transactions/retry policy needs separate acceptance. Issue #36 explicitly reproduces a pause request blocked by an active write; the Engine \`IMPORT_PAUSE_RESUME_ENABLED=false\` default must remain in place in desktop builds until that lifecycle is genuinely fixed.
+- **Backup and safe restore:** use SQLite's online backup API or a well-defined quiesced/checkpointed backup, not arbitrary copying of an active \`.db\` while WAL/SHM files are live. Verify integrity and restore on realistic user datasets. Handle disk full, power loss, long migrations, failed auto-update and rollback without silently deleting review evidence.
+- **Security:** do not ship API keys, default admin credentials or private GitHub tokens inside the installer or SQLite file. Store local secrets in a supported OS-protected credential store where practical; decide whether at-rest encryption is required (ordinary SQLite does **not** encrypt data at rest). Protect per-user file permissions, backups, logs and deletion/export of private captured source revisions.
+- **Local search contract:** PostgreSQL pgvector queries are **not automatically available** in SQLite. Existing SQLite JSON embedding storage and demo/fake providers do not prove full parity. Specify a local-search fallback (e.g. bounded exact/keyword search or separately reviewed SQLite vector index), its dataset limits, and an explicit capability indicator. Do not quietly disable evidence integrity or claim server-grade semantic-search performance in the desktop build.
+- **Offline behavior:** local browsing, review and saved evidence can work without network or a model account; GitHub import and live providers require connectivity or explicit offline/fake modes. Jobs interrupted by app shutdown must be marked/recovered deliberately, not automatically replay paid extraction or silently advance watermarks.
+
+### Desktop-oriented release matrix (separate from schema-only CI)
+
+1. Fresh user profile: application creates database in writable per-user data dir, initializes schema and opens the local UI without PostgreSQL/Redis installed (or clearly documents any retained dependencies).
+2. Realistic existing SQLite file: upgrade from 0012 to 0013 without changing old SourceRefs; capture an on-disk backup first; verify row counts, review audit and fresh DB integrity; prove clean restart and older-app version guard.
+3. Connections: cross-connection \`foreign_keys=ON\`, same-Artifact composite FK rejection, duplicate revision rejection, no retroactive legacy-ref binding and no lost updates under two competing local writers.
+4. Data safety: WAL/checkpoint, backup/restore after crash or interrupted migration, near-full disk behavior and controlled failure message; migration may run longer on a large \`source_refs\` table due to Alembic SQLite batch table recreation.
+5. Lifecycle: shutdown while import/extraction is pending, stalled writer contention, exactly-once claim after restart, bounded HTTP response during locks; keep controls disabled until Issue #36 is accepted.
+6. Security & privacy: access to other OS profiles, app data permissions, backup/export/delete behavior, no logs or installer-bundled credentials, and source-snapshot storage budget.
+7. Search: state and test the explicit SQLite search capability/limits compared with PostgreSQL+pgvector, including no-network mode.
+8. Packaging smoke: signed/unsigned test build where appropriate, clean install/launch/uninstall/reinstall preserves user data, auto-update never silently destroys the DB; actual Windows/macOS/Linux matrix depends on a later packaging ADR.
+
+### F06b rollout gate impact
+
+- **Phase 1 #34 remains schema-only and Draft**, but its acceptance must include PostgreSQL 17 and file-backed SQLite from existing data plus a plan for large-table SQLite batch-copy downtime, and must not list MySQL as a required/validated backend.
+- **Canonical fingerprint proposal:** \`content_sha256\` hashes exactly the persisted UTF-8 content bytes; \`capture_fingerprint\` will hash a version-tagged canonical serialization of content digest, stable Artifact identity, title/URL and an explicit allowlist of source revision metadata, excluding credentials, timestamps of capture, volatile polling metadata and arbitrary JSON. Precise encoding, Unicode, UTC timestamps, null/empty and golden test vectors **still require separate sign-off** before any writer is activated.
+- **Pointer/CAS proposal:** one transaction binds revision insert, current pointer advance and materialized Artifact update. PostgreSQL uses locked existing Artifact row + compare-and-swap; SQLite uses short write-gated transaction with expected-pointer check and bounded retry. Ordering by local insertion number alone cannot prove source recency; equal or incomparable source tokens must be handled conservatively, never silently promoted as newer.
+- **Immutability proposal:** repository INSERT/SELECT-only is insufficient; define restricted PostgreSQL app permissions and SQLite write-path guards/triggers with an authorized, auditable data-deletion mechanism. Revisions referenced by SourceRefs cannot be pruned without a separate legal/privacy policy. Private snapshot retention and encryption strategy remain **unapproved**.
+
+**Decision ledger:** database pair = **confirmed**; lightweight desktop use = **future product direction**; packaging framework, fingerprint v1 wire format, CAS/source ordering, DB immutability, retention/encryption and actual schema deployment = **pending ADR / human review**. No migration or runtime behavior is authorized by editing this RFC.
