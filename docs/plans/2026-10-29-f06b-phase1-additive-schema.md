@@ -38,3 +38,12 @@ Schema-only Phase 1 must be safe for **both** PostgreSQL and file-backed SQLite,
 - F06b canonical fingerprint, current-pointer CAS, immutable revision protections, snapshot retention/deletion, and extraction-worker claim lifecycle are still unresolved **RFC/ADR gates**. This prototype does not activate writers or backfill.
 
 **Status:** Draft schema prototype; documentation change only. The database support decision does not approve this migration, merging #34, or distributing a desktop installer.
+
+
+## F06b v1 ADR review gate: pointer generation and ABA (2026-11-03)
+
+The current RFC #33 v1 architecture proposal requires an **explicit monotonic `generation`** on `artifact_current_revisions`, to compare-and-swap both `(revision_id, generation)`. Checking revision ID alone fails the A→B→A case: a concurrent writer can change the current snapshot away from revision A and back to A while an older capture is still in flight. An ID-only CAS would accept that stale capture.
+
+**Current #34 schema does not include a pointer generation field.** Do not claim the prototype is concurrency-safe, do not activate dual-writes or call it approved. After RFC approval, review an additive migration/model change that introduces `generation` with a non-null initialized value and transactional increments on every pointer transition (including reuse of an earlier fingerprint), preserving the stable historical `artifact_revisions` rows. Cover fresh rows, concurrent pointer creation, A/B conflict, **A→B→A ABA**, duplicate imports and failure rollback on PostgreSQL + file-backed SQLite. Such an implementation change requires a separately reviewed exact-head CI and migration rehearsal.
+
+This remains a **design note**, not an amendment to running migration or production logic. MySQL is out of the agreed support matrix.
