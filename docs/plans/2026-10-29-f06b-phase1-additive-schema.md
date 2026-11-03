@@ -15,9 +15,26 @@
 - [ ] SQLite foreign keys prevent both current pointers and SourceRefs from binding another Artifact's revision; positive bindings and nullable legacy refs remain valid.
 - [ ] Constraints on revision number/fingerprint uniqueness and extraction identity work on SQLite.
 - [ ] Existing Engine tests and full Windows CI pass on final head.
-- [ ] Cross-backend MySQL migration, backup recovery, retention/security review and maintainer approval remain pending.
+- [ ] **PostgreSQL 17 + pgvector** real-stack and **file-backed SQLite** local/desktop upgrade rehearsals, backup/restore, retention/security review and maintainer approval remain pending. MySQL is not an F06b-supported target.
 
 ## Dependencies and rollout
 This PR is independent of unmerged PR #26/#28/#29/#30/#31/#32/#33 and modifies only additive DB schema, SQLAlchemy models and new tests. Schema correctness on CI SQLite is not evidence of a safe production upgrade. Execute the migration on a **copy** of representative data first; do not merge or activate features without explicit approval and the reviewed RFC.
 
 **Proposed next work after approval:** F06b Phase 2 transaction-safe dual-write, then explicit legacy snapshot backfill without SourceRef relinking; Phase 3 read-version API and user-visible provenance; Phase 4 gated revision-keyed candidate-only re-extraction.
+
+
+## Supported backend and future desktop scope (maintainer direction, 2026-11-03)
+
+The maintainer confirmed PostgreSQL + pgvector as the server/full-stack database and SQLite as the lightweight local database, with a **possible future packaged desktop application**. MySQL support is explicitly deferred; do not advertise any MySQL migration as supported/validated.
+
+Schema-only Phase 1 must be safe for **both** PostgreSQL and file-backed SQLite, not merely SQL compilation in SQLite in-memory mode:
+
+- PostgreSQL 17 migration from 0012 with real \`source_refs\` data, new table/constraint/index validation, role privileges and representative backup/restore. Do not claim the composite FK behaves correctly on PostgreSQL until actually exercised.
+- SQLite database-file migration from 0012 with old refs retained and \`artifact_revision_id IS NULL\`; measure the Alembic batch-recreate cost for large \`source_refs\` tables, available free disk space, rollback/restore and restart on a copy of realistic data.
+- SQLite requires \`PRAGMA foreign_keys=ON\` **on every connection** for FK constraints to be enforced, including in the eventual packaged Engine. Current engine factory only sets \`busy_timeout\` once; the connection policy is a separate implementation task.
+- For desktop planning, store user database/backups in a writable per-user data directory, not in application resources, and preserve them across upgrade/uninstall. A later packaging ADR must determine app shell/runtime, vector search fallback, credential store and user-data encryption.
+- SQLite write serialization/short transactions, WAL/checkpoint and bounded busy-timeout must be tested; do **not** enable experimental pause/resume while Issue #36 worker-lock/lifecycle acceptance remains open.
+- The migration's current \`server_default=sa.func.now()\` timestamps must be treated as database-local SQL time semantics until UTC normalization is specified. Local clock equality is **not** a reliable revision ordering policy.
+- F06b canonical fingerprint, current-pointer CAS, immutable revision protections, snapshot retention/deletion, and extraction-worker claim lifecycle are still unresolved **RFC/ADR gates**. This prototype does not activate writers or backfill.
+
+**Status:** Draft schema prototype; documentation change only. The database support decision does not approve this migration, merging #34, or distributing a desktop installer.
