@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from hashlib import sha256
+from json import dumps
 from math import isfinite
 from threading import RLock
 
@@ -75,8 +76,11 @@ def _cache_write(key: tuple, value: tuple[float, ...]) -> None:
 
 
 def _similarity(left: tuple[float, ...], right: tuple[float, ...]) -> float:
-    # All inputs have been checked to have matching dimension and finite values.
-    return sum(a * b for a, b in zip(left, right))
+    # Finite inputs can still overflow during multiplication/summation.
+    result = sum(a * b for a, b in zip(left, right))
+    if not isfinite(result):
+        raise ProviderResponseError("Embedding similarity produced a non-finite score")
+    return result
 
 
 def vector_search(
@@ -107,10 +111,12 @@ def vector_search(
     # Include context/constraints in the *version key* even though the
     # existing vector input uses four fields, to invalidate on all content edits.
     def decision_hash(decision) -> str:
-        version_content = "\x1f".join([
+        # Length-unambiguous JSON avoids collisions from delimiter characters
+        # present in user-controlled decision fields.
+        version_content = dumps([
             decision.title, decision.problem, decision.chosen_option,
             decision.tradeoffs, decision.context or "", decision.constraints or "",
-        ])
+        ], ensure_ascii=False, separators=(",", ":"))
         return sha256(version_content.encode("utf-8")).hexdigest()
 
     embeddings: dict[int, tuple[float, ...]] = {}
