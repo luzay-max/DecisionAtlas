@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import re
+import unicodedata
 
 from sqlalchemy.orm import Session
 
 from app.repositories.decisions import DecisionRepository
 from app.repositories.workspaces import WorkspaceRepository
+from app.retrieval.query_rewrite import expand_query_terms, significant_query_terms
 
 
 @dataclass(slots=True)
@@ -51,11 +52,12 @@ STOP_WORDS = {
     "why",
 }
 
-TERM_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)?")
-
-
 def _tokenize(text: str) -> list[str]:
-    return TERM_PATTERN.findall(text.lower())
+    return expand_query_terms(text)
+
+
+def _normalized_field(value: str | None) -> str:
+    return unicodedata.normalize("NFKC", value or "").casefold()
 
 
 def full_text_search(*, session: Session, workspace_slug: str, query: str, review_state: str = "accepted") -> list[RetrievalHit]:
@@ -63,19 +65,19 @@ def full_text_search(*, session: Session, workspace_slug: str, query: str, revie
     if workspace is None:
         raise ValueError(f"Workspace not found: {workspace_slug}")
 
-    query_terms = [term for term in _tokenize(query) if term not in STOP_WORDS]
+    query_terms = significant_query_terms(query)
     if not query_terms:
-        query_terms = _tokenize(query)
+        return []
     decisions = DecisionRepository(session).list_by_review_state(workspace.id, review_state)
     hits: list[RetrievalHit] = []
     for decision in decisions:
         fields = {
-            "title": decision.title.lower(),
-            "problem": decision.problem.lower(),
-            "chosen_option": decision.chosen_option.lower(),
-            "tradeoffs": decision.tradeoffs.lower(),
-            "context": (decision.context or "").lower(),
-            "constraints": (decision.constraints or "").lower(),
+            "title": _normalized_field(decision.title),
+            "problem": _normalized_field(decision.problem),
+            "chosen_option": _normalized_field(decision.chosen_option),
+            "tradeoffs": _normalized_field(decision.tradeoffs),
+            "context": _normalized_field(decision.context),
+            "constraints": _normalized_field(decision.constraints),
         }
         score = 0.0
         matched_terms = 0
