@@ -29,7 +29,7 @@ export function parseCookieHeader(header: string | undefined): Record<string, st
     }
     try {
       const value = decodeURIComponent(encoded);
-      if (!value || /[\\u0000-\\u001f\\u007f]/.test(value)) continue;
+      if (!value || Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) continue;
       result[name] = value;
     } catch {
       // Invalid %-encoding fails closed for this cookie, not the whole request.
