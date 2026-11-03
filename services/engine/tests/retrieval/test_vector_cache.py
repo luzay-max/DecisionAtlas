@@ -35,8 +35,8 @@ class InvalidEmbedder(Embedder):
         self.value = value if value is not None else [float("nan"), 1.0]
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        if self.invalid_for == "query" and len(texts) == 1 and texts[0] == "find evidence":
-            return [self.value]
+        if len(texts) == 1 and texts[0] == "find evidence":
+            return [self.value if self.invalid_for == "query" else [1.0, 1.0]]
         return [self.value if self.invalid_for == "decision" else [1.0, 1.0] for _ in texts]
 
 
