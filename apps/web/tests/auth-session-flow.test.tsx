@@ -74,7 +74,7 @@ describe("auth session product flow", () => {
     await waitFor(() => expect(screen.getByText("local-admin")).toBeInTheDocument());
     expect(screen.getByText("local bootstrap")).toBeInTheDocument();
     expect(screen.getByText(/Role: admin · Scope: local-default/)).toBeInTheDocument();
-    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("boot-token");
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBeNull();
   });
 
   it("shows login-required UI when session recovery returns 401", async () => {
@@ -113,7 +113,7 @@ describe("auth session product flow", () => {
     await waitFor(() => expect(api.switchProductScope).toHaveBeenCalledWith("team-b"));
     expect(refresh).toHaveBeenCalled();
     await waitFor(() => expect(screen.getByText(/Role: reviewer · Scope: team-b/)).toBeInTheDocument());
-    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("team-token");
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBeNull();
   });
 
   it("logs in and returns to the requested page", async () => {
@@ -135,7 +135,7 @@ describe("auth session product flow", () => {
     await waitFor(() =>
       expect(api.loginProductSession).toHaveBeenCalledWith("operator@example.com", "secret")
     );
-    expect(window.localStorage.getItem("decisionatlas-session-token")).toBe("team-token");
+    expect(window.localStorage.getItem("decisionatlas-session-token")).toBeNull();
     expect(push).toHaveBeenCalledWith("/workspaces/imported-workspace");
   });
 
