@@ -27,6 +27,10 @@ describe("B03: session-cookie parsing and forwarding boundaries", () => {
 
     const duplicate = parseCookieHeader("decisionatlas_session=first; decisionatlas_session=second");
     expect(duplicate["decisionatlas_session"]).toBeUndefined();
+    const invalidThenValid = parseCookieHeader("decisionatlas_session=%ZZ; decisionatlas_session=valid");
+    expect(invalidThenValid["decisionatlas_session"]).toBeUndefined();
+    const controlThenValid = parseCookieHeader("decisionatlas_session=%0A; decisionatlas_session=valid");
+    expect(controlThenValid["decisionatlas_session"]).toBeUndefined();
 
     const encodedControl = parseCookieHeader("decisionatlas_session=%0D%0AInjected");
     expect(encodedControl["decisionatlas_session"]).toBeUndefined();
