@@ -152,5 +152,23 @@ def test_invalid_or_mismatched_vectors_fail_closed(
     engine.dispose()
 
 
+def test_finite_embeddings_with_overflowing_dot_product_fail_closed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    engine = _db(tmp_path, monkeypatch)
+
+    class HugeFiniteEmbedder(Embedder):
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return [[1e308, 1e308] for _ in texts]
+
+    with Session(engine) as session:
+        with pytest.raises(ProviderResponseError, match="non-finite score"):
+            vector_search(
+                session=session, workspace_slug="b01-workspace",
+                query="find evidence", embedder=HugeFiniteEmbedder(),
+            )
+    engine.dispose()
+
+
 def test_fake_embedder_never_claims_stable_decision_cache_identity() -> None:
     assert not hasattr(FakeEmbedder(), "embedding_cache_namespace")
