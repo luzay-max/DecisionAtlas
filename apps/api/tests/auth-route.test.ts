@@ -155,6 +155,16 @@ describe("authRoute", () => {
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      session_token: "existing-token",
+      actor: { id: 2, username: "admin@example.com" },
+      current_owner_scope: "team-b",
+      role: "reviewer",
+      available_scopes: [
+        { owner_scope: "team-a", role: "admin" },
+        { owner_scope: "team-b", role: "reviewer" },
+      ],
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/auth/scope",
       {
