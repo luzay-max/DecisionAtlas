@@ -1,10 +1,10 @@
 # RFC F06b — Versioned Artifacts, stable evidence, and review-safe re-extraction
 
-**Status:** Proposed / design-only Draft PR — no schema or runtime changes; database-support scope confirmed, other design gates pending
+**Status:** **T technical architecture ADR approved by maintainer on 2026-11-03**; P private-data operations/retention **not approved**. This RFC is design-only: no schema migration, writers or historical provenance runtime delivered.
 **Date:** 2026-10-29
 **Original baseline:** `main@8aa461f5bc30f16e023c9c00f0d641794fd16f86`; **reconciled with:** `main@28b58eb1388c25a0a1ab3f1cca3c1848da4c2a0c`
-**Related:** F06a current-quote diagnostics PR #32 (Draft); A01 safety PR #26 and F04/F05 integration PR #35 (merged); F04/F05 duplicate Drafts #30/#31; Issue #36 worker control-plane safety (open)
-**Decision required:** Approve or revise data model and rollout gates before starting the migration implementation.
+**Related:** F06a current-quote diagnostics PR #32 (**merged**); A01 safety PR #26, F04/F05 integration PR #35, A03 default-off import-controls PR #28 (**merged, functionality disabled**); F04/F05 duplicate Drafts #30/#31; Issue #36 worker control-plane safety (open).
+**Approval recorded:** T architecture choices accepted for implementation planning. #34 schema merge/migration requires its own later approval and real environment validation; privacy operations P remain independently pending. No production rollout authorized.
 
 ## 1. Problem and evidence
 
@@ -197,18 +197,18 @@ A future Windows/macOS/Linux build can embed the frontend and local Engine/API w
 
 ## 10. F06b v1 architecture decision record — concrete implementation contract (2026-11-03)
 
-**Status:** proposed technical decisions for maintainer review; the database support choice in §9 is the only decision explicitly approved so far. The contracts below define a conservative v1 target for implementation review and **do not authorize** applying #34, changing writers, processing private data, or spending on model inference.
+**Status:** **T technical architecture approved** by maintainer on 2026-11-03, including technical schema invariants and candidate-only extraction direction. The separate **P private-data operations and retention gate is unapproved**. Approval **does not authorize** merging/applying #34, changing writers, processing private data, or spending on model inference.
 
 | ADR ID | Decision for proposed v1 | Status |
 | --- | --- | --- |
 | F06b-01 Database profiles | PostgreSQL 17 + pgvector for server; file-backed SQLite for lightweight/local/future desktop; **no MySQL** | **Maintainer-confirmed** |
-| F06b-02 Snapshot identity | One stable Artifact identity with append-only, content-addressed ArtifactRevision rows; same stable fingerprint deduplicated; capture occurrence is **not** revision identity | Proposed |
-| F06b-03 Canonical bytes/hash | Exact locally persisted UTF-8 content for `content_sha256`, plus a domain-separated `capture_fingerprint` with a versioned and restricted canonical metadata allowlist | Proposed |
-| F06b-04 Current pointer / concurrency | Separate `artifact_current_revisions` with a **monotonic pointer generation**; compare-and-swap observed `(revision_id, generation)` to prevent **A→B→A ABA** races; write snapshot, pointer and materialized latest Artifact in one transaction | Proposed |
-| F06b-05 Legacy / audit | Existing SourceRefs remain NULL/`legacy_unbound`; new refs must bind same-Artifact revision; reviewer state/audit and original quote bytes never change on import | Existing invariant, design confirmation pending |
-| F06b-06 Immutability and private data | No ordinary UPDATE/DELETE of revision bytes; protection at DB permissions/trigger layer, with a separately authorized, audited privacy-erasure exception and protected backups | Proposed; retention days / deletion process pending |
-| F06b-07 Extraction | One claim keyed by revision + extractor fingerprint; bounded retry with lease/recovery design; new candidates only, no automatic review or chargeable re-extraction | Proposed; worker protocol pending |
-| F06b-08 Return/reappearance episodes | Same content reappearing after another version may reuse the old immutable snapshot. Model **observation/episode identity separately**, so drift recurrence is not silently suppressed | Proposed follow-up linked to A04 |
+| F06b-02 Snapshot identity | One stable Artifact identity with append-only, content-addressed ArtifactRevision rows; same stable fingerprint deduplicated; capture occurrence is **not** revision identity | **T approved** |
+| F06b-03 Canonical bytes/hash | Exact locally persisted UTF-8 content for `content_sha256`, plus a domain-separated `capture_fingerprint` with a versioned and restricted canonical metadata allowlist | **T approved**; golden vectors still required before writer |
+| F06b-04 Current pointer / concurrency | Separate `artifact_current_revisions` with a **monotonic pointer generation**; compare-and-swap observed `(revision_id, generation)` to prevent **A→B→A ABA** races; write snapshot, pointer and materialized latest Artifact in one transaction | **T approved**; runtime CAS not implemented |
+| F06b-05 Legacy / audit | Existing SourceRefs remain NULL/`legacy_unbound`; new refs must bind same-Artifact revision; reviewer state/audit and original quote bytes never change on import | **T approved** |
+| F06b-06 Immutability and private data | No ordinary UPDATE/DELETE of revision bytes; protection at DB permissions/trigger layer, with a separately authorized, audited privacy-erasure exception and protected backups | **T approved:** immutability/erasure exception design. **P deferred:** retention days, encryption, deletion and backups SLA |
+| F06b-07 Extraction | One claim keyed by revision + extractor fingerprint; bounded retry with lease/recovery design; new candidates only, no automatic review or chargeable re-extraction | **T approved:** keyed candidate-only design. **Runtime worker acceptance deferred** |
+| F06b-08 Return/reappearance episodes | Same content reappearing after another version may reuse the old immutable snapshot. Model **observation/episode identity separately**, so drift recurrence is not silently suppressed | **T approved direction**, implementation separately tracked in #40 |
 
 ### 10.1 Hash and canonicalization contract (F06b-03)
 
@@ -224,7 +224,7 @@ A future Windows/macOS/Linux build can embed the frontend and local Engine/API w
 ### 10.2 Atomic pointer and stale writer contract (F06b-04)
 
 1. Read current pointer (`expected_revision_id`, `expected_generation`, or no row) and stable Artifact identity **before** fetching remote content; record both expected values with the capture attempt. Validate F04 complete coverage, download bounds and capture provenance. Do not open a long DB write transaction during GitHub I/O or embedding/model calls.
-2. Begin a **short write transaction**. PostgreSQL locks the Artifact/current pointer for the affected identity; SQLite requires a serialized writer/short `BEGIN IMMEDIATE` equivalent and bounded busy-retry. `PRAGMA foreign_keys=ON` must hold on every SQLite connection. In both backends re-read the pointer and compare **both** `revision_id` and monotonic `generation` against the captured expected pair; distinguish missing row from existing row. On every successful pointer transition (including a return to a previously saved revision), increase generation; repeated identical no-op polls need not advance it. #34 currently has no generation column and must not be treated as an approved CAS schema.
+2. Begin a **short write transaction**. PostgreSQL locks the Artifact/current pointer for the affected identity; SQLite requires a serialized writer/short `BEGIN IMMEDIATE` equivalent and bounded busy-retry. `PRAGMA foreign_keys=ON` must hold on every SQLite connection. In both backends re-read the pointer and compare **both** `revision_id` and monotonic `generation` against the captured expected pair; distinguish missing row from existing row. On every successful pointer transition (including a return to a previously saved revision), increase generation; repeated identical no-op polls need not advance it. #34 Draft now includes a `generation` storage column plus synthetic ABA tests, but it **does not have a live atomic CAS writer** and its migration is not approved.
 3. If the pointer changed, **do not advance it**, do not overwrite latest `artifacts.content`, and do not mark the import fully successful. Return a typed `stale_capture`/CAS conflict and schedule an operator-visible bounded re-fetch if configured. Never use local captured_at or auto-increment revision number as proof of remote recency.
 4. If still current, find or insert the exact fingerprint (respecting `(artifact_id, capture_fingerprint)` uniqueness), allocate a new per-Artifact `revision_number` only for genuinely new content/metadata, and atomically link current pointer (including incremented `generation`) + materialized latest Artifact to it. Commit once. On any integrity error or partial failure, rollback the entire transaction, leaving the old pointer/content intact.
 5. If identical to the already-current fingerprint, no new revision or extraction claim. Source timestamps, branch names, GitHub issue `updated_at` and local request completion order are insufficient to imply an immutable upstream version. Git documents may carry verified commit/blob OIDs; PR/issue bodies must report weaker verification honestly.
@@ -283,3 +283,14 @@ Proposed **7-day active erasure / 30-day backup expiry / 90-day unreferenced eli
 The #34 provisional schema has since added a `generation` storage column and deterministic SQLite ABA characterization; this removes its original **missing-column** deficit but **does not** implement atomic revision/pointer/materialized-Artifact writes or production-safe compare-and-swap. Both T approval and PostgreSQL/SQLite restoration rehearsal remain prerequisites to a schema merge; #34 stays Draft.
 
 **Stage A exit accounting:** explicitly distinguish “delivered and merged” (#29/#32 after own post-merge CI), “default-disabled and independently gated” (#28/Issue #36), “approved technical direction but not released” (F06b T after human decision), and “deferred operations/implementation” (#34 and F06b P). Stage B retrieval/engineering may begin after the Stage A disposition is recorded; Stage C's full revision runtime is **not** a dependency for starting Stage B.
+
+
+## 13. Maintainer disposition — T approved, P and migration independently gated (2026-11-03)
+
+**Explicit maintainer approval received:** F06b **T technical ADR approved** for future implementation planning, with the current RFC technical contract (stable Artifact and append-only capture snapshots; versioned deterministic hashes; legacy refs left unbound; same-Artifact FK; atomic pointer generation/CAS; candidate-only revision/extractor claims and separate drift episodes; PostgreSQL 17 + pgvector for server, file-backed SQLite for lightweight/local). This records a **design decision, not a runtime delivery**.
+
+- **T design status:** APPROVED. Do not silently change v1 hashes, generation/CAS, immutable review/audit semantics or backend support profile without a new ADR amendment and tests.
+- **P operations status:** DEFERRED / independent approval. Retention period, erasure deadline, backup cleanup, encryption, post-restore re-erasure, private-source rollout and operator cost quotas all remain unapproved. The §11 numerical suggestions are not promises or active policy.
+- **#34 migration status:** DRAFT / UNMERGED / NOT APPROVED. A synthetic PostgreSQL 17 + pgvector 0012→0013 dump/restore CI and synthetic file-backed SQLite recovery test are engineering evidence, **not production migration authorization**. Representative volume and real operational backup/restore, per-connection SQLite FK, privileges, encryption/erasure and writer CAS still need independent review.
+- **Issue #36:** OPEN. Pause/resume merged into main **default-disabled**, and worker safety must pass separate real concurrency/restart acceptance before any enablement.
+- **Stage A to B:** Approval of T removes the *decision* blocker for beginning Stage B once #28 post-merge CI and Stage A handoff are recorded; Stage C full runtime versioning is not required to begin B.
