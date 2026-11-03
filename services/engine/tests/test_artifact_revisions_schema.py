@@ -209,6 +209,81 @@ def test_revision_schema_enforces_identity_and_pointer_same_artifact(
     engine.dispose()
 
 
+def test_current_pointer_generation_rejects_stale_aba_compare_and_swap(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Schema can store a generation token; runtime CAS writer remains deferred."""
+    db_path = tmp_path / "pointer-generation-aba.db"
+    command.upgrade(_config(db_path, monkeypatch), "head")
+    engine = _new_engine(db_path)
+
+    with Session(engine) as session:
+        workspace = Workspace(slug="aba-workspace", name="ABA")
+        session.add(workspace)
+        session.flush()
+        artifact = Artifact(workspace_id=workspace.id, type="doc", source_id="docs/aba.md", content="A")
+        session.add(artifact)
+        session.flush()
+        first = ArtifactRevision(
+            artifact_id=artifact.id, revision_number=1,
+            capture_fingerprint="a" * 64, content_sha256=hashlib.sha256(b"A").hexdigest(),
+            content="A", capture_method="github_api", verification_state="local_hash_only",
+        )
+        second = ArtifactRevision(
+            artifact_id=artifact.id, revision_number=2,
+            capture_fingerprint="b" * 64, content_sha256=hashlib.sha256(b"B").hexdigest(),
+            content="B", capture_method="github_api", verification_state="local_hash_only",
+        )
+        session.add_all([first, second])
+        session.flush()
+        session.add(ArtifactCurrentRevision(artifact_id=artifact.id, revision_id=first.id))
+        session.commit()
+        artifact_id, first_id, second_id = artifact.id, first.id, second.id
+
+    # First writer read (revision A, generation 1) and was delayed.
+    # Another writer advances A -> B and then B -> A, retaining the old
+    # snapshot ID A but monotonically incrementing the pointer generation.
+    with engine.begin() as conn:
+        assert tuple(conn.execute(text(
+            "SELECT revision_id, generation FROM artifact_current_revisions WHERE artifact_id=:id"
+        ), {"id": artifact_id}).one()) == (first_id, 1)
+        step_b = conn.execute(text(
+            "UPDATE artifact_current_revisions "
+            "SET revision_id=:new, generation=generation+1 "
+            "WHERE artifact_id=:id AND revision_id=:old AND generation=:gen"
+        ), {"id": artifact_id, "new": second_id, "old": first_id, "gen": 1})
+        assert step_b.rowcount == 1
+        step_a = conn.execute(text(
+            "UPDATE artifact_current_revisions "
+            "SET revision_id=:new, generation=generation+1 "
+            "WHERE artifact_id=:id AND revision_id=:old AND generation=:gen"
+        ), {"id": artifact_id, "new": first_id, "old": second_id, "gen": 2})
+        assert step_a.rowcount == 1
+
+    with engine.begin() as conn:
+        # Checking only revision_id==A would incorrectly let stale work commit.
+        stale = conn.execute(text(
+            "UPDATE artifact_current_revisions "
+            "SET revision_id=:new, generation=generation+1 "
+            "WHERE artifact_id=:id AND revision_id=:old AND generation=:gen"
+        ), {"id": artifact_id, "new": second_id, "old": first_id, "gen": 1})
+        assert stale.rowcount == 0
+        assert tuple(conn.execute(text(
+            "SELECT revision_id, generation FROM artifact_current_revisions WHERE artifact_id=:id"
+        ), {"id": artifact_id}).one()) == (first_id, 3)
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as conn:
+            conn.execute(text(
+                "UPDATE artifact_current_revisions SET generation=0 WHERE artifact_id=:id"
+            ), {"id": artifact_id})
+
+    with Session(engine) as session:
+        pointer = session.get(ArtifactCurrentRevision, artifact_id)
+        assert (pointer.revision_id, pointer.generation) == (first_id, 3)
+    engine.dispose()
+
+
 def test_schema_only_downgrade_allowed_before_any_capture(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "no-revisions-downgrade.db"
     config = _config(db_path, monkeypatch)
