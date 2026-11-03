@@ -103,7 +103,9 @@ def vector_search(
     # content may be cached. FakeEmbedder has no namespace and stays uncached.
     query_vector = _embed_batch(embedder, [query])[0]
     dimension = len(query_vector)
-    namespace = _cache_namespace(embedder)
+    # Private/credential-backed sources remain outside this process cache
+    # until the separate F06b P privacy/retention gate is accepted.
+    namespace = _cache_namespace(embedder) if workspace.access_source_type == "public" else None
 
     def decision_text(decision) -> str:
         return " ".join([decision.title, decision.problem, decision.chosen_option, decision.tradeoffs])
