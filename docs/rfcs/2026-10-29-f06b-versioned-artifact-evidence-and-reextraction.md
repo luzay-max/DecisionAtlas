@@ -267,3 +267,19 @@ A future Windows/macOS/Linux build can embed the frontend and local Engine/API w
 
 **Approval checklist:** maintainer separately accepts/changes (1) retention/erasure durations, (2) private-data encryption choice for PostgreSQL and local SQLite, (3) deletion/tombstone scope including SourceRefs, derived chunks and backups, (4) restore reconciliation procedure, and (5) storage budget/GC activation guard. No ordinary writer, auto-prune, schema rollout or private-source migration is unlocked by this document change.
 
+
+
+## 12. Two independent approval gates: technical ADR vs operational privacy SLO
+
+**Maintainer guidance (2026-11-03):** Avoid holding a schema-only design review hostage to an operational privacy/backup capability that has not yet been built. Separate **architecture contract** approval from **private-data feature activation**.
+
+| Gate | Decision scope | What a pass authorizes | What it does not authorize |
+| --- | --- | --- | --- |
+| **T — Technical architecture ADR** | F06b-02 through F06b-05, and the storage contract of F06b-07/08: stable revision identity, versioned hashes/golden vectors, legacy-unbound refs, same-Artifact FK, atomic `(revision_id,generation)` CAS, PostgreSQL/SQLite migration data integrity | After explicit maintainer sign-off and representative PostgreSQL 17 + file-backed SQLite migration/restore acceptance, a **schema-only** PR may become merge-eligible | Real writer, backfill, private snapshot retention, extraction scheduling, desktop installer, paid model calls or production migration without a separate approval |
+| **P — Private-data and operations gate** | F06b-06 and runtime aspects of F06b-07: encryption and OS credential storage, audit/tenant access, referenced/unreferenced retention, erasure time targets, backups+restore/re-erasure, storage quota, worker lease/crash recovery | Only after a tested implementation, policy approval and separately authorized rollout may private revisions/writers/re-extraction be enabled | Retroactive claims that a legacy quote belonged to a specific historical source; automatic acceptance/rewrite of human-reviewed decisions |
+
+Proposed **7-day active erasure / 30-day backup expiry / 90-day unreferenced eligibility** from §11 remain **unapproved targets**. They must not be treated as accepted policy or deployed SLAs. Until P passes, keep private-source capture and GC off; the schema may be independently reviewed under T. Public/synthetic schema tests never exercise real private retention.
+
+The #34 provisional schema has since added a `generation` storage column and deterministic SQLite ABA characterization; this removes its original **missing-column** deficit but **does not** implement atomic revision/pointer/materialized-Artifact writes or production-safe compare-and-swap. Both T approval and PostgreSQL/SQLite restoration rehearsal remain prerequisites to a schema merge; #34 stays Draft.
+
+**Stage A exit accounting:** explicitly distinguish “delivered and merged” (#29/#32 after own post-merge CI), “default-disabled and independently gated” (#28/Issue #36), “approved technical direction but not released” (F06b T after human decision), and “deferred operations/implementation” (#34 and F06b P). Stage B retrieval/engineering may begin after the Stage A disposition is recorded; Stage C's full revision runtime is **not** a dependency for starting Stage B.
