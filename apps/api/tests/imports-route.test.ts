@@ -511,6 +511,9 @@ describe("POST /imports/github", () => {
     { action: "resume", status: 403, payload: { detail: "Forbidden" } },
     { action: "pause", status: 404, payload: { detail: "Import job not found" } },
     { action: "resume", status: 400, payload: { detail: "Cannot resume job in status: succeeded" } },
+    // The default-off Engine gate must pass through BFF without a false 200.
+    { action: "pause", status: 503, payload: { detail: "Import pause/resume is disabled pending worker lifecycle validation" } },
+    { action: "resume", status: 503, payload: { detail: "Import pause/resume is disabled pending worker lifecycle validation" } },
     // Preserve an upstream 409 as-is if Engine adopts explicit CAS conflict semantics.
     { action: "pause", status: 409, payload: { detail: "Concurrent status transition" } },
   ])("forwards $action control status $status and request credentials", async ({ action, status, payload }) => {
