@@ -114,6 +114,25 @@ def test_decision_vectors_are_cached_by_content_and_provider_but_queries_are_not
     engine.dispose()
 
 
+def test_credential_backed_workspaces_do_not_use_process_embedding_cache(
+    tmp_path: Path, monkeypatch
+) -> None:
+    engine = _db(tmp_path, monkeypatch)
+    with Session(engine) as session:
+        workspace = session.scalar(select(Workspace).where(Workspace.slug == "b01-workspace"))
+        assert workspace is not None
+        workspace.access_source_type = "github_token"
+        session.commit()
+
+    embedder = DeterministicCountingEmbedder(str(tmp_path) + "-private", dimension=2)
+    with Session(engine) as session:
+        vector_search(session=session, workspace_slug="b01-workspace", query="find evidence", embedder=embedder)
+        vector_search(session=session, workspace_slug="b01-workspace", query="find evidence", embedder=embedder)
+    # Safe default while F06b privacy operations P remain unapproved.
+    assert [len(call) for call in embedder.calls] == [1, 2, 1, 2]
+    engine.dispose()
+
+
 def test_changed_embedding_dimensions_do_not_reuse_cached_old_dimension(
     tmp_path: Path, monkeypatch
 ) -> None:
