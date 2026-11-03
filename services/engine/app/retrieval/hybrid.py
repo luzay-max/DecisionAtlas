@@ -20,6 +20,14 @@ def _normalized_scores(hits: list[RetrievalHit]) -> dict[int, float]:
     return {hit.decision_id: hit.score / max_score for hit in hits}
 
 
+def _lexical_only(hits: list[RetrievalHit], mode: str) -> tuple[list[RetrievalHit], str]:
+    # Keep the same score scale that existing hybrid reranking expects.
+    scores = _normalized_scores(hits)
+    for hit in hits:
+        hit.score = scores.get(hit.decision_id, 0.0) * FULLTEXT_WEIGHT
+    return hits, mode
+
+
 def hybrid_search_with_mode(
     *,
     session: Session,
@@ -41,7 +49,7 @@ def hybrid_search_with_mode(
         review_state=review_state,
     )
     if isinstance(embedder, FakeEmbedder):
-        return full_text_hits, "lexical_only"
+        return _lexical_only(full_text_hits, "lexical_only")
 
     try:
         vector_hits = vector_search(
@@ -54,7 +62,7 @@ def hybrid_search_with_mode(
     except ProviderError:
         # Fail visibly to lexical-only mode rather than fail the entire
         # public evidence query or silently claim successful semantic search.
-        return full_text_hits, "lexical_fallback"
+        return _lexical_only(full_text_hits, "lexical_fallback")
 
     full_text_scores = _normalized_scores(full_text_hits)
     vector_scores = _normalized_scores(vector_hits)
