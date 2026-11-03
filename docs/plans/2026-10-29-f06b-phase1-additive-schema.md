@@ -47,3 +47,14 @@ The current RFC #33 v1 architecture proposal requires an **explicit monotonic `g
 **Current #34 schema does not include a pointer generation field.** Do not claim the prototype is concurrency-safe, do not activate dual-writes or call it approved. After RFC approval, review an additive migration/model change that introduces `generation` with a non-null initialized value and transactional increments on every pointer transition (including reuse of an earlier fingerprint), preserving the stable historical `artifact_revisions` rows. Cover fresh rows, concurrent pointer creation, A/B conflict, **A→B→A ABA**, duplicate imports and failure rollback on PostgreSQL + file-backed SQLite. Such an implementation change requires a separately reviewed exact-head CI and migration rehearsal.
 
 This remains a **design note**, not an amendment to running migration or production logic. MySQL is out of the agreed support matrix.
+
+
+## 2026-11-03 additive generation prototype — storage, not live CAS
+
+The existing #34 Draft now adds a non-null `artifact_current_revisions.generation` of type BIGINT, initialized at 1 with a DB CHECK that rejects values below 1. The SQLAlchemy model mirrors the Alembic 0013 schema. A **file-backed SQLite test** demonstrates manual conditional `UPDATE ... WHERE revision_id=:expected AND generation=:expected_generation` transitions A→B→A as generations 1→2→3, then rejects a stale A/gen=1 update with zero affected rows. It also verifies the positive-generation constraint. This is a schema/contract-level regression only: **no runtime writer uses CAS, no automatic generation increment trigger, and no production pause/revision enablement**.
+
+The prior statement that #34 "lacks generation" describes the original prototype and is superseded by this storage-only change. Still required before any merge or deployment:
+1. Reconcile #34 with current main after approved Stage A PRs, inspect actual 3-way diff and rerun exact-head CI.
+2. Exercise **real PostgreSQL 17** 0012→0013 with representative legacy SourceRefs and composite FK, uniqueness/CHECK, transaction rollback, backup/restore.
+3. Exercise **real file-backed SQLite** upgrade, restart and integrity checks with representative large source_refs, controlled online backup and restore, foreign_keys ON on every connection, WAL and batch-copy disk/time measurement. Unit migration tests alone do not qualify as an operational rehearsal.
+4. Review #33 technical storage contract separately from private-data retention/encryption/erasure operations. The latter must block private snapshot activation, **not** prevent review of schema-only invariants. Human approval remains required for the schema's migration/rollout; no private data, writer or re-extraction permitted.
