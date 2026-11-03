@@ -448,8 +448,11 @@ def test_answering_keeps_high_vector_match_evidence_limited_without_same_thread_
         )
 
     assert response["status"] == "evidence_limited"
-    assert response["answer_context"]["retrieval"]["support_reasons"] == ["weak_primary_thread_match"]
-    assert response["primary_decision"]["title"] == "Use Redis Cache"
+    # B02: FakeEmbedder cannot create a spurious primary vector hit. A query
+    # for PostgreSQL must not return Redis as the primary decision.
+    assert response["retrieval_mode"] == "lexical_only"
+    assert response["citations"] == []
+    assert "primary_decision" not in response
 
 
 def test_answering_does_not_upgrade_with_unrelated_chunk_support(tmp_path: Path, monkeypatch) -> None:

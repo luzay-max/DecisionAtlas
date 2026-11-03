@@ -3,7 +3,8 @@ from __future__ import annotations
 import math
 
 from app.db.models import Decision
-from app.indexing.embedder import Embedder
+from app.indexing.embedder import Embedder, FakeEmbedder
+from app.llm.base import ProviderError
 from app.outcomes.real_workspaces import build_imported_drift_status, build_imported_workspace_readiness
 from app.provenance import get_workspace_provenance
 from app.repository_access import access_source_summary
@@ -14,7 +15,7 @@ from app.repositories.drift_alerts import DriftAlertRepository
 from app.repositories.import_jobs import ImportJobRepository
 from app.repositories.source_refs import SourceRefRepository
 from app.repositories.workspaces import WorkspaceRepository
-from app.retrieval.hybrid import hybrid_search
+from app.retrieval.hybrid import hybrid_search_with_mode
 from app.retrieval.query_rewrite import is_broad_why_query, rewrite_query, significant_query_terms
 from sqlalchemy.orm import Session
 
@@ -151,23 +152,37 @@ def _chunk_supporting_citations(
     if not chunks:
         return []
 
-    query_embedding = embedder.embed([query])[0]
+    # Chunk citations are optional supporting evidence. FakeEmbedder must not
+    # manufacture a semantic bonus, and a failing live provider must not
+    # defeat the already-authorized lexical fallback from hybrid retrieval.
+    query_embedding: list[float] = []
+    if not isinstance(embedder, FakeEmbedder):
+        try:
+            vectors = embedder.embed([query])
+            if len(vectors) == 1:
+                query_embedding = vectors[0]
+        except ProviderError:
+            pass
     query_terms = set(significant_query_terms(query))
     decision_terms = _supporting_decision_terms(decision)
-    chunk_texts_to_embed: list[str] = []
-    chunk_indices_to_embed: list[int] = []
     chunk_embeddings: dict[int, list[float]] = {}
-
-    for index, chunk in enumerate(chunks):
-        if chunk.embedding:
-            chunk_embeddings[index] = [float(value) for value in chunk.embedding]
-        else:
-            chunk_texts_to_embed.append(chunk.content)
-            chunk_indices_to_embed.append(index)
-
-    if chunk_texts_to_embed:
-        for index, embedding in zip(chunk_indices_to_embed, embedder.embed(chunk_texts_to_embed)):
-            chunk_embeddings[index] = embedding
+    if query_embedding:
+        chunk_texts_to_embed: list[str] = []
+        chunk_indices_to_embed: list[int] = []
+        for index, chunk in enumerate(chunks):
+            if chunk.embedding:
+                chunk_embeddings[index] = [float(value) for value in chunk.embedding]
+            else:
+                chunk_texts_to_embed.append(chunk.content)
+                chunk_indices_to_embed.append(index)
+        if chunk_texts_to_embed:
+            try:
+                embedded = embedder.embed(chunk_texts_to_embed)
+                if len(embedded) == len(chunk_indices_to_embed):
+                    for index, embedding in zip(chunk_indices_to_embed, embedded):
+                        chunk_embeddings[index] = embedding
+            except ProviderError:
+                pass
 
     ranked_chunks: list[tuple[float, dict]] = []
     for index, chunk in enumerate(chunks):
@@ -238,6 +253,7 @@ def _build_answer_payload(
         "answer": answer,
         "citations": citations,
         "answer_context": context,
+        "retrieval_mode": context.get("retrieval_mode", "not_run"),
     }
     if primary_decision is not None:
         payload["primary_decision"] = {
@@ -409,6 +425,7 @@ def answer_why_question(
         "workspace_mode": provenance.workspace_mode,
         "source_summary": provenance.source_summary,
         "workspace_readiness": workspace_readiness,
+        "retrieval_mode": "not_run",
     }
     if provenance.workspace_mode != "demo" and decision_counts.get("accepted", 0) == 0:
         status = "review_required" if decision_counts.get("candidate", 0) > 0 else "evidence_limited"
@@ -428,15 +445,17 @@ def answer_why_question(
             "answer": answer,
             "citations": [],
             "answer_context": context,
+            "retrieval_mode": "not_run",
         }
     rewritten = rewrite_query(question)
-    hits = hybrid_search(
+    hits, retrieval_mode = hybrid_search_with_mode(
         session=session,
         workspace_slug=workspace_slug,
         query=rewritten,
         embedder=embedder,
         review_state="accepted",
     )
+    context["retrieval_mode"] = retrieval_mode
     if not hits:
         return _build_answer_payload(
             status="evidence_limited" if provenance.workspace_mode != "demo" else "insufficient_evidence",
