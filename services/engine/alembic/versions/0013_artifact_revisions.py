@@ -49,7 +49,12 @@ def upgrade() -> None:
         "artifact_current_revisions",
         sa.Column("artifact_id", sa.Integer(), sa.ForeignKey("artifacts.id"), primary_key=True),
         sa.Column("revision_id", sa.Integer(), nullable=False),
+        # Generation is an ABA-safe CAS token: a return A -> B -> A must not
+        # accept a stale writer that previously read A at generation 1.
+        # The schema stores this token; no runtime CAS writer is enabled here.
+        sa.Column("generation", sa.BigInteger(), nullable=False, server_default="1"),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.CheckConstraint("generation >= 1", name="ck_artifact_current_generation_positive"),
         sa.ForeignKeyConstraint(
             ["artifact_id", "revision_id"],
             ["artifact_revisions.artifact_id", "artifact_revisions.id"],
