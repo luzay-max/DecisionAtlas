@@ -174,8 +174,12 @@ export type DecisionDetail = ReviewDecision &
   source_refs: SourceRef[];
 };
 
+export type RetrievalMode = "not_run" | "hybrid" | "lexical_only" | "lexical_fallback";
+
 export type WhyAnswerResponse = {
   status: WhyAnswerStatus;
+  // B02 type contract retained alongside B03 same-origin cookie transport.
+  retrieval_mode?: RetrievalMode;
   question: string;
   answer: string;
   primary_decision?: {
@@ -189,6 +193,7 @@ export type WhyAnswerResponse = {
   }>;
   answer_context: WorkspaceProvenance & {
     workspace_readiness?: WorkspaceReadiness | null;
+    retrieval_mode?: RetrievalMode;
   };
   citations: Array<{
     decision_id?: number;
