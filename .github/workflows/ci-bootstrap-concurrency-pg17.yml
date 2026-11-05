@@ -1,0 +1,68 @@
+name: CI local Bootstrap concurrency PG17 (#48)
+
+on:
+  pull_request:
+    paths:
+      - "services/engine/app/api/auth.py"
+      - "services/engine/app/repositories/auth.py"
+      - "services/engine/tests/api/test_bootstrap_concurrency_pg.py"
+      - ".github/workflows/ci-bootstrap-concurrency-pg17.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/engine/app/api/auth.py"
+      - "services/engine/app/repositories/auth.py"
+      - "services/engine/tests/api/test_bootstrap_concurrency_pg.py"
+      - ".github/workflows/ci-bootstrap-concurrency-pg17.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap-pg17-concurrent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: issue48_ci
+          POSTGRES_PASSWORD: issue48-ephemeral-only
+          POSTGRES_DB: issue48_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U issue48_ci -d issue48_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DATABASE_URL: postgresql+psycopg://issue48_ci:issue48-ephemeral-only@localhost:5432/issue48_ci
+      DECISIONATLAS_BOOTSTRAP_PG_CI_URL: postgresql+psycopg://issue48_ci:issue48-ephemeral-only@localhost:5432/issue48_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install locked engine dependencies
+        run: uv sync --project services/engine --frozen
+
+      - name: Enable pgvector in disposable PostgreSQL database for merged migrations
+        run: |
+          docker exec "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U issue48_ci -d issue48_ci -c 'CREATE EXTENSION IF NOT EXISTS vector'
+
+      - name: Verify real parallel PostgreSQL bootstrap transactions
+        working-directory: services/engine
+        run: uv run pytest -q tests/api/test_bootstrap_concurrency_pg.py
+
+      # Main's existing Alembic head only. No #34 F06b schema, real users,
+      # private repositories, production credentials, or persisted DB artifacts.
