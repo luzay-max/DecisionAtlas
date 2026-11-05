@@ -223,6 +223,10 @@ def ensure_bootstrap_identity(session: Session) -> tuple[Actor, OwnerScope, Owne
     settings = get_settings()
     repo = AuthRepository(session)
     actor = repo.get_actor_by_username(settings.local_bootstrap_username)
+    if actor is not None and (not actor.is_bootstrap or actor.status != "active"):
+        # A normal/disabled actor with this name cannot gain admin privileges
+        # just because local auto-bootstrap was enabled.
+        raise ValueError("Bootstrap username is already owned by a non-bootstrap or disabled actor")
     if actor is None:
         actor = repo.create_actor(
             username=settings.local_bootstrap_username,
@@ -232,6 +236,8 @@ def ensure_bootstrap_identity(session: Session) -> tuple[Actor, OwnerScope, Owne
         )
 
     scope = repo.get_scope_by_key(settings.default_owner_scope)
+    if scope is not None and scope.scope_type != "local":
+        raise ValueError("Bootstrap owner scope must be local")
     if scope is None:
         scope = repo.create_scope(
             scope_key=settings.default_owner_scope,
@@ -239,6 +245,9 @@ def ensure_bootstrap_identity(session: Session) -> tuple[Actor, OwnerScope, Owne
             scope_type="local",
         )
 
+    # The caller holds the DB transaction lock before the *first* read, so
+    # neither missing actor/scope nor missing membership can race another
+    # local bootstrap transaction. Do not add a second ad-hoc process lock.
     membership = repo.ensure_membership(actor_id=actor.id, owner_scope_id=scope.id, role="admin")
     session.flush()
     return actor, scope, membership
