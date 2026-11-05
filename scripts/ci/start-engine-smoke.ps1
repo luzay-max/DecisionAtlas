@@ -30,4 +30,7 @@ $env:AUTH_AUTO_BOOTSTRAP_LOCAL = "true"
 Set-Location $engineDir
 Invoke-Uv run alembic upgrade head
 Invoke-Uv run python ..\..\scripts\ci\seed_smoke_demo.py
+# Integration-only fixture is present exclusively on the non-merge B02+B03
+# validation branch. It never imports real repositories or private data.
+Invoke-Uv run python ..\..\scripts\ci\seed_b02_b03_composition.py
 Invoke-Uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
