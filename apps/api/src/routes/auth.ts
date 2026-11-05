@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 
-import { clearSessionCookie, parseCookieHeader, SESSION_HEADER, setSessionCookie } from "../auth";
+import { clearSessionCookie, ensureSessionToken, SESSION_HEADER, setSessionCookie } from "../auth";
 import { getEnv } from "../plugins/env";
 import { fetchUpstreamPayload } from "../proxy";
 
@@ -15,9 +15,9 @@ const scopeSchema = z.object({
 });
 
 function sessionHeadersFromRequest(request: FastifyRequest): Record<string, string> {
-  const env = getEnv();
-  const cookies = parseCookieHeader(request.headers.cookie);
-  const token = cookies[env.AUTH_COOKIE_NAME];
+  // Apply the same validated, bounded cookie-only session contract used by
+  // every other BFF route; never accept a client-supplied auth header.
+  const token = ensureSessionToken(request);
   return token ? { [SESSION_HEADER]: token } : {};
 }
 
