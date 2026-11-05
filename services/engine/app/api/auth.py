@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.auth import SESSION_HEADER, require_actor
 from app.config import get_settings
@@ -20,6 +22,26 @@ class ScopeSwitchRequest(BaseModel):
     owner_scope: str
 
 
+def _lock_local_bootstrap_transaction(session: Session) -> None:
+    """Serialize the *whole* bootstrap identity transaction across workers.
+
+    SQLite has no row-locking for a missing actor; BEGIN IMMEDIATE takes
+    a database writer reservation *before* reading whether the actor exists.
+    A second process waits for commit, then sees the winning actor/scope.
+    PostgreSQL uses a transaction-scoped advisory lock, released on commit
+    or rollback. Neither lock extends beyond this single local/test request.
+    """
+    connection = session.connection()
+    dialect = connection.dialect.name
+    if dialect == "sqlite":
+        connection.exec_driver_sql("BEGIN IMMEDIATE")
+    elif dialect == "postgresql":
+        connection.execute(text("SELECT pg_advisory_xact_lock(1145132098, 480001)"))
+    else:
+        # Never silently claim concurrency safety on an untested backend.
+        raise RuntimeError("Local bootstrap backend lacks a verified transaction lock")
+
+
 @router.post("/bootstrap")
 def bootstrap_auth() -> dict:
     settings = get_settings()
@@ -27,7 +49,11 @@ def bootstrap_auth() -> dict:
         raise HTTPException(status_code=403, detail="Local bootstrap is disabled")
     session = get_db_session()
     try:
-        actor, scope, membership = ensure_bootstrap_identity(session)
+        _lock_local_bootstrap_transaction(session)
+        try:
+            actor, scope, membership = ensure_bootstrap_identity(session)
+        except ValueError as exc:
+            raise HTTPException(status_code=403, detail="Local bootstrap identity is unavailable") from exc
         auth_session = AuthRepository(session).create_session(actor_id=actor.id, owner_scope_id=scope.id)
         session.commit()
         return {
@@ -41,6 +67,9 @@ def bootstrap_auth() -> dict:
             "current_owner_scope": scope.scope_key,
             "role": membership.role,
         }
+    except Exception:
+        session.rollback()
+        raise
     finally:
         session.close()
 
@@ -130,10 +159,18 @@ def switch_scope(
             raise HTTPException(status_code=403, detail="Forbidden")
         repo.switch_scope(auth_session, owner_scope_id=target_scope.id)
         session.commit()
+        # /auth/scope must satisfy the same complete ProductSession contract
+        # as /auth/session; callers replace the entire browser session object.
+        memberships = repo.list_memberships_for_actor(auth.actor_id)
         return {
+            "session_token": auth.session_token,
+            "actor": {"id": auth.actor_id, "username": auth.username, "bootstrap": auth.bootstrap},
             "current_owner_scope": target_scope.scope_key,
             "role": membership.role,
-            "session_token": auth.session_token,
+            "available_scopes": [
+                {"owner_scope": scope.scope_key, "role": member.role}
+                for member, scope in memberships
+            ],
         }
     finally:
         session.close()

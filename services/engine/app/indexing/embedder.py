@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import httpx
 
 from app.llm.base import (
@@ -39,6 +41,16 @@ class OpenAICompatibleEmbedder(Embedder):
             timeout=timeout,
         )
         self.model = model
+        # B01: process-local decision-vector cache identity. Separate model,
+        # backend and credential scopes; never retain/log the raw API key in
+        # the cache key. A provider that silently changes a model behind the
+        # same name still requires an explicit cache-version/config update.
+        self.embedding_cache_namespace = (
+            "openai_compatible",
+            base_url.rstrip("/"),
+            model,
+            hashlib.sha256(api_key.encode("utf-8")).hexdigest(),
+        )
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:

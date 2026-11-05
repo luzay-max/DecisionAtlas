@@ -879,3 +879,169 @@ def test_webhook_accepts_valid_signature_and_rejects_tampering(monkeypatch) -> N
     _validate_webhook_signature(body=body, signature=signature, secret=secret)
     with pytest.raises(ValueError, match="Invalid GitHub webhook signature"):
         _validate_webhook_signature(body=body + b" ", signature=signature, secret=secret)
+
+
+def test_import_pause_resume_is_disabled_by_default_and_never_mutates_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Issue #36 cannot expose unverified worker controls on normal installs."""
+    db_path = tmp_path / "disabled-import-control.db"
+    _upgrade(db_path, monkeypatch)
+    monkeypatch.delenv("IMPORT_PAUSE_RESUME_ENABLED", raising=False)
+    token = _create_actor_session(db_path, username="import-control-admin", role="admin")
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="control-disabled", name="Control disabled",
+            repo_url="https://github.com/org/repo", owner_scope="local-default",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(ImportJob(
+            job_id="control-disabled-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full", status="queued", imported_count=0,
+        ))
+        session.commit()
+
+    client = TestClient(create_app())
+    headers = {SESSION_HEADER: token}
+    for action in ("pause", "resume"):
+        response = client.post(f"/imports/control-disabled-job/{action}", headers=headers)
+        assert response.status_code == 503
+        assert response.json()["detail"] == (
+            "Import pause/resume is disabled pending worker lifecycle validation"
+        )
+
+    with Session(engine) as session:
+        assert session.query(ImportJob).filter_by(
+            job_id="control-disabled-job"
+        ).one().status == "queued"
+
+    # Only a deliberate operator override unlocks the existing experimental
+    # state machine. This test does not claim concurrent worker liveness.
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "true")
+    paused = client.post("/imports/control-disabled-job/pause", headers=headers)
+    assert paused.status_code == 200
+    assert paused.json()["status"] == "paused"
+    resumed = client.post("/imports/control-disabled-job/resume", headers=headers)
+    assert resumed.status_code == 200
+    assert resumed.json()["status"] == "queued"
+    with Session(engine) as session:
+        assert session.query(ImportJob).filter_by(
+            job_id="control-disabled-job"
+        ).one().status == "queued"
+
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "false")
+    assert client.post("/imports/control-disabled-job/pause", headers=headers).status_code == 503
+
+
+def test_import_job_controls_reject_old_workspace_after_owner_scope_switch(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Changing current owner scope revokes old job reads and mutations."""
+    # This test validates the scope contract under the explicitly experimental
+    # Engine opt-in; the default-off behavior is covered separately.
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "true")
+    db_path = tmp_path / "job-control-scope-switch.db"
+    _upgrade(db_path, monkeypatch)
+    token = _create_actor_session(
+        db_path, username="scope-operator", role="admin", scope_key="team-alpha"
+    )
+    engine = create_engine(f"sqlite:///{db_path}")
+    with Session(engine) as session:
+        auth_repo = AuthRepository(session)
+        actor = auth_repo.get_actor_by_username("scope-operator")
+        assert actor is not None
+        beta = auth_repo.create_scope(
+            scope_key="team-beta", display_name="Team Beta", scope_type="team"
+        )
+        auth_repo.ensure_membership(
+            actor_id=actor.id, owner_scope_id=beta.id, role="admin"
+        )
+        workspace = Workspace(
+            slug="alpha-import-workspace",
+            name="Alpha Import",
+            repo_url="https://github.com/org/repo",
+            owner_scope="team-alpha",
+        )
+        session.add(workspace)
+        session.flush()
+        session.add(ImportJob(
+            job_id="alpha-queued-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full", status="queued",
+            imported_count=0,
+        ))
+        session.commit()
+
+    client = TestClient(create_app())
+    headers = {SESSION_HEADER: token}
+    initial = client.get("/imports/alpha-queued-job", headers=headers)
+    assert initial.status_code == 200
+    assert initial.json()["status"] == "queued"
+
+    paused = client.post("/imports/alpha-queued-job/pause", headers=headers)
+    assert paused.status_code == 200
+    assert paused.json()["status"] == "paused"
+
+    switched = client.post(
+        "/auth/scope", headers=headers, json={"owner_scope": "team-beta"}
+    )
+    assert switched.status_code == 200
+    assert switched.json()["current_owner_scope"] == "team-beta"
+
+    # An admin in the new scope must not access or mutate the prior scope's job.
+    for method, url in (
+        ("GET", "/imports/alpha-queued-job"),
+        ("POST", "/imports/alpha-queued-job/pause"),
+        ("POST", "/imports/alpha-queued-job/resume"),
+    ):
+        response = client.request(method, url, headers=headers)
+        assert response.status_code == 404
+
+    with Session(engine) as session:
+        stored = session.query(ImportJob).filter_by(job_id="alpha-queued-job").one()
+        assert stored.status == "paused"
+
+    back = client.post(
+        "/auth/scope", headers=headers, json={"owner_scope": "team-alpha"}
+    )
+    assert back.status_code == 200
+    assert client.get("/imports/alpha-queued-job", headers=headers).json()["status"] == "paused"
+
+
+def test_import_capabilities_require_auth_and_report_default_off_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "import-capabilities.db"
+    _upgrade(db_path, monkeypatch)
+    # Isolate this test from any runner or developer .env that enables the
+    # local development bootstrap; this endpoint must require an explicit session.
+    monkeypatch.setenv("AUTH_AUTO_BOOTSTRAP_LOCAL", "false")
+    monkeypatch.delenv("IMPORT_PAUSE_RESUME_ENABLED", raising=False)
+    token = _create_actor_session(
+        db_path, username="capability-reader", role="admin"
+    )
+    client = TestClient(create_app())
+
+    assert client.get("/imports/capabilities").status_code == 401
+    disabled = client.get(
+        "/imports/capabilities", headers={SESSION_HEADER: token}
+    )
+    assert disabled.status_code == 200
+    assert disabled.json() == {
+        "pause_resume": {
+            "enabled": False,
+            "reason_code": "worker_lifecycle_unverified",
+        }
+    }
+
+    # Explicit opt-in is experimental only; this verifies the capability
+    # contract, not production worker safety or concurrent liveness.
+    monkeypatch.setenv("IMPORT_PAUSE_RESUME_ENABLED", "true")
+    enabled = client.get(
+        "/imports/capabilities", headers={SESSION_HEADER: token}
+    )
+    assert enabled.status_code == 200
+    assert enabled.json() == {
+        "pause_resume": {"enabled": True, "reason_code": None}
+    }

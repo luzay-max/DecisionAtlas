@@ -42,8 +42,16 @@ class DriftAlertRepository:
             )
             self.session.add(alert)
         else:
-            alert.summary = summary
-            alert.status = status
+            # Repeated detection must not erase a human-reviewed disposition.
+            # A manual reopen can still be status="open" with handler metadata.
+            if (
+                alert.status == "open"
+                and alert.handled_by is None
+                and alert.handled_at is None
+                and alert.disposition_rationale is None
+            ):
+                alert.summary = summary
+                alert.status = status
 
         self.session.flush()
         return alert, created
@@ -81,6 +89,23 @@ class DriftAlertRepository:
         stmt = delete(DriftAlert).where(
             DriftAlert.workspace_id == workspace_id,
             DriftAlert.alert_type == alert_type,
+        )
+        self.session.execute(stmt)
+        self.session.flush()
+
+    def delete_unhandled_by_workspace_and_types(
+        self, workspace_id: int, alert_types: list[str] | tuple[str, ...]
+    ) -> None:
+        """Replace only untouched open signals; preserve reviewed alert IDs."""
+        if not alert_types:
+            return
+        stmt = delete(DriftAlert).where(
+            DriftAlert.workspace_id == workspace_id,
+            DriftAlert.alert_type.in_(tuple(alert_types)),
+            DriftAlert.status == "open",
+            DriftAlert.handled_by.is_(None),
+            DriftAlert.handled_at.is_(None),
+            DriftAlert.disposition_rationale.is_(None),
         )
         self.session.execute(stmt)
         self.session.flush()

@@ -22,7 +22,22 @@ class ReviewDecisionRequest(BaseModel):
     review_rationale: str | None = None
 
 
-def _serialize_source_ref(source_ref) -> dict:
+def _current_quote_match(source_ref, artifacts: ArtifactRepository | None) -> bool | None:
+    """Exact quote presence in the *current* Artifact only.
+
+    A match does not prove the original reviewed source revision was retained.
+    Missing source/empty quote is unknown, never treated as a false match.
+    """
+    quote = str(source_ref.quote or "")
+    if not quote.strip() or artifacts is None:
+        return None
+    artifact = artifacts.get_by_id(source_ref.artifact_id)
+    if artifact is None:
+        return None
+    return quote in artifact.content
+
+
+def _serialize_source_ref(source_ref, *, artifacts: ArtifactRepository | None = None) -> dict:
     return {
         "id": source_ref.id,
         "artifact_id": source_ref.artifact_id,
@@ -31,6 +46,25 @@ def _serialize_source_ref(source_ref) -> dict:
         "quote": source_ref.quote,
         "url": source_ref.url,
         "relevance_score": source_ref.relevance_score,
+        "current_quote_match": _current_quote_match(source_ref, artifacts),
+    }
+
+
+def _source_ref_integrity(source_refs: list, artifacts: ArtifactRepository | None) -> dict:
+    matches = [_current_quote_match(source_ref, artifacts) for source_ref in source_refs]
+    found = matches.count(True)
+    missing = matches.count(False)
+    unknown = len(matches) - found - missing
+    return {
+        "status": (
+            "no_refs" if not matches else
+            "current_quote_missing" if missing else
+            "unverifiable" if unknown else
+            "current_quotes_found"
+        ),
+        "found_count": found,
+        "missing_count": missing,
+        "unverifiable_count": unknown,
     }
 
 
@@ -148,8 +182,12 @@ def _serialize_decision(
         payload["review_evidence"] = {
             "state": _review_evidence_state(source_ref_count),
             "source_ref_count": source_ref_count,
-            "source_ref_preview": [_serialize_source_ref(source_ref) for source_ref in source_refs[:2]],
+            "source_ref_preview": [
+                _serialize_source_ref(source_ref, artifacts=artifacts)
+                for source_ref in source_refs[:2]
+            ],
             "primary_artifact": _serialize_artifact_summary(primary_artifact),
+            "current_quote_integrity": _source_ref_integrity(source_refs, artifacts),
         }
         payload["candidate_quality"] = _candidate_quality(
             decision=decision,
@@ -217,7 +255,10 @@ def get_decision(
             **_serialize_decision(decision, source_refs=decision_source_refs, artifacts=artifacts),
             "workspace_mode": provenance.workspace_mode,
             "source_summary": provenance.source_summary,
-            "source_refs": [_serialize_source_ref(source_ref) for source_ref in decision_source_refs],
+            "source_refs": [
+                _serialize_source_ref(source_ref, artifacts=artifacts)
+                for source_ref in decision_source_refs
+            ],
             "review_history": [
                 serialize_review_audit_event(event)
                 for event in ReviewAuditRepository(session).list_for_target(

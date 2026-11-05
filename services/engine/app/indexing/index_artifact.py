@@ -10,6 +10,9 @@ from app.repositories.artifact_chunks import ArtifactChunkRepository
 def index_artifact(*, session: Session, artifact_id: int, content: str, embedder: Embedder) -> int:
     chunks = chunk_text(content)
     if not chunks:
+        # An empty revision must remove previously indexed chunks.
+        ArtifactChunkRepository(session).replace_for_artifact(artifact_id, [])
+        session.commit()
         return 0
 
     embeddings = embedder.embed([chunk.content for chunk in chunks])

@@ -5,19 +5,39 @@ import { getEnv } from "./plugins/env";
 export const SESSION_HEADER = "x-decisionatlas-session-token";
 
 export function parseCookieHeader(header: string | undefined): Record<string, string> {
-  if (!header) {
-    return {};
+  // A malformed or oversized cookie must never crash an authenticated BFF
+  // route. Duplicate names are ambiguous (cookie tossing): reject both.
+  const result: Record<string, string> = Object.create(null);
+  if (!header || header.length > 8192) {
+    return result;
   }
-  return Object.fromEntries(
-    header
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const [name, ...rest] = part.split("=");
-        return [name, decodeURIComponent(rest.join("=") || "")];
-      })
-  );
+  const parts = header.split(";");
+  if (parts.length > 64) {
+    return result;
+  }
+  const seen = new Set<string>();
+  for (const part of parts) {
+    const index = part.indexOf("=");
+    if (index <= 0) continue;
+    const name = part.slice(0, index).trim();
+    const encoded = part.slice(index + 1).trim();
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(name) || encoded.length > 4096) continue;
+    if (seen.has(name)) {
+      // Even an invalid first cookie forbids a later same-name override.
+      delete result[name];
+      continue;
+    }
+    seen.add(name);
+    try {
+      const value = decodeURIComponent(encoded);
+      if (!value || Array.from(value).some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) continue;
+      result[name] = value;
+    } catch {
+      // Invalid %-encoding fails closed for this cookie, not the whole request.
+      // The name stays marked in "seen" to reject any subsequent override.
+    }
+  }
+  return result;
 }
 
 function buildSessionCookie(name: string, value: string, clear = false): string {
@@ -31,7 +51,9 @@ export function ensureSessionToken(request: FastifyRequest): string | null {
   const env = getEnv();
   const cookies = parseCookieHeader(request.headers.cookie);
   const existing = cookies[env.AUTH_COOKIE_NAME];
-  return existing ?? null;
+  // The token is forwarded in a protected header, never from an arbitrary
+  // request header or browser localStorage. Do not accept control characters.
+  return existing && existing.length <= 2048 ? existing : null;
 }
 
 export async function authHeadersForRequest(request: FastifyRequest): Promise<Record<string, string>> {

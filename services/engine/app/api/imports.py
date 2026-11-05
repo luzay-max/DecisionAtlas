@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, 
 from pydantic import BaseModel
 
 from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
+from app.config import get_settings
 from app.db.session import get_db_session
 from app.git_sources import (
     decorate_github_result,
@@ -251,6 +252,20 @@ async def github_webhook(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@router.get("/capabilities")
+def get_import_capabilities(
+    auth: AuthContext = Depends(require_actor),
+) -> dict:
+    """Expose the effective control-plane capability without mutating job state."""
+    enabled = get_settings().import_pause_resume_enabled
+    return {
+        "pause_resume": {
+            "enabled": enabled,
+            "reason_code": None if enabled else "worker_lifecycle_unverified",
+        }
+    }
+
+
 @router.get("/{job_id}")
 def get_import_job(
     job_id: str,
@@ -277,6 +292,13 @@ def pause_import_job(
     job_id: str,
     auth: AuthContext = Depends(require_actor),
 ) -> dict:
+    # Auth is required even when disabled, but no import state should be
+    # modified while SQLite worker lock/restart semantics are unresolved.
+    if not get_settings().import_pause_resume_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="Import pause/resume is disabled pending worker lifecycle validation",
+        )
     session = get_db_session()
     try:
         job = ImportJobRepository(session).get_by_job_id(job_id)
@@ -300,6 +322,11 @@ def resume_import_job(
     job_id: str,
     auth: AuthContext = Depends(require_actor),
 ) -> dict:
+    if not get_settings().import_pause_resume_enabled:
+        raise HTTPException(
+            status_code=503,
+            detail="Import pause/resume is disabled pending worker lifecycle validation",
+        )
     session = get_db_session()
     try:
         job = ImportJobRepository(session).get_by_job_id(job_id)

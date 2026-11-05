@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 import httpx
+import pytest
 
-from app.ingest.github_client import GitHubClient, GitHubNetworkError
+from app.ingest.github_client import GitHubClient, GitHubIncompleteCoverageError, GitHubNetworkError
 
 
 def test_fetch_issues_skips_pull_requests() -> None:
@@ -222,7 +223,7 @@ def test_paginate_stops_without_next_link_even_when_page_is_full() -> None:
     assert request_pages == ["1"]
 
 
-def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
+def test_paginate_rejects_422_after_next_link_instead_of_claiming_complete() -> None:
     request_pages: list[str | None] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -249,13 +250,14 @@ def test_paginate_tolerates_out_of_range_422_on_late_page() -> None:
 
     client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
 
-    issues = client.fetch_issues("org/repo")
+    with pytest.raises(GitHubIncompleteCoverageError, match="pagination_rejected") as exc:
+        client.fetch_issues("org/repo")
 
-    assert len(issues) == 1
+    assert exc.value.scope == "/repos/org/repo/issues"
     assert request_pages == ["1", "2"]
 
 
-def test_paginate_respects_max_pages_limit() -> None:
+def test_paginate_fails_closed_at_max_pages_with_next_link() -> None:
     request_pages: list[str | None] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -284,11 +286,65 @@ def test_paginate_respects_max_pages_limit() -> None:
         client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"),
     )
 
-    issues = client.fetch_issues("org/repo")
+    with pytest.raises(GitHubIncompleteCoverageError, match="page_limit") as exc:
+        client.fetch_issues("org/repo")
 
-    assert len(issues) == 3
+    assert exc.value.scope == "/repos/org/repo/issues"
     assert request_pages == ["1", "2", "3"]
 
+
+
+
+def test_tree_truncation_fails_before_document_selection() -> None:
+    request_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        request_paths.append(request.url.path)
+        return httpx.Response(
+            200,
+            json={
+                "sha": "abc",
+                "truncated": True,
+                "tree": [{"path": "docs/architecture.md", "type": "blob", "sha": "123"}],
+            },
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="tree_truncated") as exc:
+        client.list_repository_files("org/repo", ref="main")
+
+    assert exc.value.scope == "org/repo@main"
+    assert request_paths == ["/repos/org/repo/git/trees/main"]
+
+
+def test_complete_tree_and_last_page_without_next_link_remain_accepted() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/issues"):
+            return httpx.Response(200, json=[{
+                "id": 1,
+                "number": 1,
+                "title": "One issue",
+                "body": "Content",
+                "user": {"login": "maintainer"},
+                "state": "open",
+                "created_at": "2026-03-18T00:00:00Z",
+            }])
+        return httpx.Response(200, json={
+            "truncated": False,
+            "tree": [{"path": "docs/architecture.md", "type": "blob", "sha": "a" * 40, "size": 4}],
+        })
+
+    client = GitHubClient(max_pages=1, client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    assert len(client.fetch_issues("org/repo")) == 1
+    assert [x.path for x in client.list_repository_files("org/repo", ref="main")] == [
+        "docs/architecture.md"
+    ]
 
 def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_content() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
@@ -312,6 +368,245 @@ def test_fetch_markdown_document_falls_back_to_download_url_for_non_base64_conte
     content = client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main")
 
     assert content == "# Changelog\n\nLarge markdown body"
+
+
+def test_raw_markdown_fallback_never_forwards_client_auth_or_cookies() -> None:
+    observed = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed[str(request.url.host)] = {
+            "authorization": request.headers.get("Authorization"),
+            "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
+        }
+        if request.url.host == "api.github.com":
+            return httpx.Response(
+                200,
+                json={
+                    "encoding": "none",
+                    "content": "",
+                    "download_url": "https://raw.githubusercontent.com/org/repo/main/CHANGELOG.md",
+                },
+            )
+        if request.url.host == "raw.githubusercontent.com":
+            return httpx.Response(200, text="# Safe raw content")
+        raise AssertionError("Unexpected outbound request")
+
+    transport = httpx.MockTransport(handler)
+    client = GitHubClient(
+        client=httpx.Client(
+            transport=transport,
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-pass"),
+            headers={
+                "Cookie": "session=private-cookie",
+                "X-Internal-Api-Key": "sensitive-custom-api-key",
+            },
+        )
+    )
+    assert client.fetch_markdown_document("org/repo", path="CHANGELOG.md", ref="main") == "# Safe raw content"
+    assert observed["api.github.com"]["authorization"] is not None
+    assert observed["api.github.com"]["cookie"] == "session=private-cookie"
+    assert observed["api.github.com"]["custom_key"] == "sensitive-custom-api-key"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
+
+
+
+def test_raw_markdown_fallback_does_not_inherit_client_cookie_jar() -> None:
+    """Public raw downloads must not inherit cookies from the API client."""
+    observed: dict[str, dict[str, str | None]] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed[str(request.url.host)] = {
+            "authorization": request.headers.get("Authorization"),
+            "cookie": request.headers.get("Cookie"),
+            "custom_key": request.headers.get("X-Internal-Api-Key"),
+        }
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(200, text="# public source")
+
+    client = GitHubClient(client=httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+        auth=httpx.BasicAuth("private-user", "private-pass"),
+        headers={"X-Internal-Api-Key": "client-internal-secret"},
+        cookies={"private-session": "cookie-jar-secret"},
+    ))
+
+    assert client.fetch_markdown_document("org/repo", path="README.md", ref="main") == "# public source"
+    assert observed["api.github.com"]["authorization"] is not None
+    assert "private-session=cookie-jar-secret" in (observed["api.github.com"]["cookie"] or "")
+    assert observed["api.github.com"]["custom_key"] == "client-internal-secret"
+    assert observed["raw.githubusercontent.com"] == {
+        "authorization": None, "cookie": None, "custom_key": None,
+    }
+
+
+def test_raw_markdown_fallback_rejects_untrusted_host_before_request() -> None:
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        return httpx.Response(
+            200,
+            json={"encoding": "none", "download_url": "https://example.invalid/org/repo/main/README.md"},
+        )
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "not trusted" in str(exc)
+    else:
+        raise AssertionError("Expected unsafe raw download to be blocked")
+    assert len(requests) == 2
+
+
+def test_raw_markdown_fallback_refuses_redirects() -> None:
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        if request.url.host == "api.github.com":
+            return httpx.Response(
+                200,
+                json={"encoding": "none", "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md"},
+            )
+        return httpx.Response(302, headers={"Location": "https://example.invalid/steal"})
+
+    client = GitHubClient(client=httpx.Client(transport=httpx.MockTransport(handler), base_url="https://api.github.com"))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "redirected unexpectedly" in str(exc)
+    else:
+        raise AssertionError("Expected redirect to be blocked")
+    assert len(requests) == 3
+
+
+def test_raw_media_rejects_success_status_with_unexpected_json() -> None:
+    observed: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed.append(str(request.url))
+        if len(observed) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        if len(observed) == 2:
+            # An API gateway/error proxy may return 200 with an error object.
+            # It is not valid Markdown and must not become decision evidence.
+            return httpx.Response(200, json={"message": "GitHub source unavailable"})
+        raise AssertionError("Unexpected request after invalid source response")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "unexpected JSON" in str(exc)
+    else:
+        raise AssertionError("Expected unexpected raw JSON response to fail closed")
+    assert len(observed) == 2
+    assert all(url.startswith("https://api.github.com/") for url in observed)
+
+
+def test_raw_media_rejects_malformed_json_response() -> None:
+    requests: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(str(request.url))
+        if len(requests) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(
+            200, content=b"not-a-json-object",
+            headers={"content-type": "application/json"},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "malformed JSON" in str(exc)
+    else:
+        raise AssertionError("Expected malformed raw JSON response to fail closed")
+    assert len(requests) == 2
+
+
+def test_raw_media_fallback_keeps_private_token_on_github_api_only() -> None:
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append({
+            "host": request.url.host,
+            "accept": request.headers.get("Accept"),
+            "authorization": request.headers.get("Authorization"),
+        })
+        if request.url.host != "api.github.com":
+            raise AssertionError("No cross-origin request is needed for a private repository")
+        if request.headers.get("Accept") == "application/vnd.github.raw+json":
+            return httpx.Response(200, text="# Large private Markdown")
+        return httpx.Response(
+            200,
+            json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/private.md",
+            },
+        )
+
+    client = GitHubClient(
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-pass"),
+        )
+    )
+    result = client.fetch_markdown_document("org/repo", path="private.md", ref="main")
+    assert result == "# Large private Markdown"
+    assert [row["host"] for row in seen] == ["api.github.com", "api.github.com"]
+    assert seen[1]["accept"] == "application/vnd.github.raw+json"
+    assert all(row["authorization"] is not None for row in seen)
+
+
+def test_raw_media_fallback_does_not_follow_authenticated_redirects() -> None:
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.host)
+        if request.headers.get("Accept") == "application/vnd.github.raw+json":
+            return httpx.Response(302, headers={"Location": "https://example.invalid/steal"})
+        return httpx.Response(200, json={"encoding": "none", "content": ""})
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        headers={"Authorization": "Bearer private-token"},
+        follow_redirects=True,
+    ))
+    try:
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    except ValueError as exc:
+        assert "raw content API redirected" in str(exc)
+    else:
+        raise AssertionError("Expected authenticated cross-host redirect to be blocked")
+    assert seen == ["api.github.com", "api.github.com"]
 
 
 def test_fetch_pull_requests_accepts_naive_since_datetime() -> None:
@@ -444,3 +739,377 @@ def test_get_repository_metadata_maps_private_flag() -> None:
         "private": True,
         "default_branch": "main",
     }
+
+
+def test_streamed_public_raw_refuses_large_unknown_length_without_forwarding_auth() -> None:
+    seen = []
+    chunks_read = []
+
+    def raw_chunks():
+        for i in range(50):
+            chunks_read.append(i)
+            yield b"a" * 4096
+
+    class RawStream(httpx.SyncByteStream):
+        def __iter__(self):
+            yield from raw_chunks()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.host, request.headers.get("authorization"), request.headers.get("cookie")))
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/README.md",
+            })
+        return httpx.Response(200, stream=RawStream())
+
+    client = GitHubClient(
+        max_markdown_bytes=16 * 1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-password"),
+            headers={"Cookie": "session=secret"},
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    assert seen[-1] == ("raw.githubusercontent.com", None, None)
+    assert len(chunks_read) < 50  # Stream aborted before the complete body arrived.
+
+
+def test_streamed_private_raw_refuses_oversize_without_following_redirects() -> None:
+    observed = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed.append((request.url.host, request.headers.get("accept"), request.headers.get("authorization")))
+        if len(observed) == 1:
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "content": "",
+                "download_url": "https://raw.githubusercontent.com/org/repo/main/private.md",
+            })
+        return httpx.Response(
+            200, content=b"x" * 4096, headers={"content-type": "text/plain"}
+        )
+
+    client = GitHubClient(
+        max_markdown_bytes=1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+            auth=httpx.BasicAuth("private-user", "private-password"),
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="private.md", ref="main")
+    assert [host for host, _, _ in observed] == ["api.github.com", "api.github.com"]
+    assert all(auth is not None for _, _, auth in observed)
+
+
+def test_streamed_contents_base64_enforces_decoded_document_size() -> None:
+    import base64 as base64_library
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={
+            "encoding": "base64",
+            "content": base64_library.b64encode(b"123456789").decode("ascii"),
+        })
+
+    client = GitHubClient(
+        max_markdown_bytes=8,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+
+
+def test_streamed_raw_accepts_valid_small_gzip_response() -> None:
+    import gzip
+
+    expected = "# Valid UTF-8 Markdown\n"
+    encoded = gzip.compress(expected.encode("utf-8"))
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("accept") == "application/vnd.github.raw+json":
+            return httpx.Response(
+                200, content=encoded, headers={
+                    "content-type": "text/plain",
+                    "content-encoding": "gzip",
+                },
+            )
+        return httpx.Response(200, json={"encoding": "none"})
+
+    client = GitHubClient(
+        max_markdown_bytes=4096,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    assert client.fetch_markdown_document("org/repo", path="README.md", ref="main") == expected
+
+
+def test_streamed_raw_rejects_large_decompressed_gzip_response() -> None:
+    import gzip
+
+    compressed = gzip.compress(b"a" * 256 * 1024)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("accept") == "application/vnd.github.raw+json":
+            return httpx.Response(
+                200, content=compressed, headers={
+                    "content-type": "text/plain",
+                    "content-encoding": "gzip",
+                },
+            )
+        return httpx.Response(200, json={"encoding": "none"})
+
+    client = GitHubClient(
+        max_markdown_bytes=32 * 1024,
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.com",
+        ),
+    )
+    with pytest.raises(GitHubIncompleteCoverageError, match="document_size_budget"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+
+
+@pytest.mark.parametrize(
+    "tree_payload",
+    [
+        {"truncated": False},
+        {"truncated": False, "tree": None},
+        {"truncated": False, "tree": {"path": "README.md"}},
+        {"truncated": False, "tree": ["README.md"]},
+    ],
+)
+def test_malformed_git_tree_fails_closed_instead_of_claiming_empty_repository(
+    tree_payload: dict,
+) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=tree_payload)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_tree") as exc:
+        client.list_repository_files("org/repo", ref="main")
+    assert exc.value.scope == "org/repo@main"
+
+
+def test_valid_empty_git_tree_still_succeeds() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"truncated": False, "tree": []})
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    assert client.list_repository_files("org/repo", ref="main") == []
+
+
+def test_empty_paginated_page_with_next_link_fails_closed() -> None:
+    pages: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        pages.append(request.url.params.get("page"))
+        if pages[-1] == "1":
+            return httpx.Response(
+                200,
+                headers={"Link": '<https://api.github.com/repos/org/repo/issues?per_page=100&page=2>; rel="next"'},
+                json=[{
+                    "id": 1, "number": 1, "title": "Issue",
+                    "body": "Some evidence", "state": "open",
+                    "created_at": "2026-10-30T00:00:00Z",
+                }],
+            )
+        return httpx.Response(
+            200,
+            headers={"Link": '<https://api.github.com/repos/org/repo/issues?per_page=100&page=3>; rel="next"'},
+            json=[],
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="empty_page_with_next") as exc:
+        client.fetch_issues("org/repo")
+    assert exc.value.scope == "/repos/org/repo/issues"
+    assert pages == ["1", "2"]
+
+
+@pytest.mark.parametrize(
+    "page", [{"message": "Internal error"}, ["unexpected-item"], None]
+)
+def test_malformed_pagination_result_fails_with_coverage_error(page) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        # json=None would produce an empty body in HTTPX, not JSON null.
+        return httpx.Response(200, content=b"null" if page is None else None, json=page if page is not None else None)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
+        client.fetch_issues("org/repo")
+
+
+
+@pytest.mark.parametrize("body", [b"", b"{not-json", b"null", b"[]"])
+def test_malformed_tree_http_200_does_not_escape_typed_coverage_error(body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_tree"):
+        client.list_repository_files("org/repo", ref="main")
+
+
+@pytest.mark.parametrize("body", [b"", b"{not-json", b"null"])
+def test_malformed_paginated_http_200_reports_coverage_error(body: bytes) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=body)
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="https://api.github.com",
+    ))
+    with pytest.raises(GitHubIncompleteCoverageError, match="malformed_pagination"):
+        client.fetch_issues("org/repo")
+
+@pytest.mark.parametrize(
+    "download_url",
+    [
+        "https://raw.githubusercontent.com/org/repo/main/OTHER.md",
+        "https://raw.githubusercontent.com/org/repo/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%2e%2e/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%252e%252e/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%2F/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/%5c/README.md",
+    ],
+)
+def test_raw_fallback_rejects_wrong_file_or_encoded_traversal_before_network(
+    download_url: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.host != "api.github.com":
+            pytest.fail("Untrusted URL reached the raw host")
+        return httpx.Response(
+            200, json={"encoding": "none", "download_url": download_url},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    with pytest.raises(ValueError, match="not trusted"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    # Both requests must stay at the authenticated API host.
+    assert len(requests) == 2
+    assert all(request.url.host == "api.github.com" for request in requests)
+
+
+def test_raw_fallback_accepts_encoded_space_in_exact_requested_file_path() -> None:
+    hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": (
+                    "https://raw.githubusercontent.com/"
+                    "org/repo/main/docs/Release%20Notes.md"
+                ),
+            })
+        assert request.headers.get("Authorization") is None
+        assert request.headers.get("Cookie") is None
+        return httpx.Response(200, text="# Exact source")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    assert client.fetch_markdown_document(
+        "org/repo", path="docs/Release Notes.md", ref="main",
+    ) == "# Exact source"
+    assert hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]
+
+
+@pytest.mark.parametrize(
+    "download_url",
+    [
+        "https://raw.githubusercontent.com/org/repo/other/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/unrelated/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/README.md",
+        "https://raw.githubusercontent.com/org/repo/main/docs/../README.md",
+    ],
+)
+def test_raw_fallback_rejects_mismatched_ref_or_extra_path_before_network(
+    download_url: str,
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        if request.url.host != "api.github.com":
+            pytest.fail("Mismatched source reached raw host")
+        return httpx.Response(
+            200, json={"encoding": "none", "download_url": download_url},
+        )
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    with pytest.raises(ValueError, match="not trusted"):
+        client.fetch_markdown_document("org/repo", path="README.md", ref="main")
+    assert len(requests) == 2
+    assert all(request.url.host == "api.github.com" for request in requests)
+
+
+def test_raw_fallback_accepts_ref_containing_slash_with_exact_document() -> None:
+    observed_hosts: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        observed_hosts.append(request.url.host)
+        if request.url.host == "api.github.com":
+            return httpx.Response(200, json={
+                "encoding": "none",
+                "download_url": (
+                    "https://raw.githubusercontent.com/org/repo/"
+                    "release/v1/docs/Release%20Notes.md"
+                ),
+            })
+        assert request.headers.get("Authorization") is None
+        assert request.headers.get("Cookie") is None
+        return httpx.Response(200, text="# Document")
+
+    client = GitHubClient(client=httpx.Client(
+        transport=httpx.MockTransport(handler),
+        base_url="https://api.github.com",
+        auth=httpx.BasicAuth("private-user", "private-password"),
+        headers={"Cookie": "sensitive-session"},
+    ))
+    assert client.fetch_markdown_document(
+        "org/repo", path="docs/Release Notes.md", ref="release/v1",
+    ) == "# Document"
+    assert observed_hosts == ["api.github.com", "api.github.com", "raw.githubusercontent.com"]

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Event, Lock
 import hashlib
 
 from alembic import command
@@ -11,9 +13,12 @@ import pytest
 
 from app.db.models import Artifact, Workspace
 from app.ingest.github_importer import GitHubImporter
+from app.ingest.github_client import GitHubIncompleteCoverageError
+from app.jobs.import_jobs import _classify_failure
 from app.ingest.github_document_selection import select_high_signal_repository_documents
 from app.ingest.github_types import GitHubArtifactPayload
 from app.ingest.github_types import GitHubRepositoryFile
+from app.repositories.import_jobs import ImportJobRepository
 
 
 class FakeGitHubClient:
@@ -198,3 +203,291 @@ def test_github_importer_is_idempotent_on_repeat_runs(tmp_path: Path, monkeypatc
         artifacts = session.scalars(select(Artifact)).all()
 
     assert len(artifacts) == 5
+
+
+def test_slow_markdown_prefetch_does_not_block_pause_write_on_sqlite(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """An admin can pause while network fetch is blocked, before source writes."""
+    db_path = tmp_path / "prefetch-pause-control.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"timeout": 0.25})
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        )
+        session.add(workspace)
+        session.flush()
+        job = ImportJobRepository(session).create(
+            job_id="prefetch-pause-job", workspace_id=workspace.id,
+            repo="org/repo", mode="full",
+        )
+        ImportJobRepository(session).mark_running(job.job_id)
+        session.commit()
+
+    entered_download = Event()
+    allow_download = Event()
+
+    class SlowGitHubClient(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            if path == "README.md":
+                entered_download.set()
+                if not allow_download.wait(timeout=12):
+                    raise TimeoutError("Test did not release document fetch")
+            return super().fetch_markdown_document(repo, path=path, ref=ref)
+
+    def perform_import():
+        with Session(engine) as session:
+            importer = GitHubImporter(session, SlowGitHubClient())
+            return importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as workers:
+            running = workers.submit(perform_import)
+            try:
+                assert entered_download.wait(timeout=5)
+                # Must not wait for the slow remote document to release its lock.
+                with Session(engine) as admin:
+                    paused = ImportJobRepository(admin).mark_paused("prefetch-pause-job")
+                    admin.commit()
+                    assert paused.status == "paused"
+
+                # The importer itself is not responsible for orchestration:
+                # resume before allowing the document to finish.
+                with Session(engine) as admin:
+                    resumed = ImportJobRepository(admin).mark_resumed("prefetch-pause-job")
+                    admin.commit()
+                    assert resumed.status == "running"
+
+                # No source writes have happened during the remote wait.
+                with Session(engine) as inspector:
+                    assert inspector.scalars(select(Artifact)).all() == []
+            finally:
+                allow_download.set()
+            result = running.result(timeout=12)
+            assert result.imported_count == 5
+
+        with Session(engine) as session:
+            assert len(session.scalars(select(Artifact)).all()) == 5
+    finally:
+        engine.dispose()
+
+
+def test_remote_markdown_failure_leaves_no_imported_artifact_writes(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Even issue/PR source writes should not begin before doc verification."""
+    db_path = tmp_path / "doc-download-error.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(alembic_cfg, "head")
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"timeout": 0.25})
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class FailingDocs(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            # A separate writer must still be able to write while this failure
+            # is raised, proving importer has not flushed issue rows yet.
+            if path == "README.md":
+                with Session(engine) as independent:
+                    independent.add(Workspace(
+                        slug="concurrent-check", name="Write check",
+                        repo_url="https://github.com/org/other",
+                    ))
+                    independent.commit()
+                raise RuntimeError("synthetic GitHub Markdown download failure")
+            return super().fetch_markdown_document(repo, path=path, ref=ref)
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(session, FailingDocs())
+            with pytest.raises(RuntimeError, match="synthetic GitHub Markdown"):
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
+            assert session.scalar(select(Workspace).where(Workspace.slug == "concurrent-check")) is not None
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("budget_name", "budget_value", "expected_reason"),
+    [
+        ("max_selected_documents", 1, "document_count_budget"),
+        ("max_single_document_bytes", 64, "document_size_budget"),
+        ("max_total_document_bytes", 128, "document_total_budget"),
+    ],
+)
+def test_markdown_tree_budget_fails_before_document_fetch_or_source_writes(
+    tmp_path: Path, monkeypatch, budget_name: str, budget_value: int,
+    expected_reason: str,
+) -> None:
+    db_path = tmp_path / f"tree-budget-{budget_name}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class NoDocumentRequests(FakeGitHubClient):
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str) -> str:
+            pytest.fail("Budget should fail before any document fetch")
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(
+                session, NoDocumentRequests(), **{budget_name: budget_value}
+            )
+            with pytest.raises(GitHubIncompleteCoverageError) as raised:
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            assert raised.value.reason == expected_reason
+            assert _classify_failure(raised.value) == "incomplete_source_coverage"
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("max_single", "max_total", "reason"),
+    [
+        (5, 512, "document_size_budget"),
+        (64, 13, "document_total_budget"),
+    ],
+)
+def test_downloaded_bytes_budget_rejects_underreported_tree_without_committing(
+    tmp_path: Path, monkeypatch, max_single: int, max_total: int, reason: str
+) -> None:
+    db_path = tmp_path / f"actual-budget-{reason}.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    class UnderreportedGitTree(FakeGitHubClient):
+        def list_repository_files(self, repo: str, *, ref: str | None = None):
+            files = super().list_repository_files(repo, ref=ref)
+            for file in files:
+                file.size = 1
+            return files
+
+    try:
+        with Session(engine) as session:
+            importer = GitHubImporter(
+                session, UnderreportedGitTree(),
+                max_single_document_bytes=max_single,
+                max_total_document_bytes=max_total,
+            )
+            with pytest.raises(GitHubIncompleteCoverageError) as raised:
+                importer.import_repo(workspace_slug="demo-workspace", repo="org/repo")
+            assert raised.value.reason == reason
+            assert _classify_failure(raised.value) == "incomplete_source_coverage"
+            session.rollback()
+        with Session(engine) as session:
+            assert session.scalars(select(Artifact)).all() == []
+    finally:
+        engine.dispose()
+
+
+def test_markdown_prefetch_submits_only_bounded_in_flight_futures(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Queued futures must not hold 256 decoded documents outside the budget."""
+    db_path = tmp_path / "bounded-markdown-futures.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(config, "head")
+    engine = create_engine(f"sqlite:///{db_path}")
+
+    with Session(engine) as session:
+        session.add(Workspace(
+            slug="demo-workspace", name="Demo", repo_url="https://github.com/org/repo"
+        ))
+        session.commit()
+
+    first_five_started = Event()
+    release_downloads = Event()
+    lock = Lock()
+    started_count = 0
+    submitted: list[str] = []
+
+    class ManyDocuments(FakeGitHubClient):
+        def list_repository_files(self, repo: str, *, ref: str | None = None):
+            return [
+                GitHubRepositoryFile(path=f"docs/adr/{i:03d}.md", sha=None, size=7)
+                for i in range(12)
+            ]
+
+        def fetch_markdown_document(self, repo: str, *, path: str, ref: str):
+            nonlocal started_count
+            with lock:
+                started_count += 1
+                if started_count == 5:
+                    first_five_started.set()
+            if not release_downloads.wait(timeout=10):
+                raise TimeoutError("Bounded future test was not released")
+            return "# tiny"
+
+    class CountingExecutor(ThreadPoolExecutor):
+        def submit(self, fn, *args, **kwargs):
+            with lock:
+                submitted.append(args[0].path)
+            return super().submit(fn, *args, **kwargs)
+
+    monkeypatch.setattr(
+        "app.ingest.github_importer.ThreadPoolExecutor", CountingExecutor
+    )
+
+    def do_import():
+        with Session(engine) as session:
+            return GitHubImporter(session, ManyDocuments()).import_repo(
+                workspace_slug="demo-workspace", repo="org/repo"
+            )
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as runner:
+            future = runner.submit(do_import)
+            try:
+                assert first_five_started.wait(timeout=5)
+                with lock:
+                    assert len(submitted) == 5, (
+                        "Must not eagerly submit all document futures before "
+                        "the first five complete"
+                    )
+            finally:
+                release_downloads.set()
+            result = future.result(timeout=12)
+            assert result.imported_count == 15
+
+        with Session(engine) as session:
+            assert len(session.scalars(select(Artifact)).all()) == 15
+        assert len(submitted) == 12
+    finally:
+        release_downloads.set()
+        engine.dispose()

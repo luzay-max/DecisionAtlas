@@ -38,7 +38,11 @@ STOP_WORDS = {
     "why",
 }
 
-TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)?")
+# Keep Chinese rather than silently dropping it from English-only tokenization.
+# Process contiguous Han runs as overlapping character bigrams without jieba/DB FTS.
+TOKEN_PATTERN = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)?|[\u3400-\u9fff]+")
+CJK_QUESTION_PATTERN = re.compile(r"为什么|为何|如何|怎么|请问")
+CJK_STOP_TERMS = {"我们", "什么", "为何", "如何", "请问", "怎么", "是否"}
 SEPARATOR_PATTERN = re.compile(r"[\(\)\[\]\{\},.:;!?/\\]+")
 PHRASE_REWRITES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"\bpre[\s-]?release\b"), "prerelease"),
@@ -116,16 +120,26 @@ def _normalize_query_text(query: str) -> str:
 
 
 def expand_query_terms(query: str) -> list[str]:
-    normalized = _normalize_query_text(query)
+    normalized = CJK_QUESTION_PATTERN.sub(" ", _normalize_query_text(query))
     terms = TOKEN_PATTERN.findall(normalized)
     expanded: list[str] = []
     for term in terms:
-        aliases = TOKEN_ALIASES.get(term)
-        if aliases:
-            expanded.extend(aliases)
+        if "\u3400" <= term[0] <= "\u9fff":
+            # One-character CJK queries remain possible; longer runs use
+            # overlapping bigrams. Never split Latin technical identifiers
+            # such as PostgreSQL, Redis, XXL-JOB, or API.
+            grams = [term] if len(term) == 1 else [
+                term[index:index + 2] for index in range(len(term) - 1)
+            ]
+            expanded.extend(gram for gram in grams if gram not in CJK_STOP_TERMS)
         else:
-            expanded.append(term)
-    return expanded
+            aliases = TOKEN_ALIASES.get(term)
+            if aliases:
+                expanded.extend(aliases)
+            else:
+                expanded.append(term)
+    # Duplicate grams should not artificially inflate the same query match.
+    return list(dict.fromkeys(expanded))
 
 
 def significant_query_terms(query: str) -> list[str]:
