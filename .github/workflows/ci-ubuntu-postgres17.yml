@@ -1,0 +1,64 @@
+name: CI Ubuntu PostgreSQL 17 (merged schema)
+
+on:
+  pull_request:
+    paths:
+      - "services/engine/**"
+      - ".github/workflows/ci-ubuntu-postgres17.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/engine/**"
+      - ".github/workflows/ci-ubuntu-postgres17.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pg17-merged-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      pg:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: b04_ci
+          POSTGRES_PASSWORD: b04-ephemeral-ci-only
+          POSTGRES_DB: b04_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U b04_ci -d b04_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DATABASE_URL: postgresql+psycopg://b04_ci:b04-ephemeral-ci-only@localhost:5432/b04_ci
+      DECISIONATLAS_PG17_CI_URL: postgresql+psycopg://b04_ci:b04-ephemeral-ci-only@localhost:5432/b04_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Sync locked engine dependencies
+        run: uv sync --project services/engine --frozen
+
+      - name: Enable pgvector in disposable synthetic PostgreSQL database
+        run: |
+          docker exec "${{ job.services.pg.id }}" psql -v ON_ERROR_STOP=1 -U b04_ci -d b04_ci -c 'CREATE EXTENSION IF NOT EXISTS vector'
+
+      - name: Migrate current main schema and verify reviewed evidence on PostgreSQL 17
+        working-directory: services/engine
+        run: uv run pytest -q tests/db/test_ubuntu_postgres17_integration.py
+
+      # This test explicitly rejects the unapproved #34 F06b tables/columns.
+      # No production credentials, real repository sources, or dump artifacts.
