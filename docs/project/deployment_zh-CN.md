@@ -1,6 +1,6 @@
 # Deployment | 部署指南
 
-[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) | [返回首页](../README_zh-CN.md)
+[English](deployment.md) | [快速开始](quick-start_zh-CN.md) | [常见问题](faq_zh-CN.md) | [演示脚本](demo-script_zh-CN.md) | [托管操作指南](hosted-demo-operator-guide_zh-CN.md) | [Hosted Preview Readiness](hosted-preview-readiness_zh-CN.md) | [密码哈希升级与回滚](../security/password-hash-deployment-rollback.md) | [返回首页](../README_zh-CN.md)
 
 ---
 
@@ -137,6 +137,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev\stop-real-stack.ps1
 `pnpm run dev:real` 和 `pnpm run dev:real:stop` 是同一组脚本的快捷方式。
 
 只有在调试某一层服务时，才建议手动拆开启动。
+
+### B05 密码哈希升级与回滚
+
+B05 将新账号、密码重置以及旧 PBKDF2 账号成功登录后的密码哈希写为 Argon2id。现有 `actors.password_hash` 字段继续使用，不需要数据库结构迁移，也不会执行离线批量改写。
+
+发布前必须：
+
+1. 备份并验证 PostgreSQL 备份，记录当前应用版本和 commit。
+2. 规划维护窗口或所有实例的协调切换。
+3. 先停止/摘除全部 B05 之前的 Engine 实例，再将支持 PBKDF2 + Argon2id 双格式验证的版本部署到所有实例。
+4. 所有实例完成部署并通过健康检查后，再恢复登录流量。
+5. 首次 Argon2id 写入后，不得只回滚应用二进制到 B05 之前的版本；旧程序无法验证 Argon2id 哈希。
+
+应用回滚目标必须保留双格式验证能力。只有在完整恢复到首次 Argon2id 写入之前的数据库备份、并明确接受该备份之后的数据损失时，才可能恢复使用旧程序；这不是自动回滚方案。
+
+详细步骤见[密码哈希升级与回滚指南](../security/password-hash-deployment-rollback.md)和[自托管运维手册](self-hosted-operations-runbook.md)。
 
 ### 网络安全
 

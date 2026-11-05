@@ -6,7 +6,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 
-from argon2 import PasswordHasher
+from argon2 import PasswordHasher, extract_parameters
 from argon2.exceptions import InvalidHashError, VerificationError
 from argon2.low_level import Type
 from sqlalchemy import delete, func, select, update
@@ -124,6 +124,10 @@ class AuthRepository:
             return None
         actor.status = status
         actor.disabled_at = datetime.now(UTC) if status != "active" else None
+        # Acquire the actor row lock before deleting sessions. On PostgreSQL,
+        # deleting first can miss a login session that is still uncommitted
+        # behind the login CAS, then the status UPDATE waits and commits later.
+        self.session.flush()
         if status != "active":
             self.revoke_actor_sessions(actor_id)
         self.session.flush()
@@ -134,6 +138,10 @@ class AuthRepository:
         if actor is None:
             return None
         actor.password_hash = hash_password(password)
+        # Serialize on the actor row before revoking sessions. This ensures a
+        # reset that follows a login CAS sees and deletes the login's committed
+        # session instead of deleting too early under PostgreSQL MVCC.
+        self.session.flush()
         self.revoke_actor_sessions(actor_id)
         self.session.flush()
         return actor
@@ -295,11 +303,36 @@ _PASSWORD_HASHER = PasswordHasher(
 )
 _LEGACY_PBKDF2_PATTERN = re.compile(r"([0-9a-fA-F]{32})\$([0-9a-fA-F]{64})\Z")
 _LEGACY_PBKDF2_ITERATIONS = 100_000
+# Hard bounds for hashes loaded from storage/import paths. The application
+# writes 19 MiB / 2 iterations / p=1; these caps leave upgrade headroom while
+# preventing an untrusted PHC string from requesting unbounded verification.
+_ARGON2_MAX_MEMORY_COST_KIB = 65_536
+_ARGON2_MAX_TIME_COST = 4
+_ARGON2_MAX_PARALLELISM = 4
+_ARGON2_MAX_SALT_LENGTH = 64
+_ARGON2_MAX_HASH_LENGTH = 64
 
 
 def hash_password(password: str) -> str:
     """Create a self-describing Argon2id PHC password hash."""
     return _PASSWORD_HASHER.hash(password)
+
+
+def _argon2id_parameters_are_bounded(password_hash: str) -> bool:
+    try:
+        parameters = extract_parameters(password_hash)
+    except (InvalidHashError, ValueError, TypeError):
+        return False
+
+    return (
+        parameters.type == Type.ID
+        and parameters.version == 19
+        and 1 <= parameters.parallelism <= _ARGON2_MAX_PARALLELISM
+        and 1 <= parameters.time_cost <= _ARGON2_MAX_TIME_COST
+        and 8 * parameters.parallelism <= parameters.memory_cost <= _ARGON2_MAX_MEMORY_COST_KIB
+        and 8 <= parameters.salt_len <= _ARGON2_MAX_SALT_LENGTH
+        and 16 <= parameters.hash_len <= _ARGON2_MAX_HASH_LENGTH
+    )
 
 
 def verify_password(password: str, password_hash: str) -> bool:
@@ -310,6 +343,8 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
     if password_hash.startswith("$argon2id$"):
+        if not _argon2id_parameters_are_bounded(password_hash):
+            return False
         try:
             return _PASSWORD_HASHER.verify(password_hash, password)
         except (InvalidHashError, VerificationError, ValueError, TypeError):
@@ -340,6 +375,8 @@ def password_hash_needs_rehash(password_hash: str) -> bool:
     if _LEGACY_PBKDF2_PATTERN.fullmatch(password_hash) is not None:
         return True
     if not password_hash.startswith("$argon2id$"):
+        return False
+    if not _argon2id_parameters_are_bounded(password_hash):
         return False
     try:
         return _PASSWORD_HASHER.check_needs_rehash(password_hash)

@@ -96,6 +96,32 @@ def test_malformed_password_hashes_fail_closed(stored_hash: str) -> None:
     assert not verify_password("any password", stored_hash)
 
 
+
+@pytest.mark.parametrize(
+    ("parameter", "excessive_value"),
+    [
+        ("m=19456", "m=1048576"),
+        ("t=2", "t=999"),
+        ("p=1", "p=999"),
+    ],
+)
+def test_argon2id_hashes_with_excessive_phc_parameters_fail_before_verification(
+    monkeypatch, parameter: str, excessive_value: str
+) -> None:
+    import app.repositories.auth as auth_repository
+
+    safe_hash = hash_password("bounded password")
+    untrusted_hash = safe_hash.replace(parameter, excessive_value, 1)
+    assert untrusted_hash != safe_hash
+
+    def verification_must_not_run(*args, **kwargs):
+        pytest.fail("Argon2 verification ran before PHC resource limits were checked")
+
+    monkeypatch.setattr(auth_repository._PASSWORD_HASHER, "verify", verification_must_not_run)
+    assert not verify_password("bounded password", untrusted_hash)
+    assert not password_hash_needs_rehash(untrusted_hash)
+
+
 def test_login_upgrades_legacy_hash_only_after_correct_password(tmp_path: Path, monkeypatch) -> None:
     db_path = tmp_path / "legacy-login.db"
     legacy_hash = _legacy_pbkdf2_hash("old-password")
