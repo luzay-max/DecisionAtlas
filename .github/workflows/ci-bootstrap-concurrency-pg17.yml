@@ -7,6 +7,7 @@ on:
       - "services/engine/app/repositories/auth.py"
       - "services/engine/tests/api/test_bootstrap_concurrency_pg.py"
       - "services/engine/tests/api/test_password_hash_migration_concurrency.py"
+      - "services/engine/tests/api/test_password_hash_migration.py"
       - ".github/workflows/ci-bootstrap-concurrency-pg17.yml"
   push:
     branches:
@@ -68,7 +69,7 @@ jobs:
 
       - name: Verify B05 login, reset, and disable races on file SQLite and PostgreSQL 17
         working-directory: services/engine
-        run: uv run pytest -q tests/api/test_password_hash_migration_concurrency.py
+        run: uv run pytest -q tests/api/test_password_hash_migration.py tests/api/test_password_hash_migration_concurrency.py
 
       # Main's existing Alembic head only. No #34 F06b schema, real users,
       # private repositories, production credentials, or persisted DB artifacts.
