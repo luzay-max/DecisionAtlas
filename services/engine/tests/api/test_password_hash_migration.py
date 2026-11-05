@@ -117,7 +117,7 @@ def test_argon2id_hashes_with_excessive_phc_parameters_fail_before_verification(
     def verification_must_not_run(*args, **kwargs):
         pytest.fail("Argon2 verification ran before PHC resource limits were checked")
 
-    monkeypatch.setattr(auth_repository._PASSWORD_HASHER, "verify", verification_must_not_run)
+    monkeypatch.setattr(auth_repository.PasswordHasher, "verify", verification_must_not_run)
     assert not verify_password("bounded password", untrusted_hash)
     assert not password_hash_needs_rehash(untrusted_hash)
 
