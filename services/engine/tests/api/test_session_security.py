@@ -87,6 +87,13 @@ def test_password_reset_revokes_all_sessions(tmp_path: Path, monkeypatch) -> Non
         json={"password": "new-password-strong"},
     )
     assert response.status_code == 200
+
+    reset_engine = create_engine(f"sqlite:///{db_path}")
+    with Session(reset_engine) as session:
+        reset_member = session.get(Actor, member_id)
+        assert reset_member is not None
+        assert reset_member.password_hash.startswith("$argon2id$v=19$")
+    reset_engine.dispose()
     for token in (member_token, second_token):
         assert client.get("/auth/session", headers={SESSION_HEADER: token}).status_code == 401
     assert client.post("/auth/login", json={"username": "member", "password": "password123"}).status_code == 401

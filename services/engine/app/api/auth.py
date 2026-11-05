@@ -8,7 +8,13 @@ from sqlalchemy.orm import Session
 from app.auth import SESSION_HEADER, require_actor
 from app.config import get_settings
 from app.db.session import get_db_session
-from app.repositories.auth import AuthRepository, ensure_bootstrap_identity, verify_password
+from app.repositories.auth import (
+    AuthRepository,
+    ensure_bootstrap_identity,
+    hash_password,
+    password_hash_needs_rehash,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -102,6 +108,38 @@ def login(request: LoginRequest) -> dict:
         memberships = repo.list_memberships_for_actor(actor.id)
         if not memberships:
             raise HTTPException(status_code=403, detail="Owner scope membership required")
+
+        # Compare-and-set the exact hash that was verified before issuing a
+        # session. This closes the race where a password reset commits between
+        # verification and session creation. A concurrent successful legacy
+        # login may win the rehash; re-read and verify the new current hash.
+        actor_id = actor.id
+        for _ in range(3):
+            current_hash = actor.password_hash
+            replacement_hash = (
+                hash_password(request.password)
+                if password_hash_needs_rehash(current_hash)
+                else current_hash
+            )
+            if repo.compare_and_set_password_hash(
+                actor_id=actor_id,
+                expected_hash=current_hash,
+                new_hash=replacement_hash,
+            ):
+                break
+
+            session.expire_all()
+            actor = repo.get_actor_by_username(request.username)
+            if (
+                actor is None
+                or actor.id != actor_id
+                or actor.status != "active"
+                or not verify_password(request.password, actor.password_hash)
+            ):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
+        else:
+            raise HTTPException(status_code=409, detail="Credentials changed during login; retry")
+
         membership, scope = memberships[0]
         auth_session = repo.create_session(actor_id=actor.id, owner_scope_id=scope.id)
         session.commit()
@@ -117,8 +155,6 @@ def login(request: LoginRequest) -> dict:
         }
     finally:
         session.close()
-
-
 @router.get("/session")
 def get_session(
     x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),
