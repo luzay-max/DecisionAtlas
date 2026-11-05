@@ -155,6 +155,8 @@ def login(request: LoginRequest) -> dict:
         }
     finally:
         session.close()
+
+
 @router.get("/session")
 def get_session(
     x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),

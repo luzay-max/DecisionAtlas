@@ -138,7 +138,6 @@ class AuthRepository:
         self.session.flush()
         return actor
 
-
     def compare_and_set_password_hash(
         self,
         *,
@@ -346,6 +345,7 @@ def password_hash_needs_rehash(password_hash: str) -> bool:
         return _PASSWORD_HASHER.check_needs_rehash(password_hash)
     except (InvalidHashError, VerificationError, ValueError, TypeError):
         return False
+
 
 def role_allows(actual_role: str, required_role: str) -> bool:
     return ROLE_ORDER.get(actual_role, -1) >= ROLE_ORDER.get(required_role, -1)
