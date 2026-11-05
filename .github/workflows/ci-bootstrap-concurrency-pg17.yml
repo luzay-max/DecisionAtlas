@@ -6,6 +6,7 @@ on:
       - "services/engine/app/api/auth.py"
       - "services/engine/app/repositories/auth.py"
       - "services/engine/tests/api/test_bootstrap_concurrency_pg.py"
+      - "services/engine/tests/api/test_password_hash_migration_concurrency.py"
       - ".github/workflows/ci-bootstrap-concurrency-pg17.yml"
   push:
     branches:
@@ -41,6 +42,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       DATABASE_URL: postgresql+psycopg://issue48_ci:issue48-ephemeral-only@localhost:5432/issue48_ci
       DECISIONATLAS_BOOTSTRAP_PG_CI_URL: postgresql+psycopg://issue48_ci:issue48-ephemeral-only@localhost:5432/issue48_ci
+      DECISIONATLAS_PASSWORD_CONCURRENCY_DATABASE_URL: postgresql+psycopg://issue48_ci:issue48-ephemeral-only@localhost:5432/issue48_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,6 +65,10 @@ jobs:
       - name: Verify real parallel PostgreSQL bootstrap transactions
         working-directory: services/engine
         run: uv run pytest -q tests/api/test_bootstrap_concurrency_pg.py
+
+      - name: Verify B05 login, reset, and disable races on file SQLite and PostgreSQL 17
+        working-directory: services/engine
+        run: uv run pytest -q tests/api/test_password_hash_migration_concurrency.py
 
       # Main's existing Alembic head only. No #34 F06b schema, real users,
       # private repositories, production credentials, or persisted DB artifacts.

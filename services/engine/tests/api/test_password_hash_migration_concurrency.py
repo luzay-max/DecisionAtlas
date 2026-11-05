@@ -56,17 +56,28 @@ def password_concurrency_database(request, tmp_path, monkeypatch) -> str:
     try:
         with engine.connect() as connection:
             if url.startswith("postgresql"):
-                version = int(connection.scalar(text("SHOW server_version_num")))
-                assert version >= 170000, f"Expected PostgreSQL 17+, got {version}"
-            if not inspect(connection).has_table("alembic_version"):
-                config = Config("alembic.ini")
-                config.set_main_option("sqlalchemy.url", url)
-                command.upgrade(config, "head")
-            else:
-                version = connection.scalar(text("SELECT version_num FROM alembic_version"))
-                assert version == "0012_review_audit_events", (
-                    "Refuse to run password concurrency tests against an unexpected schema"
-                )
+                server_version = int(connection.scalar(text("SHOW server_version_num")))
+                assert server_version >= 170000, f"Expected PostgreSQL 17+, got {server_version}"
+            has_alembic_version = inspect(connection).has_table("alembic_version")
+            current_version = (
+                connection.scalar(text("SELECT version_num FROM alembic_version"))
+                if has_alembic_version
+                else None
+            )
+        # Close the inspection connection before Alembic writes. In particular,
+        # an open SQLite read transaction must not hold the schema migration.
+        if current_version is None:
+            config = Config("alembic.ini")
+            config.set_main_option("sqlalchemy.url", url)
+            command.upgrade(config, "head")
+        else:
+            assert current_version == "0012_review_audit_events", (
+                "Refuse to run password concurrency tests against an unexpected schema"
+            )
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+                "0012_review_audit_events"
+            )
     finally:
         engine.dispose()
 
