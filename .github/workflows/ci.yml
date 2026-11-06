@@ -45,6 +45,9 @@ jobs:
       - name: Verify generated Engine OpenAPI route contract
         run: uv run --project services/engine python services/engine/scripts/export_openapi_route_contract.py --check
 
+      - name: Verify generated Engine OpenAPI DTO contract
+        run: pnpm contract:check
+
       - name: Run Node tests
         run: pnpm test
 

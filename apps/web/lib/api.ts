@@ -1,3 +1,5 @@
+import type { WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
+
 export type ReviewDecision = {
   id: number;
   workspace_id: number;
@@ -47,44 +49,8 @@ export type WorkspaceProvenance = {
   source_summary: string;
 };
 
-export type WhyAnswerStatus =
-  | "ok"
-  | "limited_support"
-  | "insufficient_evidence"
-  | "review_required"
-  | "evidence_limited"
-  | "analysis_failed";
-
-export type WorkspaceReadiness = {
-  state: string;
-  next_action: string;
-  review_state: string;
-  why_state: string;
-  drift_state: string;
-  recommended_actions: string[];
-  accepted_baseline_established?: boolean;
-  accepted_decision_count?: number;
-  candidate_decision_count?: number;
-  access_source_type?: string;
-  access_source_label?: string;
-  access_source_status?: string | null;
-  access_source_status_detail?: string | null;
-  latest_sync_origin?: string | null;
-  latest_sync_at?: string | null;
-  active_sync_origin?: string | null;
-  active_import_job_id?: string | null;
-  active_import_status?: string | null;
-  active_import_mode?: string | null;
-  recent_syncs?: Array<{
-    job_id: string;
-    status: string;
-    mode: string;
-    sync_origin?: string | null;
-    trigger_event?: string | null;
-    started_at?: string | null;
-    finished_at?: string | null;
-  }>;
-};
+export type WhyAnswerStatus = WhyStatus;
+export type WorkspaceReadiness = EngineWorkspaceReadiness;
 
 export type DriftEvaluation = {
   state: string;
@@ -174,34 +140,8 @@ export type DecisionDetail = ReviewDecision &
   source_refs: SourceRef[];
 };
 
-export type RetrievalMode = "not_run" | "hybrid" | "lexical_only" | "lexical_fallback";
-
-export type WhyAnswerResponse = {
-  status: WhyAnswerStatus;
-  // B02 type contract retained alongside B03 same-origin cookie transport.
-  retrieval_mode?: RetrievalMode;
-  question: string;
-  answer: string;
-  primary_decision?: {
-    decision_id: number;
-    title: string;
-  };
-  supporting_context?: Array<{
-    decision_id: number;
-    title: string;
-    answer: string;
-  }>;
-  answer_context: WorkspaceProvenance & {
-    workspace_readiness?: WorkspaceReadiness | null;
-    retrieval_mode?: RetrievalMode;
-  };
-  citations: Array<{
-    decision_id?: number;
-    source_ref_id?: number;
-    quote: string;
-    url: string | null;
-  }>;
-};
+export type RetrievalMode = EngineRetrievalMode;
+export type WhyAnswerResponse = WhyResponse;
 
 export type TimelineItem = {
   id: number;
@@ -612,15 +552,13 @@ export async function reviewDecision(
 }
 
 export async function askWhy(workspaceSlug: string, question: string): Promise<WhyAnswerResponse> {
+  const body: WhyRequest = { workspace_slug: workspaceSlug, question };
   const response = await apiFetch(`${apiBaseUrl}/query/why`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
-    body: JSON.stringify({
-      workspace_slug: workspaceSlug,
-      question
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     await readError(response, "Failed to answer why question");

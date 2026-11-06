@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "question": "为什么使用 PostgreSQL 主库？",
+  "answer": "Synthetic accepted decision, with quoted support.",
+  "retrieval_mode": "lexical_only",
+  "primary_decision": { "decision_id": 7, "title": "PostgreSQL 主库" },
+  "supporting_context": [],
+  "answer_context": {
+    "workspace_mode": "demo",
+    "source_summary": "Synthetic contract fixture; no private data or paid model.",
+    "workspace_readiness": null,
+    "retrieval_mode": "lexical_only",
+    "retrieval": {
+      "decision_overlap": 2,
+      "source_ref_overlap": 2,
+      "structural_fit": 21.0,
+      "raw_score": 1.0,
+      "support_reasons": []
+    }
+  },
+  "citations": [
+    { "decision_id": 7, "source_ref_id": 9, "quote": "主库保证一致性", "url": null },
+    { "decision_id": 7, "quote": "Chunk-backed support has no source_ref_id", "url": "https://example.invalid/evidence" }
+  ]
+}

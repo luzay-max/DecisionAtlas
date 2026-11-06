@@ -29,11 +29,7 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
       },
       citations: [],
     };
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      text: async () => JSON.stringify(payload),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json(payload));
 
     const app = buildServer();
     const response = await app.inject({
@@ -52,17 +48,13 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
       retrieval_mode: "lexical_fallback",
       answer_context: { retrieval_mode: "lexical_fallback" },
     });
-    expect(global.fetch).toHaveBeenCalledWith(
-      "http://localhost:8000/query/why",
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-decisionatlas-session-token": "valid-cookie",
-        },
-        body: JSON.stringify({ workspace_slug: "ci-b02-b03-combined", question }),
-      },
-    );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const upstreamRequest = vi.mocked(global.fetch).mock.calls[0][0] as Request;
+    expect(upstreamRequest.url).toBe("http://localhost:8000/query/why");
+    expect(upstreamRequest.method).toBe("POST");
+    expect(upstreamRequest.headers.get("content-type")).toBe("application/json");
+    expect(upstreamRequest.headers.get("x-decisionatlas-session-token")).toBe("valid-cookie");
+    expect(await upstreamRequest.json()).toEqual({ workspace_slug: "ci-b02-b03-combined", question });
     await app.close();
   });
 
@@ -90,9 +82,7 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
 
   it("does not forward a duplicate session cookie even when the Why mode is supported", async () => {
     process.env.APP_ENV = "test";
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 401, ok: false, text: async () => JSON.stringify({ detail: "Authentication required" }),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json({ detail: "Authentication required" }, { status: 401 }));
     const app = buildServer();
     const response = await app.inject({
       method: "POST",
@@ -104,8 +94,8 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
       },
     });
     expect(response.statusCode).toBe(401);
-    const options = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
-    expect(new Headers(options?.headers).has("x-decisionatlas-session-token")).toBe(false);
+    const upstreamRequest = vi.mocked(global.fetch).mock.calls[0][0] as Request;
+    expect(upstreamRequest.headers.has("x-decisionatlas-session-token")).toBe(false);
     await app.close();
   });
 });
