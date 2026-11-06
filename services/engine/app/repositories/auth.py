@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
+import re
 from datetime import UTC, datetime, timedelta
 from secrets import token_urlsafe
 
-from sqlalchemy import delete, func, select
+from argon2 import PasswordHasher, extract_parameters
+from argon2.exceptions import InvalidHashError, VerificationError
+from argon2.low_level import Type
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -118,6 +124,10 @@ class AuthRepository:
             return None
         actor.status = status
         actor.disabled_at = datetime.now(UTC) if status != "active" else None
+        # Acquire the actor row lock before deleting sessions. On PostgreSQL,
+        # deleting first can miss a login session that is still uncommitted
+        # behind the login CAS, then the status UPDATE waits and commits later.
+        self.session.flush()
         if status != "active":
             self.revoke_actor_sessions(actor_id)
         self.session.flush()
@@ -128,9 +138,39 @@ class AuthRepository:
         if actor is None:
             return None
         actor.password_hash = hash_password(password)
+        # Serialize on the actor row before revoking sessions. This ensures a
+        # reset that follows a login CAS sees and deletes the login's committed
+        # session instead of deleting too early under PostgreSQL MVCC.
+        self.session.flush()
         self.revoke_actor_sessions(actor_id)
         self.session.flush()
         return actor
+
+    def compare_and_set_password_hash(
+        self,
+        *,
+        actor_id: int,
+        expected_hash: str,
+        new_hash: str,
+    ) -> bool:
+        """Atomically bind a login to the password version it verified.
+
+        Even when new_hash equals expected_hash this deliberately performs an
+        UPDATE: it serializes session creation with password reset/disable.
+        A reset that wins first makes this compare-and-set fail; a reset that
+        follows this update revokes the session created by the login.
+        """
+        result = self.session.execute(
+            update(Actor)
+            .where(
+                Actor.id == actor_id,
+                Actor.password_hash == expected_hash,
+                Actor.status == "active",
+            )
+            .values(password_hash=new_hash)
+            .execution_options(synchronize_session=False)
+        )
+        return result.rowcount == 1
 
     def create_scope(self, *, scope_key: str, display_name: str, scope_type: str = "local") -> OwnerScope:
         scope = OwnerScope(scope_key=scope_key, display_name=display_name, scope_type=scope_type)
@@ -253,24 +293,95 @@ def ensure_bootstrap_identity(session: Session) -> tuple[Actor, OwnerScope, Owne
     return actor, scope, membership
 
 
-def hash_password(password: str) -> str:
-    import hashlib
-    import secrets
+_PASSWORD_HASHER = PasswordHasher(
+    time_cost=2,
+    memory_cost=19_456,  # 19 MiB; OWASP's Argon2id baseline.
+    parallelism=1,
+    hash_len=32,
+    salt_len=16,
+    type=Type.ID,
+)
+_LEGACY_PBKDF2_PATTERN = re.compile(r"([0-9a-fA-F]{32})\$([0-9a-fA-F]{64})\Z")
+_LEGACY_PBKDF2_ITERATIONS = 100_000
+# Hard bounds for hashes loaded from storage/import paths. The application
+# writes 19 MiB / 2 iterations / p=1; these caps leave upgrade headroom while
+# preventing an untrusted PHC string from requesting unbounded verification.
+_ARGON2_MAX_MEMORY_COST_KIB = 65_536
+_ARGON2_MAX_TIME_COST = 4
+_ARGON2_MAX_PARALLELISM = 4
+_ARGON2_MAX_SALT_LENGTH = 64
+_ARGON2_MAX_HASH_LENGTH = 64
 
-    salt = secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000)
-    return f"{salt}${digest.hex()}"
+
+def hash_password(password: str) -> str:
+    """Create a self-describing Argon2id PHC password hash."""
+    return _PASSWORD_HASHER.hash(password)
+
+
+def _argon2id_parameters_are_bounded(password_hash: str) -> bool:
+    try:
+        parameters = extract_parameters(password_hash)
+    except (InvalidHashError, ValueError, TypeError):
+        return False
+
+    return (
+        parameters.type == Type.ID
+        and parameters.version == 19
+        and 1 <= parameters.parallelism <= _ARGON2_MAX_PARALLELISM
+        and 1 <= parameters.time_cost <= _ARGON2_MAX_TIME_COST
+        and 8 * parameters.parallelism <= parameters.memory_cost <= _ARGON2_MAX_MEMORY_COST_KIB
+        and 8 <= parameters.salt_len <= _ARGON2_MAX_SALT_LENGTH
+        and 16 <= parameters.hash_len <= _ARGON2_MAX_HASH_LENGTH
+    )
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    import hashlib
+    """Verify current Argon2id hashes and legacy PBKDF2 salt$hex hashes."""
+    if not isinstance(password, str) or not isinstance(password_hash, str):
+        return False
+    if not password_hash or len(password_hash) > 1024:
+        return False
 
+    if password_hash.startswith("$argon2id$"):
+        if not _argon2id_parameters_are_bounded(password_hash):
+            return False
+        try:
+            return _PASSWORD_HASHER.verify(password_hash, password)
+        except (InvalidHashError, VerificationError, ValueError, TypeError):
+            return False
+
+    legacy_match = _LEGACY_PBKDF2_PATTERN.fullmatch(password_hash)
+    if legacy_match is None:
+        return False
+
+    salt, expected_hex = legacy_match.groups()
     try:
-        salt, expected = password_hash.split("$", 1)
+        expected = bytes.fromhex(expected_hex)
     except ValueError:
         return False
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100_000)
-    return digest.hex() == expected
+    digest = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt.encode("ascii"),
+        _LEGACY_PBKDF2_ITERATIONS,
+    )
+    return hmac.compare_digest(digest, expected)
+
+
+def password_hash_needs_rehash(password_hash: str) -> bool:
+    """Return whether a verified hash should be upgraded to current Argon2id."""
+    if not isinstance(password_hash, str):
+        return False
+    if _LEGACY_PBKDF2_PATTERN.fullmatch(password_hash) is not None:
+        return True
+    if not password_hash.startswith("$argon2id$"):
+        return False
+    if not _argon2id_parameters_are_bounded(password_hash):
+        return False
+    try:
+        return _PASSWORD_HASHER.check_needs_rehash(password_hash)
+    except (InvalidHashError, VerificationError, ValueError, TypeError):
+        return False
 
 
 def role_allows(actual_role: str, required_role: str) -> bool:

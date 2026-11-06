@@ -1,6 +1,6 @@
 # Self-Hosted Operations Runbook
 
-[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md)
+[Home](../../README.md) | [Package Guide](self-hosted-package-guide.md) | [Deployment](deployment.md) | [Self-Hosted Readiness](self-hosted-readiness-checklist.md) | [Continuity Rehearsal](backup-restore-upgrade-rehearsal.md) | [Password Hash Upgrade and Rollback](../security/password-hash-deployment-rollback.md)
 
 ---
 
@@ -89,6 +89,22 @@ Upgrade order:
 9. Generate a team handoff report from release evidence, hosted readiness, benchmark comparison, package verification, and readiness history before external delivery.
 10. Run clean self-hosted install rehearsal against the package copy and attach `.tmp/clean-self-hosted-install-rehearsal.json/md`.
 11. Attach or explicitly defer license/support boundary evidence before claiming a paid customer handoff.
+
+## Password Hash Upgrade (B05)
+
+B05 writes Argon2id password hashes for new accounts, password resets, and successful legacy PBKDF2 logins. The existing `actors.password_hash` column is reused; there is no schema migration or offline bulk rewrite.
+
+Before deploying a B05-compatible release:
+
+- Take and verify a protected PostgreSQL backup.
+- Record the exact application commit/package version.
+- Plan a maintenance window or a coordinated all-instance cutover. Do not leave pre-B05 and B05 instances serving login traffic together once any B05 instance can write Argon2id hashes.
+- Drain/stop all pre-B05 Engine instances, deploy the dual-verifier B05-compatible release to every instance, run health/readiness checks, then restore traffic.
+- Keep the database backup and rollback target available until post-deployment validation is complete.
+
+**Rollback compatibility is asymmetric:** B05 verifies both legacy PBKDF2 and Argon2id, but a pre-B05 binary verifies only PBKDF2. After the first Argon2id hash is written, do not roll back only the application binary to pre-B05. The safe application rollback target must retain dual-format verification. Returning to a pre-B05 binary would require restoring a complete database backup taken before the first Argon2id write and explicitly accepting/reconciling all data loss since that backup; do not use that as an automatic rollback.
+
+The login transaction rollback test proves a failed login cannot partially persist its hash upgrade or session. It does **not** prove that a pre-B05 binary can read Argon2id hashes. See the [password hash deployment and rollback guide](../security/password-hash-deployment-rollback.md) for the release sequence and recovery checklist.
 
 ## Rollback
 
