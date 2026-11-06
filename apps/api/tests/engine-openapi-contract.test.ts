@@ -3,7 +3,7 @@ import { ENGINE_BFF_ROUTES } from "../src/contracts/engine-bff-routes";
 
 describe("Engine OpenAPI / Fastify BFF route contract", () => {
   it("declares each Engine-backed BFF operation exactly once", () => {
-    expect(ENGINE_BFF_ROUTES).toHaveLength(38);
+    expect(ENGINE_BFF_ROUTES).toHaveLength(39);
     expect(new Set(ENGINE_BFF_ROUTES).size).toBe(ENGINE_BFF_ROUTES.length);
   });
 
