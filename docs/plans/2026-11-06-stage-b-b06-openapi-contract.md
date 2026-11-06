@@ -10,7 +10,7 @@ Establish FastAPI Engine OpenAPI as the source of truth for HTTP path/method exi
 
 - Generate `apps/api/src/contracts/engine-routes.generated.ts` directly from `create_app().openapi()` using only the Engine's existing Python dependencies and the standard library.
 - Record the 41 current Engine path/method operations as a generated TypeScript `EngineRoute` union.
-- Maintain an explicit 38-operation Fastify BFF proxy inventory in `apps/api/src/contracts/engine-bff-routes.ts`, constrained with `satisfies readonly EngineRoute[]` so misspelled, removed, or method-mismatched Engine routes fail TypeScript checking.
+- Maintain an explicit 39-operation Fastify BFF proxy inventory in `apps/api/src/contracts/engine-bff-routes.ts`, constrained with `satisfies readonly EngineRoute[]` so misspelled, removed, or method-mismatched Engine routes fail TypeScript checking.
 - Add a focused test for manifest uniqueness/count and explicit local/deferred route exclusions.
 - Add a Windows CI freshness check so the committed generated route contract cannot silently drift from the live FastAPI OpenAPI schema.
 
