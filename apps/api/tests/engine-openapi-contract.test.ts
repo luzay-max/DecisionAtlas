@@ -22,8 +22,8 @@ describe("Engine OpenAPI / Fastify BFF route contract", () => {
   });
 
   it("keeps local health and unexposed Engine lifecycle routes out of the proxy inventory", async () => {
-    expect(ENGINE_BFF_ROUTES.some((route) => route.engine === "GET /health")).toBe(false);
-    expect(ENGINE_BFF_ROUTES.some((route) => route.engine === "POST /governance/rules/{draft_id}/lifecycle")).toBe(false);
+    expect(ENGINE_BFF_ROUTES.map((route) => route.engine)).not.toContain("GET /health");
+    expect(ENGINE_BFF_ROUTES.map((route) => route.engine)).not.toContain("POST /governance/rules/{draft_id}/lifecycle");
 
     const app = buildServer();
     try {
