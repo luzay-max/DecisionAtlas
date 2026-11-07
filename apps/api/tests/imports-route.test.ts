@@ -260,6 +260,7 @@ describe("POST /imports/github", () => {
       access_source_label: "Private GitHub source team private repo",
       access_source_status: "authorized"
     });
+    expect(JSON.stringify(response.json())).not.toContain("ghp-private-token");
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/imports/github/private-access/bind",
       {

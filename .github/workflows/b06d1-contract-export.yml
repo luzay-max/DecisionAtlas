@@ -1,0 +1,56 @@
+name: B06d-1 generated contract export
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/engine/app/api/imports.py"
+      - "services/engine/app/api/imports_contract.py"
+      - "packages/engine-contract/**"
+      - ".github/workflows/b06d1-contract-export.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    if: startsWith(github.head_ref, 'feat/b06d1-imports-contract-')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.6.0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Sync Engine environment
+        run: uv sync --project services/engine
+      - name: Generate OpenAPI DTOs
+        run: pnpm contract:generate
+      - name: Commit generated DTOs to the PR branch
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/engine-contract/openapi.generated.json packages/engine-contract/src/openapi.generated.d.ts
+          if git diff --cached --quiet; then
+            echo "Generated Engine contract is already current."
+          else
+            git commit -m "chore(contract): regenerate Imports DTOs"
+            git push origin "HEAD:${BRANCH}"
+          fi

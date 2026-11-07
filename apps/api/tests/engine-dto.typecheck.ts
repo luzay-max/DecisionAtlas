@@ -94,3 +94,63 @@ export async function decisionsContractMustRejectDrift() {
   client.POST("/decisions/{decision_id}/review", { params: { path: { decision_id: 1 } }, body: {} });
   void invalidBody;
 }
+import type {
+  GitHubImportRequest,
+  GitHubPrivateAccessBindingRequest,
+  ImportCapabilitiesResponse,
+  ImportJobResponse,
+  ImportTargetResponse,
+} from "@decisionatlas/engine-contract";
+import { createImportsEngineClient } from "../src/contracts/engine-client";
+
+export async function importsContractMustRejectDrift() {
+  const client = createImportsEngineClient("http://engine.invalid");
+  // @ts-expect-error unknown route must not be admitted
+  client.GET("/imports/{job_id}/cancel");
+  // @ts-expect-error wrong method
+  client.DELETE("/imports/github");
+  // @ts-expect-error required lookup query is missing
+  client.GET("/imports/lookup");
+  const lookup = await client.GET("/imports/lookup", { params: { query: { repo: "org/repo" } } });
+  if (lookup.data) {
+    const target: ImportTargetResponse = lookup.data;
+    const hasActive: boolean = target.has_running_import;
+    const latest: ImportJobResponse | null = target.latest_import;
+    // @ts-expect-error access token must never appear in a response DTO
+    const leakedToken: string = target.token;
+    void [hasActive, latest, leakedToken];
+  }
+
+  const job = await client.GET("/imports/{job_id}", { params: { path: { job_id: "job-123" } } });
+  if (job.data) {
+    const response: ImportJobResponse = job.data;
+    const status: "queued" | "running" | "paused" | "succeeded" | "failed" = response.status;
+    const count: number = response.imported_count;
+    // @ts-expect-error status is a finite state, not an arbitrary string
+    const invalidStatus: "cancelled" = response.status;
+    void [status, count, invalidStatus];
+  }
+  // @ts-expect-error required path parameter is missing
+  client.GET("/imports/{job_id}");
+
+  const body: GitHubImportRequest = { repo: "org/repo", mode: "since_last_sync" };
+  client.POST("/imports/github", { body });
+  // @ts-expect-error repo is required
+  client.POST("/imports/github", { body: { mode: "full" } });
+
+  const privateBody: GitHubPrivateAccessBindingRequest = { repo: "org/private", token: "ghp-secret" };
+  client.POST("/imports/github/private-access/bind", { body: privateBody });
+  // @ts-expect-error private-access token is required in the request
+  client.POST("/imports/github/private-access/bind", { body: { repo: "org/private" } });
+  // @ts-expect-error credentials are never part of a response
+  const invalidTarget: ImportTargetResponse = { token: "ghp-secret" };
+
+  const capabilities = await client.GET("/imports/capabilities");
+  if (capabilities.data) {
+    const response: ImportCapabilitiesResponse = capabilities.data;
+    const enabled: boolean = response.pause_resume.enabled;
+    void enabled;
+  }
+  void invalidTarget;
+}
+
