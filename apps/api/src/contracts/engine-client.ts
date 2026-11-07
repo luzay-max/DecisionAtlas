@@ -130,22 +130,9 @@ async function forwardImportRequest(request: Request): Promise<Response> {
     const body = await request.clone().text();
     if (body.length > 0) init.body = body;
   }
-  const response = await globalThis.fetch(request.url, init);
-  // Re-wrap the body so the proxy's historical JSON/text response handling is retained.
-  const raw = await response.text();
-  let contentType = response.headers.get("content-type") ?? "text/plain";
-  if (!contentType.includes("json")) {
-    try {
-      JSON.parse(raw);
-      contentType = "application/json";
-    } catch {
-      // Preserve non-JSON upstream text as text.
-    }
-  }
-  return new Response(raw || null, {
-    status: response.status,
-    headers: { "content-type": contentType },
-  });
+  // Return the original Response. Parsing is handled explicitly as text below so
+  // JSON scalars, empty bodies, and non-JSON text retain the legacy proxy semantics.
+  return globalThis.fetch(request.url, init);
 }
 
 export function createImportsEngineClient(baseUrl: string) {
@@ -155,12 +142,22 @@ export function createImportsEngineClient(baseUrl: string) {
   });
 }
 
+function parseImportsPayload(response: Response, payload: unknown): unknown {
+  if (typeof payload !== "string") return payload ?? null;
+  if (payload.length === 0) return null;
+
+  try {
+    // Parse JSON independent of Content-Type. JSON strings and other scalars
+    // are valid payloads and must not be mistaken for plain-text responses.
+    return JSON.parse(payload) as unknown;
+  } catch {
+    return response.ok ? { message: payload } : { error: payload };
+  }
+}
+
 function importsProxyResult(response: Response, data: unknown, error: unknown) {
   const payload = response.ok ? data : error;
-  if (typeof payload === "string") {
-    return { status: response.status, payload: response.ok ? { message: payload } : { error: payload } };
-  }
-  return { status: response.status, payload: payload ?? null };
+  return { status: response.status, payload: parseImportsPayload(response, payload) };
 }
 
 async function importRequest(
@@ -184,7 +181,7 @@ export function fetchImportLookup(
 ) {
   const query: ImportLookupQuery = { repo };
   return importRequest(
-    createImportsEngineClient(baseUrl).GET("/imports/lookup", { params: { query }, headers }),
+    createImportsEngineClient(baseUrl).GET("/imports/lookup", { params: { query }, headers, parseAs: "text" }),
     logger,
     "GET /imports/lookup",
   );
@@ -197,7 +194,7 @@ export function createGitHubImport(
   logger: FastifyBaseLogger,
 ) {
   return importRequest(
-    createImportsEngineClient(baseUrl).POST("/imports/github", { body, headers }),
+    createImportsEngineClient(baseUrl).POST("/imports/github", { body, headers, parseAs: "text" }),
     logger,
     "POST /imports/github",
   );
@@ -210,7 +207,7 @@ export function bindGitHubInstallation(
   logger: FastifyBaseLogger,
 ) {
   return importRequest(
-    createImportsEngineClient(baseUrl).POST("/imports/github/installations/bind", { body, headers }),
+    createImportsEngineClient(baseUrl).POST("/imports/github/installations/bind", { body, headers, parseAs: "text" }),
     logger,
     "POST /imports/github/installations/bind",
   );
@@ -223,7 +220,7 @@ export function bindGitHubPrivateAccess(
   logger: FastifyBaseLogger,
 ) {
   return importRequest(
-    createImportsEngineClient(baseUrl).POST("/imports/github/private-access/bind", { body, headers }),
+    createImportsEngineClient(baseUrl).POST("/imports/github/private-access/bind", { body, headers, parseAs: "text" }),
     logger,
     "POST /imports/github/private-access/bind",
   );
@@ -236,7 +233,7 @@ export function bindGitSource(
   logger: FastifyBaseLogger,
 ) {
   return importRequest(
-    createImportsEngineClient(baseUrl).POST("/imports/git-sources/bind", { body, headers }),
+    createImportsEngineClient(baseUrl).POST("/imports/git-sources/bind", { body, headers, parseAs: "text" }),
     logger,
     "POST /imports/git-sources/bind",
   );
@@ -248,7 +245,7 @@ export function fetchImportCapabilities(
   logger: FastifyBaseLogger,
 ) {
   return importRequest(
-    createImportsEngineClient(baseUrl).GET("/imports/capabilities", { headers }),
+    createImportsEngineClient(baseUrl).GET("/imports/capabilities", { headers, parseAs: "text" }),
     logger,
     "GET /imports/capabilities",
   );
@@ -264,6 +261,7 @@ export function fetchImportJob(
     createImportsEngineClient(baseUrl).GET("/imports/{job_id}", {
       params: { path: { job_id: jobId } },
       headers,
+      parseAs: "text",
     }),
     logger,
     "GET /imports/:jobId",
@@ -279,8 +277,8 @@ export function updateImportJobControl(
 ) {
   const client = createImportsEngineClient(baseUrl);
   const request = action === "pause"
-    ? client.POST("/imports/{job_id}/pause", { params: { path: { job_id: jobId } }, headers })
-    : client.POST("/imports/{job_id}/resume", { params: { path: { job_id: jobId } }, headers });
+    ? client.POST("/imports/{job_id}/pause", { params: { path: { job_id: jobId } }, headers, parseAs: "text" })
+    : client.POST("/imports/{job_id}/resume", { params: { path: { job_id: jobId } }, headers, parseAs: "text" });
   return importRequest(request, logger, `POST /imports/:jobId/${action}`);
 }
 

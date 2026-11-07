@@ -111,4 +111,69 @@ describe("Imports generated Engine contract client", () => {
       await app.close();
     }
   });
+
+  it.each([
+    {
+      name: "plain-text 200",
+      status: 200,
+      makeResponse: () => new Response("plain ok", { status: 200, headers: { "content-type": "text/plain" } }),
+      expected: { message: "plain ok" },
+      empty: false,
+    },
+    {
+      name: "empty 200",
+      status: 200,
+      makeResponse: () => new Response(null, { status: 200 }),
+      expected: null,
+      empty: true,
+    },
+    {
+      name: "JSON string 200",
+      status: 200,
+      makeResponse: () => Response.json("hello"),
+      expected: "hello",
+      empty: false,
+    },
+    {
+      name: "JSON object 200",
+      status: 200,
+      makeResponse: () => Response.json({ pause_resume: { enabled: false, reason_code: "worker_lifecycle_unverified" } }),
+      expected: { pause_resume: { enabled: false, reason_code: "worker_lifecycle_unverified" } },
+      empty: false,
+    },
+    {
+      name: "plain-text 403",
+      status: 403,
+      makeResponse: () => new Response("Forbidden", { status: 403, headers: { "content-type": "text/plain" } }),
+      expected: { error: "Forbidden" },
+      empty: false,
+    },
+    {
+      name: "JSON object 403",
+      status: 403,
+      makeResponse: () => Response.json({ detail: "Forbidden" }, { status: 403 }),
+      expected: { detail: "Forbidden" },
+      empty: false,
+    },
+  ])("preserves upstream $name response semantics", async ({ status, makeResponse, expected, empty }) => {
+    global.fetch = vi.fn().mockResolvedValue(makeResponse());
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "GET",
+        url: "/imports/capabilities",
+        headers: { cookie: "decisionatlas_session=admin-token" },
+      });
+
+      expect(response.statusCode).toBe(status);
+      if (empty) {
+        expect(response.body).toBe("");
+      } else {
+        expect(response.json()).toEqual(expected);
+      }
+    } finally {
+      await app.close();
+    }
+  });
+
 });
