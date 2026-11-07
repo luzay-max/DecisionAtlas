@@ -10,7 +10,7 @@ on:
       - ".github/workflows/b06c-contract-export.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   export:
@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -39,6 +41,19 @@ jobs:
         run: uv sync --project services/engine
       - name: Generate Engine OpenAPI DTOs
         run: pnpm contract:generate
+      - name: Commit generated contract to the PR branch
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/engine-contract/openapi.generated.json packages/engine-contract/src/openapi.generated.d.ts
+          if git diff --cached --quiet; then
+            echo "Generated contract is already current."
+          else
+            git commit -m "chore(contract): regenerate Decisions DTOs"
+            git push origin "HEAD:${BRANCH}"
+          fi
       - name: Upload generated contract
         uses: actions/upload-artifact@v4
         with:
