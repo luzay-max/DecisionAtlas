@@ -24,7 +24,7 @@ describe("Decision detail components", () => {
             tradeoffs: "Extra dependency",
             confidence: 0.88,
             candidate_quality: {
-              label: "strong", summary: "Grounded", source_ref_count: 1,
+              label: "partial", summary: "Grounded but based on one source ref.", source_ref_count: 1,
               previewable_source_ref_count: 1, has_primary_artifact: true,
               has_source_url: true, confidence_bucket: "high", reasons: ["previewable_quote"],
             },
