@@ -25,9 +25,11 @@ export async function decisionsRoute(app: FastifyInstance) {
     const env = getEnv();
     const { id } = request.params as { id: string };
     const authHeaders = await authHeadersForRequest(request);
+    // Fastify exposes path params as strings. The cast is type-only so the
+    // Engine retains its existing integer parsing and 422 error payload.
     const upstream = await fetchDecisionDetail(
       env.ENGINE_BASE_URL,
-      Number(id),
+      id as unknown as number,
       authHeaders,
       app.log,
     );
@@ -38,9 +40,10 @@ export async function decisionsRoute(app: FastifyInstance) {
     const env = getEnv();
     const { id } = request.params as { id: string };
     const authHeaders = await authHeadersForRequest(request);
+    // Preserve the raw path token for the Engine's existing validation.
     const upstream = await fetchDecisionReview(
       env.ENGINE_BASE_URL,
-      Number(id),
+      id as unknown as number,
       request.body as DecisionReviewRequest,
       authHeaders,
       app.log,
