@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -36,7 +37,14 @@ def render_contract() -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Export the Engine OpenAPI path/method TypeScript contract.")
     parser.add_argument("--check", action="store_true", help="Fail if the committed TypeScript contract is stale.")
+    parser.add_argument("--schema-json", action="store_true", help="Print the complete OpenAPI schema for DTO generation.")
     args = parser.parse_args()
+    if args.schema_json:
+        schema = create_app().openapi()
+        # App display name is deployment config, not part of the wire contract.
+        schema["info"]["title"] = "DecisionAtlas Engine"
+        print(json.dumps(schema, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0
     generated = render_contract()
     if args.check:
         if not OUTPUT.exists() or OUTPUT.read_text(encoding="utf-8") != generated:

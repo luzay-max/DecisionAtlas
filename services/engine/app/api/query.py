@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from app.api.query_contract import WhyAnswerResponse, WhyHTTPError
 
 from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
@@ -17,7 +18,12 @@ class WhyQueryRequest(BaseModel):
     question: str
 
 
-@router.post("/why")
+@router.post(
+    "/why",
+    response_model=WhyAnswerResponse,
+    response_model_exclude_unset=True,
+    responses={status: {"model": WhyHTTPError} for status in (401, 403, 404, 502, 503)},
+)
 def query_why(
     request: WhyQueryRequest,
     auth: AuthContext = Depends(require_actor),
