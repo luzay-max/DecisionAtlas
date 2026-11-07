@@ -471,7 +471,14 @@ def test_decision_review_contract_keeps_existing_invalid_state_status(tmp_path: 
     assert response.json() == {"detail": "Invalid review_state"}
 
 
-def test_decision_detail_contract_keeps_existing_not_found_status() -> None:
+def test_decision_detail_contract_keeps_existing_not_found_status(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "decision-not-found.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    _seed_review_fixture(db_path)
+
     response = TestClient(create_app()).get("/decisions/999999")
     assert response.status_code == 404
 
