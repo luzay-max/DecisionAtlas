@@ -118,44 +118,86 @@ describe("Imports generated Engine contract client", () => {
       status: 200,
       makeResponse: () => new Response("plain ok", { status: 200, headers: { "content-type": "text/plain" } }),
       expected: { message: "plain ok" },
-      empty: false,
     },
     {
       name: "empty 200",
       status: 200,
       makeResponse: () => new Response(null, { status: 200 }),
       expected: null,
-      empty: true,
     },
     {
       name: "JSON string 200",
       status: 200,
       makeResponse: () => Response.json("hello"),
       expected: "hello",
-      empty: false,
     },
     {
       name: "JSON object 200",
       status: 200,
       makeResponse: () => Response.json({ pause_resume: { enabled: false, reason_code: "worker_lifecycle_unverified" } }),
       expected: { pause_resume: { enabled: false, reason_code: "worker_lifecycle_unverified" } },
-      empty: false,
     },
     {
       name: "plain-text 403",
       status: 403,
       makeResponse: () => new Response("Forbidden", { status: 403, headers: { "content-type": "text/plain" } }),
       expected: { error: "Forbidden" },
-      empty: false,
+    },
+    {
+      name: "empty 403",
+      status: 403,
+      makeResponse: () => new Response(null, { status: 403 }),
+      expected: null,
     },
     {
       name: "JSON object 403",
       status: 403,
       makeResponse: () => Response.json({ detail: "Forbidden" }, { status: 403 }),
       expected: { detail: "Forbidden" },
-      empty: false,
     },
-  ])("preserves upstream $name response semantics", async ({ status, makeResponse, expected, empty }) => {
+    {
+      name: "JSON string 403",
+      status: 403,
+      makeResponse: () => Response.json("hello", { status: 403 }),
+      expected: "hello",
+    },
+    {
+      name: "JSON numeric-looking string 403",
+      status: 403,
+      makeResponse: () => Response.json("123", { status: 403 }),
+      expected: "123",
+    },
+    {
+      name: "JSON boolean-looking string 403",
+      status: 403,
+      makeResponse: () => Response.json("false", { status: 403 }),
+      expected: "false",
+    },
+    {
+      name: "JSON null-looking string 403",
+      status: 403,
+      makeResponse: () => Response.json("null", { status: 403 }),
+      expected: "null",
+    },
+    {
+      name: "JSON number 403",
+      status: 403,
+      makeResponse: () => Response.json(123, { status: 403 }),
+      expected: 123,
+    },
+    {
+      name: "JSON boolean 403",
+      status: 403,
+      makeResponse: () => Response.json(false, { status: 403 }),
+      expected: false,
+    },
+    {
+      name: "JSON null 403",
+      status: 403,
+      makeResponse: () => Response.json(null, { status: 403 }),
+      expected: null,
+    },
+  ])("preserves upstream $name response semantics", async ({ status, makeResponse, expected }) => {
     global.fetch = vi.fn().mockResolvedValue(makeResponse());
     const app = buildServer();
     try {
@@ -166,9 +208,7 @@ describe("Imports generated Engine contract client", () => {
       });
 
       expect(response.statusCode).toBe(status);
-      if (empty) {
-        expect(response.json()).toBeNull();
-      } else if (typeof expected === "string") {
+      if (typeof expected === "string") {
         expect(response.body).toBe(expected);
       } else {
         expect(response.json()).toEqual(expected);

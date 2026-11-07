@@ -130,9 +130,11 @@ async function forwardImportRequest(request: Request): Promise<Response> {
     const body = await request.clone().text();
     if (body.length > 0) init.body = body;
   }
-  // Return the original Response. Parsing is handled explicitly as text below so
-  // JSON scalars, empty bodies, and non-JSON text retain the legacy proxy semantics.
-  return globalThis.fetch(request.url, init);
+  // Keep a copy of the raw body before openapi-fetch consumes/parses the Response.
+  // Its non-2xx parser may turn JSON strings such as "123" or "false" into scalars.
+  const response = await globalThis.fetch(request.url, init);
+  importsRawResponseBodies.set(response, response.clone().text());
+  return response;
 }
 
 export function createImportsEngineClient(baseUrl: string) {
@@ -142,22 +144,26 @@ export function createImportsEngineClient(baseUrl: string) {
   });
 }
 
-function parseImportsPayload(response: Response, payload: unknown): unknown {
-  if (typeof payload !== "string") return payload ?? null;
-  if (payload.length === 0) return null;
+const importsRawResponseBodies = new WeakMap<Response, Promise<string>>();
+
+function parseImportsPayload(response: Response, rawBody: string): unknown {
+  if (rawBody.length === 0) return null;
 
   try {
-    // Parse JSON independent of Content-Type. JSON strings and other scalars
-    // are valid payloads and must not be mistaken for plain-text responses.
-    return JSON.parse(payload) as unknown;
+    // Parse the original body exactly once, independent of Content-Type and
+    // openapi-fetch's success/error parsing behavior.
+    return JSON.parse(rawBody) as unknown;
   } catch {
-    return response.ok ? { message: payload } : { error: payload };
+    return response.ok ? { message: rawBody } : { error: rawBody };
   }
 }
 
-function importsProxyResult(response: Response, data: unknown, error: unknown) {
-  const payload = response.ok ? data : error;
-  return { status: response.status, payload: parseImportsPayload(response, payload) };
+async function importsProxyResult(response: Response) {
+  const rawBody = importsRawResponseBodies.get(response);
+  if (!rawBody) {
+    throw new Error("Imports Engine response is missing its captured raw body");
+  }
+  return { status: response.status, payload: parseImportsPayload(response, await rawBody) };
 }
 
 async function importRequest(
@@ -167,7 +173,7 @@ async function importRequest(
 ) {
   try {
     const result = await request;
-    return importsProxyResult(result.response, result.data, result.error);
+    return await importsProxyResult(result.response);
   } catch (error) {
     return fetchUpstreamPayload(Promise.reject(error), logger, route);
   }
