@@ -1,9 +1,13 @@
 import { buildServer } from "../src/server";
 
+async function toRealResponse(response: Pick<Response, "status" | "text">): Promise<Response> {
+  return new Response(await response.text(), { status: response.status });
+}
+
 describe("POST /imports/github", () => {
   it("proxies GET /imports/lookup", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -41,7 +45,7 @@ describe("POST /imports/github", () => {
           imported_count: 5
         }
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -73,7 +77,7 @@ describe("POST /imports/github", () => {
 
   it("returns a job id from the engine", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -111,7 +115,7 @@ describe("POST /imports/github", () => {
           }
         }
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -158,7 +162,7 @@ describe("POST /imports/github", () => {
 
   it("proxies POST /imports/github/installations/bind", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -174,7 +178,7 @@ describe("POST /imports/github", () => {
         access_source_type: "github_app_installation",
         access_source_label: "GitHub App installation #12345"
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -218,7 +222,7 @@ describe("POST /imports/github", () => {
 
   it("proxies POST /imports/github/private-access/bind", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -236,7 +240,7 @@ describe("POST /imports/github", () => {
         access_source_label: "Private GitHub source team private repo",
         access_source_status: "authorized"
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -260,6 +264,7 @@ describe("POST /imports/github", () => {
       access_source_label: "Private GitHub source team private repo",
       access_source_status: "authorized"
     });
+    expect(JSON.stringify(response.json())).not.toContain("ghp-private-token");
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8000/imports/github/private-access/bind",
       {
@@ -282,7 +287,7 @@ describe("POST /imports/github", () => {
 
   it("proxies POST /imports/git-sources/bind", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -320,7 +325,7 @@ describe("POST /imports/github", () => {
         access_source_type: "gitlab_token",
         access_source_status: "not_implemented"
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -380,7 +385,7 @@ describe("POST /imports/github", () => {
 
   it("proxies POST /imports/github/webhook", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -394,7 +399,7 @@ describe("POST /imports/github", () => {
         workspace_slug: "github-org-repo",
         job_id: "job-webhook"
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -438,7 +443,7 @@ describe("POST /imports/github", () => {
 
   it("proxies GET /imports/:jobId", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () =>
@@ -474,7 +479,7 @@ describe("POST /imports/github", () => {
           }
         }
       })
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     const response = await app.inject({
@@ -518,11 +523,11 @@ describe("POST /imports/github", () => {
     { action: "pause", status: 409, payload: { detail: "Concurrent status transition" } },
   ])("forwards $action control status $status and request credentials", async ({ action, status, payload }) => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status,
       ok: status >= 200 && status < 300,
       text: async () => JSON.stringify(payload),
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     try {
@@ -625,11 +630,11 @@ describe("POST /imports/github", () => {
         reason_code: "worker_lifecycle_unverified",
       },
     };
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 200,
       ok: true,
       text: async () => JSON.stringify(payload),
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     try {
@@ -652,11 +657,11 @@ describe("POST /imports/github", () => {
 
   it("does not leak import-control capability to unauthenticated callers", async () => {
     const originalFetch = global.fetch;
-    global.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue(await toRealResponse({
       status: 401,
       ok: false,
       text: async () => JSON.stringify({ detail: "Authentication required" }),
-    } as Response);
+    } as Response));
 
     const app = buildServer();
     try {
