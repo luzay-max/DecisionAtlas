@@ -53,7 +53,7 @@ def _seed_review_fixture(db_path: Path) -> None:
                 status="active",
                 review_state="candidate",
                 problem="Background tasks are slow",
-                context="Need more reliability",
+                context=None,
                 constraints=None,
                 chosen_option="Queue long-running jobs",
                 tradeoffs="More infra",
