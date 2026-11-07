@@ -934,6 +934,143 @@
         "title": "GitHubPrivateAccessBindingRequest",
         "type": "object"
       },
+      "GitHubWebhookResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "delivery_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Id"
+          },
+          "event": {
+            "title": "Event",
+            "type": "string"
+          },
+          "installation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installation Id"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "owner_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Scope"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "repo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo"
+          },
+          "status": {
+            "enum": [
+              "ignored",
+              "queued"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "sync_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Origin"
+          },
+          "trigger_event": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Event"
+          },
+          "workspace_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Slug"
+          }
+        },
+        "required": [
+          "event",
+          "delivery_id",
+          "action",
+          "repo",
+          "installation_id",
+          "status"
+        ],
+        "title": "GitHubWebhookResponse",
+        "type": "object"
+      },
       "GitSourceBindingRequest": {
         "properties": {
           "access_mode": {
@@ -1115,6 +1252,386 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "ImportCapabilitiesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "pause_resume": {
+            "$ref": "#/components/schemas/ImportPauseResumeCapabilityResponse"
+          }
+        },
+        "required": [
+          "pause_resume"
+        ],
+        "title": "ImportCapabilitiesResponse",
+        "type": "object"
+      },
+      "ImportJobResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "imported_count": {
+            "title": "Imported Count",
+            "type": "integer"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "full",
+              "since_last_sync"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "repo": {
+            "title": "Repo",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "sync_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Origin"
+          },
+          "trigger_event": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trigger Event"
+          },
+          "workspace_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Slug"
+          }
+        },
+        "required": [
+          "job_id",
+          "workspace_slug",
+          "repo",
+          "mode",
+          "status",
+          "imported_count"
+        ],
+        "title": "ImportJobResponse",
+        "type": "object"
+      },
+      "ImportPauseResumeCapabilityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "const": "worker_lifecycle_unverified",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason Code"
+          }
+        },
+        "required": [
+          "enabled",
+          "reason_code"
+        ],
+        "title": "ImportPauseResumeCapabilityResponse",
+        "type": "object"
+      },
+      "ImportTargetResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_mode": {
+            "title": "Access Mode",
+            "type": "string"
+          },
+          "access_requirement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Requirement"
+          },
+          "access_requirement_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Requirement Detail"
+          },
+          "access_source_label": {
+            "title": "Access Source Label",
+            "type": "string"
+          },
+          "access_source_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Source Status"
+          },
+          "access_source_status_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Source Status Detail"
+          },
+          "access_source_type": {
+            "title": "Access Source Type",
+            "type": "string"
+          },
+          "active_import": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_incremental_sync": {
+            "title": "Can Incremental Sync",
+            "type": "boolean"
+          },
+          "has_running_import": {
+            "title": "Has Running Import",
+            "type": "boolean"
+          },
+          "has_successful_import": {
+            "title": "Has Successful Import",
+            "type": "boolean"
+          },
+          "last_import_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Import Summary"
+          },
+          "latest_import": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImportJobResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_sync_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Sync At"
+          },
+          "latest_sync_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Sync Origin"
+          },
+          "next_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Action"
+          },
+          "owner_scope": {
+            "title": "Owner Scope",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "repo": {
+            "title": "Repo",
+            "type": "string"
+          },
+          "repo_private": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Private"
+          },
+          "repo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Url"
+          },
+          "setup_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Setup Outcome"
+          },
+          "workspace_exists": {
+            "title": "Workspace Exists",
+            "type": "boolean"
+          },
+          "workspace_slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Slug"
+          }
+        },
+        "required": [
+          "owner_scope",
+          "provider",
+          "access_mode",
+          "repo",
+          "repo_url",
+          "workspace_exists",
+          "workspace_slug",
+          "has_successful_import",
+          "can_incremental_sync",
+          "has_running_import",
+          "latest_import",
+          "active_import",
+          "access_source_type",
+          "access_source_label"
+        ],
+        "title": "ImportTargetResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -2930,9 +3447,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Import Capabilities Imports Capabilities Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportCapabilitiesResponse"
                 }
               }
             },
@@ -2991,9 +3506,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Bind Git Source Imports Git Sources Bind Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportTargetResponse"
                 }
               }
             },
@@ -3052,9 +3565,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Import Github Imports Github Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportJobResponse"
                 }
               }
             },
@@ -3113,9 +3624,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Bind Installation Imports Github Installations Bind Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportTargetResponse"
                 }
               }
             },
@@ -3174,9 +3683,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Bind Private Access Imports Github Private Access Bind Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportTargetResponse"
                 }
               }
             },
@@ -3250,9 +3757,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Github Webhook Imports Github Webhook Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/GitHubWebhookResponse"
                 }
               }
             },
@@ -3311,9 +3816,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Lookup Import Target Imports Lookup Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportTargetResponse"
                 }
               }
             },
@@ -3371,9 +3874,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Import Job Imports  Job Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportJobResponse"
                 }
               }
             },
@@ -3431,9 +3932,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Pause Import Job Imports  Job Id  Pause Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportJobResponse"
                 }
               }
             },
@@ -3491,9 +3990,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Resume Import Job Imports  Job Id  Resume Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportJobResponse"
                 }
               }
             },

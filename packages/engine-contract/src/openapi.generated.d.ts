@@ -917,6 +917,36 @@ export interface components {
             /** Workspace Slug */
             workspace_slug?: string | null;
         };
+        /** GitHubWebhookResponse */
+        GitHubWebhookResponse: {
+            /** Action */
+            action: string | null;
+            /** Delivery Id */
+            delivery_id: string | null;
+            /** Event */
+            event: string;
+            /** Installation Id */
+            installation_id: string | null;
+            /** Job Id */
+            job_id?: string | null;
+            /** Owner Scope */
+            owner_scope?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /** Repo */
+            repo: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ignored" | "queued";
+            /** Sync Origin */
+            sync_origin?: string | null;
+            /** Trigger Event */
+            trigger_event?: string | null;
+            /** Workspace Slug */
+            workspace_slug?: string | null;
+        };
         /** GitSourceBindingRequest */
         GitSourceBindingRequest: {
             /** Access Mode */
@@ -975,6 +1005,103 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ImportCapabilitiesResponse */
+        ImportCapabilitiesResponse: {
+            pause_resume: components["schemas"]["ImportPauseResumeCapabilityResponse"];
+        };
+        /** ImportJobResponse */
+        ImportJobResponse: {
+            /** Error Message */
+            error_message?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Imported Count */
+            imported_count: number;
+            /** Job Id */
+            job_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "full" | "since_last_sync";
+            /** Repo */
+            repo: string;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "paused" | "succeeded" | "failed";
+            /** Summary */
+            summary?: {
+                [key: string]: unknown;
+            } | null;
+            /** Sync Origin */
+            sync_origin?: string | null;
+            /** Trigger Event */
+            trigger_event?: string | null;
+            /** Workspace Slug */
+            workspace_slug: string | null;
+        };
+        /** ImportPauseResumeCapabilityResponse */
+        ImportPauseResumeCapabilityResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Reason Code */
+            reason_code: "worker_lifecycle_unverified" | null;
+        };
+        /** ImportTargetResponse */
+        ImportTargetResponse: {
+            /** Access Mode */
+            access_mode: string;
+            /** Access Requirement */
+            access_requirement?: string | null;
+            /** Access Requirement Detail */
+            access_requirement_detail?: string | null;
+            /** Access Source Label */
+            access_source_label: string;
+            /** Access Source Status */
+            access_source_status?: string | null;
+            /** Access Source Status Detail */
+            access_source_status_detail?: string | null;
+            /** Access Source Type */
+            access_source_type: string;
+            active_import: components["schemas"]["ImportJobResponse"] | null;
+            /** Can Incremental Sync */
+            can_incremental_sync: boolean;
+            /** Has Running Import */
+            has_running_import: boolean;
+            /** Has Successful Import */
+            has_successful_import: boolean;
+            /** Last Import Summary */
+            last_import_summary?: {
+                [key: string]: unknown;
+            } | null;
+            latest_import: components["schemas"]["ImportJobResponse"] | null;
+            /** Latest Sync At */
+            latest_sync_at?: string | null;
+            /** Latest Sync Origin */
+            latest_sync_origin?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Owner Scope */
+            owner_scope: string;
+            /** Provider */
+            provider: string;
+            /** Repo */
+            repo: string;
+            /** Repo Private */
+            repo_private?: boolean | null;
+            /** Repo Url */
+            repo_url: string | null;
+            /** Setup Outcome */
+            setup_outcome?: string | null;
+            /** Workspace Exists */
+            workspace_exists: boolean;
+            /** Workspace Slug */
+            workspace_slug: string | null;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -1902,9 +2029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportCapabilitiesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1939,9 +2064,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportTargetResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1976,9 +2099,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportJobResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2013,9 +2134,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportTargetResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2050,9 +2169,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportTargetResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2085,9 +2202,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GitHubWebhookResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2120,9 +2235,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportTargetResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2155,9 +2268,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportJobResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2190,9 +2301,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportJobResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2225,9 +2334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ImportJobResponse"];
                 };
             };
             /** @description Validation Error */
