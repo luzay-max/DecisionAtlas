@@ -1,0 +1,68 @@
+name: F06b schema compatibility (Draft; no rollout)
+
+on:
+  pull_request:
+    paths:
+      - "services/engine/**"
+      - ".github/workflows/f06b-schema-compatibility.yml"
+
+jobs:
+  postgres17-migrate-and-restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      pg:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: schema_ci
+          POSTGRES_PASSWORD: schema-ci-ephemeral-only
+          POSTGRES_DB: schema_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U schema_ci -d schema_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DATABASE_URL: postgresql+psycopg://schema_ci:schema-ci-ephemeral-only@localhost:5432/schema_ci
+      DECISIONATLAS_SCHEMA_PG_URL: postgresql+psycopg://schema_ci:schema-ci-ephemeral-only@localhost:5432/schema_ci
+      DECISIONATLAS_SCHEMA_PG_RESTORED_URL: postgresql+psycopg://schema_ci:schema-ci-ephemeral-only@localhost:5432/schema_ci_restored
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install locked engine dependencies
+        run: uv sync --project services/engine --frozen
+
+      - name: Enable pgvector in the isolated synthetic database
+        run: |
+          docker exec "${{ job.services.pg.id }}" psql -U schema_ci -d schema_ci -v ON_ERROR_STOP=1 -c 'CREATE EXTENSION IF NOT EXISTS vector'
+
+      - name: PostgreSQL 17 migrate 0012 to 0013 and validate constraints/ABA
+        working-directory: services/engine
+        run: uv run pytest -q tests/test_artifact_revisions_postgres.py -k "postgres_upgrade"
+
+      - name: Back up and restore using PostgreSQL 17 server binaries
+        run: |
+          set -euo pipefail
+          docker exec "${{ job.services.pg.id }}" pg_dump -U schema_ci -d schema_ci --format=custom --no-owner --no-acl > "$RUNNER_TEMP/f06b-schema-ci.dump"
+          test -s "$RUNNER_TEMP/f06b-schema-ci.dump"
+          docker exec "${{ job.services.pg.id }}" createdb -U schema_ci schema_ci_restored
+          docker exec -i "${{ job.services.pg.id }}" pg_restore -U schema_ci -d schema_ci_restored --no-owner --no-privileges < "$RUNNER_TEMP/f06b-schema-ci.dump"
+
+      - name: Verify restored PostgreSQL evidence, legacy references, CAS generation
+        working-directory: services/engine
+        run: uv run pytest -q tests/test_artifact_revisions_postgres.py -k "postgres_restored"
+
+      # No artifacts upload: even synthetic dumps should not be retained by CI.
