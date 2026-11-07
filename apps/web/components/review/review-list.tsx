@@ -3,7 +3,8 @@
 import Link from "next/link";
 import React, { useState } from "react";
 
-import { reviewDecision, ReviewDecision, ReviewState } from "../../lib/api";
+import { reviewDecision } from "../../lib/api";
+import type { ReviewDecisionView, ReviewState } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { useI18n } from "../i18n/language-provider";
 import { ReviewActions } from "./review-actions";
@@ -33,7 +34,7 @@ function qualityReasonLabel(reason: string, messages: ReturnType<typeof useI18n>
   return messages.review.qualityReasons[reason as keyof typeof messages.review.qualityReasons] ?? reason.replaceAll("_", " ");
 }
 
-export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecision[]; workspaceSlug: string }) {
+export function ReviewList({ decisions, workspaceSlug }: { decisions: ReviewDecisionView[]; workspaceSlug: string }) {
   const { messages } = useI18n();
   const [items, setItems] = useState(decisions);
   const [acceptedInThisSession, setAcceptedInThisSession] = useState(0);

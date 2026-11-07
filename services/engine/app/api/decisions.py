@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.api.decision_contract import DecisionDetailResponse, DecisionListItemResponse, DecisionReviewResponse
 from app.auth import AuthContext, require_actor, require_workspace_role
 from app.db.session import get_db_session
 from app.db.models import Workspace
@@ -204,7 +205,7 @@ def _decision_state(decision) -> dict:
     }
 
 
-@router.get("")
+@router.get("", response_model=list[DecisionListItemResponse])
 def list_decisions(
     workspace_slug: str = Query(...),
     review_state: str | None = Query(default=None),
@@ -232,7 +233,7 @@ def list_decisions(
         session.close()
 
 
-@router.get("/{decision_id}")
+@router.get("/{decision_id}", response_model=DecisionDetailResponse)
 def get_decision(
     decision_id: int,
     auth: AuthContext = Depends(require_actor),
@@ -272,7 +273,7 @@ def get_decision(
         session.close()
 
 
-@router.post("/{decision_id}/review")
+@router.post("/{decision_id}/review", response_model=DecisionReviewResponse)
 def review_decision(
     decision_id: int,
     request: ReviewDecisionRequest,

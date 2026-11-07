@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "workspace_id": 7,
+    "title": "Use Redis Cache",
+    "status": "active",
+    "review_state": "candidate",
+    "problem": "Read latency is high",
+    "context": null,
+    "constraints": null,
+    "chosen_option": "Use Redis as a cache",
+    "tradeoffs": "Additional service",
+    "confidence": 0.88,
+    "workspace_mode": "imported",
+    "source_summary": "This workspace is using imported repository data.",
+    "review_evidence": {
+      "state": "grounded",
+      "source_ref_count": 2,
+      "source_ref_preview": [
+        {
+          "id": 11,
+          "artifact_id": 101,
+          "span_start": 0,
+          "span_end": 50,
+          "quote": "We decided to use Redis as a cache because latency mattered.",
+          "url": "https://github.com/org/repo/issues/1",
+          "relevance_score": 0.91,
+          "current_quote_match": true
+        },
+        {
+          "id": 12,
+          "artifact_id": 101,
+          "span_start": 44,
+          "span_end": 59,
+          "quote": "latency mattered",
+          "url": "https://github.com/org/repo/issues/1",
+          "relevance_score": 0.86,
+          "current_quote_match": true
+        }
+      ],
+      "primary_artifact": {
+        "id": 101,
+        "type": "issue",
+        "title": "Cache decision",
+        "repo": "org/repo",
+        "url": "https://github.com/org/repo/issues/1"
+      },
+      "current_quote_integrity": {
+        "status": "current_quotes_found",
+        "found_count": 2,
+        "missing_count": 0,
+        "unverifiable_count": 0
+      }
+    },
+    "candidate_quality": {
+      "label": "strong",
+      "summary": "Multiple grounded refs with previewable evidence, provenance, and source URL support.",
+      "source_ref_count": 2,
+      "previewable_source_ref_count": 2,
+      "has_primary_artifact": true,
+      "has_source_url": true,
+      "confidence_bucket": "high",
+      "reasons": [
+        "multiple_source_refs",
+        "previewable_quote",
+        "artifact_provenance",
+        "source_url_available",
+        "high_confidence"
+      ]
+    }
+  }
+]

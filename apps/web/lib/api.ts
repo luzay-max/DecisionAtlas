@@ -1,48 +1,28 @@
-import type { WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
+import type { DecisionDetail as EngineDecisionDetail, DecisionListItem as EngineDecisionListItem, DecisionReviewRequest as EngineDecisionReviewRequest, DecisionReviewResponse as EngineDecisionReviewResponse, DecisionSourceRef as EngineDecisionSourceRef, DecisionWorkspaceMode as EngineDecisionWorkspaceMode, WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
 
-export type ReviewDecision = {
-  id: number;
-  workspace_id: number;
-  title: string;
-  status: string;
-  review_state: string;
-  problem: string;
-  context: string | null;
-  constraints: string | null;
-  chosen_option: string;
-  tradeoffs: string;
-  confidence: number;
-  workspace_mode?: WorkspaceMode;
-  source_summary?: string;
-  candidate_quality?: {
-    label: "strong" | "partial" | "thin" | string;
-    summary: string;
-    source_ref_count: number;
-    previewable_source_ref_count: number;
-    has_primary_artifact: boolean;
-    has_source_url: boolean;
-    confidence_bucket: "high" | "medium" | "low" | string;
-    reasons: string[];
-  };
-  review_evidence?: {
-    state: "grounded" | "thin" | "missing" | string;
-    source_ref_count: number;
-    source_ref_preview: SourceRef[];
-    primary_artifact: {
-      id: number;
-      type: string;
-      title: string | null;
-      repo: string | null;
-      url: string | null;
-    } | null;
-  };
-  audit_event?: ReviewAuditEvent;
-  review_history?: ReviewAuditEvent[];
+export type ReviewDecision = EngineDecisionListItem;
+
+// UI components also accept sparse in-memory/demo view models. API functions
+// still return the complete generated Engine DTO above.
+type DecisionReviewEvidenceView = Omit<
+  ReviewDecision["review_evidence"],
+  "current_quote_integrity" | "source_ref_preview"
+> & {
+  current_quote_integrity?: ReviewDecision["review_evidence"]["current_quote_integrity"];
+  source_ref_preview: SourceRef[];
+};
+
+export type ReviewDecisionView = Pick<
+  ReviewDecision,
+  "id" | "workspace_id" | "title" | "status" | "review_state" | "problem" |
+  "context" | "constraints" | "chosen_option" | "tradeoffs" | "confidence"
+> & Partial<Pick<ReviewDecision, "workspace_mode" | "source_summary" | "candidate_quality">> & {
+  review_evidence?: DecisionReviewEvidenceView;
 };
 
 export type ReviewState = "candidate" | "accepted" | "rejected" | "superseded";
 
-export type WorkspaceMode = "demo" | "imported" | "mixed";
+export type WorkspaceMode = EngineDecisionWorkspaceMode;
 
 export type WorkspaceProvenance = {
   workspace_mode: WorkspaceMode;
@@ -108,16 +88,11 @@ export type ImportSummary = {
   } | null;
 };
 
-export type SourceRef = {
-  id: number;
-  artifact_id: number;
-  span_start: number | null;
-  span_end: number | null;
-  quote: string;
-  url: string | null;
-  relevance_score: number | null;
+// UI view projections remain tolerant of older/sparse fixtures. The actual
+// Decisions HTTP responses below use the strict generated Engine DTOs.
+export type SourceRef = Omit<EngineDecisionSourceRef, "current_quote_match"> & {
+  current_quote_match?: boolean | null;
 };
-
 export type ReviewAuditEvent = {
   id: number;
   owner_scope: string;
@@ -134,11 +109,8 @@ export type ReviewAuditEvent = {
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
 };
-
-export type DecisionDetail = ReviewDecision &
-  WorkspaceProvenance & {
-  source_refs: SourceRef[];
-};
+export type DecisionDetail = EngineDecisionDetail;
+export type DecisionReviewResult = EngineDecisionReviewResponse;
 
 export type RetrievalMode = EngineRetrievalMode;
 export type WhyAnswerResponse = WhyResponse;
@@ -534,16 +506,17 @@ export async function reviewDecision(
   decisionId: number,
   reviewState: ReviewState,
   reviewRationale?: string
-): Promise<ReviewDecision> {
+): Promise<DecisionReviewResult> {
+  const body: EngineDecisionReviewRequest = {
+    review_state: reviewState,
+    ...(reviewRationale ? { review_rationale: reviewRationale } : {})
+  };
   const response = await apiFetch(`${apiBaseUrl}/decisions/${decisionId}/review`, {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
-    body: JSON.stringify({
-      review_state: reviewState,
-      ...(reviewRationale ? { review_rationale: reviewRationale } : {})
-    })
+    body: JSON.stringify(body)
   });
   if (!response.ok) {
     await readError(response, "Failed to update decision review state");

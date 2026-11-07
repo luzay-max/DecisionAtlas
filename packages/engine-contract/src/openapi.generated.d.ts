@@ -640,6 +640,228 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** DecisionArtifactSummaryResponse */
+        DecisionArtifactSummaryResponse: {
+            /** Id */
+            id: number;
+            /** Repo */
+            repo: string | null;
+            /** Title */
+            title: string | null;
+            /** Type */
+            type: string;
+            /** Url */
+            url: string | null;
+        };
+        /** DecisionAuditEventResponse */
+        DecisionAuditEventResponse: {
+            /** Action */
+            action: string;
+            /** Actor Id */
+            actor_id: number | null;
+            /** Actor Role */
+            actor_role: string;
+            /** Actor Username */
+            actor_username: string;
+            /** Created At */
+            created_at: string | null;
+            /** Id */
+            id: number;
+            /** Metadata */
+            metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** New State */
+            new_state: {
+                [key: string]: unknown;
+            } | null;
+            /** Owner Scope */
+            owner_scope: string;
+            /** Previous State */
+            previous_state: {
+                [key: string]: unknown;
+            } | null;
+            /** Rationale */
+            rationale: string | null;
+            /** Target Id */
+            target_id: number;
+            /** Target Type */
+            target_type: string;
+            /** Workspace Id */
+            workspace_id: number | null;
+        };
+        /** DecisionCandidateQualityResponse */
+        DecisionCandidateQualityResponse: {
+            /**
+             * Confidence Bucket
+             * @enum {string}
+             */
+            confidence_bucket: "high" | "medium" | "low";
+            /** Has Primary Artifact */
+            has_primary_artifact: boolean;
+            /** Has Source Url */
+            has_source_url: boolean;
+            /**
+             * Label
+             * @enum {string}
+             */
+            label: "strong" | "partial" | "thin";
+            /** Previewable Source Ref Count */
+            previewable_source_ref_count: number;
+            /** Reasons */
+            reasons: string[];
+            /** Source Ref Count */
+            source_ref_count: number;
+            /** Summary */
+            summary: string;
+        };
+        /** DecisionDetailResponse */
+        DecisionDetailResponse: {
+            candidate_quality: components["schemas"]["DecisionCandidateQualityResponse"];
+            /** Chosen Option */
+            chosen_option: string;
+            /** Confidence */
+            confidence: number;
+            /** Constraints */
+            constraints: string | null;
+            /** Context */
+            context: string | null;
+            /** Id */
+            id: number;
+            /** Problem */
+            problem: string;
+            review_evidence: components["schemas"]["DecisionReviewEvidenceResponse"];
+            /** Review History */
+            review_history: components["schemas"]["DecisionAuditEventResponse"][];
+            /** Review State */
+            review_state: string;
+            /** Source Refs */
+            source_refs: components["schemas"]["DecisionSourceRefResponse"][];
+            /** Source Summary */
+            source_summary: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Tradeoffs */
+            tradeoffs: string;
+            /** Workspace Id */
+            workspace_id: number;
+            /**
+             * Workspace Mode
+             * @enum {string}
+             */
+            workspace_mode: "demo" | "imported" | "mixed";
+        };
+        /** DecisionListItemResponse */
+        DecisionListItemResponse: {
+            candidate_quality: components["schemas"]["DecisionCandidateQualityResponse"];
+            /** Chosen Option */
+            chosen_option: string;
+            /** Confidence */
+            confidence: number;
+            /** Constraints */
+            constraints: string | null;
+            /** Context */
+            context: string | null;
+            /** Id */
+            id: number;
+            /** Problem */
+            problem: string;
+            review_evidence: components["schemas"]["DecisionReviewEvidenceResponse"];
+            /** Review State */
+            review_state: string;
+            /** Source Summary */
+            source_summary: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Tradeoffs */
+            tradeoffs: string;
+            /** Workspace Id */
+            workspace_id: number;
+            /**
+             * Workspace Mode
+             * @enum {string}
+             */
+            workspace_mode: "demo" | "imported" | "mixed";
+        };
+        /** DecisionQuoteIntegrityResponse */
+        DecisionQuoteIntegrityResponse: {
+            /** Found Count */
+            found_count: number;
+            /** Missing Count */
+            missing_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "no_refs" | "current_quote_missing" | "unverifiable" | "current_quotes_found";
+            /** Unverifiable Count */
+            unverifiable_count: number;
+        };
+        /** DecisionReviewEvidenceResponse */
+        DecisionReviewEvidenceResponse: {
+            current_quote_integrity: components["schemas"]["DecisionQuoteIntegrityResponse"];
+            primary_artifact: components["schemas"]["DecisionArtifactSummaryResponse"] | null;
+            /** Source Ref Count */
+            source_ref_count: number;
+            /** Source Ref Preview */
+            source_ref_preview: components["schemas"]["DecisionSourceRefResponse"][];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "grounded" | "thin" | "missing";
+        };
+        /** DecisionReviewResponse */
+        DecisionReviewResponse: {
+            audit_event: components["schemas"]["DecisionAuditEventResponse"];
+            /** Chosen Option */
+            chosen_option: string;
+            /** Confidence */
+            confidence: number;
+            /** Constraints */
+            constraints: string | null;
+            /** Context */
+            context: string | null;
+            /** Id */
+            id: number;
+            /** Problem */
+            problem: string;
+            /** Review History */
+            review_history: components["schemas"]["DecisionAuditEventResponse"][];
+            /** Review State */
+            review_state: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Tradeoffs */
+            tradeoffs: string;
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** DecisionSourceRefResponse */
+        DecisionSourceRefResponse: {
+            /** Artifact Id */
+            artifact_id: number;
+            /** Current Quote Match */
+            current_quote_match: boolean | null;
+            /** Id */
+            id: number;
+            /** Quote */
+            quote: string;
+            /** Relevance Score */
+            relevance_score: number | null;
+            /** Span End */
+            span_end: number | null;
+            /** Span Start */
+            span_start: number | null;
+            /** Url */
+            url: string | null;
+        };
         /** DriftDispositionRequest */
         DriftDispositionRequest: {
             /** Rationale */
@@ -1228,9 +1450,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    }[];
+                    "application/json": components["schemas"]["DecisionListItemResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -1263,9 +1483,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DecisionDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1302,9 +1520,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["DecisionReviewResponse"];
                 };
             };
             /** @description Validation Error */

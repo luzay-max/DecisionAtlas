@@ -1,17 +1,22 @@
 import { FastifyInstance } from "fastify";
+import type { DecisionListQuery, DecisionReviewRequest } from "@decisionatlas/engine-contract";
 import { authHeadersForRequest } from "../auth";
 import { getEnv } from "../plugins/env";
-import { fetchUpstreamPayload } from "../proxy";
+import {
+  fetchDecisionDetail,
+  fetchDecisionReview,
+  fetchDecisionsList,
+} from "../contracts/engine-client";
 
 export async function decisionsRoute(app: FastifyInstance) {
   app.get("/decisions", async (request, reply) => {
     const env = getEnv();
-    const query = new URLSearchParams(request.query as Record<string, string>).toString();
     const authHeaders = await authHeadersForRequest(request);
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/decisions?${query}`, { headers: authHeaders }),
+    const upstream = await fetchDecisionsList(
+      env.ENGINE_BASE_URL,
+      request.query as DecisionListQuery,
+      authHeaders,
       app.log,
-      "GET /decisions"
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -20,10 +25,13 @@ export async function decisionsRoute(app: FastifyInstance) {
     const env = getEnv();
     const { id } = request.params as { id: string };
     const authHeaders = await authHeadersForRequest(request);
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/decisions/${id}`, { headers: authHeaders }),
+    // Fastify exposes path params as strings. The cast is type-only so the
+    // Engine retains its existing integer parsing and 422 error payload.
+    const upstream = await fetchDecisionDetail(
+      env.ENGINE_BASE_URL,
+      id as unknown as number,
+      authHeaders,
       app.log,
-      "GET /decisions/:id"
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -32,17 +40,13 @@ export async function decisionsRoute(app: FastifyInstance) {
     const env = getEnv();
     const { id } = request.params as { id: string };
     const authHeaders = await authHeadersForRequest(request);
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/decisions/${id}/review`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...authHeaders,
-        },
-        body: JSON.stringify(request.body)
-      }),
+    // Preserve the raw path token for the Engine's existing validation.
+    const upstream = await fetchDecisionReview(
+      env.ENGINE_BASE_URL,
+      id as unknown as number,
+      request.body as DecisionReviewRequest,
+      authHeaders,
       app.log,
-      "POST /decisions/:id/review"
     );
     return reply.status(upstream.status).send(upstream.payload);
   });

@@ -2,7 +2,7 @@
 
 import React from "react";
 
-import { ReviewDecision } from "../../lib/api";
+import type { ReviewDecisionView } from "../../lib/api";
 import { GuidedDemoPanel } from "../guided-demo/guided-demo-panel";
 import { DemoWorkspaceNav } from "../navigation/demo-workspace-nav";
 import { ProvenanceBanner } from "../provenance/provenance-banner";
@@ -13,7 +13,7 @@ export function ReviewPageContent({
   decisions,
   workspaceSlug,
 }: {
-  decisions: ReviewDecision[];
+  decisions: ReviewDecisionView[];
   workspaceSlug: string;
 }) {
   const { messages } = useI18n();
