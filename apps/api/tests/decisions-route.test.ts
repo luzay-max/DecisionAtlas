@@ -44,6 +44,63 @@ describe("Decisions generated DTO client", () => {
     }
   });
 
+  it("preserves an empty list response", async () => {
+    global.fetch = vi.fn().mockResolvedValue(Response.json([]));
+    const app = buildServer();
+    try {
+      const response = await app.inject({ method: "GET", url: "/decisions?workspace_slug=imported-workspace" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("preserves nulls and empty detail collections without synthesizing evidence", async () => {
+    const emptyDetail = {
+      ...detailFixture,
+      context: null,
+      constraints: null,
+      review_evidence: {
+        state: "missing",
+        source_ref_count: 0,
+        source_ref_preview: [],
+        primary_artifact: null,
+        current_quote_integrity: {
+          status: "no_refs",
+          found_count: 0,
+          missing_count: 0,
+          unverifiable_count: 0,
+        },
+      },
+      candidate_quality: {
+        label: "thin",
+        summary: "No source refs yet.",
+        source_ref_count: 0,
+        previewable_source_ref_count: 0,
+        has_primary_artifact: false,
+        has_source_url: false,
+        confidence_bucket: "medium",
+        reasons: ["missing_source_refs"],
+      },
+      source_refs: [],
+      review_history: [],
+    };
+    global.fetch = vi.fn().mockResolvedValue(Response.json(emptyDetail));
+    const app = buildServer();
+    try {
+      const response = await app.inject({ method: "GET", url: "/decisions/1" });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual(emptyDetail);
+      expect(response.json().context).toBeNull();
+      expect(response.json().source_refs).toEqual([]);
+      expect(response.json().review_history).toEqual([]);
+      expect(response.json().review_evidence.source_ref_preview).toEqual([]);
+    } finally {
+      await app.close();
+    }
+  });
+
   it("proxies the typed review body without changing the returned audit event", async () => {
     global.fetch = vi.fn().mockResolvedValue(Response.json(reviewFixture));
     const app = buildServer();
