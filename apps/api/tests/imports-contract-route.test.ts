@@ -40,7 +40,7 @@ describe("Imports generated Engine contract client", () => {
       expect(response.json()).toEqual(target);
       expect(global.fetch).toHaveBeenCalledExactlyOnceWith(
         "http://localhost:8000/imports/lookup?repo=org%2Frepo",
-        { method: "GET", headers: { "x-decisionatlas-session-token": "admin-token" } },
+        { headers: { "x-decisionatlas-session-token": "admin-token" } },
       );
     } finally {
       await app.close();
