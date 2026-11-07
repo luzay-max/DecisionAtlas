@@ -1,6 +1,729 @@
 {
   "components": {
     "schemas": {
+      "DecisionArtifactSummaryResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "repo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "repo",
+          "url"
+        ],
+        "title": "DecisionArtifactSummaryResponse",
+        "type": "object"
+      },
+      "DecisionAuditEventResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "actor_role": {
+            "title": "Actor Role",
+            "type": "string"
+          },
+          "actor_username": {
+            "title": "Actor Username",
+            "type": "string"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "new_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New State"
+          },
+          "owner_scope": {
+            "title": "Owner Scope",
+            "type": "string"
+          },
+          "previous_state": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous State"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rationale"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "integer"
+          },
+          "target_type": {
+            "title": "Target Type",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "id",
+          "owner_scope",
+          "workspace_id",
+          "actor_id",
+          "actor_username",
+          "actor_role",
+          "target_type",
+          "target_id",
+          "action",
+          "previous_state",
+          "new_state",
+          "rationale",
+          "metadata",
+          "created_at"
+        ],
+        "title": "DecisionAuditEventResponse",
+        "type": "object"
+      },
+      "DecisionCandidateQualityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence_bucket": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Confidence Bucket",
+            "type": "string"
+          },
+          "has_primary_artifact": {
+            "title": "Has Primary Artifact",
+            "type": "boolean"
+          },
+          "has_source_url": {
+            "title": "Has Source Url",
+            "type": "boolean"
+          },
+          "label": {
+            "enum": [
+              "strong",
+              "partial",
+              "thin"
+            ],
+            "title": "Label",
+            "type": "string"
+          },
+          "previewable_source_ref_count": {
+            "title": "Previewable Source Ref Count",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "source_ref_count": {
+            "title": "Source Ref Count",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "summary",
+          "source_ref_count",
+          "previewable_source_ref_count",
+          "has_primary_artifact",
+          "has_source_url",
+          "confidence_bucket",
+          "reasons"
+        ],
+        "title": "DecisionCandidateQualityResponse",
+        "type": "object"
+      },
+      "DecisionDetailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_quality": {
+            "$ref": "#/components/schemas/DecisionCandidateQualityResponse"
+          },
+          "chosen_option": {
+            "title": "Chosen Option",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "constraints": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Constraints"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "problem": {
+            "title": "Problem",
+            "type": "string"
+          },
+          "review_evidence": {
+            "$ref": "#/components/schemas/DecisionReviewEvidenceResponse"
+          },
+          "review_history": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionAuditEventResponse"
+            },
+            "title": "Review History",
+            "type": "array"
+          },
+          "review_state": {
+            "title": "Review State",
+            "type": "string"
+          },
+          "source_refs": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionSourceRefResponse"
+            },
+            "title": "Source Refs",
+            "type": "array"
+          },
+          "source_summary": {
+            "title": "Source Summary",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tradeoffs": {
+            "title": "Tradeoffs",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "integer"
+          },
+          "workspace_mode": {
+            "enum": [
+              "demo",
+              "imported",
+              "mixed"
+            ],
+            "title": "Workspace Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "title",
+          "status",
+          "review_state",
+          "problem",
+          "context",
+          "constraints",
+          "chosen_option",
+          "tradeoffs",
+          "confidence",
+          "workspace_mode",
+          "source_summary",
+          "review_evidence",
+          "candidate_quality",
+          "source_refs",
+          "review_history"
+        ],
+        "title": "DecisionDetailResponse",
+        "type": "object"
+      },
+      "DecisionListItemResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_quality": {
+            "$ref": "#/components/schemas/DecisionCandidateQualityResponse"
+          },
+          "chosen_option": {
+            "title": "Chosen Option",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "constraints": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Constraints"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "problem": {
+            "title": "Problem",
+            "type": "string"
+          },
+          "review_evidence": {
+            "$ref": "#/components/schemas/DecisionReviewEvidenceResponse"
+          },
+          "review_state": {
+            "title": "Review State",
+            "type": "string"
+          },
+          "source_summary": {
+            "title": "Source Summary",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tradeoffs": {
+            "title": "Tradeoffs",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "integer"
+          },
+          "workspace_mode": {
+            "enum": [
+              "demo",
+              "imported",
+              "mixed"
+            ],
+            "title": "Workspace Mode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "title",
+          "status",
+          "review_state",
+          "problem",
+          "context",
+          "constraints",
+          "chosen_option",
+          "tradeoffs",
+          "confidence",
+          "workspace_mode",
+          "source_summary",
+          "review_evidence",
+          "candidate_quality"
+        ],
+        "title": "DecisionListItemResponse",
+        "type": "object"
+      },
+      "DecisionQuoteIntegrityResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "found_count": {
+            "title": "Found Count",
+            "type": "integer"
+          },
+          "missing_count": {
+            "title": "Missing Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "no_refs",
+              "current_quote_missing",
+              "unverifiable",
+              "current_quotes_found"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unverifiable_count": {
+            "title": "Unverifiable Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "found_count",
+          "missing_count",
+          "unverifiable_count"
+        ],
+        "title": "DecisionQuoteIntegrityResponse",
+        "type": "object"
+      },
+      "DecisionReviewEvidenceResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "current_quote_integrity": {
+            "$ref": "#/components/schemas/DecisionQuoteIntegrityResponse"
+          },
+          "primary_artifact": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DecisionArtifactSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_ref_count": {
+            "title": "Source Ref Count",
+            "type": "integer"
+          },
+          "source_ref_preview": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionSourceRefResponse"
+            },
+            "title": "Source Ref Preview",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "grounded",
+              "thin",
+              "missing"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "source_ref_count",
+          "source_ref_preview",
+          "primary_artifact",
+          "current_quote_integrity"
+        ],
+        "title": "DecisionReviewEvidenceResponse",
+        "type": "object"
+      },
+      "DecisionReviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "audit_event": {
+            "$ref": "#/components/schemas/DecisionAuditEventResponse"
+          },
+          "chosen_option": {
+            "title": "Chosen Option",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "constraints": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Constraints"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "problem": {
+            "title": "Problem",
+            "type": "string"
+          },
+          "review_history": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionAuditEventResponse"
+            },
+            "title": "Review History",
+            "type": "array"
+          },
+          "review_state": {
+            "title": "Review State",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tradeoffs": {
+            "title": "Tradeoffs",
+            "type": "string"
+          },
+          "workspace_id": {
+            "title": "Workspace Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "title",
+          "status",
+          "review_state",
+          "problem",
+          "context",
+          "constraints",
+          "chosen_option",
+          "tradeoffs",
+          "confidence",
+          "audit_event",
+          "review_history"
+        ],
+        "title": "DecisionReviewResponse",
+        "type": "object"
+      },
+      "DecisionSourceRefResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "integer"
+          },
+          "current_quote_match": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Quote Match"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "relevance_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relevance Score"
+          },
+          "span_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span End"
+          },
+          "span_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Span Start"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "id",
+          "artifact_id",
+          "span_start",
+          "span_end",
+          "quote",
+          "url",
+          "relevance_score",
+          "current_quote_match"
+        ],
+        "title": "DecisionSourceRefResponse",
+        "type": "object"
+      },
       "DriftDispositionRequest": {
         "properties": {
           "rationale": {
@@ -1445,8 +2168,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/components/schemas/DecisionListItemResponse"
                   },
                   "title": "Response List Decisions Decisions Get",
                   "type": "array"
@@ -1507,9 +2229,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Get Decision Decisions  Decision Id  Get",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DecisionDetailResponse"
                 }
               }
             },
@@ -1577,9 +2297,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Review Decision Decisions  Decision Id  Review Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/DecisionReviewResponse"
                 }
               }
             },
