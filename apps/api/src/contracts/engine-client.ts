@@ -130,22 +130,8 @@ async function forwardImportRequest(request: Request): Promise<Response> {
     const body = await request.clone().text();
     if (body.length > 0) init.body = body;
   }
-  const response = await globalThis.fetch(request.url, init);
-  if (response instanceof Response) return response;
-
-  // Keep compatibility with the repository's lightweight fetch test doubles.
-  const raw = await response.text();
-  let contentType = "text/plain";
-  try {
-    JSON.parse(raw);
-    contentType = "application/json";
-  } catch {
-    // The upstream proxy historically wraps successful text and error text separately.
-  }
-  return new Response(raw || null, {
-    status: response.status,
-    headers: { "content-type": contentType },
-  });
+  // openapi-fetch's custom fetch contract returns a standard Response.
+  return globalThis.fetch(request.url, init);
 }
 
 export function createImportsEngineClient(baseUrl: string) {
