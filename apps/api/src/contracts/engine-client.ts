@@ -124,9 +124,11 @@ async function forwardImportRequest(request: Request): Promise<Response> {
   const headers = Object.fromEntries(
     [...request.headers.entries()].filter(([name]) => name.toLowerCase() !== "accept")
   );
-  const init: RequestInit = { method: request.method, headers };
+  const init: RequestInit = { headers };
+  if (request.method !== "GET") init.method = request.method;
   if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = await request.clone().text();
+    const body = await request.clone().text();
+    if (body.length > 0) init.body = body;
   }
   const response = await globalThis.fetch(request.url, init);
   if (response instanceof Response) return response;
