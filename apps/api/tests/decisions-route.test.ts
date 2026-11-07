@@ -131,6 +131,21 @@ describe("Decisions generated DTO client", () => {
     }
   });
 
+  it("preserves raw non-integer path input for Engine 422 validation", async () => {
+    const error = { detail: [{ loc: ["path", "decision_id"], type: "int_parsing", input: "not-an-int" }] };
+    global.fetch = vi.fn().mockResolvedValue(Response.json(error, { status: 422 }));
+    const app = buildServer();
+    try {
+      const response = await app.inject({ method: "GET", url: "/decisions/not-an-int" });
+      expect(response.statusCode).toBe(422);
+      expect(response.json()).toEqual(error);
+      const upstream = vi.mocked(global.fetch).mock.calls[0][0] as Request;
+      expect(upstream.url).toBe("http://localhost:8000/decisions/not-an-int");
+    } finally {
+      await app.close();
+    }
+  });
+
   it("keeps the existing 502 envelope for upstream transport failures", async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error("synthetic offline"));
     const app = buildServer();
