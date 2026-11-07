@@ -167,7 +167,9 @@ describe("Imports generated Engine contract client", () => {
 
       expect(response.statusCode).toBe(status);
       if (empty) {
-        expect(response.body).toBe("");
+        expect(response.json()).toBeNull();
+      } else if (typeof expected === "string") {
+        expect(response.body).toBe(expected);
       } else {
         expect(response.json()).toEqual(expected);
       }
