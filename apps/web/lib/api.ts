@@ -4,11 +4,25 @@ export type ReviewDecision = EngineDecisionListItem;
 
 // UI components also accept sparse in-memory/demo view models. API functions
 // still return the complete generated Engine DTO above.
+type DecisionSourceRefView = Omit<EngineDecisionSourceRef, "current_quote_match"> & {
+  current_quote_match?: boolean | null;
+};
+
+type DecisionReviewEvidenceView = Omit<
+  ReviewDecision["review_evidence"],
+  "current_quote_integrity" | "source_ref_preview"
+> & {
+  current_quote_integrity?: ReviewDecision["review_evidence"]["current_quote_integrity"];
+  source_ref_preview: DecisionSourceRefView[];
+};
+
 export type ReviewDecisionView = Pick<
   ReviewDecision,
   "id" | "workspace_id" | "title" | "status" | "review_state" | "problem" |
   "context" | "constraints" | "chosen_option" | "tradeoffs" | "confidence"
-> & Partial<Pick<ReviewDecision, "workspace_mode" | "source_summary" | "candidate_quality" | "review_evidence">>;
+> & Partial<Pick<ReviewDecision, "workspace_mode" | "source_summary" | "candidate_quality">> & {
+  review_evidence?: DecisionReviewEvidenceView;
+};
 
 export type ReviewState = "candidate" | "accepted" | "rejected" | "superseded";
 
