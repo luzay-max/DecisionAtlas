@@ -393,3 +393,85 @@ def test_review_decision_updates_review_state(tmp_path: Path, monkeypatch) -> No
     detail_response = client.get("/decisions/1")
     assert detail_response.status_code == 200
     assert detail_response.json()["review_history"][0]["rationale"] == "Source refs support the decision."
+
+def test_decision_response_contract_preserves_nulls_empty_collections_and_review_shape(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "decision-contract.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    _seed_review_fixture(db_path)
+    client = TestClient(create_app())
+
+    listed = client.get(
+        "/decisions",
+        params={"workspace_slug": "imported-workspace", "review_state": "candidate"},
+    )
+    assert listed.status_code == 200
+    ungrounded = next(item for item in listed.json() if item["title"] == "Add Queue")
+    assert ungrounded["context"] is None
+    assert ungrounded["constraints"] is None
+    assert ungrounded["review_evidence"] == {
+        "state": "missing",
+        "source_ref_count": 0,
+        "source_ref_preview": [],
+        "primary_artifact": None,
+        "current_quote_integrity": {
+            "status": "no_refs",
+            "found_count": 0,
+            "missing_count": 0,
+            "unverifiable_count": 0,
+        },
+    }
+    assert ungrounded["candidate_quality"]["label"] == "thin"
+
+    detail = client.get("/decisions/2")
+    assert detail.status_code == 200
+    detail_body = detail.json()
+    assert detail_body["review_state"] == "candidate"
+    assert detail_body["context"] is None
+    assert detail_body["constraints"] is None
+    assert detail_body["source_refs"] == []
+    assert detail_body["review_history"] == []
+    assert detail_body["review_evidence"]["current_quote_integrity"]["status"] == "no_refs"
+    assert detail_body["review_evidence"]["primary_artifact"] is None
+
+    reviewed = client.post(
+        "/decisions/2/review",
+        json={"review_state": "accepted", "review_rationale": "Reviewed synthetic evidence."},
+    )
+    assert reviewed.status_code == 200
+    reviewed_body = reviewed.json()
+    assert reviewed_body["review_state"] == "accepted"
+    assert reviewed_body["context"] is None
+    assert reviewed_body["constraints"] is None
+    assert "workspace_mode" not in reviewed_body
+    assert "review_evidence" not in reviewed_body
+    assert "source_refs" not in reviewed_body
+    assert reviewed_body["audit_event"]["action"] == "decision_review_accepted"
+    assert reviewed_body["audit_event"]["rationale"] == "Reviewed synthetic evidence."
+    assert reviewed_body["review_history"][0]["action"] == "decision_review_accepted"
+
+
+def test_decision_review_contract_keeps_existing_invalid_state_status(tmp_path: Path, monkeypatch) -> None:
+    db_path = tmp_path / "decision-invalid-review.db"
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{db_path}")
+    cfg = Config("alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db_path}")
+    command.upgrade(cfg, "head")
+    _seed_review_fixture(db_path)
+
+    response = TestClient(create_app()).post(
+        "/decisions/1/review",
+        json={"review_state": "not-a-review-state"},
+    )
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Invalid review_state"}
+
+
+def test_decision_detail_contract_keeps_existing_not_found_status() -> None:
+    response = TestClient(create_app()).get("/decisions/999999")
+    assert response.status_code == 404
+

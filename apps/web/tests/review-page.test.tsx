@@ -5,6 +5,27 @@ import { vi } from "vitest";
 
 import { ReviewPageContent } from "../components/review/review-page-content";
 import * as api from "../lib/api";
+import type { DecisionReviewResult } from "../lib/api";
+
+function reviewResult(input: Omit<DecisionReviewResult, "audit_event" | "review_history">): DecisionReviewResult {
+  const event = {
+    id: 1,
+    owner_scope: "synthetic-owner",
+    workspace_id: input.workspace_id,
+    actor_id: 3,
+    actor_username: "reviewer",
+    actor_role: "reviewer",
+    target_type: "decision",
+    target_id: input.id,
+    action: `decision_review_${input.review_state}`,
+    previous_state: { review_state: "candidate" },
+    new_state: { review_state: input.review_state },
+    rationale: null,
+    metadata: null,
+    created_at: "2026-11-07T00:00:00Z",
+  };
+  return { ...input, audit_event: event, review_history: [event] };
+}
 
 vi.mock("../lib/api", async () => {
   const actual = await vi.importActual<typeof import("../lib/api")>("../lib/api");
@@ -52,7 +73,7 @@ describe("ReviewPageContent", () => {
   });
 
   it("submits a review action and removes the candidate from the list", async () => {
-    vi.mocked(api.reviewDecision).mockResolvedValue({
+    vi.mocked(api.reviewDecision).mockResolvedValue(reviewResult({
       id: 1,
       workspace_id: 1,
       title: "Use Redis Cache",
@@ -64,7 +85,7 @@ describe("ReviewPageContent", () => {
       chosen_option: "Use Redis as cache only",
       tradeoffs: "Extra dependency",
       confidence: 0.88,
-    });
+    }));
 
     const user = userEvent.setup();
     render(
@@ -334,7 +355,7 @@ describe("ReviewPageContent", () => {
   });
 
   it("shows imported downstream entry points after candidates are reviewed", async () => {
-    vi.mocked(api.reviewDecision).mockResolvedValue({
+    vi.mocked(api.reviewDecision).mockResolvedValue(reviewResult({
       id: 7,
       workspace_id: 2,
       title: "Adopt HTTP downloads for remote browsers",
@@ -346,7 +367,7 @@ describe("ReviewPageContent", () => {
       chosen_option: "Use HTTP downloads with status tracking",
       tradeoffs: "More explicit lifecycle handling",
       confidence: 0.91,
-    });
+    }));
 
     const user = userEvent.setup();
     render(
@@ -435,12 +456,12 @@ describe("ReviewPageContent", () => {
   });
 
   it("does not report a durable baseline when all candidates were rejected", async () => {
-    vi.mocked(api.reviewDecision).mockResolvedValue({
+    vi.mocked(api.reviewDecision).mockResolvedValue(reviewResult({
       id: 81, workspace_id: 2, title: "Do not adopt change",
       status: "active", review_state: "rejected", problem: "No proof",
       context: null, constraints: null, chosen_option: "Stay with current plan",
       tradeoffs: "Manual checks", confidence: 0.3,
-    });
+    }));
     const user = userEvent.setup();
     render(
       <ReviewPageContent
