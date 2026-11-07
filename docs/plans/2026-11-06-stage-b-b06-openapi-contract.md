@@ -1,6 +1,6 @@
 # Stage B / B06a — Engine OpenAPI route contract baseline
 
-**2026-11-06 · Draft implementation slice · No merge or runtime behavior change.**
+**最终状态（2026-11-07 更新）：B06a / PR #51 已于 2026-11-06 合并。本文记录的范围仍仅为路由／方法契约基础设施，不包含全量 DTO 或运行时行为变更。**
 
 ## Goal
 
@@ -24,11 +24,11 @@ Establish FastAPI Engine OpenAPI as the source of truth for HTTP path/method exi
 
 ## Acceptance
 
-- [ ] `uv run --project services/engine python services/engine/scripts/export_openapi_route_contract.py --check` passes on the exact PR head.
-- [ ] `pnpm test` and `pnpm typecheck` pass on the exact PR head.
-- [ ] The BFF manifest has no duplicate entries and every listed operation exists in the generated Engine OpenAPI contract.
-- [ ] Review confirms `/health` remains local to Fastify and the unexposed `/governance/rules/{draft_id}/lifecycle` operation is not accidentally added to the BFF inventory.
-- [ ] Independent review and explicit merge authorization.
+- [x] `uv run --project services/engine python services/engine/scripts/export_openapi_route_contract.py --check` passes on the exact PR head.
+- [x] `pnpm test` and `pnpm typecheck` pass on the exact PR head.
+- [x] The BFF manifest has no duplicate entries and every listed operation exists in the generated Engine OpenAPI contract.
+- [x] Review confirms `/health` remains local to Fastify and the unexposed `/governance/rules/{draft_id}/lifecycle` operation is not accidentally added to the BFF inventory.
+- [x] Independent review and explicit merge authorization.
 
 ## Unchanged gates
 
@@ -37,3 +37,10 @@ Establish FastAPI Engine OpenAPI as the source of truth for HTTP path/method exi
 - #47 remains integration-only and must never be merged.
 - Private-source operations and paid model calls remain separately gated.
 
+## Final disposition — B06a / PR #51 merged
+
+- Reviewed head: `d759cee33b3cc70264713ff5de587b5aa0610f47`.
+- Merge commit: `9925c9e22c024f574ffbfc8e3ff7a99be5696e9f`.
+- Post-merge Windows CI [#42192852069](https://github.com/luzay-max/DecisionAtlas/actions/runs/42192852069): **SUCCESS** (API 60, Web 104, Engine 581 passed / 9 skipped, Playwright 6; route freshness, typecheck, MCP, offline evidence and benchmark checks passed).
+- Post-merge PostgreSQL 17 CI [#42192852563](https://github.com/luzay-max/DecisionAtlas/actions/runs/42192852563): **SUCCESS**.
+- This is B06a only. B06b #52 separately completed the Why DTO slice; Decisions, Imports/Auth/Team, shared errors and environment validation remain subsequent work. No claim that full B06 is complete.

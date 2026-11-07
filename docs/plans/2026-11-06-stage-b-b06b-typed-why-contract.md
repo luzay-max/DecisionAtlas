@@ -1,6 +1,6 @@
 # B06b：从 OpenAPI 路由清单到 Why 跨服务类型契约
 
-状态：独立 Draft；B06a #51 已经维护者明确批准并合并至 main@9925c9e22c024f574ffbfc8e3ff7a99be5696e9f。B06b 仍须独立审批，无自动合并授权。
+状态：**B06b / PR #52 已于 2026-11-07 经维护者独立审批并合并**。合并提交 `64030926fe7fb7a6dbb76bab980a10571beb199e`；原 Draft／待审批措辞属于实施前历史状态，不代表当前状态。
 
 ## 解决的问题
 
@@ -46,12 +46,13 @@ uv run pytest -q
 
 完整远端 CI 结果以 PR 的**最终 head** Actions 为准；未完成前不标为通过。当地运行环境需 socksio 才能初始化预设 SOCKS 代理；该临时环境依赖不进入项目依赖锁文件。
 
-## 后续顺序与审批
+## 实际处置与后续顺序
 
-1. B06a #51 已完成独立审批并合并；审批未被 B06b 绕过。
-2. 核对合并后 main CI，更新 B06b 基线并重跑完整 CI；单独审批 B06b。
-3. 沿用同一套生成基础设施，优先将 Decisions／Imports／Auth 的现有响应模型化；每次明确可选／nullable、错误状态和敏感字段边界。
-4. 逐步消除其余 handler 中与生成契约脱节的手写 fetch；最后再定义跨服务统一错误迁移方案和环境验证。
+1. B06a #51 已完成独立审批并合并，merge commit `9925c9e22c024f574ffbfc8e3ff7a99be5696e9f`。
+2. B06b #52 已完成独立审批并合并：审定 head `2f40cd699af68c76f75293c86fc1059d5d27221c`，merge commit `64030926fe7fb7a6dbb76bab980a10571beb199e`。
+3. B06b 最终 head 的 Windows 完整 CI [#42193923821](https://github.com/luzay-max/DecisionAtlas/actions/runs/42193923821) **SUCCESS**，PostgreSQL 17 CI [#42193923865](https://github.com/luzay-max/DecisionAtlas/actions/runs/42193923865) **SUCCESS**；合并后 main Windows CI [#42332050347](https://github.com/luzay-max/DecisionAtlas/actions/runs/42332050347) **SUCCESS**（API 69、Web 105、Engine 591 passed / 9 skipped、Playwright 6），PostgreSQL 17 CI [#42332050182](https://github.com/luzay-max/DecisionAtlas/actions/runs/42332050182) **SUCCESS**。
+4. B06b 只完成现有 `/query/why` 的 Engine → BFF → Web 类型契约；它没有模型化其他宽泛 dict 响应，也没有建立全局错误 DTO 或完成环境变量策略。
+5. 下一项为独立 B06c：对现有 Decisions 列表、详情和审核响应建模，复用同一生成基础设施；保留引用、审核状态、nullable／缺省字段和权限语义。之后再分别处理 Imports/Auth/Team（B06d）及错误格式／环境校验（B06e）。
 
 #34 不迁移；#36 继续禁用；#47 integration-only，绝不合并。无私有仓库、付费模型、生产部署或凭据变更。
 
