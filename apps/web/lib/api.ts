@@ -1,19 +1,15 @@
-import type { DecisionAuditEvent as EngineDecisionAuditEvent, DecisionDetail as EngineDecisionDetail, DecisionListItem as EngineDecisionListItem, DecisionReviewRequest as EngineDecisionReviewRequest, DecisionReviewResponse as EngineDecisionReviewResponse, DecisionSourceRef as EngineDecisionSourceRef, DecisionWorkspaceMode as EngineDecisionWorkspaceMode, WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
+import type { DecisionDetail as EngineDecisionDetail, DecisionListItem as EngineDecisionListItem, DecisionReviewRequest as EngineDecisionReviewRequest, DecisionReviewResponse as EngineDecisionReviewResponse, DecisionSourceRef as EngineDecisionSourceRef, DecisionWorkspaceMode as EngineDecisionWorkspaceMode, WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
 
 export type ReviewDecision = EngineDecisionListItem;
 
 // UI components also accept sparse in-memory/demo view models. API functions
 // still return the complete generated Engine DTO above.
-type DecisionSourceRefView = Omit<EngineDecisionSourceRef, "current_quote_match"> & {
-  current_quote_match?: boolean | null;
-};
-
 type DecisionReviewEvidenceView = Omit<
   ReviewDecision["review_evidence"],
   "current_quote_integrity" | "source_ref_preview"
 > & {
   current_quote_integrity?: ReviewDecision["review_evidence"]["current_quote_integrity"];
-  source_ref_preview: DecisionSourceRefView[];
+  source_ref_preview: SourceRef[];
 };
 
 export type ReviewDecisionView = Pick<
@@ -92,8 +88,27 @@ export type ImportSummary = {
   } | null;
 };
 
-export type SourceRef = EngineDecisionSourceRef;
-export type ReviewAuditEvent = EngineDecisionAuditEvent;
+// UI view projections remain tolerant of older/sparse fixtures. The actual
+// Decisions HTTP responses below use the strict generated Engine DTOs.
+export type SourceRef = Omit<EngineDecisionSourceRef, "current_quote_match"> & {
+  current_quote_match?: boolean | null;
+};
+export type ReviewAuditEvent = {
+  id: number;
+  owner_scope: string;
+  workspace_id?: number | null;
+  actor_id?: number | null;
+  actor_username: string;
+  actor_role: string;
+  target_type: string;
+  target_id: number;
+  action: string;
+  previous_state?: Record<string, unknown> | null;
+  new_state?: Record<string, unknown> | null;
+  rationale?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+};
 export type DecisionDetail = EngineDecisionDetail;
 export type DecisionReviewResult = EngineDecisionReviewResponse;
 
