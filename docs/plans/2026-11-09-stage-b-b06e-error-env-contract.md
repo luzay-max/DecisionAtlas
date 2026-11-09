@@ -43,9 +43,9 @@ type ApiErrorResponse = {
 The implementation must:
 
 - Preserve the existing HTTP status code for each response; the new code is descriptive and must not become a status remapping mechanism.
-- Preserve legacy `detail`, `error` and `issues` fields where present so existing consumers can migrate incrementally.
+- Preserve legacy `detail`, `error` and `issues` fields for 4xx responses where present so existing consumers can migrate incrementally. For 5xx, do not expose upstream exception details; return a generic public message and retain diagnostics only in server logs.
 - Put scalar upstream error bodies in `detail` rather than dropping or double-parsing them.
-- Map 401 → `unauthenticated`, 403 → `forbidden`, 400/422 → `invalid_request`, 404 → `not_found`, 409 → `conflict`, 502/503/504 → `upstream_unavailable`; other 4xx → `request_rejected`, other 5xx → `internal_error`.
+- Map 401 → `unauthenticated`, 403 → `forbidden`, 400/422 → `invalid_request`, 404 → `not_found`, 409 → `conflict`, 502/504 → `upstream_unavailable`, 503 → `service_unavailable`; other 4xx → `request_rejected`, other 5xx → `internal_error`.
 - Give BFF-owned validation/auth/origin failures the same code/message fields while retaining their current legacy fields.
 - Keep success payloads, response statuses, cookie behavior and all route authorization unchanged.
 - Return a generic public message for network/transport failures; keep diagnostic exception details in server logs only. Never include request bodies, passwords, cookies, session tokens, GitHub tokens, API keys or raw environment values in the error response or logs.
@@ -85,7 +85,7 @@ This slice is limited to the Fastify BFF environment contract. Engine database/p
 - Unit tests for status-to-code mapping and legacy-field preservation.
 - BFF route tests for 400/401/403/404/409/422 and upstream 500/502/503/504.
 - FastAPI `detail` string, object and validation-array bodies; JSON scalar and plain-text error bodies.
-- Transport timeout/network rejection returns 502 with generic public message and no internal error detail.
+- Transport timeout/network rejection returns 502 with generic public message and no internal error detail. 500/502/504 responses must not echo exception messages or secrets. The deliberate 503 feature-disabled response (especially #36 pause/resume) must retain its safe explanatory detail and remain HTTP 503.
 - Verify status codes do not change and existing UI callers can read both new and legacy forms.
 - Verify passwords, session cookies/tokens, GitHub tokens, API keys and request bodies never appear in response or logs.
 
