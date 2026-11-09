@@ -31,7 +31,23 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic" } });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toMatchObject({ ...error, code: expect.any(String), message: expect.any(String) });
+      if (status === 502) {
+        expect(response.json()).toMatchObject({
+          code: "upstream_unavailable",
+          message: "Upstream engine unavailable",
+          error: "Upstream engine request failed",
+        });
+      } else {
+        expect(response.json()).toMatchObject({
+          ...error,
+          code: status === 401 ? "unauthenticated"
+            : status === 403 ? "forbidden"
+            : status === 404 ? "not_found"
+            : status === 422 ? "invalid_request"
+            : "service_unavailable",
+          message: status === 422 ? "Request validation failed" : "synthetic failure",
+        });
+      }
     } finally { await app.close(); }
   });
 
