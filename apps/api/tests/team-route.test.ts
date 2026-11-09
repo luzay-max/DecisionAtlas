@@ -8,22 +8,16 @@ describe("teamRoute", () => {
   });
 
   it("forwards admin account creation with the session cookie and strips owner scope overrides", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () =>
-        JSON.stringify({
-          account: {
-            id: 3,
-            username: "reviewer-user",
-            display_name: null,
-            status: "active",
-            bootstrap: false,
-            role: "reviewer",
-          },
-        }),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json({
+      account: {
+        id: 3,
+        username: "reviewer-user",
+        display_name: null,
+        status: "active",
+        bootstrap: false,
+        role: "reviewer",
+      },
+    }));
 
     const app = buildServer();
     const response = await app.inject({
@@ -54,12 +48,10 @@ describe("teamRoute", () => {
   });
 
   it("forwards disabled-user denials from the engine", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 401,
-      ok: false,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () => JSON.stringify({ detail: "User account is disabled" }),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json(
+      { detail: "User account is disabled" },
+      { status: 401 },
+    ));
 
     const app = buildServer();
     const response = await app.inject({
@@ -73,19 +65,20 @@ describe("teamRoute", () => {
   });
 
   it("forwards workspace member assignment with session cookies", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      headers: new Headers({ "content-type": "application/json" }),
-      text: async () =>
-        JSON.stringify({
-          member: {
-            workspace_id: 1,
-            actor: { id: 2, username: "viewer-user", status: "active", bootstrap: false, role: "viewer" },
-            role: "viewer",
-          },
-        }),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json({
+      member: {
+        workspace_id: 1,
+        actor: {
+          id: 2,
+          username: "viewer-user",
+          display_name: null,
+          status: "active",
+          bootstrap: false,
+          role: "viewer",
+        },
+        role: "viewer",
+      },
+    }));
 
     const app = buildServer();
     const response = await app.inject({
