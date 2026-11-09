@@ -322,6 +322,12 @@ type TeamPaths = Pick<
 // openapi-fetch normally adds an Accept header. Keep the established BFF
 // forwarding contract by removing it and forwarding only the explicit
 // session header plus generated JSON content type/body.
+type ContractRawResponseBody =
+  | { ok: true; text: string }
+  | { ok: false; error: unknown };
+
+const contractRawResponseBodies = new WeakMap<Response, Promise<ContractRawResponseBody>>();
+
 async function forwardTypedContractRequest(request: Request): Promise<Response> {
   const headers = Object.fromEntries(
     [...request.headers.entries()].filter(([name]) => name.toLowerCase() !== "accept")
@@ -333,7 +339,16 @@ async function forwardTypedContractRequest(request: Request): Promise<Response> 
     const body = await request.clone().text();
     if (body.length > 0) init.body = body;
   }
-  return globalThis.fetch(request.url, init);
+  const response = await globalThis.fetch(request.url, init);
+  // Capture the untouched body before openapi-fetch parses non-2xx JSON.
+  // Resolve both outcomes immediately so interrupted streams cannot leave an
+  // unhandled rejection when the client parser rejects first.
+  const rawBody: Promise<ContractRawResponseBody> = response.clone().text().then(
+    (text): ContractRawResponseBody => ({ ok: true, text }),
+    (error: unknown): ContractRawResponseBody => ({ ok: false, error }),
+  );
+  contractRawResponseBodies.set(response, rawBody);
+  return response;
 }
 
 export function createAuthEngineClient(baseUrl: string) {
@@ -352,12 +367,12 @@ export function createTeamEngineClient(baseUrl: string) {
 
 type ContractTextResult = {
   response: Response;
-  data?: string;
-  error?: string;
+  data?: unknown;
+  error?: unknown;
 };
 
-function parseContractTextPayload(response: Response, rawBody: string | undefined): unknown {
-  if (typeof rawBody !== "string" || rawBody.length === 0) return null;
+function parseContractTextPayload(response: Response, rawBody: string): unknown {
+  if (rawBody.length === 0) return null;
   try {
     return JSON.parse(rawBody) as unknown;
   } catch {
@@ -365,8 +380,9 @@ function parseContractTextPayload(response: Response, rawBody: string | undefine
   }
 }
 
-// parseAs:"text" lets the existing proxy parser retain the original JSON/text
-// envelope without openapi-fetch interpreting JSON scalar error bodies first.
+// Read the captured raw body rather than openapi-fetch's parsed error value.
+// This preserves JSON objects, scalar strings and numeric-looking error bodies
+// exactly once, matching the established upstream proxy contract.
 export async function forwardContractTextRequest(
   request: Promise<ContractTextResult>,
   logger: FastifyBaseLogger,
@@ -374,12 +390,17 @@ export async function forwardContractTextRequest(
 ) {
   try {
     const result = await request;
+    const rawBody = contractRawResponseBodies.get(result.response);
+    if (!rawBody) {
+      throw new Error("Auth/Team Engine response is missing its captured raw body");
+    }
+    const capturedBody = await rawBody;
+    if (!capturedBody.ok) {
+      throw capturedBody.error;
+    }
     return {
       status: result.response.status,
-      payload: parseContractTextPayload(
-        result.response,
-        result.response.ok ? result.data : result.error,
-      ),
+      payload: parseContractTextPayload(result.response, capturedBody.text),
     };
   } catch (error) {
     return fetchUpstreamPayload(Promise.reject(error), logger, route);
