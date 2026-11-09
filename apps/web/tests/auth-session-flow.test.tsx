@@ -41,7 +41,7 @@ const bootstrapSession: api.ProductSession = {
 
 const multiScopeSession: api.ProductSession = {
   session_token: "team-token",
-  actor: { id: 2, username: "operator@example.com" },
+  actor: { id: 2, username: "operator@example.com", bootstrap: false, status: "active" },
   current_owner_scope: "team-a",
   role: "admin",
   available_scopes: [
