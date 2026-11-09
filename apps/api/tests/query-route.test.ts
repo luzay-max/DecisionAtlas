@@ -62,7 +62,11 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic", question: "why" } });
       expect(response.statusCode).toBe(503);
-      expect(response.json()).toMatchObject({ error: "synthetic unavailable", code: "service_unavailable", message: "synthetic unavailable" });
+      expect(response.json()).toMatchObject({
+        error: "Service temporarily unavailable",
+        code: "service_unavailable",
+        message: "Service temporarily unavailable",
+      });
     } finally { await app.close(); }
   });
 
