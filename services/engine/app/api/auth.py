@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.auth_contract import AuthBootstrapResponse, AuthLoginResponse, AuthLogoutResponse, AuthSessionResponse
 from app.auth import SESSION_HEADER, require_actor
 from app.config import get_settings
 from app.db.session import get_db_session
@@ -48,7 +49,7 @@ def _lock_local_bootstrap_transaction(session: Session) -> None:
         raise RuntimeError("Local bootstrap backend lacks a verified transaction lock")
 
 
-@router.post("/bootstrap")
+@router.post("/bootstrap", response_model=AuthBootstrapResponse)
 def bootstrap_auth() -> dict:
     settings = get_settings()
     if not settings.auth_auto_bootstrap_local or settings.app_env.lower() not in {"development", "test"}:
@@ -80,7 +81,7 @@ def bootstrap_auth() -> dict:
         session.close()
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=AuthLogoutResponse)
 def logout_auth(
     x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),
 ) -> dict:
@@ -95,7 +96,7 @@ def logout_auth(
     return {"status": "signed_out"}
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthLoginResponse)
 def login(request: LoginRequest) -> dict:
     session = get_db_session()
     try:
@@ -157,7 +158,7 @@ def login(request: LoginRequest) -> dict:
         session.close()
 
 
-@router.get("/session")
+@router.get("/session", response_model=AuthSessionResponse)
 def get_session(
     x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),
 ) -> dict:
@@ -179,7 +180,7 @@ def get_session(
         session.close()
 
 
-@router.post("/scope")
+@router.post("/scope", response_model=AuthSessionResponse)
 def switch_scope(
     request: ScopeSwitchRequest,
     x_decisionatlas_session_token: str | None = Header(default=None, alias=SESSION_HEADER),

@@ -3,6 +3,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.api.team_contract import (
+    TeamAccountListResponse,
+    TeamAccountMutationResponse,
+    TeamWorkspaceMemberMutationResponse,
+    TeamWorkspaceMemberRemovalResponse,
+    TeamWorkspaceMembersResponse,
+)
 from app.auth import AuthContext, require_actor, require_scope_role
 from app.db.models import Actor, WorkspaceMembership
 from app.db.session import get_db_session
@@ -60,7 +67,7 @@ def _serialize_workspace_member(membership: WorkspaceMembership, actor: Actor) -
     }
 
 
-@router.get("/accounts")
+@router.get("/accounts", response_model=TeamAccountListResponse)
 def list_team_accounts(auth: AuthContext = Depends(require_actor)) -> dict:
     _require_admin(auth)
     session = get_db_session()
@@ -81,7 +88,7 @@ def list_team_accounts(auth: AuthContext = Depends(require_actor)) -> dict:
         session.close()
 
 
-@router.post("/accounts")
+@router.post("/accounts", response_model=TeamAccountMutationResponse)
 def create_team_account(
     request: TeamAccountCreateRequest,
     auth: AuthContext = Depends(require_actor),
@@ -106,7 +113,7 @@ def create_team_account(
         session.close()
 
 
-@router.post("/accounts/{actor_id}/disable")
+@router.post("/accounts/{actor_id}/disable", response_model=TeamAccountMutationResponse)
 def disable_team_account(actor_id: int, auth: AuthContext = Depends(require_actor)) -> dict:
     _require_admin(auth)
     session = get_db_session()
@@ -125,7 +132,7 @@ def disable_team_account(actor_id: int, auth: AuthContext = Depends(require_acto
         session.close()
 
 
-@router.post("/accounts/{actor_id}/reset-password")
+@router.post("/accounts/{actor_id}/reset-password", response_model=TeamAccountMutationResponse)
 def reset_team_account_password(
     actor_id: int,
     request: TeamAccountPasswordResetRequest,
@@ -147,7 +154,7 @@ def reset_team_account_password(
         session.close()
 
 
-@router.post("/accounts/{actor_id}/role")
+@router.post("/accounts/{actor_id}/role", response_model=TeamAccountMutationResponse)
 def update_team_account_role(
     actor_id: int,
     request: TeamAccountRoleRequest,
@@ -168,7 +175,7 @@ def update_team_account_role(
         session.close()
 
 
-@router.get("/workspaces/{workspace_slug}/members")
+@router.get("/workspaces/{workspace_slug}/members", response_model=TeamWorkspaceMembersResponse)
 def list_workspace_members(workspace_slug: str, auth: AuthContext = Depends(require_actor)) -> dict:
     _require_admin(auth)
     session = get_db_session()
@@ -185,7 +192,7 @@ def list_workspace_members(workspace_slug: str, auth: AuthContext = Depends(requ
         session.close()
 
 
-@router.put("/workspaces/{workspace_slug}/members/{actor_id}")
+@router.put("/workspaces/{workspace_slug}/members/{actor_id}", response_model=TeamWorkspaceMemberMutationResponse)
 def assign_workspace_member(
     workspace_slug: str,
     actor_id: int,
@@ -210,7 +217,7 @@ def assign_workspace_member(
         session.close()
 
 
-@router.delete("/workspaces/{workspace_slug}/members/{actor_id}")
+@router.delete("/workspaces/{workspace_slug}/members/{actor_id}", response_model=TeamWorkspaceMemberRemovalResponse)
 def remove_workspace_member(
     workspace_slug: str,
     actor_id: int,
