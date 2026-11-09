@@ -5,6 +5,7 @@ import { driftRoute } from "./routes/drift";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { getEnv } from "./plugins/env";
+import { normalizeApiErrorPayload } from "./errors";
 import { governanceRoute } from "./routes/governance";
 import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
@@ -16,6 +17,11 @@ import { timelineRoute } from "./routes/timeline";
 export function buildServer() {
   const app = Fastify({ logger: true });
   const env = getEnv();
+  app.addHook("onSend", async (_request, reply, payload) => {
+    if (reply.statusCode < 400) return payload;
+    reply.header("content-type", "application/json; charset=utf-8");
+    return JSON.stringify(normalizeApiErrorPayload(reply.statusCode, payload));
+  });
   const origins = new Set(
     env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   );
