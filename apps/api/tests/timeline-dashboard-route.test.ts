@@ -79,7 +79,7 @@ describe("timeline and dashboard routes", () => {
     });
 
     expect(response.statusCode).toBe(500);
-    expect(response.json()).toEqual({ error: "Internal Server Error" });
+    expect(response.json()).toEqual({ code: "internal_error", message: "Internal server error", error: "Internal Server Error" });
 
     global.fetch = originalFetch;
   });
