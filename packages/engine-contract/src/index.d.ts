@@ -47,3 +47,27 @@ export type WorkspaceMemberResponse = components["schemas"]["TeamWorkspaceMember
 export type WorkspaceMemberListResponse = paths["/team/workspaces/{workspace_slug}/members"]["get"]["responses"][200]["content"]["application/json"];
 export type WorkspaceMemberMutationResponse = paths["/team/workspaces/{workspace_slug}/members/{actor_id}"]["put"]["responses"][200]["content"]["application/json"];
 export type WorkspaceMemberRemovalResponse = paths["/team/workspaces/{workspace_slug}/members/{actor_id}"]["delete"]["responses"][200]["content"]["application/json"];
+
+
+/**
+ * BFF-owned HTTP error contract. This is intentionally separate from the
+ * Engine-generated success DTOs; HTTP status codes remain authoritative.
+ */
+export type ApiErrorCode =
+  | "unauthenticated"
+  | "forbidden"
+  | "invalid_request"
+  | "not_found"
+  | "conflict"
+  | "request_rejected"
+  | "upstream_unavailable"
+  | "service_unavailable"
+  | "internal_error";
+
+export type ApiErrorResponse = {
+  code: ApiErrorCode;
+  message: string;
+  detail?: unknown;
+  error?: string;
+  issues?: unknown;
+};
