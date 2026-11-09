@@ -58,6 +58,7 @@ describe("security boundaries", () => {
     process.env.APP_ENV = "production";
     global.fetch = vi.fn().mockResolvedValue({
       status: 200, ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () => JSON.stringify({ session_token: "test-token", status: "signed_out" }),
     } as Response);
     const app = buildServer();
