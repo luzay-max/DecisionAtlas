@@ -106,7 +106,7 @@ describe("Imports generated Engine contract client", () => {
         headers: { cookie: "decisionatlas_session=admin-token" },
       });
       expect(response.statusCode).toBe(503);
-      expect(response.json()).toEqual(payload);
+      expect(response.json()).toEqual({ ...payload, code: "service_unavailable", message: payload.detail });
     } finally {
       await app.close();
     }
