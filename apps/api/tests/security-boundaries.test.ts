@@ -4,8 +4,15 @@ describe("security boundaries", () => {
   const oldEnv = {
     APP_ENV: process.env.APP_ENV,
     CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
+    ENGINE_BASE_URL: process.env.ENGINE_BASE_URL,
+    AUTO_BOOTSTRAP_AUTH: process.env.AUTO_BOOTSTRAP_AUTH,
   };
   const oldFetch = global.fetch;
+  beforeEach(() => {
+    process.env.ENGINE_BASE_URL = "http://engine:8000";
+    process.env.AUTO_BOOTSTRAP_AUTH = "false";
+  });
+
   afterEach(() => {
     for (const [key, value] of Object.entries(oldEnv)) {
       if (value === undefined) delete process.env[key];
@@ -50,7 +57,7 @@ describe("security boundaries", () => {
       payload: { username: "alice", password: "secret" },
     });
     expect(blocked.statusCode).toBe(403);
-    expect(blocked.json()).toEqual({ error: "Origin not allowed" });
+    expect(blocked.json()).toMatchObject({ error: "Origin not allowed", code: "forbidden", message: "Origin not allowed" });
     await app.close();
   });
 
