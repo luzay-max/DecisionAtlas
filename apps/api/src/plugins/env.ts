@@ -41,6 +41,7 @@ const corsOrigins = z.string().default("").superRefine((value, ctx) => {
       if (!["http:", "https:"].includes(parsed.protocol)
         || parsed.username
         || parsed.password
+        || parsed.origin !== entry
         || parsed.pathname !== "/"
         || parsed.search
         || parsed.hash
