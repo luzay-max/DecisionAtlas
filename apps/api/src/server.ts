@@ -4,7 +4,7 @@ import { decisionsRoute } from "./routes/decisions";
 import { driftRoute } from "./routes/drift";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
-import { getEnv } from "./plugins/env";
+import { ApiEnv, getEnv } from "./plugins/env";
 import { normalizeApiErrorPayload } from "./errors";
 import { governanceRoute } from "./routes/governance";
 import { healthRoute } from "./routes/health";
@@ -14,9 +14,8 @@ import { runtimeRoute } from "./routes/runtime";
 import { teamRoute } from "./routes/team";
 import { timelineRoute } from "./routes/timeline";
 
-export function buildServer() {
+export function buildServer(env: ApiEnv = getEnv()) {
   const app = Fastify({ logger: true });
-  const env = getEnv();
   app.addHook("onSend", async (_request, reply, payload) => {
     if (reply.statusCode < 400) return payload;
     reply.header("content-type", "application/json; charset=utf-8");
@@ -58,7 +57,7 @@ export function buildServer() {
 
 async function start() {
   const env = getEnv();
-  const app = buildServer();
+  const app = buildServer(env);
 
   try {
     await app.listen({ port: env.PORT, host: "0.0.0.0" });
