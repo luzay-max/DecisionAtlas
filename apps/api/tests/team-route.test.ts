@@ -11,6 +11,7 @@ describe("teamRoute", () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () =>
         JSON.stringify({
           account: {
@@ -56,6 +57,7 @@ describe("teamRoute", () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 401,
       ok: false,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () => JSON.stringify({ detail: "User account is disabled" }),
     } as Response);
 
@@ -74,6 +76,7 @@ describe("teamRoute", () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () =>
         JSON.stringify({
           member: {
