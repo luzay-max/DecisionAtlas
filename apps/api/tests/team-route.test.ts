@@ -64,6 +64,67 @@ describe("teamRoute", () => {
     expect(response.json()).toEqual({ detail: "User account is disabled" });
   });
 
+  it("preserves JSON scalar error bodies without parsing them twice", async () => {
+    global.fetch = vi.fn().mockResolvedValue(Response.json("123", { status: 403 }));
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "GET",
+        url: "/team/accounts",
+        headers: { cookie: "decisionatlas_session=admin-token" },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(response.body).toBe("123");
+    } finally {
+      await app.close();
+    }
+  });
+
+  it("returns 502 without an unhandled rejection when an Engine response stream is interrupted", async () => {
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown) => unhandledRejections.push(reason);
+    process.on("unhandledRejection", onUnhandledRejection);
+
+    const interruptedResponse = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"accounts":'));
+          controller.error(new Error("synthetic body interrupted"));
+        },
+      }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    );
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce(interruptedResponse)
+      .mockResolvedValue(Response.json({ accounts: [] }));
+
+    const app = buildServer();
+    try {
+      const failed = await app.inject({
+        method: "GET",
+        url: "/team/accounts",
+        headers: { cookie: "decisionatlas_session=admin-token" },
+      });
+      expect(failed.statusCode).toBe(502);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(unhandledRejections).toEqual([]);
+
+      const recovered = await app.inject({
+        method: "GET",
+        url: "/team/accounts",
+        headers: { cookie: "decisionatlas_session=admin-token" },
+      });
+      expect(recovered.statusCode).toBe(200);
+      expect(recovered.json()).toEqual({ accounts: [] });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(unhandledRejections).toEqual([]);
+    } finally {
+      process.off("unhandledRejection", onUnhandledRejection);
+      await app.close();
+    }
+  });
+
   it("forwards workspace member assignment with session cookies", async () => {
     global.fetch = vi.fn().mockResolvedValue(Response.json({
       member: {
