@@ -97,7 +97,8 @@ This slice is limited to the Fastify BFF environment contract. Engine database/p
 - Startup fails before listening when configuration is invalid.
 
 ### CI and review
-- Full Windows CI, PostgreSQL 17 merged-schema CI and Bootstrap concurrency PG17 on the exact PR head.
+- Full Windows CI on the exact PR head (covers API/Web tests, typecheck, Engine suite, offline regression, benchmark fixtures and Playwright).
+- PostgreSQL 17 merged-schema CI is required if the slice changes Engine code/schema; Bootstrap concurrency PG17 is required if it changes Engine auth concurrency code/tests. B06e is BFF/Web-only and touches neither path, so these specialized workflows are not applicable to this slice.
 - OpenAPI/contract generation freshness checks remain green; no generated success DTO drift.
 - Independent technical review must inspect status/body compatibility and credential redaction separately from implementation.
 - Explicit maintainer merge approval remains a separate gate.
