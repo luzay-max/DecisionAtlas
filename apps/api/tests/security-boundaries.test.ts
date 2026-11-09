@@ -9,7 +9,7 @@ describe("security boundaries", () => {
   };
   const oldFetch = global.fetch;
   beforeEach(() => {
-    process.env.ENGINE_BASE_URL = "http://engine:8000";
+    process.env.ENGINE_BASE_URL = "http://localhost:8000";
     process.env.AUTO_BOOTSTRAP_AUTH = "false";
   });
 
