@@ -440,7 +440,12 @@ async function readError(response: Response, fallback: string): Promise<never> {
       detail = payload.message;
     } else if (typeof payload?.detail === "string") {
       detail = payload.detail;
-    } else if (typeof payload?.detail?.message === "string") {
+    } else if (
+      payload?.detail
+      && typeof payload.detail === "object"
+      && "message" in payload.detail
+      && typeof payload.detail.message === "string"
+    ) {
       detail = payload.detail.message;
     } else if (typeof payload?.error === "string") {
       detail = payload.error;
