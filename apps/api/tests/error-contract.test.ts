@@ -39,7 +39,7 @@ describe("normalized BFF API error contract", () => {
   });
 
   it("wraps scalar error bodies in detail without double-parsing JSON strings", () => {
-    expect(normalizeApiErrorPayload(403, '"123"')).toEqual({
+    expect(normalizeApiErrorPayload(403, '"123"', "application/json")).toEqual({
       detail: "123",
       code: "forbidden",
       message: "123",
