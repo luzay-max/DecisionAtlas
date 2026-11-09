@@ -177,4 +177,28 @@ describe("authRoute", () => {
       }
     );
   });
+  it("forwards logout through the generated Auth operation and always clears the cookie", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: "signed_out" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/auth/logout",
+      headers: { cookie: "decisionatlas_session=logout-token" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: "signed_out" });
+    expect(String(response.headers["set-cookie"])).toContain("Max-Age=0");
+    expect(global.fetch).toHaveBeenCalledWith("http://localhost:8000/auth/logout", {
+      method: "POST",
+      headers: { "x-decisionatlas-session-token": "logout-token" },
+    });
+  });
+
 });

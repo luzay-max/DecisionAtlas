@@ -1,6 +1,6 @@
 # B06d-1 — Imports generated contract
 
-**Status:** Implementation slice in progress; no merge authorization.
+**Status:** Merged in PR #55; post-merge main CI and PostgreSQL 17 CI passed (2026-11-09).
 
 ## Scope
 
@@ -29,6 +29,12 @@ Complete the existing Imports API contract without adding or duplicating routes:
 - Regenerate Engine OpenAPI JSON and TypeScript declarations with the repository generator; run route-contract and DTO freshness checks.
 - Run full Windows CI and PostgreSQL 17 CI on the exact final PR head.
 
+## Disposition
+
+- PR #55 merged at `f57a62ea1b3448b805090123ab97e1fc81f478de` after the third-round independent technical review passed.
+- Fixed implementation head: `5398aa5c3edcbdd990fad9076f3892f57e72f861`.
+- Post-merge Windows full CI #42547548983 and PostgreSQL 17 CI #42547549125 both succeeded.
+
 ## Follow-up
 
-B06d-2 will separately cover Auth/Team DTOs, including login/session/scope compatibility and account/member management. B06e remains separate. #34 stays unmigrated, #36 stays disabled, and #47 remains integration-only.
+B06d-2 separately covers Auth/Team DTOs, including login/session/scope compatibility and account/member management. B06e remains separate. #34 stays unmigrated, #36 stays disabled, and #47 remains integration-only.

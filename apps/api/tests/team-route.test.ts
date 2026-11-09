@@ -102,4 +102,60 @@ describe("teamRoute", () => {
       body: JSON.stringify({ role: "viewer" }),
     });
   });
+  it("forwards password reset, role update and member removal through generated Team operations", async () => {
+    const payloads = [
+      { account: { id: 2, username: "viewer-user", display_name: null, status: "active", bootstrap: false, role: "viewer" } },
+      { account: { id: 2, username: "viewer-user", display_name: null, status: "active", bootstrap: false, role: "reviewer" } },
+      { removed: true },
+    ];
+    global.fetch = vi.fn().mockImplementation(async () => {
+      const payload = payloads.shift();
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    });
+
+    const app = buildServer();
+    const reset = await app.inject({
+      method: "POST",
+      url: "/team/accounts/2/reset-password",
+      headers: { cookie: "decisionatlas_session=admin-token" },
+      payload: { password: "new-password-123" },
+    });
+    expect(reset.statusCode).toBe(200);
+    expect(reset.json().account.role).toBe("viewer");
+    expect(global.fetch).toHaveBeenNthCalledWith(1, "http://localhost:8000/team/accounts/2/reset-password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-decisionatlas-session-token": "admin-token",
+      },
+      body: JSON.stringify({ password: "new-password-123" }),
+    });
+
+    const role = await app.inject({
+      method: "POST",
+      url: "/team/accounts/2/role",
+      headers: { cookie: "decisionatlas_session=admin-token" },
+      payload: { role: "reviewer" },
+    });
+    expect(role.statusCode).toBe(200);
+    expect(role.json().account.role).toBe("reviewer");
+
+    const removed = await app.inject({
+      method: "DELETE",
+      url: "/team/workspaces/demo-workspace/members/2",
+      headers: { cookie: "decisionatlas_session=admin-token" },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json()).toEqual({ removed: true });
+    expect(global.fetch).toHaveBeenNthCalledWith(3, "http://localhost:8000/team/workspaces/demo-workspace/members/2", {
+      method: "DELETE",
+      headers: { "x-decisionatlas-session-token": "admin-token" },
+    });
+
+    await app.close();
+  });
+
 });

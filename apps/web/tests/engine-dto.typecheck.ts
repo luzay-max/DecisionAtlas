@@ -35,3 +35,32 @@ export function webUsesEngineDecisionsContract(
   void [incomplete, invalidReview];
   return [listItem, detailContract, reviewContract];
 }
+
+import type {
+  AuthLoginResponse,
+  AuthSessionResponse,
+  TeamAccountResponse,
+  TeamRole,
+  WorkspaceMemberResponse,
+} from "@decisionatlas/engine-contract";
+import type { ProductRole, ProductSession, TeamAccount, WorkspaceMember } from "../lib/api";
+
+export function webUsesGeneratedAuthTeamContracts(
+  session: ProductSession,
+  account: TeamAccount,
+  member: WorkspaceMember,
+): [AuthSessionResponse | AuthLoginResponse, TeamAccountResponse, WorkspaceMemberResponse] {
+  const role: ProductRole = session.role;
+  const teamRole: TeamRole = account.role;
+  const memberActorRole: TeamRole | null = member.actor.role;
+  // @ts-expect-error roles must remain a finite generated enum
+  const invalidRole: ProductRole = "owner";
+  // @ts-expect-error account DTOs never expose password fields
+  const leakedPassword: string = account.password;
+  // @ts-expect-error account DTOs never expose session credentials
+  const leakedToken: string = account.session_token;
+  // @ts-expect-error workspace member actor role is nullable
+  const nonNullableRole: TeamRole = member.actor.role;
+  void [role, teamRole, memberActorRole, invalidRole, leakedPassword, leakedToken, nonNullableRole];
+  return [session as AuthSessionResponse | AuthLoginResponse, account, member];
+}
