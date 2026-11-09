@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from app.api.imports_contract import (
+    GitHubWebhookResponse,
+    ImportCapabilitiesResponse,
+    ImportJobResponse,
+    ImportTargetResponse,
+)
 from app.auth import AuthContext, require_actor, require_scope_role, require_workspace_role
 from app.config import get_settings
 from app.db.session import get_db_session
@@ -50,7 +56,7 @@ class GitHubInstallationBindingRequest(BaseModel):
 
 class GitHubPrivateAccessBindingRequest(BaseModel):
     repo: str
-    token: str
+    token: str = Field(repr=False)
     owner_scope: str | None = None
     source_ref: str | None = None
     source_label: str | None = None
@@ -61,13 +67,13 @@ class GitSourceBindingRequest(BaseModel):
     provider: str
     access_mode: str
     repo: str
-    token: str | None = None
+    token: str | None = Field(default=None, repr=False)
     source_ref: str | None = None
     source_label: str | None = None
     workspace_slug: str | None = None
 
 
-@router.post("/github")
+@router.post("/github", response_model=ImportJobResponse, response_model_exclude_unset=True)
 def import_github(
     request: GitHubImportRequest,
     background_tasks: BackgroundTasks,
@@ -119,7 +125,7 @@ def import_github(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.get("/lookup")
+@router.get("/lookup", response_model=ImportTargetResponse, response_model_exclude_unset=True)
 def lookup_import_target(
     repo: str = Query(..., min_length=3),
     auth: AuthContext = Depends(require_actor),
@@ -132,7 +138,7 @@ def lookup_import_target(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/github/installations/bind")
+@router.post("/github/installations/bind", response_model=ImportTargetResponse, response_model_exclude_unset=True)
 def bind_installation(
     request: GitHubInstallationBindingRequest,
     auth: AuthContext = Depends(require_actor),
@@ -155,7 +161,7 @@ def bind_installation(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/github/private-access/bind")
+@router.post("/github/private-access/bind", response_model=ImportTargetResponse, response_model_exclude_unset=True)
 def bind_private_access(
     request: GitHubPrivateAccessBindingRequest,
     auth: AuthContext = Depends(require_actor),
@@ -178,7 +184,7 @@ def bind_private_access(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/git-sources/bind")
+@router.post("/git-sources/bind", response_model=ImportTargetResponse, response_model_exclude_unset=True)
 def bind_git_source(
     request: GitSourceBindingRequest,
     auth: AuthContext = Depends(require_actor),
@@ -222,7 +228,7 @@ def bind_git_source(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.post("/github/webhook")
+@router.post("/github/webhook", response_model=GitHubWebhookResponse, response_model_exclude_unset=True)
 async def github_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -252,7 +258,7 @@ async def github_webhook(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/capabilities")
+@router.get("/capabilities", response_model=ImportCapabilitiesResponse, response_model_exclude_unset=True)
 def get_import_capabilities(
     auth: AuthContext = Depends(require_actor),
 ) -> dict:
@@ -266,7 +272,7 @@ def get_import_capabilities(
     }
 
 
-@router.get("/{job_id}")
+@router.get("/{job_id}", response_model=ImportJobResponse, response_model_exclude_unset=True)
 def get_import_job(
     job_id: str,
     auth: AuthContext = Depends(require_actor),
@@ -287,7 +293,7 @@ def get_import_job(
         session.close()
 
 
-@router.post("/{job_id}/pause")
+@router.post("/{job_id}/pause", response_model=ImportJobResponse, response_model_exclude_unset=True)
 def pause_import_job(
     job_id: str,
     auth: AuthContext = Depends(require_actor),
@@ -317,7 +323,7 @@ def pause_import_job(
     finally:
         session.close()
 
-@router.post("/{job_id}/resume")
+@router.post("/{job_id}/resume", response_model=ImportJobResponse, response_model_exclude_unset=True)
 def resume_import_job(
     job_id: str,
     auth: AuthContext = Depends(require_actor),

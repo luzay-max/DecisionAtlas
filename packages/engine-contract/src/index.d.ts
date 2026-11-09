@@ -16,3 +16,13 @@ export type DecisionSourceRef = components["schemas"]["DecisionSourceRefResponse
 export type DecisionAuditEvent = components["schemas"]["DecisionAuditEventResponse"];
 export type DecisionWorkspaceMode = DecisionListItem["workspace_mode"];
 
+export type ImportLookupQuery = paths["/imports/lookup"]["get"]["parameters"]["query"];
+export type GitHubImportRequest = paths["/imports/github"]["post"]["requestBody"]["content"]["application/json"];
+export type GitHubInstallationBindingRequest = paths["/imports/github/installations/bind"]["post"]["requestBody"]["content"]["application/json"];
+export type GitHubPrivateAccessBindingRequest = paths["/imports/github/private-access/bind"]["post"]["requestBody"]["content"]["application/json"];
+export type GitSourceBindingRequest = paths["/imports/git-sources/bind"]["post"]["requestBody"]["content"]["application/json"];
+export type ImportJobResponse = paths["/imports/{job_id}"]["get"]["responses"][200]["content"]["application/json"];
+export type ImportTargetResponse = paths["/imports/lookup"]["get"]["responses"][200]["content"]["application/json"];
+export type ImportCapabilitiesResponse = paths["/imports/capabilities"]["get"]["responses"][200]["content"]["application/json"];
+export type GitHubWebhookResponse = paths["/imports/github/webhook"]["post"]["responses"][200]["content"]["application/json"];
+

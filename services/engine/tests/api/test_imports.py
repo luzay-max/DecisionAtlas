@@ -492,6 +492,7 @@ def test_bind_private_access_marks_workspace_as_token_backed(tmp_path: Path, mon
     assert body["access_source_status"] == "authorized"
     assert "Private GitHub source team private repo" == body["access_source_label"]
     assert "ghp-private-token" not in str(body)
+    assert "token" not in body
 
 
 def test_bind_git_source_github_token_delegates_without_echoing_token(tmp_path: Path, monkeypatch) -> None:
