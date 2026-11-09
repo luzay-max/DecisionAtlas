@@ -53,6 +53,7 @@ describe("Fastify API environment validation", () => {
   it.each([
     "*",
     "https://atlas.example/path",
+    "https://atlas.example/",
     "https://user:password@atlas.example",
     "ftp://atlas.example",
     "not-an-origin",
