@@ -66,6 +66,7 @@ describe("B03: session-cookie parsing and forwarding boundaries", () => {
     global.fetch = vi.fn().mockResolvedValue({
       status: 200,
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () => JSON.stringify({ role: "viewer", current_owner_scope: "local-default" }),
     } as Response);
     const app = buildServer();
