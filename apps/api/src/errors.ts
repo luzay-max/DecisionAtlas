@@ -24,8 +24,9 @@ function codeForStatus(status: number): ApiErrorCode {
   return "request_rejected";
 }
 
-function decodePayload(payload: unknown): unknown {
+function decodePayload(payload: unknown, contentType?: string): unknown {
   if (typeof payload === "string") {
+    if (!contentType?.toLowerCase().includes("application/json")) return payload;
     try {
       return JSON.parse(payload) as unknown;
     } catch {
@@ -33,10 +34,10 @@ function decodePayload(payload: unknown): unknown {
     }
   }
   if (typeof Buffer !== "undefined" && Buffer.isBuffer(payload)) {
-    return decodePayload(payload.toString("utf8"));
+    return decodePayload(payload.toString("utf8"), contentType);
   }
   if (payload instanceof Uint8Array) {
-    return decodePayload(new TextDecoder().decode(payload));
+    return decodePayload(new TextDecoder().decode(payload), contentType);
   }
   return payload;
 }
@@ -88,9 +89,9 @@ function messageFrom(value: Record<string, unknown>, fallback: string): string {
  * with sensitive validation inputs removed. 5xx bodies are deliberately
  * generic so upstream exception messages cannot leak to clients.
  */
-export function normalizeApiErrorPayload(status: number, payload: unknown): ApiErrorResponse {
+export function normalizeApiErrorPayload(status: number, payload: unknown, contentType?: string): ApiErrorResponse {
   const code = codeForStatus(status);
-  const decoded = decodePayload(payload);
+  const decoded = decodePayload(payload, contentType);
 
   const legacy = isRecord(decoded)
     ? redactSensitiveValues(decoded) as Record<string, unknown>
