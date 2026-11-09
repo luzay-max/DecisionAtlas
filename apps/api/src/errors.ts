@@ -92,20 +92,36 @@ export function normalizeApiErrorPayload(status: number, payload: unknown): ApiE
   const code = codeForStatus(status);
   const decoded = decodePayload(payload);
 
-  if (status >= 500 && status !== 503) {
-    const message = DEFAULT_MESSAGES[code];
-    return {
-      code,
-      message,
-      error: status === 500 ? "Internal Server Error" : "Upstream engine request failed",
-    };
-  }
-
   const legacy = isRecord(decoded)
     ? redactSensitiveValues(decoded) as Record<string, unknown>
     : decoded === undefined || decoded === null || decoded === ""
       ? {}
       : { detail: redactSensitiveValues(decoded) };
+
+  if (status >= 500) {
+    const detailMessage = messageFrom(legacy, DEFAULT_MESSAGES[code]);
+    const isPauseResumeDisabled =
+      status === 503
+      && detailMessage === "Import pause/resume is disabled pending worker lifecycle validation";
+    if (isPauseResumeDisabled) {
+      return {
+        ...legacy,
+        code,
+        message: detailMessage,
+      } as ApiErrorResponse;
+    }
+
+    const message = DEFAULT_MESSAGES[code];
+    return {
+      code,
+      message,
+      error: status === 500
+        ? "Internal Server Error"
+        : status === 503
+          ? "Service temporarily unavailable"
+          : "Upstream engine request failed",
+    };
+  }
 
   return {
     ...legacy,
