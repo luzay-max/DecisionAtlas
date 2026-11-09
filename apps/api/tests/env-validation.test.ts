@@ -17,8 +17,14 @@ describe("Fastify API environment validation", () => {
   });
 
   it.each(["0", "-1", "65536", "1.5", "not-a-port"])("rejects invalid PORT %s without echoing the value", (value) => {
-    expect(() => getEnv(asEnv({ PORT: value }))).toThrow("PORT");
-    expect(() => getEnv(asEnv({ PORT: value }))).not.toThrow(value);
+    let message = "";
+    try {
+      getEnv(asEnv({ PORT: value }));
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toContain("PORT");
+    expect(message).not.toContain(value);
   });
 
   it.each([
