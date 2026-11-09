@@ -112,9 +112,7 @@
         "additionalProperties": false,
         "properties": {
           "status": {
-            "enum": [
-              "signed_out"
-            ],
+            "const": "signed_out",
             "title": "Status",
             "type": "string"
           }
@@ -2161,7 +2159,6 @@
                   "reviewer",
                   "admin"
                 ],
-                "title": "Role",
                 "type": "string"
               },
               {

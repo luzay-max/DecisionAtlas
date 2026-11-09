@@ -659,7 +659,10 @@ export interface components {
             actor: components["schemas"]["AuthBootstrapActorResponse"];
             /** Current Owner Scope */
             current_owner_scope: string;
-            /** Role */
+            /**
+             * Role
+             * @enum {string}
+             */
             role: "viewer" | "reviewer" | "admin";
             /** Session Token */
             session_token: string;
@@ -667,10 +670,14 @@ export interface components {
         /** AuthLoginResponse */
         AuthLoginResponse: {
             actor: components["schemas"]["AuthBootstrapActorResponse"];
+            /** Available Scopes */
             available_scopes: components["schemas"]["AuthOwnerScopeMembershipResponse"][];
             /** Current Owner Scope */
             current_owner_scope: string;
-            /** Role */
+            /**
+             * Role
+             * @enum {string}
+             */
             role: "viewer" | "reviewer" | "admin";
             /** Session Token */
             session_token: string;
@@ -679,7 +686,7 @@ export interface components {
         AuthLogoutResponse: {
             /**
              * Status
-             * @enum {string}
+             * @constant
              */
             status: "signed_out";
         };
@@ -705,10 +712,14 @@ export interface components {
         /** AuthSessionResponse */
         AuthSessionResponse: {
             actor: components["schemas"]["AuthSessionActorResponse"];
+            /** Available Scopes */
             available_scopes: components["schemas"]["AuthOwnerScopeMembershipResponse"][];
             /** Current Owner Scope */
             current_owner_scope: string;
-            /** Role */
+            /**
+             * Role
+             * @enum {string}
+             */
             role: "viewer" | "reviewer" | "admin";
             /** Session Token */
             session_token: string;
@@ -1280,7 +1291,7 @@ export interface components {
             /** Id */
             id: number;
             /** Role */
-            role: "viewer" | "reviewer" | "admin" | null;
+            role: ("viewer" | "reviewer" | "admin") | null;
             /**
              * Status
              * @enum {string}
