@@ -218,4 +218,59 @@ describe("Imports generated Engine contract client", () => {
     }
   });
 
+
+  it.each([200, 403])(
+    "returns 502 without an unhandled rejection when an upstream %s body stream is interrupted",
+    async (status) => {
+      const unhandledRejections: unknown[] = [];
+      const onUnhandledRejection = (reason: unknown) => {
+        unhandledRejections.push(reason);
+      };
+      process.on("unhandledRejection", onUnhandledRejection);
+
+      const interruptedResponse = new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"detail":'));
+            controller.error(new Error("synthetic body interrupted"));
+          },
+        }),
+        { status, headers: { "content-type": "application/json" } },
+      );
+      const healthyPayload = { capabilities: [] };
+      global.fetch = vi.fn()
+        .mockResolvedValueOnce(interruptedResponse)
+        .mockResolvedValue(Response.json(healthyPayload));
+
+      const app = buildServer();
+      try {
+        const failedResponse = await app.inject({
+          method: "GET",
+          url: "/imports/capabilities",
+          headers: { cookie: "decisionatlas_session=admin-token" },
+        });
+
+        expect(failedResponse.statusCode).toBe(502);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandledRejections).toEqual([]);
+
+        // A failed upstream stream must not take down the API process/server.
+        const recoveredResponse = await app.inject({
+          method: "GET",
+          url: "/imports/capabilities",
+          headers: { cookie: "decisionatlas_session=admin-token" },
+        });
+        expect(recoveredResponse.statusCode).toBe(200);
+        expect(recoveredResponse.json()).toEqual(healthyPayload);
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        expect(unhandledRejections).toEqual([]);
+      } finally {
+        process.off("unhandledRejection", onUnhandledRejection);
+        await app.close();
+      }
+    },
+  );
+
 });

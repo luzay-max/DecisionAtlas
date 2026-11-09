@@ -133,7 +133,13 @@ async function forwardImportRequest(request: Request): Promise<Response> {
   // Keep a copy of the raw body before openapi-fetch consumes/parses the Response.
   // Its non-2xx parser may turn JSON strings such as "123" or "false" into scalars.
   const response = await globalThis.fetch(request.url, init);
-  importsRawResponseBodies.set(response, response.clone().text());
+  // Convert both outcomes immediately so a body-stream failure can never leave
+  // an unhandled rejection while openapi-fetch is consuming the original body.
+  const rawBody: Promise<ImportsRawResponseBody> = response.clone().text().then(
+    (text): ImportsRawResponseBody => ({ ok: true, text }),
+    (error: unknown): ImportsRawResponseBody => ({ ok: false, error }),
+  );
+  importsRawResponseBodies.set(response, rawBody);
   return response;
 }
 
@@ -144,7 +150,11 @@ export function createImportsEngineClient(baseUrl: string) {
   });
 }
 
-const importsRawResponseBodies = new WeakMap<Response, Promise<string>>();
+type ImportsRawResponseBody =
+  | { ok: true; text: string }
+  | { ok: false; error: unknown };
+
+const importsRawResponseBodies = new WeakMap<Response, Promise<ImportsRawResponseBody>>();
 
 function parseImportsPayload(response: Response, rawBody: string): unknown {
   if (rawBody.length === 0) return null;
@@ -163,7 +173,13 @@ async function importsProxyResult(response: Response) {
   if (!rawBody) {
     throw new Error("Imports Engine response is missing its captured raw body");
   }
-  return { status: response.status, payload: parseImportsPayload(response, await rawBody) };
+
+  const capturedBody = await rawBody;
+  if (!capturedBody.ok) {
+    throw capturedBody.error;
+  }
+
+  return { status: response.status, payload: parseImportsPayload(response, capturedBody.text) };
 }
 
 async function importRequest(
