@@ -537,16 +537,20 @@ describe("POST /imports/github", () => {
         ...(status === 401 ? {} : { headers: { cookie: "decisionatlas_session=admin-token" } }),
       });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toMatchObject({
-        ...payload,
-        code: status === 401 ? "unauthenticated"
-          : status === 403 ? "forbidden"
-          : status === 404 ? "not_found"
-          : status === 409 ? "conflict"
-          : status === 400 ? "invalid_request"
-          : status === 503 ? "service_unavailable"
-          : "",
-      });
+      if (status < 400) {
+        expect(response.json()).toEqual(payload);
+      } else {
+        expect(response.json()).toMatchObject({
+          ...payload,
+          code: status === 401 ? "unauthenticated"
+            : status === 403 ? "forbidden"
+            : status === 404 ? "not_found"
+            : status === 409 ? "conflict"
+            : status === 400 ? "invalid_request"
+            : status === 503 ? "service_unavailable"
+            : "request_rejected",
+        });
+      }
       expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledWith(
         `http://localhost:8000/imports/job-123/${action}`,
