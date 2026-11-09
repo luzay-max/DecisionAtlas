@@ -18,8 +18,14 @@ export function buildServer(env: ApiEnv = getEnv()) {
   const app = Fastify({ logger: true });
   app.addHook("onSend", async (_request, reply, payload) => {
     if (reply.statusCode < 400) return payload;
+    const contentType = reply.getHeader("content-type");
+    const normalized = normalizeApiErrorPayload(
+      reply.statusCode,
+      payload,
+      typeof contentType === "string" ? contentType : undefined,
+    );
     reply.header("content-type", "application/json; charset=utf-8");
-    return JSON.stringify(normalizeApiErrorPayload(reply.statusCode, payload));
+    return JSON.stringify(normalized);
   });
   const origins = new Set(
     env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
