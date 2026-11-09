@@ -46,6 +46,14 @@ describe("normalized BFF API error contract", () => {
     });
   });
 
+  it("preserves a JSON-looking plain-text scalar as text when content type is not JSON", () => {
+    expect(normalizeApiErrorPayload(403, "123", "text/plain; charset=utf-8")).toEqual({
+      detail: "123",
+      code: "forbidden",
+      message: "123",
+    });
+  });
+
   it("redacts validation input and credential-shaped fields", () => {
     const normalized = normalizeApiErrorPayload(422, {
       detail: [
