@@ -35,6 +35,7 @@ describe("authRoute", () => {
       .mockResolvedValueOnce({
         status: 200,
         ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
         text: async () =>
           JSON.stringify({
             session_token: "boot-token",
@@ -52,6 +53,7 @@ describe("authRoute", () => {
       .mockResolvedValueOnce({
         status: 200,
         ok: true,
+        headers: new Headers({ "content-type": "application/json" }),
         text: async () =>
           JSON.stringify({
             session_token: "boot-token",
@@ -98,6 +100,7 @@ describe("authRoute", () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       status: 200,
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () =>
         JSON.stringify({
           session_token: "login-token",
@@ -132,6 +135,7 @@ describe("authRoute", () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       status: 200,
       ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
       text: async () =>
         JSON.stringify({
           session_token: "existing-token",
