@@ -304,3 +304,84 @@ export function updateImportJobControl(
   return importRequest(request, logger, `POST /imports/:jobId/${action}`);
 }
 
+type AuthPaths = Pick<
+  paths,
+  "/auth/bootstrap" | "/auth/login" | "/auth/logout" | "/auth/session" | "/auth/scope"
+>;
+
+type TeamPaths = Pick<
+  paths,
+  | "/team/accounts"
+  | "/team/accounts/{actor_id}/disable"
+  | "/team/accounts/{actor_id}/reset-password"
+  | "/team/accounts/{actor_id}/role"
+  | "/team/workspaces/{workspace_slug}/members"
+  | "/team/workspaces/{workspace_slug}/members/{actor_id}"
+>;
+
+// openapi-fetch normally adds an Accept header. Keep the established BFF
+// forwarding contract by removing it and forwarding only the explicit
+// session header plus generated JSON content type/body.
+async function forwardTypedContractRequest(request: Request): Promise<Response> {
+  const headers = Object.fromEntries(
+    [...request.headers.entries()].filter(([name]) => name.toLowerCase() !== "accept")
+  );
+  const init: RequestInit = {};
+  if (Object.keys(headers).length > 0) init.headers = headers;
+  if (request.method !== "GET") init.method = request.method;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const body = await request.clone().text();
+    if (body.length > 0) init.body = body;
+  }
+  return globalThis.fetch(request.url, init);
+}
+
+export function createAuthEngineClient(baseUrl: string) {
+  return createClient<AuthPaths>({
+    baseUrl,
+    fetch: forwardTypedContractRequest,
+  });
+}
+
+export function createTeamEngineClient(baseUrl: string) {
+  return createClient<TeamPaths>({
+    baseUrl,
+    fetch: forwardTypedContractRequest,
+  });
+}
+
+type ContractTextResult = {
+  response: Response;
+  data?: string;
+  error?: string;
+};
+
+function parseContractTextPayload(response: Response, rawBody: string | undefined): unknown {
+  if (typeof rawBody !== "string" || rawBody.length === 0) return null;
+  try {
+    return JSON.parse(rawBody) as unknown;
+  } catch {
+    return response.ok ? { message: rawBody } : { error: rawBody };
+  }
+}
+
+// parseAs:"text" lets the existing proxy parser retain the original JSON/text
+// envelope without openapi-fetch interpreting JSON scalar error bodies first.
+export async function forwardContractTextRequest(
+  request: Promise<ContractTextResult>,
+  logger: FastifyBaseLogger,
+  route: string,
+) {
+  try {
+    const result = await request;
+    return {
+      status: result.response.status,
+      payload: parseContractTextPayload(
+        result.response,
+        result.response.ok ? result.data : result.error,
+      ),
+    };
+  } catch (error) {
+    return fetchUpstreamPayload(Promise.reject(error), logger, route);
+  }
+}

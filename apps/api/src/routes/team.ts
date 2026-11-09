@@ -1,9 +1,15 @@
-import { FastifyInstance, FastifyRequest } from "fastify";
+import { FastifyInstance } from "fastify";
 import { z } from "zod";
 
+import type {
+  TeamAccountCreateRequest,
+  TeamAccountPasswordResetRequest,
+  TeamAccountRoleRequest,
+  WorkspaceMemberRoleRequest,
+} from "@decisionatlas/engine-contract";
 import { authHeadersForRequest } from "../auth";
+import { createTeamEngineClient, forwardContractTextRequest } from "../contracts/engine-client";
 import { getEnv } from "../plugins/env";
-import { fetchUpstreamPayload } from "../proxy";
 
 const roleSchema = z.enum(["viewer", "reviewer", "admin"]);
 
@@ -35,34 +41,14 @@ const workspaceMemberParamsSchema = z.object({
   actorId: z.coerce.number().int().positive(),
 });
 
-type ForwardInit = Omit<RequestInit, "headers"> & { headers?: Record<string, string> };
-
-async function forwardJson(
-  app: FastifyInstance,
-  request: FastifyRequest,
-  route: string,
-  url: string,
-  init: ForwardInit = {}
-) {
-  const env = getEnv();
-  const upstream = await fetchUpstreamPayload(
-    fetch(`${env.ENGINE_BASE_URL}${url}`, {
-      ...init,
-      headers: {
-        ...(init.body ? { "content-type": "application/json" } : {}),
-        ...(await authHeadersForRequest(request)),
-        ...(init.headers ?? {}),
-      },
-    }),
-    app.log,
-    route
-  );
-  return upstream;
-}
-
 export async function teamRoute(app: FastifyInstance) {
   app.get("/team/accounts", async (request, reply) => {
-    const upstream = await forwardJson(app, request, "GET /team/accounts", "/team/accounts");
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.GET("/team/accounts", { headers: await authHeadersForRequest(request), parseAs: "text" }),
+      app.log,
+      "GET /team/accounts",
+    );
     return reply.status(upstream.status).send(upstream.payload);
   });
 
@@ -71,10 +57,17 @@ export async function teamRoute(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.status(400).send({ error: "Invalid account payload", issues: parsed.error.issues });
     }
-    const upstream = await forwardJson(app, request, "POST /team/accounts", "/team/accounts", {
-      method: "POST",
-      body: JSON.stringify(parsed.data),
-    });
+    const body: TeamAccountCreateRequest = parsed.data;
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.POST("/team/accounts", {
+        body,
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
+      "POST /team/accounts",
+    );
     return reply.status(upstream.status).send(upstream.payload);
   });
 
@@ -83,12 +76,15 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success) {
       return reply.status(400).send({ error: "Invalid account id", issues: params.error.issues });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.POST("/team/accounts/{actor_id}/disable", {
+        params: { path: { actor_id: params.data.actorId } },
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "POST /team/accounts/:actorId/disable",
-      `/team/accounts/${params.data.actorId}/disable`,
-      { method: "POST" }
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -99,12 +95,17 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success || !parsed.success) {
       return reply.status(400).send({ error: "Invalid password reset payload" });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const body: TeamAccountPasswordResetRequest = parsed.data;
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.POST("/team/accounts/{actor_id}/reset-password", {
+        params: { path: { actor_id: params.data.actorId } },
+        body,
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "POST /team/accounts/:actorId/reset-password",
-      `/team/accounts/${params.data.actorId}/reset-password`,
-      { method: "POST", body: JSON.stringify(parsed.data) }
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -115,12 +116,17 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success || !parsed.success) {
       return reply.status(400).send({ error: "Invalid account role payload" });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const body: TeamAccountRoleRequest = parsed.data;
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.POST("/team/accounts/{actor_id}/role", {
+        params: { path: { actor_id: params.data.actorId } },
+        body,
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "POST /team/accounts/:actorId/role",
-      `/team/accounts/${params.data.actorId}/role`,
-      { method: "POST", body: JSON.stringify(parsed.data) }
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -130,11 +136,15 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success) {
       return reply.status(400).send({ error: "Invalid workspace slug", issues: params.error.issues });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.GET("/team/workspaces/{workspace_slug}/members", {
+        params: { path: { workspace_slug: params.data.workspaceSlug } },
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "GET /team/workspaces/:workspaceSlug/members",
-      `/team/workspaces/${encodeURIComponent(params.data.workspaceSlug)}/members`
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -145,12 +155,17 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success || !parsed.success) {
       return reply.status(400).send({ error: "Invalid workspace member payload" });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const body: WorkspaceMemberRoleRequest = parsed.data;
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.PUT("/team/workspaces/{workspace_slug}/members/{actor_id}", {
+        params: { path: { workspace_slug: params.data.workspaceSlug, actor_id: params.data.actorId } },
+        body,
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "PUT /team/workspaces/:workspaceSlug/members/:actorId",
-      `/team/workspaces/${encodeURIComponent(params.data.workspaceSlug)}/members/${params.data.actorId}`,
-      { method: "PUT", body: JSON.stringify(parsed.data) }
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
@@ -160,12 +175,15 @@ export async function teamRoute(app: FastifyInstance) {
     if (!params.success) {
       return reply.status(400).send({ error: "Invalid workspace member payload", issues: params.error.issues });
     }
-    const upstream = await forwardJson(
-      app,
-      request,
+    const client = createTeamEngineClient(getEnv().ENGINE_BASE_URL);
+    const upstream = await forwardContractTextRequest(
+      client.DELETE("/team/workspaces/{workspace_slug}/members/{actor_id}", {
+        params: { path: { workspace_slug: params.data.workspaceSlug, actor_id: params.data.actorId } },
+        headers: await authHeadersForRequest(request),
+        parseAs: "text",
+      }),
+      app.log,
       "DELETE /team/workspaces/:workspaceSlug/members/:actorId",
-      `/team/workspaces/${encodeURIComponent(params.data.workspaceSlug)}/members/${params.data.actorId}`,
-      { method: "DELETE" }
     );
     return reply.status(upstream.status).send(upstream.payload);
   });
