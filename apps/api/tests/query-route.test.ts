@@ -31,7 +31,7 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic" } });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toEqual(error);
+      expect(response.json()).toMatchObject({ ...error, code: expect.any(String), message: expect.any(String) });
     } finally { await app.close(); }
   });
 
@@ -41,7 +41,7 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic", question: "why" } });
       expect(response.statusCode).toBe(503);
-      expect(response.json()).toEqual({ error: "synthetic unavailable" });
+      expect(response.json()).toMatchObject({ error: "synthetic unavailable", code: "service_unavailable", message: "synthetic unavailable" });
     } finally { await app.close(); }
   });
 
@@ -52,7 +52,7 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic", question: "why" } });
       expect(response.statusCode).toBe(502);
-      expect(response.json()).toMatchObject({ error: "Upstream engine request failed" });
+      expect(response.json()).toMatchObject({ error: "Upstream engine request failed", code: "upstream_unavailable", message: "Upstream engine unavailable" });
     } finally { await app.close(); }
   });
 });
