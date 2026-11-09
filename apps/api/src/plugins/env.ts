@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const booleanish = z
   .union([z.boolean(), z.string()])
-  .transform((value) => {
+  .transform((value, ctx) => {
     if (typeof value === "boolean") {
       return value;
     }
@@ -13,7 +13,8 @@ const booleanish = z
     if (["0", "false", "no", "off", ""].includes(normalized)) {
       return false;
     }
-    throw new Error("must be a recognized boolean value");
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must be a recognized boolean value" });
+    return z.NEVER;
   });
 
 const httpUrl = z.string().url().superRefine((value, ctx) => {
