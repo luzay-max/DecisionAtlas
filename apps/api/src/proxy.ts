@@ -24,9 +24,10 @@ export async function fetchUpstreamPayload(
     logger.error({ err: error, route }, "engine proxy request failed");
     return {
       status: 502,
+      // Keep the diagnostic in server logs only; the BFF error hook emits
+      // a stable public 502 envelope without leaking transport internals.
       payload: {
         error: UPSTREAM_ERROR_MESSAGE,
-        detail: error instanceof Error ? error.message : String(error),
       },
     };
   }
