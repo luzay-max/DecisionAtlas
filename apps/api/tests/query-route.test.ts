@@ -37,14 +37,19 @@ describe("POST /query/why generated DTO client", () => {
           message: "Upstream engine unavailable",
           error: "Upstream engine request failed",
         });
+      } else if (status === 503) {
+        expect(response.json()).toMatchObject({
+          code: "service_unavailable",
+          message: "Service temporarily unavailable",
+          error: "Service temporarily unavailable",
+        });
       } else {
         expect(response.json()).toMatchObject({
           ...error,
           code: status === 401 ? "unauthenticated"
             : status === 403 ? "forbidden"
             : status === 404 ? "not_found"
-            : status === 422 ? "invalid_request"
-            : "service_unavailable",
+            : "invalid_request",
           message: status === 422 ? "Request validation failed" : "synthetic failure",
         });
       }
