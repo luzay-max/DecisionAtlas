@@ -242,9 +242,9 @@ export async function authTeamContractsMustRejectDrift() {
     const invalidRole: "owner" = member?.actor.role;
     void [role, invalidRole];
   }
-  // @ts-expect-error workspace assignment requires role
   team.PUT("/team/workspaces/{workspace_slug}/members/{actor_id}", {
     params: { path: { workspace_slug: "demo-workspace", actor_id: 2 } },
+    // @ts-expect-error workspace assignment requires role
     body: {},
   });
   // @ts-expect-error Team account DTO must not expose credentials
