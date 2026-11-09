@@ -1,6 +1,6 @@
 # B06e — API error contract and environment validation
 
-**Status:** Proposed follow-up plan; implementation has not started. This document does not authorize a runtime behavior change or merge.
+**Status:** Implementation in progress in [Draft PR #58](https://github.com/luzay-max/DecisionAtlas/pull/58); exact-head CI and independent review are pending. No merge or production authorization.
 
 ## Context
 
