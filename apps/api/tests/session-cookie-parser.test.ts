@@ -63,11 +63,13 @@ describe("B03: session-cookie parsing and forwarding boundaries", () => {
 
   it("forwards only the cookie-derived token to Engine and never client token header", async () => {
     process.env.AUTO_BOOTSTRAP_AUTH = "false";
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200,
-      ok: true,
-      text: async () => JSON.stringify({ role: "viewer", current_owner_scope: "local-default" }),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValue(Response.json({
+      session_token: "real-cookie",
+      actor: { id: 1, username: "viewer", bootstrap: false },
+      current_owner_scope: "local-default",
+      role: "viewer",
+      available_scopes: [{ owner_scope: "local-default", role: "viewer" }],
+    }));
     const app = buildServer();
     const response = await app.inject({
       method: "GET",

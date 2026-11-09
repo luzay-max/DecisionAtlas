@@ -56,10 +56,15 @@ describe("security boundaries", () => {
 
   it("marks session cookies secure in production and expires cookie on logout", async () => {
     process.env.APP_ENV = "production";
-    global.fetch = vi.fn().mockResolvedValue({
-      status: 200, ok: true,
-      text: async () => JSON.stringify({ session_token: "test-token", status: "signed_out" }),
-    } as Response);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({
+        session_token: "test-token",
+        actor: { id: 1, username: "member", bootstrap: false, status: "active" },
+        current_owner_scope: "team-a",
+        role: "viewer",
+        available_scopes: [{ owner_scope: "team-a", role: "viewer" }],
+      }))
+      .mockResolvedValue(Response.json({ status: "signed_out" }));
     const app = buildServer();
     const login = await app.inject({
       method: "POST", url: "/auth/login", payload: { username: "member", password: "secret" },

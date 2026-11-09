@@ -1,4 +1,38 @@
-import type { DecisionDetail as EngineDecisionDetail, DecisionListItem as EngineDecisionListItem, DecisionReviewRequest as EngineDecisionReviewRequest, DecisionReviewResponse as EngineDecisionReviewResponse, DecisionSourceRef as EngineDecisionSourceRef, DecisionWorkspaceMode as EngineDecisionWorkspaceMode, WhyRequest, WhyResponse, WhyStatus, RetrievalMode as EngineRetrievalMode, WorkspaceReadiness as EngineWorkspaceReadiness } from "@decisionatlas/engine-contract";
+import type {
+  AuthLoginResponse as EngineAuthLoginResponse,
+  AuthLogoutResponse as EngineAuthLogoutResponse,
+  AuthOwnerScopeMembershipResponse as EngineOwnerScopeMembership,
+  AuthScopeSwitchResponse as EngineAuthScopeSwitchResponse,
+  AuthSessionResponse as EngineAuthSessionResponse,
+  DecisionDetail as EngineDecisionDetail,
+  DecisionListItem as EngineDecisionListItem,
+  DecisionReviewRequest as EngineDecisionReviewRequest,
+  DecisionReviewResponse as EngineDecisionReviewResponse,
+  DecisionSourceRef as EngineDecisionSourceRef,
+  DecisionWorkspaceMode as EngineDecisionWorkspaceMode,
+  GitHubImportRequest,
+  GitHubInstallationBindingRequest,
+  GitHubPrivateAccessBindingRequest,
+  GitSourceBindingRequest,
+  ImportCapabilitiesResponse,
+  ImportJobResponse,
+  ImportTargetResponse,
+  ImportLookupQuery,
+  TeamAccountCreateRequest as EngineTeamAccountCreateRequest,
+  TeamAccountListResponse as EngineTeamAccountListResponse,
+  TeamAccountMutationResponse as EngineTeamAccountMutationResponse,
+  TeamAccountResponse as EngineTeamAccount,
+  TeamRole as EngineTeamRole,
+  WhyRequest,
+  WhyResponse,
+  WhyStatus,
+  RetrievalMode as EngineRetrievalMode,
+  WorkspaceMemberListResponse as EngineWorkspaceMemberListResponse,
+  WorkspaceMemberMutationResponse as EngineWorkspaceMemberMutationResponse,
+  WorkspaceMemberRemovalResponse as EngineWorkspaceMemberRemovalResponse,
+  WorkspaceMemberResponse as EngineWorkspaceMember,
+  WorkspaceReadiness as EngineWorkspaceReadiness,
+} from "@decisionatlas/engine-contract";
 
 export type ReviewDecision = EngineDecisionListItem;
 
@@ -327,39 +361,14 @@ export type GovernanceSummary = {
   rules: GovernanceRule[];
 };
 
-export type ProductRole = "viewer" | "reviewer" | "admin" | string;
-
-export type OwnerScopeMembership = {
-  owner_scope: string;
-  role: ProductRole;
-};
-
-export type ProductSession = {
-  session_token?: string;
-  actor: {
-    id: number;
-    username: string;
-    bootstrap?: boolean;
-  };
-  current_owner_scope: string;
-  role: ProductRole;
-  available_scopes: OwnerScopeMembership[];
-};
-
-export type TeamAccount = {
-  id: number;
-  username: string;
-  display_name: string | null;
-  status: "active" | "disabled" | string;
-  bootstrap: boolean;
-  role: ProductRole | null;
-};
-
-export type WorkspaceMember = {
-  workspace_id: number;
-  actor: TeamAccount;
-  role: ProductRole;
-};
+export type ProductRole = EngineTeamRole;
+export type OwnerScopeMembership = EngineOwnerScopeMembership;
+export type ProductSession =
+  | EngineAuthLoginResponse
+  | EngineAuthSessionResponse
+  | EngineAuthScopeSwitchResponse;
+export type TeamAccount = EngineTeamAccount;
+export type WorkspaceMember = EngineWorkspaceMember;
 
 export class ApiError extends Error {
   status: number;
@@ -439,15 +448,15 @@ async function readError(response: Response, fallback: string): Promise<never> {
   throw new ApiError(detail, response.status);
 }
 
-export async function getProductSession(): Promise<ProductSession> {
+export async function getProductSession(): Promise<EngineAuthSessionResponse> {
   const response = await apiFetch(`${apiBaseUrl}/auth/session`, { cache: "no-store" });
   if (!response.ok) {
     await readError(response, "Authentication required");
   }
-  return response.json();
+  return response.json() as Promise<EngineAuthSessionResponse>;
 }
 
-export async function loginProductSession(username: string, password: string): Promise<ProductSession> {
+export async function loginProductSession(username: string, password: string): Promise<EngineAuthLoginResponse> {
   const response = await apiFetch(`${apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: {
@@ -458,7 +467,7 @@ export async function loginProductSession(username: string, password: string): P
   if (!response.ok) {
     await readError(response, "Invalid username or password");
   }
-  return response.json();
+  return response.json() as Promise<EngineAuthLoginResponse>;
 }
 
 export async function logoutProductSession(): Promise<void> {
@@ -466,10 +475,12 @@ export async function logoutProductSession(): Promise<void> {
   if (!response.ok) {
     await readError(response, "Failed to sign out");
   }
+  const result: EngineAuthLogoutResponse = await response.json();
+  void result.status;
   saveProductSessionToken(null);
 }
 
-export async function switchProductScope(ownerScope: string): Promise<ProductSession> {
+export async function switchProductScope(ownerScope: string): Promise<EngineAuthScopeSwitchResponse> {
   const response = await apiFetch(`${apiBaseUrl}/auth/scope`, {
     method: "POST",
     headers: {
@@ -480,7 +491,7 @@ export async function switchProductScope(ownerScope: string): Promise<ProductSes
   if (!response.ok) {
     await readError(response, "Scope is not available for this session");
   }
-  return response.json();
+  return response.json() as Promise<EngineAuthScopeSwitchResponse>;
 }
 
 export async function getReviewQueue(workspaceSlug: string): Promise<ReviewDecision[]> {
@@ -804,16 +815,11 @@ export async function listTeamAccounts(): Promise<TeamAccount[]> {
   if (!response.ok) {
     await readError(response, "Failed to load team accounts");
   }
-  const body = await response.json();
-  return body.accounts ?? [];
+  const body: EngineTeamAccountListResponse = await response.json();
+  return body.accounts;
 }
 
-export async function createTeamAccount(input: {
-  username: string;
-  password: string;
-  display_name?: string;
-  role: "viewer" | "reviewer" | "admin";
-}): Promise<TeamAccount> {
+export async function createTeamAccount(input: EngineTeamAccountCreateRequest): Promise<TeamAccount> {
   const response = await apiFetch(`${apiBaseUrl}/team/accounts`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -822,7 +828,7 @@ export async function createTeamAccount(input: {
   if (!response.ok) {
     await readError(response, "Failed to create team account");
   }
-  const body = await response.json();
+  const body: EngineTeamAccountMutationResponse = await response.json();
   return body.account;
 }
 
@@ -831,7 +837,7 @@ export async function disableTeamAccount(actorId: number): Promise<TeamAccount> 
   if (!response.ok) {
     await readError(response, "Failed to disable team account");
   }
-  const body = await response.json();
+  const body: EngineTeamAccountMutationResponse = await response.json();
   return body.account;
 }
 
@@ -844,11 +850,11 @@ export async function resetTeamAccountPassword(actorId: number, password: string
   if (!response.ok) {
     await readError(response, "Failed to reset team account password");
   }
-  const body = await response.json();
+  const body: EngineTeamAccountMutationResponse = await response.json();
   return body.account;
 }
 
-export async function updateTeamAccountRole(actorId: number, role: "viewer" | "reviewer" | "admin"): Promise<TeamAccount> {
+export async function updateTeamAccountRole(actorId: number, role: ProductRole): Promise<TeamAccount> {
   const response = await apiFetch(`${apiBaseUrl}/team/accounts/${actorId}/role`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -857,7 +863,7 @@ export async function updateTeamAccountRole(actorId: number, role: "viewer" | "r
   if (!response.ok) {
     await readError(response, "Failed to update team account role");
   }
-  const body = await response.json();
+  const body: EngineTeamAccountMutationResponse = await response.json();
   return body.account;
 }
 
@@ -869,14 +875,14 @@ export async function listWorkspaceMembers(workspaceSlug: string): Promise<Works
   if (!response.ok) {
     await readError(response, "Failed to load workspace members");
   }
-  const body = await response.json();
-  return body.members ?? [];
+  const body: EngineWorkspaceMemberListResponse = await response.json();
+  return body.members;
 }
 
 export async function assignWorkspaceMember(
   workspaceSlug: string,
   actorId: number,
-  role: "viewer" | "reviewer" | "admin"
+  role: ProductRole
 ): Promise<WorkspaceMember> {
   const response = await apiFetch(
     `${apiBaseUrl}/team/workspaces/${encodeURIComponent(workspaceSlug)}/members/${actorId}`,
@@ -889,11 +895,14 @@ export async function assignWorkspaceMember(
   if (!response.ok) {
     await readError(response, "Failed to assign workspace member");
   }
-  const body = await response.json();
+  const body: EngineWorkspaceMemberMutationResponse = await response.json();
   return body.member;
 }
 
-export async function removeWorkspaceMember(workspaceSlug: string, actorId: number): Promise<void> {
+export async function removeWorkspaceMember(
+  workspaceSlug: string,
+  actorId: number
+): Promise<EngineWorkspaceMemberRemovalResponse> {
   const response = await apiFetch(
     `${apiBaseUrl}/team/workspaces/${encodeURIComponent(workspaceSlug)}/members/${actorId}`,
     { method: "DELETE" }
@@ -901,6 +910,7 @@ export async function removeWorkspaceMember(workspaceSlug: string, actorId: numb
   if (!response.ok) {
     await readError(response, "Failed to remove workspace member");
   }
+  return response.json() as Promise<EngineWorkspaceMemberRemovalResponse>;
 }
 
 export type AgentGuardrailResult = {

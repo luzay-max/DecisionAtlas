@@ -7,6 +7,7 @@ import { AccountScopeSurface } from "../components/auth/account-scope-surface";
 import { LoginPanel } from "../components/auth/login-panel";
 import { ProductSessionProvider } from "../components/auth/session-provider";
 import { ScopedUnavailable } from "../components/auth/scoped-unavailable";
+import type { AuthLoginResponse, AuthScopeSwitchResponse, AuthSessionResponse } from "@decisionatlas/engine-contract";
 import * as api from "../lib/api";
 
 const push = vi.fn();
@@ -31,7 +32,7 @@ vi.mock("../lib/api", async () => {
   };
 });
 
-const bootstrapSession: api.ProductSession = {
+const bootstrapSession: AuthSessionResponse = {
   session_token: "boot-token",
   actor: { id: 1, username: "local-admin", bootstrap: true },
   current_owner_scope: "local-default",
@@ -39,9 +40,9 @@ const bootstrapSession: api.ProductSession = {
   available_scopes: [{ owner_scope: "local-default", role: "admin" }],
 };
 
-const multiScopeSession: api.ProductSession = {
+const multiScopeSession: AuthLoginResponse = {
   session_token: "team-token",
-  actor: { id: 2, username: "operator@example.com" },
+  actor: { id: 2, username: "operator@example.com", bootstrap: false, status: "active" },
   current_owner_scope: "team-a",
   role: "admin",
   available_scopes: [
@@ -92,8 +93,9 @@ describe("auth session product flow", () => {
   });
 
   it("switches to an available owner scope and refreshes product state", async () => {
-    const switchedSession = {
+    const switchedSession: AuthScopeSwitchResponse = {
       ...multiScopeSession,
+      actor: { id: 2, username: "operator@example.com", bootstrap: false },
       current_owner_scope: "team-b",
       role: "reviewer",
     };

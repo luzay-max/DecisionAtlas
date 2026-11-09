@@ -40,7 +40,7 @@ const adminSession: api.ProductSession = {
 
 const reviewerSession: api.ProductSession = {
   ...adminSession,
-  actor: { id: 2, username: "reviewer@example.com" },
+  actor: { id: 2, username: "reviewer@example.com", bootstrap: false },
   role: "reviewer",
   available_scopes: [{ owner_scope: "team-a", role: "reviewer" }],
 };

@@ -1,9 +1,10 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 
+import type { LoginRequest, ScopeSwitchRequest } from "@decisionatlas/engine-contract";
 import { clearSessionCookie, ensureSessionToken, SESSION_HEADER, setSessionCookie } from "../auth";
+import { createAuthEngineClient, forwardContractTextRequest } from "../contracts/engine-client";
 import { getEnv } from "../plugins/env";
-import { fetchUpstreamPayload } from "../proxy";
 
 const loginSchema = z.object({
   username: z.string().min(1),
@@ -24,10 +25,10 @@ function sessionHeadersFromRequest(request: FastifyRequest): Record<string, stri
 export async function authRoute(app: FastifyInstance) {
   app.post("/auth/bootstrap", async (_request, reply) => {
     const env = getEnv();
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/auth/bootstrap`, { method: "POST" }),
+    const upstream = await forwardContractTextRequest(
+      createAuthEngineClient(env.ENGINE_BASE_URL).POST("/auth/bootstrap", { parseAs: "text" }),
       app.log,
-      "POST /auth/bootstrap"
+      "POST /auth/bootstrap",
     );
     const payload = upstream.payload as { session_token?: string } | null;
     if (typeof payload?.session_token === "string") {
@@ -38,13 +39,13 @@ export async function authRoute(app: FastifyInstance) {
 
   app.post("/auth/logout", async (request, reply) => {
     const env = getEnv();
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/auth/logout`, {
-        method: "POST",
+    const upstream = await forwardContractTextRequest(
+      createAuthEngineClient(env.ENGINE_BASE_URL).POST("/auth/logout", {
         headers: sessionHeadersFromRequest(request),
+        parseAs: "text",
       }),
       app.log,
-      "POST /auth/logout"
+      "POST /auth/logout",
     );
     clearSessionCookie(reply);
     return reply.status(upstream.status).send(upstream.payload);
@@ -56,14 +57,14 @@ export async function authRoute(app: FastifyInstance) {
       return reply.status(400).send({ error: "Invalid login payload", issues: parsed.error.issues });
     }
     const env = getEnv();
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(parsed.data),
+    const body: LoginRequest = parsed.data;
+    const upstream = await forwardContractTextRequest(
+      createAuthEngineClient(env.ENGINE_BASE_URL).POST("/auth/login", {
+        body,
+        parseAs: "text",
       }),
       app.log,
-      "POST /auth/login"
+      "POST /auth/login",
     );
     const payload = upstream.payload as { session_token?: string } | null;
     if (typeof payload?.session_token === "string") {
@@ -74,15 +75,16 @@ export async function authRoute(app: FastifyInstance) {
 
   app.get("/auth/session", async (request, reply) => {
     const env = getEnv();
+    const client = createAuthEngineClient(env.ENGINE_BASE_URL);
     let headers = sessionHeadersFromRequest(request);
     if (!headers[SESSION_HEADER] && !env.AUTO_BOOTSTRAP_AUTH) {
       return reply.status(401).send({ detail: "Authentication required" });
     }
     if (!headers[SESSION_HEADER] && env.AUTO_BOOTSTRAP_AUTH) {
-      const bootstrap = await fetchUpstreamPayload(
-        fetch(`${env.ENGINE_BASE_URL}/auth/bootstrap`, { method: "POST" }),
+      const bootstrap = await forwardContractTextRequest(
+        client.POST("/auth/bootstrap", { parseAs: "text" }),
         app.log,
-        "POST /auth/bootstrap"
+        "POST /auth/bootstrap",
       );
       const bootstrapPayload = bootstrap.payload as { session_token?: string } | null;
       if (typeof bootstrapPayload?.session_token === "string") {
@@ -90,12 +92,10 @@ export async function authRoute(app: FastifyInstance) {
         headers = { [SESSION_HEADER]: bootstrapPayload.session_token };
       }
     }
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/auth/session`, {
-        headers,
-      }),
+    const upstream = await forwardContractTextRequest(
+      client.GET("/auth/session", { headers, parseAs: "text" }),
       app.log,
-      "GET /auth/session"
+      "GET /auth/session",
     );
     const payload = upstream.payload as { session_token?: string } | null;
     if (typeof payload?.session_token === "string") {
@@ -110,17 +110,15 @@ export async function authRoute(app: FastifyInstance) {
       return reply.status(400).send({ error: "Invalid scope payload", issues: parsed.error.issues });
     }
     const env = getEnv();
-    const upstream = await fetchUpstreamPayload(
-      fetch(`${env.ENGINE_BASE_URL}/auth/scope`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...sessionHeadersFromRequest(request),
-        },
-        body: JSON.stringify(parsed.data),
+    const body: ScopeSwitchRequest = parsed.data;
+    const upstream = await forwardContractTextRequest(
+      createAuthEngineClient(env.ENGINE_BASE_URL).POST("/auth/scope", {
+        headers: sessionHeadersFromRequest(request),
+        body,
+        parseAs: "text",
       }),
       app.log,
-      "POST /auth/scope"
+      "POST /auth/scope",
     );
     return reply.status(upstream.status).send(upstream.payload);
   });

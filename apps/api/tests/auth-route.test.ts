@@ -30,44 +30,20 @@ describe("authRoute", () => {
 
   it("bootstraps /auth/session explicitly and sets the session cookie when enabled", async () => {
     process.env.AUTO_BOOTSTRAP_AUTH = "true";
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        status: 200,
-        ok: true,
-        text: async () =>
-          JSON.stringify({
-            session_token: "boot-token",
-            actor: { id: 1, username: "local-admin" },
-            current_owner_scope: "local-default",
-            role: "admin",
-          }),
-        json: async () => ({
-          session_token: "boot-token",
-          actor: { id: 1, username: "local-admin" },
-          current_owner_scope: "local-default",
-          role: "admin",
-        }),
-      } as Response)
-      .mockResolvedValueOnce({
-        status: 200,
-        ok: true,
-        text: async () =>
-          JSON.stringify({
-            session_token: "boot-token",
-            actor: { id: 1, username: "local-admin", bootstrap: true },
-            current_owner_scope: "local-default",
-            role: "admin",
-            available_scopes: [{ owner_scope: "local-default", role: "admin" }],
-          }),
-        json: async () => ({
-          session_token: "boot-token",
-          actor: { id: 1, username: "local-admin", bootstrap: true },
-          current_owner_scope: "local-default",
-          role: "admin",
-          available_scopes: [{ owner_scope: "local-default", role: "admin" }],
-        }),
-      } as Response);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({
+        session_token: "boot-token",
+        actor: { id: 1, username: "local-admin", bootstrap: true, status: "active" },
+        current_owner_scope: "local-default",
+        role: "admin",
+      }))
+      .mockResolvedValueOnce(Response.json({
+        session_token: "boot-token",
+        actor: { id: 1, username: "local-admin", bootstrap: true },
+        current_owner_scope: "local-default",
+        role: "admin",
+        available_scopes: [{ owner_scope: "local-default", role: "admin" }],
+      }));
 
     const app = buildServer();
     const response = await app.inject({
@@ -95,19 +71,13 @@ describe("authRoute", () => {
   });
 
   it("sets the session cookie after a successful login", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      status: 200,
-      ok: true,
-      text: async () =>
-        JSON.stringify({
-          session_token: "login-token",
-          actor: { id: 2, username: "admin@example.com" },
-          current_owner_scope: "team-a",
-          role: "admin",
-          available_scopes: [{ owner_scope: "team-a", role: "admin" }],
-        }),
-      json: async () => ({}),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValueOnce(Response.json({
+      session_token: "login-token",
+      actor: { id: 2, username: "admin@example.com", bootstrap: false, status: "active" },
+      current_owner_scope: "team-a",
+      role: "admin",
+      available_scopes: [{ owner_scope: "team-a", role: "admin" }],
+    }));
 
     const app = buildServer();
     const response = await app.inject({
@@ -129,22 +99,16 @@ describe("authRoute", () => {
   });
 
   it("forwards the session cookie when switching owner scope", async () => {
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      status: 200,
-      ok: true,
-      text: async () =>
-        JSON.stringify({
-          session_token: "existing-token",
-          actor: { id: 2, username: "admin@example.com" },
-          current_owner_scope: "team-b",
-          role: "reviewer",
-          available_scopes: [
-            { owner_scope: "team-a", role: "admin" },
-            { owner_scope: "team-b", role: "reviewer" },
-          ],
-        }),
-      json: async () => ({}),
-    } as Response);
+    global.fetch = vi.fn().mockResolvedValueOnce(Response.json({
+      session_token: "existing-token",
+      actor: { id: 2, username: "admin@example.com", bootstrap: false },
+      current_owner_scope: "team-b",
+      role: "reviewer",
+      available_scopes: [
+        { owner_scope: "team-a", role: "admin" },
+        { owner_scope: "team-b", role: "reviewer" },
+      ],
+    }));
 
     const app = buildServer();
     const response = await app.inject({
@@ -157,7 +121,7 @@ describe("authRoute", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       session_token: "existing-token",
-      actor: { id: 2, username: "admin@example.com" },
+      actor: { id: 2, username: "admin@example.com", bootstrap: false },
       current_owner_scope: "team-b",
       role: "reviewer",
       available_scopes: [
@@ -177,4 +141,28 @@ describe("authRoute", () => {
       }
     );
   });
+  it("forwards logout through the generated Auth operation and always clears the cookie", async () => {
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: "signed_out" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+
+    const app = buildServer();
+    const response = await app.inject({
+      method: "POST",
+      url: "/auth/logout",
+      headers: { cookie: "decisionatlas_session=logout-token" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: "signed_out" });
+    expect(String(response.headers["set-cookie"])).toContain("Max-Age=0");
+    expect(global.fetch).toHaveBeenCalledWith("http://localhost:8000/auth/logout", {
+      method: "POST",
+      headers: { "x-decisionatlas-session-token": "logout-token" },
+    });
+  });
+
 });

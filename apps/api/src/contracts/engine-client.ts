@@ -304,3 +304,105 @@ export function updateImportJobControl(
   return importRequest(request, logger, `POST /imports/:jobId/${action}`);
 }
 
+type AuthPaths = Pick<
+  paths,
+  "/auth/bootstrap" | "/auth/login" | "/auth/logout" | "/auth/session" | "/auth/scope"
+>;
+
+type TeamPaths = Pick<
+  paths,
+  | "/team/accounts"
+  | "/team/accounts/{actor_id}/disable"
+  | "/team/accounts/{actor_id}/reset-password"
+  | "/team/accounts/{actor_id}/role"
+  | "/team/workspaces/{workspace_slug}/members"
+  | "/team/workspaces/{workspace_slug}/members/{actor_id}"
+>;
+
+// openapi-fetch normally adds an Accept header. Keep the established BFF
+// forwarding contract by removing it and forwarding only the explicit
+// session header plus generated JSON content type/body.
+type ContractRawResponseBody =
+  | { ok: true; text: string }
+  | { ok: false; error: unknown };
+
+const contractRawResponseBodies = new WeakMap<Response, Promise<ContractRawResponseBody>>();
+
+async function forwardTypedContractRequest(request: Request): Promise<Response> {
+  const headers = Object.fromEntries(
+    [...request.headers.entries()].filter(([name]) => name.toLowerCase() !== "accept")
+  );
+  const init: RequestInit = {};
+  if (Object.keys(headers).length > 0) init.headers = headers;
+  if (request.method !== "GET") init.method = request.method;
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const body = await request.clone().text();
+    if (body.length > 0) init.body = body;
+  }
+  const response = await globalThis.fetch(request.url, init);
+  // Capture the untouched body before openapi-fetch parses non-2xx JSON.
+  // Resolve both outcomes immediately so interrupted streams cannot leave an
+  // unhandled rejection when the client parser rejects first.
+  const rawBody: Promise<ContractRawResponseBody> = response.clone().text().then(
+    (text): ContractRawResponseBody => ({ ok: true, text }),
+    (error: unknown): ContractRawResponseBody => ({ ok: false, error }),
+  );
+  contractRawResponseBodies.set(response, rawBody);
+  return response;
+}
+
+export function createAuthEngineClient(baseUrl: string) {
+  return createClient<AuthPaths>({
+    baseUrl,
+    fetch: forwardTypedContractRequest,
+  });
+}
+
+export function createTeamEngineClient(baseUrl: string) {
+  return createClient<TeamPaths>({
+    baseUrl,
+    fetch: forwardTypedContractRequest,
+  });
+}
+
+type ContractTextResult = {
+  response: Response;
+  data?: unknown;
+  error?: unknown;
+};
+
+function parseContractTextPayload(response: Response, rawBody: string): unknown {
+  if (rawBody.length === 0) return null;
+  try {
+    return JSON.parse(rawBody) as unknown;
+  } catch {
+    return response.ok ? { message: rawBody } : { error: rawBody };
+  }
+}
+
+// Read the captured raw body rather than openapi-fetch's parsed error value.
+// This preserves JSON objects, scalar strings and numeric-looking error bodies
+// exactly once, matching the established upstream proxy contract.
+export async function forwardContractTextRequest(
+  request: Promise<ContractTextResult>,
+  logger: FastifyBaseLogger,
+  route: string,
+) {
+  try {
+    const result = await request;
+    const rawBody = contractRawResponseBodies.get(result.response);
+    if (!rawBody) {
+      throw new Error("Auth/Team Engine response is missing its captured raw body");
+    }
+    const capturedBody = await rawBody;
+    if (!capturedBody.ok) {
+      throw capturedBody.error;
+    }
+    return {
+      status: result.response.status,
+      payload: parseContractTextPayload(result.response, capturedBody.text),
+    };
+  } catch (error) {
+    return fetchUpstreamPayload(Promise.reject(error), logger, route);
+  }
+}

@@ -27,7 +27,7 @@ vi.mock("../lib/api", async () => {
 
 const adminSession: api.ProductSession = {
   session_token: "admin-token",
-  actor: { id: 1, username: "admin@example.com" },
+  actor: { id: 1, username: "admin@example.com", bootstrap: false },
   current_owner_scope: "team-a",
   role: "admin",
   available_scopes: [{ owner_scope: "team-a", role: "admin" }],

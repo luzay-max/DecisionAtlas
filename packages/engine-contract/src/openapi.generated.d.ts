@@ -640,6 +640,90 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AuthBootstrapActorResponse */
+        AuthBootstrapActorResponse: {
+            /** Bootstrap */
+            bootstrap: boolean;
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /** Username */
+            username: string;
+        };
+        /** AuthBootstrapResponse */
+        AuthBootstrapResponse: {
+            actor: components["schemas"]["AuthBootstrapActorResponse"];
+            /** Current Owner Scope */
+            current_owner_scope: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+            /** Session Token */
+            session_token: string;
+        };
+        /** AuthLoginResponse */
+        AuthLoginResponse: {
+            actor: components["schemas"]["AuthBootstrapActorResponse"];
+            /** Available Scopes */
+            available_scopes: components["schemas"]["AuthOwnerScopeMembershipResponse"][];
+            /** Current Owner Scope */
+            current_owner_scope: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+            /** Session Token */
+            session_token: string;
+        };
+        /** AuthLogoutResponse */
+        AuthLogoutResponse: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "signed_out";
+        };
+        /** AuthOwnerScopeMembershipResponse */
+        AuthOwnerScopeMembershipResponse: {
+            /** Owner Scope */
+            owner_scope: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+        };
+        /** AuthSessionActorResponse */
+        AuthSessionActorResponse: {
+            /** Bootstrap */
+            bootstrap: boolean;
+            /** Id */
+            id: number;
+            /** Username */
+            username: string;
+        };
+        /** AuthSessionResponse */
+        AuthSessionResponse: {
+            actor: components["schemas"]["AuthSessionActorResponse"];
+            /** Available Scopes */
+            available_scopes: components["schemas"]["AuthOwnerScopeMembershipResponse"][];
+            /** Current Owner Scope */
+            current_owner_scope: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+            /** Session Token */
+            session_token: string;
+        };
         /** DecisionArtifactSummaryResponse */
         DecisionArtifactSummaryResponse: {
             /** Id */
@@ -1158,15 +1242,90 @@ export interface components {
             /** Username */
             username: string;
         };
+        /** TeamAccountListResponse */
+        TeamAccountListResponse: {
+            /** Accounts */
+            accounts: components["schemas"]["TeamAccountResponse"][];
+        };
+        /** TeamAccountMutationResponse */
+        TeamAccountMutationResponse: {
+            account: components["schemas"]["TeamAccountResponse"];
+        };
         /** TeamAccountPasswordResetRequest */
         TeamAccountPasswordResetRequest: {
             /** Password */
             password: string;
         };
+        /** TeamAccountResponse */
+        TeamAccountResponse: {
+            /** Bootstrap */
+            bootstrap: boolean;
+            /** Display Name */
+            display_name: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /** Username */
+            username: string;
+        };
         /** TeamAccountRoleRequest */
         TeamAccountRoleRequest: {
             /** Role */
             role: string;
+        };
+        /** TeamWorkspaceActorResponse */
+        TeamWorkspaceActorResponse: {
+            /** Bootstrap */
+            bootstrap: boolean;
+            /** Display Name */
+            display_name: string | null;
+            /** Id */
+            id: number;
+            /** Role */
+            role: ("viewer" | "reviewer" | "admin") | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /** Username */
+            username: string;
+        };
+        /** TeamWorkspaceMemberMutationResponse */
+        TeamWorkspaceMemberMutationResponse: {
+            member: components["schemas"]["TeamWorkspaceMemberResponse"];
+        };
+        /** TeamWorkspaceMemberRemovalResponse */
+        TeamWorkspaceMemberRemovalResponse: {
+            /** Removed */
+            removed: boolean;
+        };
+        /** TeamWorkspaceMemberResponse */
+        TeamWorkspaceMemberResponse: {
+            actor: components["schemas"]["TeamWorkspaceActorResponse"];
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "viewer" | "reviewer" | "admin";
+            /** Workspace Id */
+            workspace_id: number;
+        };
+        /** TeamWorkspaceMembersResponse */
+        TeamWorkspaceMembersResponse: {
+            /** Members */
+            members: components["schemas"]["TeamWorkspaceMemberResponse"][];
+            /** Workspace Slug */
+            workspace_slug: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1377,9 +1536,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthBootstrapResponse"];
                 };
             };
         };
@@ -1403,9 +1560,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthLoginResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1436,9 +1591,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthLogoutResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1473,9 +1626,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthSessionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1506,9 +1657,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthSessionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2504,9 +2653,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAccountListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2541,9 +2688,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAccountMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2576,9 +2721,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAccountMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2615,9 +2758,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAccountMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2654,9 +2795,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamAccountMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2689,9 +2828,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamWorkspaceMembersResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2729,9 +2866,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamWorkspaceMemberMutationResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2765,9 +2900,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TeamWorkspaceMemberRemovalResponse"];
                 };
             };
             /** @description Validation Error */

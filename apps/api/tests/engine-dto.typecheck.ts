@@ -154,3 +154,113 @@ export async function importsContractMustRejectDrift() {
   void invalidTarget;
 }
 
+import type {
+  AuthBootstrapResponse,
+  AuthLoginResponse,
+  AuthSessionResponse,
+  LoginRequest,
+  ScopeSwitchRequest,
+  TeamAccountCreateRequest,
+  TeamAccountListResponse,
+  TeamAccountPasswordResetRequest,
+  TeamAccountResponse,
+  TeamAccountRoleRequest,
+  TeamRole,
+  WorkspaceMemberListResponse,
+  WorkspaceMemberResponse,
+  WorkspaceMemberRoleRequest,
+} from "@decisionatlas/engine-contract";
+import { createAuthEngineClient, createTeamEngineClient } from "../src/contracts/engine-client";
+
+export async function authTeamContractsMustRejectDrift() {
+  const auth = createAuthEngineClient("http://engine.invalid");
+  // @ts-expect-error wrong Auth path
+  auth.POST("/auth/log-in");
+  // @ts-expect-error wrong HTTP method for login
+  auth.GET("/auth/login");
+  // @ts-expect-error login password is required
+  auth.POST("/auth/login", { body: { username: "operator" } });
+  const loginBody: LoginRequest = { username: "operator", password: "secret" };
+  const login = await auth.POST("/auth/login", { body: loginBody });
+  if (login.data) {
+    const response: AuthLoginResponse = login.data;
+    const status: "active" | "disabled" = response.actor.status;
+    const scopeCount: number = response.available_scopes.length;
+    // @ts-expect-error role is a finite enum
+    const invalidRole: "owner" = response.role;
+    void [status, scopeCount, invalidRole];
+  }
+
+  const bootstrap = await auth.POST("/auth/bootstrap");
+  if (bootstrap.data) {
+    const response: AuthBootstrapResponse = bootstrap.data;
+    // @ts-expect-error bootstrap response intentionally has no available_scopes
+    const scopes = response.available_scopes;
+    void scopes;
+  }
+
+  const session = await auth.GET("/auth/session");
+  if (session.data) {
+    const response: AuthSessionResponse = session.data;
+    const token: string = response.session_token;
+    // @ts-expect-error session actor response intentionally omits login/bootstrap status
+    const status = response.actor.status;
+    void [token, status];
+  }
+  const scopeBody: ScopeSwitchRequest = { owner_scope: "team-a" };
+  auth.POST("/auth/scope", { body: scopeBody });
+
+  const team = createTeamEngineClient("http://engine.invalid");
+  // @ts-expect-error unknown Team path
+  team.GET("/team/account");
+  // @ts-expect-error wrong HTTP method for account role update
+  team.GET("/team/accounts/{actor_id}/role");
+  // @ts-expect-error required actor_id path parameter is missing
+  team.POST("/team/accounts/{actor_id}/disable");
+  // @ts-expect-error account create password is required
+  team.POST("/team/accounts", { body: { username: "new-user" } });
+  const createBody: TeamAccountCreateRequest = { username: "new-user", password: "password123", role: "reviewer" };
+  team.POST("/team/accounts", { body: createBody });
+  const resetBody: TeamAccountPasswordResetRequest = { password: "password123" };
+  team.POST("/team/accounts/{actor_id}/reset-password", {
+    params: { path: { actor_id: 2 } },
+    body: resetBody,
+  });
+  const roleBody: TeamAccountRoleRequest = { role: "reviewer" };
+  team.POST("/team/accounts/{actor_id}/role", {
+    params: { path: { actor_id: 2 } },
+    body: roleBody,
+  });
+  const members = await team.GET("/team/workspaces/{workspace_slug}/members", {
+    params: { path: { workspace_slug: "demo-workspace" } },
+  });
+  if (members.data) {
+    const response: WorkspaceMemberListResponse = members.data;
+    const member: WorkspaceMemberResponse | undefined = response.members[0];
+    const role: TeamRole | null = member?.actor.role ?? null;
+    // @ts-expect-error workspace actor role is nullable and finite
+    const invalidRole: "owner" = member?.actor.role;
+    void [role, invalidRole];
+  }
+  team.PUT("/team/workspaces/{workspace_slug}/members/{actor_id}", {
+    params: { path: { workspace_slug: "demo-workspace", actor_id: 2 } },
+    // @ts-expect-error workspace assignment requires role
+    body: {},
+  });
+  // @ts-expect-error Team account DTO must not expose credentials
+  const leakedPassword: string = ({} as TeamAccountResponse).password;
+  // @ts-expect-error Team account DTO must not expose session credentials
+  const leakedToken: string = ({} as TeamAccountResponse).session_token;
+  const validRole: TeamRole = "viewer";
+  const validMember: WorkspaceMemberResponse = {
+    workspace_id: 1,
+    actor: { id: 2, username: "viewer", display_name: null, status: "active", bootstrap: false, role: null },
+    role: "viewer",
+  };
+  const validAccount: TeamAccountResponse = {
+    id: 2, username: "viewer", display_name: null, status: "active", bootstrap: false, role: "viewer",
+  };
+  const validAccounts: TeamAccountListResponse = { accounts: [validAccount] };
+  const workspaceMemberRole: WorkspaceMemberRoleRequest = { role: "viewer" };
+  void [leakedPassword, leakedToken, validRole, validMember, validAccounts, workspaceMemberRole];
+}
