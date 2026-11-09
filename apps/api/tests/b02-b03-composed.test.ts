@@ -4,6 +4,11 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
   const oldFetch = global.fetch;
   const oldAppEnv = process.env.APP_ENV;
   const oldOrigins = process.env.CORS_ALLOWED_ORIGINS;
+  const oldEngineBaseUrl = process.env.ENGINE_BASE_URL;
+
+  beforeEach(() => {
+    process.env.ENGINE_BASE_URL = "http://localhost:8000";
+  });
 
   afterEach(() => {
     global.fetch = oldFetch;
@@ -11,6 +16,8 @@ describe("B02+B03 composed BFF Why contract and cookie/Origin trust", () => {
     else process.env.APP_ENV = oldAppEnv;
     if (oldOrigins === undefined) delete process.env.CORS_ALLOWED_ORIGINS;
     else process.env.CORS_ALLOWED_ORIGINS = oldOrigins;
+    if (oldEngineBaseUrl === undefined) delete process.env.ENGINE_BASE_URL;
+    else process.env.ENGINE_BASE_URL = oldEngineBaseUrl;
   });
 
   it("forwards a Chinese mixed-language Why request with validated cookie and preserves fallback mode", async () => {
