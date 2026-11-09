@@ -61,7 +61,7 @@ describe("teamRoute", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.json()).toEqual({ detail: "User account is disabled" });
+    expect(response.json()).toMatchObject({ detail: "User account is disabled", code: "unauthenticated", message: "User account is disabled" });
   });
 
   it("preserves JSON scalar error bodies without parsing them twice", async () => {
@@ -74,7 +74,7 @@ describe("teamRoute", () => {
         headers: { cookie: "decisionatlas_session=admin-token" },
       });
       expect(response.statusCode).toBe(403);
-      expect(response.body).toBe("123");
+      expect(response.json()).toEqual({ detail: "123", code: "forbidden", message: "123" });
     } finally {
       await app.close();
     }
