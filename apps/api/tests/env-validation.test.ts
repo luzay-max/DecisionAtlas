@@ -77,6 +77,34 @@ describe("Fastify API environment validation", () => {
     })).CORS_ALLOWED_ORIGINS).toBe("https://atlas.example, http://localhost:3000");
   });
 
+  it("treats NODE_ENV=production as production when APP_ENV is omitted", () => {
+    expect(() => getEnv(asEnv({
+      NODE_ENV: "production",
+    }))).toThrow("ENGINE_BASE_URL");
+
+    expect(getEnv(asEnv({
+      NODE_ENV: "production",
+      ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: "https://atlas.example",
+    })).APP_ENV).toBe("production");
+  });
+
+  it("rejects an explicit non-production APP_ENV when NODE_ENV is production", () => {
+    expect(() => getEnv(asEnv({
+      NODE_ENV: "production",
+      APP_ENV: "development",
+      ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: "https://atlas.example",
+    }))).toThrow("APP_ENV must be production");
+
+    expect(() => getEnv(asEnv({
+      NODE_ENV: "production",
+      APP_ENV: "test",
+      ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: "https://atlas.example",
+    }))).toThrow("APP_ENV must be production");
+  });
+
   it("requires an explicit Engine URL in production", () => {
     expect(() => getEnv(asEnv({ APP_ENV: "production" }))).toThrow("ENGINE_BASE_URL");
     expect(getEnv(asEnv({
