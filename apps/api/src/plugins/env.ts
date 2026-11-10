@@ -18,6 +18,12 @@ const booleanish = z
   });
 
 const httpUrl = z.string().url().superRefine((value, ctx) => {
+  if (value !== value.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must not contain surrounding whitespace" });
+  }
+  if (value.includes("?") || value.includes("#")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "must not contain a query or fragment" });
+  }
   try {
     const parsed = new URL(value);
     if (!["http:", "https:"].includes(parsed.protocol)) {
