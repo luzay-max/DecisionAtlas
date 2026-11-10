@@ -104,7 +104,7 @@ Proposed support boundary:
 - A SQLite *database file* supports exactly one executing worker and initially one in-flight job. A second worker must be **rejected at startup** by a real OS-enforced, per-database exclusive lifetime lock (or equivalently proven local exclusion), not just documentation or a stale marker file.
 - API and worker processes may be separate on the **same host/local filesystem**; cross-host and network-filesystem sharing are unsupported.
 - Use SQLite-compatible short conditional claims with the same domain state machine and idempotency rules as PostgreSQL; do not claim multi-worker availability.
-- After restart, never-started `queued` jobs may be discovered and claimed. Partially executed jobs require proven checkpoints and idempotent effects, or must enter manual intervention; never blindly replay.
+- After restart, **provably never-started** `queued` jobs may be discovered and claimed only once §20's cutover and workspace/source quarantine gates pass. A legacy `queued` status alone is not proof of no execution or side effects. Partially executed jobs require proven checkpoints and idempotent effects, or must enter manual intervention; never blindly replay.
 - SQLite pause/resume stays **default-disabled**, regardless of a single worker, until #36's bounded file-backed HTTP/worker tests pass.
 - The current session initialization does not explicitly enable WAL. A future WAL mode must prove startup configuration, durability, checkpointing and contention semantics; `busy_timeout` cannot remove the single-writer limit.
 - Multi-worker correctness targets PostgreSQL 17 first. No silent fallback to unverified SQLite semantics.
@@ -337,7 +337,7 @@ All tests must use isolated databases and deterministic synchronization (barrier
 - [ ] Claim wins before pause: API records `pause_requested`; worker keeps its lease heartbeat, finishes at most the current bounded unit, starts no new unit, and acknowledges `paused` at a safe checkpoint.
 - [ ] Pause acknowledgement commits stage effects and checkpoint atomically, then releases the lease.
 - [ ] Resume returns the job to claimable state and exactly one worker continues from the checkpoint.
-- [ ] Heartbeat renewal is conditional on the current lease token/generation, remains valid during `pause_requested`, and stops only after the pause checkpoint releases the lease.
+- [ ] Heartbeat renewal is conditional on the current lease token/generation and a **fresh post-lock DB-time unexpired check**, remains valid during `pause_requested`, and stops only after the pause checkpoint releases the lease.
 - [ ] Expired lease can be reclaimed; a stale worker with the old token cannot commit job state or any domain effect. Prove post-row-lock fresh clock sampling, lock wait crossing expiry, admitted unit committing just after expiry within timeout, concurrent heartbeat/reaper, unknown commit and old worker restoration.
 - [ ] Worker SIGTERM at every stage boundary checkpoints/relinquishes safely; hard process kill is recovered according to stage policy.
 - [ ] Crash after source fetch, after staging, during publication, after one Artifact index, during extraction, after provider response but before result persistence, and after result persistence each has a deterministic expected outcome.
@@ -502,7 +502,7 @@ The current pipeline may already have **partially committed legacy candidate/Sou
 | Failure point | Proposed outcome after process/DB restart |
 | --- | --- |
 | Job insert committed but API process dies before dispatch | Independent worker polls and claims still-`queued` record; no task is lost because BackgroundTasks is no longer the only trigger |
-| Worker exits before any work | Lease expires; new generation can claim if stage state is proven untouched |
+| Worker exits before any work | Lease expires; new generation can claim **only if** durable stage evidence proves work and external effects did not begin and workspace quarantine is clear; status/age alone is insufficient |
 | Remote fetch in progress, before durable stage | Re-fetch only within bounded coverage/idempotent source policy; no partially published Artifacts |
 | Complete fetch staged but publication not committed | Verify staging integrity, resume publication from checkpoint; never publish incomplete coverage |
 | Crash during fenced publication transaction | PostgreSQL transaction either committed or rolled back; reread operation identity/checkpoint before retry |
@@ -510,7 +510,7 @@ The current pipeline may already have **partially committed legacy candidate/Sou
 | Extraction progress callback already committed some candidates | If original extraction identity is not independently provable, quarantine workspace/source; no automatic old-job replay **or new job bypass**, no retroactive fingerprint assignment, preserve reviewed decisions and SourceRefs |
 | Provider request dispatched, outcome unknown | Mark `manual_intervention/outcome_unknown` unless provider supports real idempotent reconciliation |
 | Pause requested and worker dies before checkpoint | Keep intent and reaper fencing; do **not** present `paused` as acknowledged until a valid checkpoint is recorded |
-| Old worker wakes after lease expiry/reclaim | No state/checkpoint/Artifact/chunk/candidate/SourceRef write may commit under expired token |
+| Old worker wakes **without a previously admitted unit**, or after reaper advanced generation | No new job state/checkpoint/Artifact/chunk/candidate/SourceRef write may **start** or commit; a *previously admitted bounded unit* may commit just after expiry only under §19 while it still holds the job row lock, and the reaper must recheck after that commit |
 | Database crash/failover | Recover only to **durably committed** state of chosen DB configuration; quantify RPO and do not promise zero loss without the required durability/replication settings |
 
 No automatic replay of a stage with unknowable paid effects, missing operation identity, or unverified prior partial commits.
@@ -540,7 +540,7 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 - Keep a durable owner/generation record for diagnostics and CAS, but stale owner timestamps or existence of a lock file alone do **not** establish that a process owns the DB.
 - At most one executing import task for that database in v1. API and worker may be separate **same-host** processes; no network file system.
 - Existing `busy_timeout=30000` is insufficient proof of pause responsiveness. Initialization does not explicitly set WAL; measure the actual pragma on each relevant connection, ensure positive lock-contention tests and configuration/checkpoint choices before claiming WAL behavior.
-- Newly discovered `queued` jobs may run after restart; incomplete jobs with insufficient stage identity, earlier partially committed candidates, or ambiguous paid work require manual review instead of automatic resumption.
+- Newly discovered **provably never-started** `queued` jobs may run after restart only after the cutover/quarantine gate passes. Merely being `queued` in legacy data is insufficient proof. Incomplete jobs with insufficient stage identity, earlier partially committed candidates, or ambiguous paid work require manual review instead of automatic resumption.
 - Maintain the same domain states, permission checks, audit semantics and idempotent operation keys as PostgreSQL; **do not duplicate business flow logic**.
 - Keep `IMPORT_PAUSE_RESUME_ENABLED=false` and do not close Issue #36 based solely on single-instance locking.
 
@@ -556,14 +556,14 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 
 ## 18. Additional acceptance gates from independent direction review
 
-- [ ] Document/test **every actual current-main commit boundary**, especially same-session extraction progress commits and legacy partially committed candidates.
+- [ ] Document/test **every actual current-main commit boundary**, especially same-session extraction progress commits and legacy partially committed candidates; no new enqueue or claim may bypass a workspace/source with unresolved legacy quarantine.
 - [ ] Prove concurrent enqueue, duplicate webhook delivery and active workspace uniqueness using real PostgreSQL transactions and unique constraints (or equivalent locking).
 - [ ] Verify short atomic claim, fair-enough polling, explicit ownership generation, lease expiry and post-expiry renewal rejection.
 - [ ] Verify stale owners cannot commit **any** domain effect or checkpoint and that pause-requested owners heartbeat until safe acknowledgement.
 - [ ] Persist extraction outcomes including **zero-result** and already committed legacy candidate data; safe restart does not duplicate Decisions/SourceRefs or reset human review state.
 - [ ] Classify confirmed GitHub 403 permissions versus primary/secondary rate limit and unknown 403, applying bounded Retry-After/reset logic without blind retries.
 - [ ] Default unknown paid-model outcomes to manual reconciliation, and demonstrate budget ceilings and no implicit duplicate billing claim.
-- [ ] Reject a second SQLite worker process at startup using `flock` / `LockFileEx` over a **stable, nonreplaced** sidecar; prove alias rejection, child-handle inheritance protection, old-entry bypass prevention, cross-platform release on crash, same-host file semantics and actual journal mode. Test queued restart versus quarantined incomplete work.
+- [ ] Reject a second SQLite worker process at startup using `flock` / `LockFileEx` over a **stable, nonreplaced** sidecar; prove alias rejection, child-handle inheritance protection, old-entry bypass prevention, cross-platform release on crash, same-host file semantics and actual journal mode. Test **provably never-started** queued restart versus quarantined incomplete work.
 - [ ] Record initial **non-adoption of Procrastinate**, then run fixed-version reevaluation only if justified: SQLAlchemy 2.x/psycopg 3 transaction bridge, domain authority and fencing, pause/stalled recovery controls, Windows/Unix shutdown, migration overhead and total lifecycle maintenance cost.
 - [ ] Define RPO/RTO per failure mode and acceptance for database storage/replica failure; test post-crash recovery without assuming every acknowledged async/replicated commit survives.
 - [ ] Monitor queue bloat, WAL, autovacuum, CPU/connections, and API latency under load; do not assert a measured capacity before tests.
