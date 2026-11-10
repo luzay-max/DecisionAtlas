@@ -42,18 +42,26 @@ function decodePayload(payload: unknown, contentType?: string): unknown {
   return payload;
 }
 
-const SENSITIVE_KEYS = new Set([
+const SENSITIVE_KEY_FRAGMENTS = [
   "input",
   "password",
   "token",
-  "session_token",
   "authorization",
   "cookie",
-  "api_key",
+  "apikey",
   "secret",
-  "github_token",
-  "private_key",
-]);
+  "privatekey",
+  "credential",
+  "accesskey",
+];
+
+function isSensitiveKey(key: string): boolean {
+  // Normalize snake_case, kebab-case and camelCase variants before matching.
+  // Error payloads may use names such as access_token, refreshToken,
+  // client_secret, apiKey, x-github-token or sessionCookie.
+  const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return SENSITIVE_KEY_FRAGMENTS.some((fragment) => normalized.includes(fragment));
+}
 
 function redactSensitiveValues(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -62,7 +70,7 @@ function redactSensitiveValues(value: unknown): unknown {
   if (value && typeof value === "object") {
     const result: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value)) {
-      if (!SENSITIVE_KEYS.has(key.toLowerCase())) {
+      if (!isSensitiveKey(key)) {
         result[key] = redactSensitiveValues(child);
       }
     }
