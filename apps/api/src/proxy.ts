@@ -8,6 +8,25 @@ type ProxyResult = {
 const UPSTREAM_ERROR_MESSAGE = "Upstream engine request failed";
 const UNREADABLE_RESPONSE_MESSAGE = "Upstream engine returned an unreadable response";
 
+function safeErrorMetadata(error: unknown): Record<string, string> {
+  const record = error && typeof error === "object"
+    ? error as Record<string, unknown>
+    : {};
+  const cause = record.cause && typeof record.cause === "object"
+    ? record.cause as Record<string, unknown>
+    : {};
+  const name = typeof record.name === "string" ? record.name : "UnknownError";
+  const causeName = typeof cause.name === "string" ? cause.name : undefined;
+  const code = typeof record.code === "string" ? record.code : undefined;
+  const causeCode = typeof cause.code === "string" ? cause.code : undefined;
+  return {
+    name,
+    ...(code ? { code } : {}),
+    ...(causeName ? { causeName } : {}),
+    ...(causeCode ? { causeCode } : {}),
+  };
+}
+
 export async function fetchUpstreamPayload(
   request: Promise<Response>,
   logger: FastifyBaseLogger,
@@ -21,7 +40,7 @@ export async function fetchUpstreamPayload(
       payload,
     };
   } catch (error) {
-    logger.error({ err: error, route }, "engine proxy request failed");
+    logger.error({ error: safeErrorMetadata(error), route }, "engine proxy request failed");
     return {
       status: 502,
       // Keep the diagnostic in server logs only; the BFF error hook emits
