@@ -42,11 +42,15 @@ DecisionAtlas remains designed around a single-machine demo or preview deploymen
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
-| `ENGINE_BASE_URL` | Engine service URL |
+| `ENGINE_BASE_URL` | Explicit absolute HTTP(S) Engine URL; production does not use the localhost fallback |
 | `API_BASE_URL` | API service URL |
-| `AUTO_BOOTSTRAP_AUTH` | Enables local/bootstrap session recovery for local demo and real-stack operation |
+| `APP_ENV` | Set to `production` for hosted/self-hosted production; `NODE_ENV` alone does not enable the API's production checks |
+| `AUTO_BOOTSTRAP_AUTH` | Keep `false` on public/production deployments; `true` is only for isolated local demo/test use |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated exact HTTP(S) Web origins; do not use wildcards |
 
 For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belong on host-managed or backend service surfaces. Browser-facing config should only receive the web/API URLs it needs to call the API.
+
+The Fastify API validates `PORT` (1–65535), `ENGINE_BASE_URL`, `AUTH_COOKIE_NAME`, and the CORS origin list before listening. With `APP_ENV=production`, startup fails if `ENGINE_BASE_URL` is not explicitly set or `AUTO_BOOTSTRAP_AUTH=true`. Use `templates/self-hosted.env.example` as the production-oriented starting point; do not copy the development `.env.example` unchanged into a public deployment.
 
 **For Live Provider Mode:**
 
