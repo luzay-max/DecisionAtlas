@@ -1,5 +1,6 @@
 import { buildServer } from "../src/server";
 import { normalizeApiErrorPayload } from "../src/errors";
+import { fetchUpstreamPayload } from "../src/proxy";
 
 describe("normalized BFF API error contract", () => {
   it.each([
@@ -146,6 +147,30 @@ describe("normalized BFF API error contract", () => {
       global.fetch = originalFetch;
       await app.close();
     }
+  });
+
+  it("logs transport error metadata without raw messages or stack contents", async () => {
+    const logger = { error: vi.fn() } as unknown as Parameters<typeof fetchUpstreamPayload>[1];
+    const cause = Object.assign(new Error("password=inner-secret"), { code: "EHOSTUNREACH" });
+    const error = Object.assign(new Error("token=outer-secret"), {
+      code: "ECONNREFUSED",
+      cause,
+    });
+
+    const result = await fetchUpstreamPayload(Promise.reject(error), logger, "GET /team/accounts");
+
+    expect(result.status).toBe(502);
+    expect(logger.error).toHaveBeenCalledWith({
+      error: {
+        name: "Error",
+        code: "ECONNREFUSED",
+        causeName: "Error",
+        causeCode: "EHOSTUNREACH",
+      },
+      route: "GET /team/accounts",
+    }, "engine proxy request failed");
+    expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain("outer-secret");
+    expect(JSON.stringify(vi.mocked(logger.error).mock.calls)).not.toContain("inner-secret");
   });
 
   it("returns generic public transport errors while retaining the HTTP 502 status", async () => {
