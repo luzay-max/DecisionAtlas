@@ -399,8 +399,190 @@ No implementation should begin while decisions that affect fencing, replay safet
 - C01 is not started or authorized.
 - No production deployment, private-source operation, credential rotation, paid model call, automatic worker replay, or worker enablement is authorized.
 
+## 14. Review-mandated protocol specification (2026-11-10; still Proposed)
+
+The following is a **design contract to be independently reviewed**, not implemented SQL, committed migrations, benchmark results, or permission to enable workers. It addresses the maintainer's architectural direction review. PostgreSQL 17 is the initial multi-worker correctness target; SQLite is a supported local single-worker mode with the same domain lifecycle.
+
+### 14.1 Actual current-main commit boundaries — factual baseline
+
+These are observed code paths, **not** the proposed B07 transaction model.
+
+| Current stage | Current commit boundary and behavior | Crash/replay consequence |
+| --- | --- | --- |
+| Enqueue | `queue_github_import()` inserts `queued` and commits; API registers FastAPI `BackgroundTasks` afterwards | API process can die after enqueue and before execution; no independent consumer |
+| Worker start | `mark_running()` conditionally updates `queued -> running`, then commits | Only process-local task carries on; no durable lease |
+| Import prefetch | GitHub source pages/documents fetched before source Artifact write batch; progress callback at pre-write checkpoint | Network work may be repeated without persisted fetch/checkpoint |
+| Artifact write batch | Importer upserts source Artifacts together; `on_progress` may flush status but does **not** commit partial Artifacts; importer commits the batch, then caller commits the next-stage summary | Source batch rollback is preserved if not committed; committed batch may be reprocessed without durable stage identity |
+| Indexing | `index_artifact()` computes embeddings then deletes/replaces chunks for one Artifact and calls `session.commit()` | Already indexed Artifacts may coexist with later not-yet-indexed ones; external embedding can be reissued |
+| Extraction progress | `CandidateExtractionPipeline.run()` creates candidate/SourceRef rows then calls progress callback. `_build_extraction_progress_reporter(session=same_session)` calls `progress_session.commit()` whenever processed count is zero/completed, advances by five, or at least three seconds elapsed | **Some candidate/SourceRef rows can already be committed before extraction finishes**. Mid-run crash is **not** a whole-run rollback; a resume must enumerate durable extraction operations, including empty outcomes |
+| Extraction end | Pipeline invokes final progress callback and its own `self.session.commit()` | The final commit is in addition to the earlier progress commits, not the only persistence point |
+| Final state | `mark_succeeded()` performs a conditional terminal update and the caller commits | A failed final state update does not undo earlier committed Artifacts/chunks/candidates |
+
+Baseline evidence: `services/engine/app/jobs/import_jobs.py`, `services/engine/app/extractor/pipeline.py`, `services/engine/app/indexing/index_artifact.py`, `services/engine/app/repositories/import_jobs.py`, and `services/engine/app/ingest/github_importer.py` at `main@3eb0eb94`.
+
+**Design implication:** Never equate a job-level `failed` status with a full database rollback. B07 must preflight duplicates and plan how legacy partially committed candidate/SourceRef rows are detected and reconciled **before** enabling automatic replay. The existing progress reporter must not simply be moved to a separate SQLite writer without proving the transaction and lock behavior.
+
+### 14.2 Protocol A — atomic enqueue and webhook deduplication
+
+PostgreSQL design:
+
+1. Authenticate workspace/owner, resolve source access, and validate the requested import mode before enqueue.
+2. In **one short database transaction**, establish workspace serialization and test/create active-job exclusivity. Enforce it with a database-backed rule such as a partial unique index on `workspace_id` for `queued`, `running`, `pause_requested`, `paused`, `retry_wait`, and `manual_intervention` *where that status blocks a new import*, or an equivalent transactional workspace claim with proved uniqueness. Terminal states release the active reservation.
+3. Persist a webhook delivery identity keyed by its trusted installation/source and GitHub delivery ID with a database-enforced unique key. **Commit delivery disposition and the queued job in the same transaction**; on duplicate delivery return the same recorded outcome/job without creating a new one.
+4. Manual and webhook triggers share one enqueue policy. Define whether an arrival during an active job coalesces, records one pending refresh, or returns an auditable conflict. Do not make the webhook's initial active check and job insert separate transactions.
+5. After commit, return the job ID. Any optional notification is post-commit and **non-authoritative**; the worker must discover committed jobs by polling even if notifications are dropped.
+
+Proposed first-version policy: **one active import per workspace**, total worker concurrency separately configured, no strict FIFO guarantee. Prevent starvation across workspaces using a deterministic candidate order, measured wait-age, and fairness metrics. The schema/partial-index design is **not authorized**, and must undergo existing-row duplicate preflight, upgrade compatibility, and explicit rollback review.
+
+### 14.3 Protocol B — atomic worker claim
+
+PostgreSQL claim is a **short transaction**:
+
+1. Select eligible `queued` or due `retry_wait` row(s) ordered by availability/age using `FOR UPDATE SKIP LOCKED`, with a bounded batch size and checked workspace concurrency.
+2. Under that row lock, generate a unique owner ID and a fresh opaque lease token/monotonic generation; increment attempt count; record database-time `heartbeat_at` and `lease_expires_at`; set status to `running`; commit.
+3. Only **after commit** may the worker fetch GitHub content, call embeddings/LLM, or perform stage computation. No task row lock is held across network/model work.
+4. An empty claim is normal. Poll with bounded exponential idle backoff and jitter; cap database connections and protect normal API latency.
+
+`SKIP LOCKED` does not provide fairness, leases, or business-effect idempotency, and table locks may still block. Use PostgreSQL as the authoritative clock, and avoid long transactions in clock-sensitive checks.
+
+SQLite claim has the same logical CAS transition but only after the process acquires its per-file exclusive lifetime lock; it must reject a second worker at startup.
+
+### 14.4 Protocol C — lease, heartbeat, expiry, recovery ownership
+
+- Ownership is represented by `job_id + lease_generation/token + worker_id`; the token/generation changes on **every** successful claim or recovery reclaim.
+- Heartbeat in a separate **short-lived** DB session may renew only when job status is `running` or `pause_requested`, token/generation matches, and `database_time < lease_expires_at`. It atomically advances heartbeat/expiry. No old or already expired lease may renew, even if no new worker has claimed the job.
+- A heartbeat failure or zero-row CAS causes the worker to stop initiating work and refuse further writes. It does **not** erase already-sent provider requests.
+- A reaper may consider an expired job for recovery only under a DB row lock/CAS. It must **advance the generation and invalidate the old owner** before releasing the row; eligibility for automatic replay is decided separately by persisted checkpoint, stage and unknown-effects policy.
+- For `pause_requested`, the same owner keeps renewing until it safely commits the current bounded stage unit/checkpoint, changes to `paused` and releases the lease. If it expires before acknowledgement, the reaper must preserve the pause intent and classify recovery rather than pretending the job was already paused.
+- Heartbeat/lease TTL, backoff and shutdown grace are **TBD after measurements** of DB write latency, remote call timeouts and worst uninterruptible stage durations. “Heartbeat at one-third of lease TTL” is only a provisional ratio; no fixed seconds or throughput/RTO promise is approved.
+- Database outage, lost connection, SIGTERM, hard kill, lease expiry, and delayed old-worker wake-up each need a deterministic transition plus a fenced/restart acceptance test.
+
+Lease recovery is not a blanket permission to replay. The automatic recovery state must distinguish `retry_wait`, `manual_intervention`, and a recoverable `queued` state.
+
+### 14.5 Protocol D — stale-worker fencing for **all** durable effects
+
+Every future write unit (Artifact batch publication, ArtifactChunks, extraction-result/Decision/SourceRef publication, checkpoint, progress, terminal status) must:
+
+1. Start a short transaction.
+2. Lock the owning ImportJob row or perform an equivalent atomic DB-time lease/owner CAS **in the same transaction**.
+3. Verify current generation/token, unexpired lease, eligible state and pause intent. If the token is stale or expired, abort **without any domain write**.
+4. Write the domain effects **and** durable checkpoint/result/lease transition in that very transaction; commit.
+5. Return success to the worker only after commit; if commit outcome is unknown, reread durable operation identities rather than blindly repeating effects.
+
+A prior standalone token query followed by unprotected writes is insufficient. Row-level claim/renew/recovery operations must serialize with the same fenced write unit. No row lock is held while calling a provider. A pause that wins first is acknowledged before the next bounded unit, while a pause racing an already-started unit can be acknowledged only at its safe boundary.
+
+External HTTP/LLM calls cannot be fenced retroactively; fencing controls **local persistence**, not provider-side billing.
+
+### 14.6 Protocol E — durable stage checkpoint and idempotency
+
+| Unit | Proposed deterministic operation identity | Commit/recovery rule |
+| --- | --- | --- |
+| Enqueue / webhook | `workspace + source/installation + delivery_id` for webhook; one active workspace claim | Unique transactional delivery and workspace reservation; return existing outcome on duplicate |
+| Fetched source | `workspace + source type + source ID + content/blob revision fingerprint` | Prefetch bounded by current coverage budgets, stage by job with provenance/version and TTL; do not expose incomplete source batch |
+| Artifact publication | Existing logical identity `(workspace_id, type, source_id)` plus revision hash; validate null/legacy duplicates | DB uniqueness/upsert and the last publication checkpoint in one fenced commit. Preserve full-batch atomic visibility unless a separately approved publication policy changes it |
+| Chunk/index | `artifact_id + content_hash + chunker_version + embedding_model/version + config_fingerprint` | Compute outside write lock; fenced replace chunks and per-Artifact checkpoint atomically; ensure one row per logical chunk |
+| Screening/extraction | `workspace + artifact ID + content_fingerprint + extractor/prompt/version + provider/model + effective config` | Durable outcome record for **positive, negative and successful empty/no-decision** results. Fenced, transactional result/candidate/SourceRef/checkpoint publication; unique operation ID prevents replay duplicates |
+| Finished job | `job_id + lease_generation + final_checkpoint` | Fenced terminal state only after all required stage units/outcomes are durably reconciled |
+
+The current check “any SourceRef exists for Artifact” cannot establish that a specific **content version** has completed extraction. A successful screening-out or no-decision result must also be persisted to avoid unbounded model calls after crash.
+
+The current pipeline may already have **partially committed legacy candidate/SourceRef rows** via progress callbacks. Before first automatic replay, migration/preflight design must detect these and define safe reconciliation, review-state preservation, de-duplication, and no deletion of independently reviewed human decisions. Do not assume that a new future unique key retroactively identifies old rows. The operation fingerprint is **not** a substitute for Stage C's broader source-versioning design.
+
+### 14.7 Protocol F — external request budget and uncertain results
+
+- Persist a provider-operation record **before** dispatch: deterministic operation key, stage, model/provider, redacted request fingerprint, attempt number, deadline, budget reservation and status `pending`. Store no tokens, raw secrets or unnecessary private provider payloads.
+- On a normal result, persist sanitized normalized output and operation outcome; publish candidate/chunks/checkpoint with the same fenced transaction whenever feasible.
+- If the worker dies after dispatch but before a durable result, mark `outcome_unknown`. A provider with a documented idempotency key may safely use that key; otherwise **no automatic paid retry by default**. Require explicit operator/manual disposition or separately approved, strictly bounded duplicate-cost policy.
+- Bound global job attempts, stage attempts, per-request retries, elapsed time, concurrent requests, and model/token/currency budget; avoid multiplication of nested retry budgets. Use a debit/reservation ledger and reconcile unknown outcomes rather than claiming exact billed cost.
+- GitHub `403` and `429` can signal primary or secondary rate limiting. `Retry-After` and primary reset/remaining headers govern the next attempt; secondary limit without headers requires at least a one-minute wait and then bounded exponential backoff. Auth failure and unclassified `403` are not blindly retried. Exhausted budgets go to a classified terminal/manual state.
+- For public-source ingestion, enforce existing coverage fail-closed policies and per-file/aggregate budgets; revalidate access/authorization on claim and at stage checkpoints as appropriate. Neither this design nor its review authorizes accessing private sources or making paid model calls.
+
+### 14.8 Explicit recovery decision table
+
+| Failure point | Proposed outcome after process/DB restart |
+| --- | --- |
+| Job insert committed but API process dies before dispatch | Independent worker polls and claims still-`queued` record; no task is lost because BackgroundTasks is no longer the only trigger |
+| Worker exits before any work | Lease expires; new generation can claim if stage state is proven untouched |
+| Remote fetch in progress, before durable stage | Re-fetch only within bounded coverage/idempotent source policy; no partially published Artifacts |
+| Complete fetch staged but publication not committed | Verify staging integrity, resume publication from checkpoint; never publish incomplete coverage |
+| Crash during fenced publication transaction | PostgreSQL transaction either committed or rolled back; reread operation identity/checkpoint before retry |
+| Some Artifacts indexed | Skip already committed content/model-version units; continue missing Artifacts only |
+| Extraction progress callback already committed some candidates | Detect persistent candidate/SourceRef rows using legacy preflight + new operation identities; do not regenerate duplicates or overwrite reviewed decisions |
+| Provider request dispatched, outcome unknown | Mark `manual_intervention/outcome_unknown` unless provider supports real idempotent reconciliation |
+| Pause requested and worker dies before checkpoint | Keep intent and reaper fencing; do **not** present `paused` as acknowledged until a valid checkpoint is recorded |
+| Old worker wakes after lease expiry/reclaim | No state/checkpoint/Artifact/chunk/candidate/SourceRef write may commit under expired token |
+| Database crash/failover | Recover only to **durably committed** state of chosen DB configuration; quantify RPO and do not promise zero loss without the required durability/replication settings |
+
+No automatic replay of a stage with unknowable paid effects, missing operation identity, or unverified prior partial commits.
+
+## 15. Queue-library comparison and initial execution choice
+
+Choosing PostgreSQL does not require writing a generic queue framework from scratch. **The backend direction is agreed; framework adoption is intentionally undecided until review.**
+
+| Candidate | Same-transaction enqueue | Fit for project-specific lease/fencing, pause, checkpoints | SQLite semantics | Main tradeoff |
+| --- | --- | --- | --- | --- |
+| Bounded custom PostgreSQL claim over `import_jobs` | Direct SQLAlchemy transaction | Full domain control; must implement/test every lease/reaper/locking invariant | Separate SQLite CAS/instance lock, shared domain state machine | More concurrency correctness code to own |
+| Procrastinate (PostgreSQL job framework) | Official external-connection API allows job defer in caller-owned PostgreSQL transaction | Has mature queue/locks/retries; **must verify** domain fence on every Artifact/Decision commit, pause-ack semantics, operation results and mismatch between framework job and `ImportJob` status | Does not itself make the local SQLite mode a PostgreSQL queue; adapter still needed | Potentially less generic queue code, but risk of **two competing authoritative job states** |
+| Redis/Celery as authoritative queue | Requires durable outbox/reconciliation to make DB + broker commit safe | Does not remove domain fencing/replay idempotency; delivery can repeat after worker crash | Would introduce extra runtime dependence | Premature second system/operational burden for this first version |
+
+**Design-review acceptance questions:** Does Procrastinate's external-connection pattern work with the project's actual SQLAlchemy/psycopg version and transaction context (without hidden commits)? Can it expose/fence a domain ImportJob generation for each row write, and produce the required pause/resume acknowledgement? Can the project avoid duplicate authority between Procrastinate's job table and ImportJob? What additional DB connections, migration and maintenance requirements result? No unverified framework API compatibility may be assumed.
+
+**Current proposal:** one domain state machine, PostgreSQL 17 and SQLite implement different claim adapters, PostgreSQL polling with backoff/jitter first; **do not add Procrastinate or Redis dependencies in this ADR-only PR**. If future evidence favors Procrastinate, amend the ADR before implementation. An independent queue-library evaluation can be documentary and does not require runtime changes.
+
+A later `LISTEN/NOTIFY` optimization may only wake pollers; it is never the source of truth. Initial listener startup must first commit `LISTEN`, then recheck DB state to close the startup race; a missed notice or broken listening connection must always fall back to DB polling.
+
+## 16. SQLite enforceable local-mode contract
+
+SQLite is a real supported local/single-machine mode, **not** a promise of multi-process HA:
+
+- Require the API and worker to access the same **absolute, canonical local database path**, not two relative URLs that silently create different files.
+- Use OS-backed exclusive lifetime ownership over that canonical file identity. The second worker **fails startup**. Test concurrent starts from independent processes, restart after SIGKILL, alternate path aliases, and a local-volume container scenario if supported. Document platform-specific lock acquisition for Windows/Linux.
+- Keep a durable owner/generation record for diagnostics and CAS, but stale owner timestamps or existence of a lock file alone do **not** establish that a process owns the DB.
+- At most one executing import task for that database in v1. API and worker may be separate **same-host** processes; no network file system.
+- Existing `busy_timeout=30000` is insufficient proof of pause responsiveness. Initialization does not explicitly set WAL; measure the actual pragma on each relevant connection, ensure positive lock-contention tests and configuration/checkpoint choices before claiming WAL behavior.
+- Newly discovered `queued` jobs may run after restart; incomplete jobs with insufficient stage identity, earlier partially committed candidates, or ambiguous paid work require manual review instead of automatic resumption.
+- Maintain the same domain states, permission checks, audit semantics and idempotent operation keys as PostgreSQL; **do not duplicate business flow logic**.
+- Keep `IMPORT_PAUSE_RESUME_ENABLED=false` and do not close Issue #36 based solely on single-instance locking.
+
+## 17. Durability assumptions, operations and performance gates
+
+**Failure model / RPO:** Distinguish API-process loss, Worker crash, DB process crash, storage failure and replicated DB failover. PostgreSQL 17 with synchronous durable commit on healthy storage can protect acknowledged local transactions against a DB process crash, but async commit may lose recently acknowledged transactions and async replication/failover may lose not-yet-replicated commits. Backups, `fsync`, `synchronous_commit`, replication topology, HA target, point-in-time recovery and measured restore RPO/RTO must be documented before production promises. No performance or failover experiment was run in this ADR phase.
+
+**Operational metrics:** Queue depth, oldest queued age, enqueue-to-claim latency, per-workspace fairness/starvation, active workers and lease expiry, heartbeat failure, retries and lost leases, manual-intervention queue, duplicate delivery, provider budget/unknown outcomes, throughput, normal API latency and DB connections. Also monitor `import_jobs` dead tuples/table/index size, VACUUM/autovacuum activity, WAL generation/retention, transaction duration and cleanup/archival of old jobs and staging/results. Limit heartbeat rewrite frequency and avoid high-frequency writes to large JSON summaries.
+
+**Capacity policy:** Start with finite worker concurrency and bounded backoff with jitter; no arbitrary throughput number or polling interval is approved without workload measurements. PostgreSQL 17 is the **current acceptance baseline, not a permanent version pin**. Track minor updates and test supported future major versions before upgrade.
+
+**Release gate:** Observability and resource-pressure tests must establish API response latency under worker load, long-running transaction absence, queue fairness and saturation behavior; unit/CI green alone is not deployment readiness.
+
+## 18. Additional acceptance gates from independent direction review
+
+- [ ] Document/test **every actual current-main commit boundary**, especially same-session extraction progress commits and legacy partially committed candidates.
+- [ ] Prove concurrent enqueue, duplicate webhook delivery and active workspace uniqueness using real PostgreSQL transactions and unique constraints (or equivalent locking).
+- [ ] Verify short atomic claim, fair-enough polling, explicit ownership generation, lease expiry and post-expiry renewal rejection.
+- [ ] Verify stale owners cannot commit **any** domain effect or checkpoint and that pause-requested owners heartbeat until safe acknowledgement.
+- [ ] Persist extraction outcomes including **zero-result** and already committed legacy candidate data; safe restart does not duplicate Decisions/SourceRefs or reset human review state.
+- [ ] Classify confirmed GitHub 403 permissions versus primary/secondary rate limit and unknown 403, applying bounded Retry-After/reset logic without blind retries.
+- [ ] Default unknown paid-model outcomes to manual reconciliation, and demonstrate budget ceilings and no implicit duplicate billing claim.
+- [ ] Reject a second SQLite worker process at startup; prove API/worker local-host file semantics and observe actual journal mode. Test that queued restart is safe while incomplete work is not blindly replayed.
+- [ ] Compare custom queue and Procrastinate on actual SQLAlchemy/psycopg compatibility, domain state authority, pause/lease fencing, migration, and SQLite adapter cost; record why the eventual implementation choice wins.
+- [ ] Define RPO/RTO per failure mode and acceptance for database storage/replica failure; test post-crash recovery without assuming every acknowledged async/replicated commit survives.
+- [ ] Monitor queue bloat, WAL, autovacuum, CPU/connections, and API latency under load; do not assert a measured capacity before tests.
+
+**Review disposition:** PostgreSQL 17 main queue plus supported SQLite local single-worker is **direction approved only**. ADR-0005 remains **Proposed** pending a separate, genuinely independent design review of these protocols and the unresolved schema/replay choices. No code, schema, migration, #34 action, #36 flag enablement, #47 merge, C01, paid model call or production deployment is authorized.
+
 ## References
 
+- [GitHub REST API primary/secondary rate-limit guidance](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+- [SQLite WAL and local-filesystem constraints](https://www.sqlite.org/wal.html)
+- [SQLite concurrency / when to use it](https://sqlite.org/whentouse.html)
+- [PostgreSQL 17 SELECT / SKIP LOCKED](https://www.postgresql.org/docs/17/sql-select.html)
+- [PostgreSQL LISTEN startup race](https://www.postgresql.org/docs/17/sql-listen.html)
+- [PostgreSQL NOTIFY](https://www.postgresql.org/docs/17/sql-notify.html)
+- [PostgreSQL 17 async-commit durability](https://www.postgresql.org/docs/17/wal-async-commit.html)
+- [PostgreSQL 17 routine vacuuming](https://www.postgresql.org/docs/17/routine-vacuuming.html)
+- [PostgreSQL support/versioning policy](https://www.postgresql.org/support/versioning/)
+- [Procrastinate: external DB connection](https://procrastinate.readthedocs.io/en/stable/howto/production/external_connection.html)
+- [Celery task idempotency and redelivery](https://docs.celeryq.dev/en/latest/userguide/tasks.html)
 - [Issue #36 — import control-plane and worker lifecycle blocker](https://github.com/luzay-max/DecisionAtlas/issues/36)
 - [ADR-0001 — initial MVP stack](0001-mvp-stack.md)
 - [Import pause/resume OpenSpec contract](../../../openspec/specs/import-pause-resume/spec.md)
