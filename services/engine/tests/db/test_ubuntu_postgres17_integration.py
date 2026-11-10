@@ -1,4 +1,4 @@
-"""B04: isolated PostgreSQL 17 integration of the *merged* 0012 schema.
+"""B04/B07: isolated PostgreSQL 17 integration of the current migrated schema.
 
 This is intentionally not F06b/#34. Uses a fresh, ephemeral public/synthetic
 GitHub Actions service DB only; no private sources, paid provider or migration
@@ -45,7 +45,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
 
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0012_review_audit_events"
+            "0013_import_job_lifecycle"
         )
         tables = set(inspect(connection).get_table_names())
         assert {"workspaces", "artifacts", "decisions", "source_refs",
@@ -55,6 +55,16 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     "artifact_extraction_runs"} & tables
         columns = {column["name"] for column in inspect(connection).get_columns("source_refs")}
         assert "artifact_revision_id" not in columns
+
+        import_job_columns = {
+            column["name"] for column in inspect(connection).get_columns("import_jobs")
+        }
+        assert {
+            "protocol_version", "worker_id", "lease_token", "lease_generation",
+            "heartbeat_at", "lease_expires_at", "attempt_count", "available_at",
+            "checkpoint_version", "checkpoint_json", "pause_requested_at",
+            "last_failure_category",
+        }.issubset(import_job_columns)
 
     with Session(engine) as session:
         public = Workspace(
