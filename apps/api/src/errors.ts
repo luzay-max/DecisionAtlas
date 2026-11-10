@@ -124,11 +124,11 @@ export function normalizeApiErrorPayload(status: number, payload: unknown, conte
     return {
       code,
       message,
-      error: status === 500
-        ? "Internal Server Error"
-        : status === 503
+      error: code === "upstream_unavailable"
+        ? "Upstream engine request failed"
+        : code === "service_unavailable"
           ? "Service temporarily unavailable"
-          : "Upstream engine request failed",
+          : "Internal Server Error",
     };
   }
 
