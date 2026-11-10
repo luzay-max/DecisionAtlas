@@ -11,12 +11,21 @@ describe("normalized BFF API error contract", () => {
     [422, "invalid_request"],
     [429, "request_rejected"],
     [500, "internal_error"],
+    [501, "internal_error"],
     [502, "upstream_unavailable"],
     [503, "service_unavailable"],
     [504, "upstream_unavailable"],
   ] as const)("maps HTTP %s to %s without changing the status source", (status, code) => {
     const normalized = normalizeApiErrorPayload(status, { detail: "synthetic failure" });
     expect(normalized.code).toBe(code);
+  });
+
+  it("uses the internal-error legacy label for non-upstream 5xx statuses", () => {
+    expect(normalizeApiErrorPayload(501, { detail: "synthetic internal detail" })).toEqual({
+      code: "internal_error",
+      message: "Internal server error",
+      error: "Internal Server Error",
+    });
   });
 
   it("preserves legacy 4xx fields and derives a message from detail", () => {
