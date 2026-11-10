@@ -50,7 +50,7 @@ DecisionAtlas remains designed around a single-machine demo or preview deploymen
 
 For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belong on host-managed or backend service surfaces. Browser-facing config should only receive the web/API URLs it needs to call the API.
 
-The Fastify API validates `PORT` (1–65535), `ENGINE_BASE_URL`, `AUTH_COOKIE_NAME`, and the CORS origin list before listening. With `APP_ENV=production`, startup fails if `ENGINE_BASE_URL` is not explicitly set or `AUTO_BOOTSTRAP_AUTH=true`. Use `templates/self-hosted.env.example` as the production-oriented starting point; do not copy the development `.env.example` unchanged into a public deployment.
+The Fastify API validates `PORT` (1–65535), `ENGINE_BASE_URL`, `AUTH_COOKIE_NAME`, and the CORS origin list before listening. With `APP_ENV=production`, startup fails if `ENGINE_BASE_URL` is not explicitly set, `CORS_ALLOWED_ORIGINS` has no entries, or `AUTO_BOOTSTRAP_AUTH=true`. Even behind a same-origin reverse proxy, list the public Web origin explicitly because browsers send an Origin header on state-changing requests. Use `templates/self-hosted.env.example` as the production-oriented starting point; do not copy the development `.env.example` unchanged into a public deployment.
 
 **For Live Provider Mode:**
 
