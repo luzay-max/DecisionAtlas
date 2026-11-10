@@ -72,9 +72,22 @@ const envSchema = z.object({
 export type ApiEnv = z.infer<typeof envSchema>;
 
 export function getEnv(env: NodeJS.ProcessEnv = process.env): ApiEnv {
+  const configuredAppEnv = env.APP_ENV?.trim();
+  const nodeEnv = env.NODE_ENV?.trim().toLowerCase();
+
+  // NODE_ENV=production must never silently fall back to development checks.
+  // An explicit APP_ENV can select the application mode, but cannot downgrade
+  // a production Node process to development or test mode.
+  if (nodeEnv === "production" && configuredAppEnv && configuredAppEnv !== "production") {
+    throw new Error("Invalid API environment configuration: APP_ENV must be production when NODE_ENV is production");
+  }
+
+  const effectiveAppEnv = configuredAppEnv
+    || (nodeEnv === "production" ? "production" : nodeEnv === "test" ? "test" : "development");
+
   let parsed: ApiEnv;
   try {
-    parsed = envSchema.parse(env);
+    parsed = envSchema.parse({ ...env, APP_ENV: effectiveAppEnv });
   } catch (error) {
     if (error instanceof z.ZodError) {
       const names = [...new Set(error.issues.map((issue) => String(issue.path[0] ?? "environment")))];
