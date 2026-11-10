@@ -77,7 +77,7 @@ The worker lifecycle must provide:
 - The database row is authoritative. A worker notification is only a wake-up hint; a missed notification must not lose a job.
 - Redis may later be used as a best-effort notification channel to reduce polling latency, but it is not the queue of record and is not required for correctness.
 
-This is a proposal for a future B07 implementation, not a current runtime change.
+This is a proposal for a future B07 implementation, not a current runtime change. If accepted, it supersedes only ADR-0001's choice of Redis as the authoritative background-job coordination mechanism; Redis may remain available for non-authoritative notifications.
 
 ### 3.2 PostgreSQL is the multi-worker correctness target
 
@@ -169,7 +169,7 @@ Names and exact nullability are not final schema decisions. No migration is auth
 ### 5.1 Heartbeat
 
 - A claimed worker renews its lease at a cadence materially shorter than the lease TTL (provisional target: heartbeat around one-third of the TTL).
-- Renewal is a conditional update on job ID, current lease token/generation, and `running` state.
+- Renewal is a conditional update on job ID and current lease token/generation while the worker owns the job in either `running` **or** `pause_requested`. A pause request does not revoke the current lease: the worker keeps heartbeating until it commits the current bounded unit, records the checkpoint, transitions to `paused`, and releases the lease.
 - Renewal must use a separate short-lived database session/connection from long-running stage work; it must not reuse a session that holds a source-write or extraction transaction.
 - A renewal that updates zero rows means ownership has been lost. The worker must stop before committing further local effects.
 - The lease TTL, heartbeat interval, network timeout budget, and shutdown grace period must be measured and selected together; the provisional ratio is not a production setting.
@@ -178,7 +178,7 @@ Names and exact nullability are not final schema decisions. No migration is auth
 
 A lease timeout alone does not stop a paused, partitioned, or slow worker from waking up later. Every state transition and every durable stage write must be fenced.
 
-Before a worker commits a unit of work, it must validate the current lease token/generation inside the same database transaction that commits the domain writes and checkpoint. The transaction must serialize against a reclaiming worker (for example by locking the job row on PostgreSQL). A stale token must be unable to:
+Before a worker commits a unit of work, it must validate the current lease token/generation inside the same database transaction that commits the domain writes and checkpoint. The transaction must serialize against a reclaiming worker (for example by locking the job row on PostgreSQL). A pause request may allow the current bounded unit to finish, but it must prevent the worker from starting another unit. The current unit's effects, checkpoint, `pause_requested -> paused` transition, and lease release must be committed atomically. An expired `pause_requested` lease is handled by the same fenced recovery inspection as an expired `running` lease. A stale token must be unable to:
 
 - update job progress or terminal state;
 - publish staged Artifacts;
@@ -328,10 +328,10 @@ All tests must use isolated databases and deterministic synchronization (barrier
 - [ ] Two or more workers racing to claim one job: exactly one claim succeeds.
 - [ ] Two different jobs can be claimed concurrently without duplicate ownership.
 - [ ] A paused-before-claim job is not claimed.
-- [ ] Claim wins before pause: API records `pause_requested`; worker acknowledges `paused` at a safe checkpoint.
+- [ ] Claim wins before pause: API records `pause_requested`; worker keeps its lease heartbeat, finishes at most the current bounded unit, starts no new unit, and acknowledges `paused` at a safe checkpoint.
 - [ ] Pause acknowledgement commits stage effects and checkpoint atomically, then releases the lease.
 - [ ] Resume returns the job to claimable state and exactly one worker continues from the checkpoint.
-- [ ] Heartbeat renewal is conditional on the current lease token/generation.
+- [ ] Heartbeat renewal is conditional on the current lease token/generation, remains valid during `pause_requested`, and stops only after the pause checkpoint releases the lease.
 - [ ] Expired lease can be reclaimed; a stale worker with the old token cannot commit job state or any domain effect.
 - [ ] Worker SIGTERM at every stage boundary checkpoints/relinquishes safely; hard process kill is recovered according to stage policy.
 - [ ] Crash after source fetch, after staging, during publication, after one Artifact index, during extraction, after provider response but before result persistence, and after result persistence each has a deterministic expected outcome.
