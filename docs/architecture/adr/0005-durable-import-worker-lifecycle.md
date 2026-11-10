@@ -64,7 +64,7 @@ The worker lifecycle must provide:
 5. Explicit pause/resume semantics that cannot race with claim or terminal completion.
 6. Safe crash/restart behavior at every stage boundary.
 7. Bounded retries that do not duplicate committed Artifacts, chunks, candidates, or externally billed work without an explicit policy.
-8. A supported and honest distinction between PostgreSQL multi-worker operation and SQLite demo operation.
+8. A supported and honest distinction between PostgreSQL multi-worker operation and **SQLite local single-worker operation**.
 9. Observable operational state and a manual reconciliation path when automatic recovery is unsafe.
 
 “Exactly once” execution cannot be promised across a process crash and an external provider call. The design must instead combine at-least-once job delivery with idempotent local effects, fenced commits, and explicit handling of uncertain external outcomes.
@@ -323,7 +323,7 @@ Costs include polling load, PostgreSQL-specific claim implementation, additive m
 
 ### D. SQLite multi-process queue with a sidecar control database
 
-**Rejected for the initial design.** A separate control database cannot atomically coordinate with Artifact/candidate writes in the application database. It would introduce split-brain pause/lease state and difficult recovery semantics. SQLite remains a constrained single-worker/demo target, not the multi-worker correctness target.
+**Rejected for the initial design.** A separate control database cannot atomically coordinate with Artifact/candidate writes in the application database. It would introduce split-brain pause/lease state and difficult recovery semantics. SQLite remains a supported, constrained **local single-worker** target, not a multi-worker correctness target.
 
 ## 10. Required acceptance matrix before implementation can be considered complete
 
@@ -343,16 +343,16 @@ All tests must use isolated databases and deterministic synchronization (barrier
 - [ ] Crash after source fetch, after staging, during publication, after one Artifact index, during extraction, after provider response but before result persistence, and after result persistence each has a deterministic expected outcome.
 - [ ] Artifact, chunk, candidate, and SourceRef writes are idempotent under duplicate delivery and lease reclaim.
 - [ ] Concurrent enqueue and duplicate webhook delivery cannot create two active jobs for one workspace.
-- [ ] Bounded retry/backoff, Retry-After, attempt ceiling, and unknown provider outcomes are verified.
+- [ ] GitHub 403 privilege/rate/ambiguous classification; bounded retry/backoff, Retry-After/reset, attempt ceiling, provider cost budget and unknown outcomes are verified.
 - [ ] No credential, access token, raw secret, or provider request body appears in logs or job metadata.
 
 ### SQLite — explicit constrained-mode acceptance
 
-- [ ] One worker only; duplicate claim and terminal-state CAS remain correct.
-- [ ] No claim of multi-worker or cross-process high availability.
+- [ ] One *enforced* local worker only (second process fails startup); duplicate claim and terminal-state CAS remain correct.
+- [ ] No claim of multi-worker or cross-host high availability; API and Worker may be separate processes only on the same host/local filesystem.
 - [ ] Pause/resume remains disabled unless bounded control-plane latency and writer-lock behavior are positively proven for the exact SQLite deployment mode.
-- [ ] The existing file-backed SQLite writer-lock reproducer is converted into a positive test only if the selected semantics genuinely resolve it; otherwise it remains an explicit expected limitation and the feature stays disabled.
-- [ ] Offline snapshot-based manual recovery remains read-only by default and cannot be applied while any worker is alive.
+- [ ] Assert actual SQLite journal mode and busy timeout per relevant connection; the existing file-backed SQLite writer-lock reproducer becomes a positive test only if the selected semantics genuinely resolve it; otherwise retain the expected limitation and keep pause/resume disabled.
+- [ ] On restart, never-started queued jobs are discovered; partly executed jobs require verifiable checkpoints/idempotency or manual intervention. Offline snapshot-based manual recovery remains read-only by default and cannot be applied while any worker is alive.
 
 ### API/UI and operations
 
@@ -377,8 +377,8 @@ The current authorization covers **B07-D0 only**: design and technical analysis.
 
 ## 12. Open decisions for independent review
 
-1. Should the first durable worker target be PostgreSQL 17 only, with SQLite explicitly single-worker and pause-disabled?
-2. Should the initial queue use database polling only, or should Redis be added solely as a best-effort wake-up channel after the durable DB design is proven?
+1. PostgreSQL 17 multi-worker + local single-worker SQLite are direction-approved; which **enforceable cross-platform OS ownership lock, startup validation and transactional claim adapter** will implement SQLite safely?
+2. Can the initial PostgreSQL queue use database polling only, and should future optional wake-ups use PostgreSQL LISTEN/NOTIFY? Is Procrastinate compatible with the actual SQLAlchemy/psycopg transaction and project-specific fencing requirements without a second authoritative job state?
 3. What is the supported import concurrency: one active job per workspace, plus a global worker limit? How are manual and webhook triggers coalesced?
 4. What lease TTL, heartbeat interval, shutdown grace, and maximum uninterruptible provider operation are justified by measured latency?
 5. Should source publication use job-scoped staging tables to preserve current all-or-nothing Artifact visibility while enabling resumable fetch?
@@ -546,7 +546,7 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 
 ## 17. Durability assumptions, operations and performance gates
 
-**Failure model / RPO:** Distinguish API-process loss, Worker crash, DB process crash, storage failure and replicated DB failover. PostgreSQL 17 with synchronous durable commit on healthy storage can protect acknowledged local transactions against a DB process crash, but async commit may lose recently acknowledged transactions and async replication/failover may lose not-yet-replicated commits. Backups, `fsync`, `synchronous_commit`, replication topology, HA target, point-in-time recovery and measured restore RPO/RTO must be documented before production promises. No performance or failover experiment was run in this ADR phase.
+**Failure model / RPO:** Distinguish API-process loss, Worker crash, DB process crash, storage failure and replicated DB failover. PostgreSQL 17 is currently supported through 2029-11-08; maintain patch updates and test future versions rather than treating 17 as a permanent architecture pin. PostgreSQL 17 with synchronous durable commit on healthy storage can protect acknowledged local transactions against a DB process crash, but async commit may lose recently acknowledged transactions and async replication/failover may lose not-yet-replicated commits. Backups, `fsync`, `synchronous_commit`, replication topology, HA target, point-in-time recovery and measured restore RPO/RTO must be documented before production promises. No performance or failover experiment was run in this ADR phase.
 
 **Operational metrics:** Queue depth, oldest queued age, enqueue-to-claim latency, per-workspace fairness/starvation, active workers and lease expiry, heartbeat failure, retries and lost leases, manual-intervention queue, duplicate delivery, provider budget/unknown outcomes, throughput, normal API latency and DB connections. Also monitor `import_jobs` dead tuples/table/index size, VACUUM/autovacuum activity, WAL generation/retention, transaction duration and cleanup/archival of old jobs and staging/results. Limit heartbeat rewrite frequency and avoid high-frequency writes to large JSON summaries.
 
