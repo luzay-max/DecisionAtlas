@@ -428,7 +428,7 @@ PostgreSQL design:
 
 1. Authenticate workspace/owner, resolve source access, and validate the requested import mode before enqueue.
 2. In **one short database transaction**, establish workspace serialization and test/create active-job exclusivity. Enforce it with a database-backed rule such as a partial unique index on `workspace_id` for `queued`, `running`, `pause_requested`, `paused`, `retry_wait`, and `manual_intervention` *where that status blocks a new import*, or an equivalent transactional workspace claim with proved uniqueness. Terminal states release the active reservation.
-3. Persist a webhook delivery identity keyed by its trusted installation/source and GitHub delivery ID with a database-enforced unique key. **Commit delivery disposition and the queued job in the same transaction**; on duplicate delivery return the same recorded outcome/job without creating a new one.
+3. Persist a webhook delivery identity keyed by its trusted installation/source and GitHub `X-GitHub-Delivery` ID with a database-enforced unique key. **Commit delivery disposition and the queued job in the same transaction**; on duplicate/redelivery return the same recorded outcome/job without creating a new one. The current FastAPI handler accepts a missing delivery header (`Header(None)`): the future protocol must **reject automatic enqueue with a missing/invalid delivery ID** (or separately approve and prove a signed-payload fingerprint policy), rather than bypassing deduplication. GitHub redelivery preserves the delivery ID; signature verification remains required.
 4. Manual and webhook triggers share one enqueue policy. Define whether an arrival during an active job coalesces, records one pending refresh, or returns an auditable conflict. Do not make the webhook's initial active check and job insert separate transactions.
 5. After commit, return the job ID. Any optional notification is post-commit and **non-authoritative**; the worker must discover committed jobs by polling even if notifications are dropped.
 
@@ -469,7 +469,7 @@ Every future write unit (Artifact batch publication, ArtifactChunks, extraction-
 4. Write the domain effects **and** durable checkpoint/result/lease transition in that very transaction; commit.
 5. Return success to the worker only after commit; if commit outcome is unknown, reread durable operation identities rather than blindly repeating effects.
 
-A prior standalone token query followed by unprotected writes is insufficient. Row-level claim/renew/recovery operations must serialize with the same fenced write unit. No row lock is held while calling a provider. A pause that wins first is acknowledged before the next bounded unit, while a pause racing an already-started unit can be acknowledged only at its safe boundary.
+A prior standalone token query followed by unprotected writes is insufficient. Row-level claim/renew/recovery operations must serialize with the same fenced write unit. No row lock is held while calling a provider. **The write unit itself must have a bounded database transaction duration**; if preserving all-or-nothing source publication cannot meet that bound for large imports, review an immutable staged revision plus atomic visibility switch, without exposing partial coverage or committing partial source state. A pause that wins first is acknowledged before the next bounded unit, while a pause racing an already-started unit can be acknowledged only at its safe boundary.
 
 External HTTP/LLM calls cannot be fenced retroactively; fencing controls **local persistence**, not provider-side billing.
 
@@ -572,6 +572,7 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 
 ## References
 
+- [GitHub webhook delivery ID and redelivery](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)
 - [GitHub REST API primary/secondary rate-limit guidance](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
 - [SQLite WAL and local-filesystem constraints](https://www.sqlite.org/wal.html)
 - [SQLite concurrency / when to use it](https://sqlite.org/whentouse.html)
