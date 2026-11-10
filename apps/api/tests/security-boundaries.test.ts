@@ -4,8 +4,16 @@ describe("security boundaries", () => {
   const oldEnv = {
     APP_ENV: process.env.APP_ENV,
     CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS,
+    ENGINE_BASE_URL: process.env.ENGINE_BASE_URL,
+    AUTO_BOOTSTRAP_AUTH: process.env.AUTO_BOOTSTRAP_AUTH,
   };
   const oldFetch = global.fetch;
+  beforeEach(() => {
+    process.env.ENGINE_BASE_URL = "http://localhost:8000";
+    process.env.AUTO_BOOTSTRAP_AUTH = "false";
+    process.env.CORS_ALLOWED_ORIGINS = "https://atlas.example";
+  });
+
   afterEach(() => {
     for (const [key, value] of Object.entries(oldEnv)) {
       if (value === undefined) delete process.env[key];
@@ -29,15 +37,10 @@ describe("security boundaries", () => {
     await app.close();
   });
 
-  it("defaults to no arbitrary cross-origin access in production", async () => {
+  it("fails closed when the production CORS allowlist is missing", () => {
     process.env.APP_ENV = "production";
     delete process.env.CORS_ALLOWED_ORIGINS;
-    const app = buildServer();
-    const result = await app.inject({
-      method: "GET", url: "/health", headers: { origin: "http://localhost:3000" },
-    });
-    expect(result.headers["access-control-allow-origin"]).toBeUndefined();
-    await app.close();
+    expect(() => buildServer()).toThrow("CORS_ALLOWED_ORIGINS");
   });
 
   it("rejects state-changing requests from untrusted browser Origins", async () => {
@@ -50,7 +53,7 @@ describe("security boundaries", () => {
       payload: { username: "alice", password: "secret" },
     });
     expect(blocked.statusCode).toBe(403);
-    expect(blocked.json()).toEqual({ error: "Origin not allowed" });
+    expect(blocked.json()).toMatchObject({ error: "Origin not allowed", code: "forbidden", message: "Origin not allowed" });
     await app.close();
   });
 

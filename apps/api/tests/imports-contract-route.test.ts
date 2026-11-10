@@ -106,7 +106,7 @@ describe("Imports generated Engine contract client", () => {
         headers: { cookie: "decisionatlas_session=admin-token" },
       });
       expect(response.statusCode).toBe(503);
-      expect(response.json()).toEqual(payload);
+      expect(response.json()).toEqual({ ...payload, code: "service_unavailable", message: payload.detail });
     } finally {
       await app.close();
     }
@@ -208,10 +208,21 @@ describe("Imports generated Engine contract client", () => {
       });
 
       expect(response.statusCode).toBe(status);
-      if (typeof expected === "string") {
-        expect(response.body).toBe(expected);
+      if (status < 400) {
+        if (typeof expected === "string") {
+          expect(response.body).toBe(expected);
+        } else {
+          expect(response.json()).toEqual(expected);
+        }
       } else {
-        expect(response.json()).toEqual(expected);
+        const normalized = response.json();
+        expect(normalized.code).toBe("forbidden");
+        expect(typeof normalized.message).toBe("string");
+        if (expected !== null && typeof expected === "object") {
+          expect(normalized).toMatchObject(expected);
+        } else if (expected !== null) {
+          expect(normalized.detail).toEqual(expected);
+        }
       }
     } finally {
       await app.close();

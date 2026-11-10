@@ -31,7 +31,28 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic" } });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toEqual(error);
+      if (status === 502) {
+        expect(response.json()).toMatchObject({
+          code: "upstream_unavailable",
+          message: "Upstream engine unavailable",
+          error: "Upstream engine request failed",
+        });
+      } else if (status === 503) {
+        expect(response.json()).toMatchObject({
+          code: "service_unavailable",
+          message: "Service temporarily unavailable",
+          error: "Service temporarily unavailable",
+        });
+      } else {
+        expect(response.json()).toMatchObject({
+          ...error,
+          code: status === 401 ? "unauthenticated"
+            : status === 403 ? "forbidden"
+            : status === 404 ? "not_found"
+            : "invalid_request",
+          message: status === 422 ? "Request validation failed" : "synthetic failure",
+        });
+      }
     } finally { await app.close(); }
   });
 
@@ -41,7 +62,11 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic", question: "why" } });
       expect(response.statusCode).toBe(503);
-      expect(response.json()).toEqual({ error: "synthetic unavailable" });
+      expect(response.json()).toMatchObject({
+        error: "Service temporarily unavailable",
+        code: "service_unavailable",
+        message: "Service temporarily unavailable",
+      });
     } finally { await app.close(); }
   });
 
@@ -52,7 +77,7 @@ describe("POST /query/why generated DTO client", () => {
     try {
       const response = await app.inject({ method: "POST", url: "/query/why", payload: { workspace_slug: "synthetic", question: "why" } });
       expect(response.statusCode).toBe(502);
-      expect(response.json()).toMatchObject({ error: "Upstream engine request failed" });
+      expect(response.json()).toMatchObject({ error: "Upstream engine request failed", code: "upstream_unavailable", message: "Upstream engine unavailable" });
     } finally { await app.close(); }
   });
 });

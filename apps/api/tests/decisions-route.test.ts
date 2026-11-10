@@ -125,7 +125,7 @@ describe("Decisions generated DTO client", () => {
     try {
       const response = await app.inject({ method: "GET", url: "/decisions/1" });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toEqual(error);
+      expect(response.json()).toMatchObject({ ...error, code: expect.any(String), message: expect.any(String) });
     } finally {
       await app.close();
     }
@@ -138,7 +138,7 @@ describe("Decisions generated DTO client", () => {
     try {
       const response = await app.inject({ method: "GET", url: "/decisions/not-an-int" });
       expect(response.statusCode).toBe(422);
-      expect(response.json()).toEqual(error);
+      expect(response.json()).toMatchObject({ code: "invalid_request", detail: [{ loc: ["path", "decision_id"], type: "int_parsing" }] });
       const upstream = vi.mocked(global.fetch).mock.calls[0][0] as Request;
       expect(upstream.url).toBe("http://localhost:8000/decisions/not-an-int");
     } finally {
@@ -152,7 +152,7 @@ describe("Decisions generated DTO client", () => {
     try {
       const response = await app.inject({ method: "GET", url: "/decisions/1" });
       expect(response.statusCode).toBe(502);
-      expect(response.json()).toMatchObject({ error: "Upstream engine request failed" });
+      expect(response.json()).toMatchObject({ code: "upstream_unavailable", message: "Upstream engine unavailable", error: "Upstream engine request failed" });
     } finally {
       await app.close();
     }

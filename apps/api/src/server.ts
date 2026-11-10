@@ -4,7 +4,9 @@ import { decisionsRoute } from "./routes/decisions";
 import { driftRoute } from "./routes/drift";
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import type { ApiEnv } from "./plugins/env";
 import { getEnv } from "./plugins/env";
+import { normalizeApiErrorPayload } from "./errors";
 import { governanceRoute } from "./routes/governance";
 import { healthRoute } from "./routes/health";
 import { importsRoute } from "./routes/imports";
@@ -13,9 +15,19 @@ import { runtimeRoute } from "./routes/runtime";
 import { teamRoute } from "./routes/team";
 import { timelineRoute } from "./routes/timeline";
 
-export function buildServer() {
+export function buildServer(env: ApiEnv = getEnv()) {
   const app = Fastify({ logger: true });
-  const env = getEnv();
+  app.addHook("onSend", async (_request, reply, payload) => {
+    if (reply.statusCode < 400) return payload;
+    const contentType = reply.getHeader("content-type");
+    const normalized = normalizeApiErrorPayload(
+      reply.statusCode,
+      payload,
+      typeof contentType === "string" ? contentType : undefined,
+    );
+    reply.header("content-type", "application/json; charset=utf-8");
+    return JSON.stringify(normalized);
+  });
   const origins = new Set(
     env.CORS_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   );
@@ -52,7 +64,7 @@ export function buildServer() {
 
 async function start() {
   const env = getEnv();
-  const app = buildServer();
+  const app = buildServer(env);
 
   try {
     await app.listen({ port: env.PORT, host: "0.0.0.0" });

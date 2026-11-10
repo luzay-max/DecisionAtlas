@@ -537,7 +537,20 @@ describe("POST /imports/github", () => {
         ...(status === 401 ? {} : { headers: { cookie: "decisionatlas_session=admin-token" } }),
       });
       expect(response.statusCode).toBe(status);
-      expect(response.json()).toEqual(payload);
+      if (status < 400) {
+        expect(response.json()).toEqual(payload);
+      } else {
+        expect(response.json()).toMatchObject({
+          ...payload,
+          code: status === 401 ? "unauthenticated"
+            : status === 403 ? "forbidden"
+            : status === 404 ? "not_found"
+            : status === 409 ? "conflict"
+            : status === 400 ? "invalid_request"
+            : status === 503 ? "service_unavailable"
+            : "request_rejected",
+        });
+      }
       expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(global.fetch).toHaveBeenCalledWith(
         `http://localhost:8000/imports/job-123/${action}`,
@@ -567,8 +580,9 @@ describe("POST /imports/github", () => {
 
         expect(response.statusCode).toBe(502);
         expect(response.json()).toEqual({
-          error: "Upstream engine request failed",
-          detail: "connect ECONNREFUSED"
+          code: "upstream_unavailable",
+          message: "Upstream engine unavailable",
+          error: "Upstream engine request failed"
         });
         expect(global.fetch).toHaveBeenCalledTimes(1);
         expect(global.fetch).toHaveBeenCalledWith(
@@ -615,8 +629,9 @@ describe("POST /imports/github", () => {
 
     expect(response.statusCode).toBe(502);
     expect(response.json()).toEqual({
-      error: "Upstream engine request failed",
-      detail: "connect ECONNREFUSED"
+      code: "upstream_unavailable",
+      message: "Upstream engine unavailable",
+      error: "Upstream engine request failed"
     });
 
     global.fetch = originalFetch;
@@ -670,7 +685,7 @@ describe("POST /imports/github", () => {
         url: "/imports/capabilities",
       });
       expect(response.statusCode).toBe(401);
-      expect(response.json()).toEqual({ detail: "Authentication required" });
+      expect(response.json()).toMatchObject({ detail: "Authentication required", code: "unauthenticated", message: "Authentication required" });
       expect(global.fetch).toHaveBeenCalledExactlyOnceWith(
         "http://localhost:8000/imports/capabilities",
         { headers: {} }

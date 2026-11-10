@@ -24,7 +24,7 @@ describe("authRoute", () => {
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.json()).toEqual({ detail: "Authentication required" });
+    expect(response.json()).toMatchObject({ detail: "Authentication required", code: "unauthenticated", message: "Authentication required" });
     expect(global.fetch).not.toHaveBeenCalled();
   });
 

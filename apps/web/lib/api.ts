@@ -1,4 +1,5 @@
 import type {
+  ApiErrorResponse,
   AuthLoginResponse as EngineAuthLoginResponse,
   AuthLogoutResponse as EngineAuthLogoutResponse,
   AuthOwnerScopeMembershipResponse as EngineOwnerScopeMembership,
@@ -434,10 +435,17 @@ async function apiFetch(input: string, init: RequestInit = {}): Promise<Response
 async function readError(response: Response, fallback: string): Promise<never> {
   let detail = fallback;
   try {
-    const payload = await response.json();
-    if (typeof payload?.detail === "string") {
+    const payload = await response.json() as Partial<ApiErrorResponse> | null;
+    if (typeof payload?.message === "string") {
+      detail = payload.message;
+    } else if (typeof payload?.detail === "string") {
       detail = payload.detail;
-    } else if (typeof payload?.detail?.message === "string") {
+    } else if (
+      payload?.detail
+      && typeof payload.detail === "object"
+      && "message" in payload.detail
+      && typeof payload.detail.message === "string"
+    ) {
       detail = payload.detail.message;
     } else if (typeof payload?.error === "string") {
       detail = payload.error;
