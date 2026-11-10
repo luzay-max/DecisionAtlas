@@ -50,7 +50,7 @@ DecisionAtlas 仍围绕单机演示或预览部署设计，并在现有 web/API/
 
 托管环境中，`DATABASE_URL`、`REDIS_URL` 和提供商凭据应只存在于宿主机或后端服务面。浏览器可见配置只应包含访问 API 所需的 Web/API 地址。
 
-Fastify API 会在监听端口前校验 `PORT`（1–65535）、`ENGINE_BASE_URL`、`AUTH_COOKIE_NAME` 和 CORS Origin 列表。设置 `APP_ENV=production` 后，如果未显式配置 `ENGINE_BASE_URL` 或将 `AUTO_BOOTSTRAP_AUTH` 设为 `true`，API 会拒绝启动。生产部署请以 `templates/self-hosted.env.example` 为配置起点；不要将开发用的 `.env.example` 原样用于公网部署。
+Fastify API 会在监听端口前校验 `PORT`（1–65535）、`ENGINE_BASE_URL`、`AUTH_COOKIE_NAME` 和 CORS Origin 列表。设置 `APP_ENV=production` 后，如果未显式配置 `ENGINE_BASE_URL`、`CORS_ALLOWED_ORIGINS` 没有任何有效 Origin，或将 `AUTO_BOOTSTRAP_AUTH` 设为 `true`，API 会拒绝启动。即使使用同源反向代理，也必须将公网 Web Origin 显式加入白名单，因为浏览器会在状态变更请求中发送 Origin 请求头。生产部署请以 `templates/self-hosted.env.example` 为配置起点；不要将开发用的 `.env.example` 原样用于公网部署。
 
 **实时大模型提供商模式：**
 
