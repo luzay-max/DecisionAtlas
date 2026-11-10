@@ -65,7 +65,9 @@ describe("normalized BFF API error contract", () => {
       message: "Import pause/resume is disabled pending worker lifecycle validation",
       detail: "Import pause/resume is disabled pending worker lifecycle validation",
     });
-    expect(JSON.stringify(normalized)).not.toMatch(/SYNTHETIC_SECRET|private\\/file|nested diagnostic detail/);
+    expect(JSON.stringify(normalized)).not.toContain("SYNTHETIC_SECRET");
+    expect(JSON.stringify(normalized)).not.toContain("/srv/private/file.py");
+    expect(JSON.stringify(normalized)).not.toContain("nested diagnostic detail");
   });
 
   it("wraps scalar error bodies in detail without double-parsing JSON strings", () => {
@@ -194,7 +196,9 @@ describe("normalized BFF API error contract", () => {
         message: "Import pause/resume is disabled pending worker lifecycle validation",
         detail: "Import pause/resume is disabled pending worker lifecycle validation",
       });
-      expect(response.body).not.toMatch(/SYNTHETIC_SECRET|private\\/file|nested diagnostic detail/);
+      expect(response.body).not.toContain("SYNTHETIC_SECRET");
+      expect(response.body).not.toContain("/srv/private/file.py");
+      expect(response.body).not.toContain("nested diagnostic detail");
     } finally {
       global.fetch = originalFetch;
       await app.close();
