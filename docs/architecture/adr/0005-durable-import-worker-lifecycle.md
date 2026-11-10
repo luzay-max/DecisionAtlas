@@ -2,7 +2,9 @@
 
 ## Status
 
-**Proposed — design review only; not accepted for implementation.**
+**Proposed — direction endorsed, NOT accepted as implementation authority.**
+
+On 2026-11-10 the maintainer endorsed PostgreSQL 17 as the primary durable queue backend and SQLite as an explicitly supported *local single-worker* mode. This is architecture-direction approval only. All recovery, factual, and release gates remain open; no runtime/schema/flag/deployment changes are authorized.
 
 - Date: 2026-11-10
 - Baseline: `main@3eb0eb94ee518164623b7f9dc85b91742985c055`
@@ -26,6 +28,7 @@ The existing implementation already has useful protections:
 - Conditional status updates prevent a late or duplicate worker start from overwriting paused or terminal states.
 - The source importer prefetches and validates selected Markdown before its Artifact write batch and commits the source batch atomically.
 - Indexing replaces an Artifact's chunks and commits each Artifact's index update.
+- **Extraction may commit candidates and SourceRefs mid-run:** `CandidateExtractionPipeline.run()` calls a progress reporter after inserting rows; `run_github_import()` passes the same SQLAlchemy session to `_build_extraction_progress_reporter()`, which calls `progress_session.commit()` when progress/time thresholds fire. The final pipeline commit is *not* the only commit. A crash can leave committed partial extraction rows.
 - Safe pause checkpoints exist between selected stages; the worker must not wait for resume while holding a SQLite writer transaction.
 - Offline recovery is explicit, snapshot-checked, and never automatically replays a partially completed job.
 
@@ -41,7 +44,8 @@ The design is based on these current-main files and behaviors:
 - `services/engine/app/jobs/recover_import_jobs.py`: inspection-only by default; applying recovery requires an exact job snapshot and an operator assertion that all workers are stopped.
 - `services/engine/app/ingest/github_importer.py`: remote fetch/prefetch occurs before the source Artifact batch; the Artifact batch is committed as one transaction.
 - `services/engine/app/indexing/index_artifact.py`: per-Artifact chunk replacement and commit.
-- `services/engine/app/extractor/pipeline.py`: screening and provider calls can run for multiple Artifacts; candidate and SourceRef writes are committed at the end of the extraction run.
+- `services/engine/app/extractor/pipeline.py` and `services/engine/app/jobs/import_jobs.py`: candidates and SourceRefs may be committed *during* extraction by the shared-session progress reporter, as well as by the final pipeline commit.
+- `services/engine/app/db/session.py`: SQLite connection setup uses a 30-second timeout and runs `PRAGMA busy_timeout=30000` during initialization, but does **not** explicitly enable WAL in that path. WAL cannot be assumed; connection-local PRAGMA application needs its own review.
 - `services/engine/app/repositories/artifacts.py`: Artifact upsert is currently a select-then-insert/update operation; the inspected model does not declare a database uniqueness constraint for its logical identity.
 - `services/engine/app/repositories/decisions.py` and `source_refs.py`: candidate and evidence rows are inserted; they do not currently expose a durable extraction-result idempotency key.
 - `services/engine/app/config.py` and `services/engine/pyproject.toml`: no Engine `REDIS_URL` setting or Redis client dependency is declared in the inspected execution path.
@@ -89,21 +93,21 @@ For PostgreSQL, claim work in a short transaction using a row-locking pattern su
 
 An equivalent single-statement CTE plus `UPDATE ... RETURNING` is acceptable if concurrency tests prove the same contract. The implementation must not rely on an application-side “select then update” race.
 
-PostgreSQL database time should be authoritative for lease comparisons. Worker wall clocks must not decide whether a lease is expired.
+PostgreSQL database time should be authoritative for lease comparisons. Worker wall clocks must not decide whether a lease is expired. `SKIP LOCKED` avoids competing row locks, but does not guarantee FIFO/fairness, a lease, table-level lock freedom or idempotency.
 
-### 3.3 SQLite remains a constrained single-worker/demo mode
+### 3.3 SQLite remains a supported local single-worker mode
 
 SQLite has a single-writer model and does not provide PostgreSQL's `SKIP LOCKED` semantics. Conditional updates can protect simple state transitions, but they do not remove write contention between a long import transaction and an independent control-plane write.
 
 Proposed support boundary:
 
-- SQLite may retain a single local worker and atomic conditional claim for demo/development use.
-- SQLite must not claim horizontal worker safety or automatic multi-process recovery.
-- Pause/resume remains disabled on SQLite unless a separate, explicit acceptance matrix proves bounded behavior under the actual supported SQLite mode.
-- Production multi-worker reliability and pause/resume acceptance target PostgreSQL 17 first.
-- Do not silently fall back from PostgreSQL worker semantics to an unverified SQLite approximation.
-
-Whether SQLite should support any worker restart recovery beyond the current manual offline reconciliation remains an open product/operations decision.
+- A SQLite *database file* supports exactly one executing worker and initially one in-flight job. A second worker must be **rejected at startup** by a real OS-enforced, per-database exclusive lifetime lock (or equivalently proven local exclusion), not just documentation or a stale marker file.
+- API and worker processes may be separate on the **same host/local filesystem**; cross-host and network-filesystem sharing are unsupported.
+- Use SQLite-compatible short conditional claims with the same domain state machine and idempotency rules as PostgreSQL; do not claim multi-worker availability.
+- After restart, never-started `queued` jobs may be discovered and claimed. Partially executed jobs require proven checkpoints and idempotent effects, or must enter manual intervention; never blindly replay.
+- SQLite pause/resume stays **default-disabled**, regardless of a single worker, until #36's bounded file-backed HTTP/worker tests pass.
+- The current session initialization does not explicitly enable WAL. A future WAL mode must prove startup configuration, durability, checkpointing and contention semantics; `busy_timeout` cannot remove the single-writer limit.
+- Multi-worker correctness targets PostgreSQL 17 first. No silent fallback to unverified SQLite semantics.
 
 ### 3.4 Redis is not authoritative
 
@@ -169,9 +173,9 @@ Names and exact nullability are not final schema decisions. No migration is auth
 ### 5.1 Heartbeat
 
 - A claimed worker renews its lease at a cadence materially shorter than the lease TTL (provisional target: heartbeat around one-third of the TTL).
-- Renewal is a conditional update on job ID and current lease token/generation while the worker owns the job in either `running` **or** `pause_requested`. A pause request does not revoke the current lease: the worker keeps heartbeating until it commits the current bounded unit, records the checkpoint, transitions to `paused`, and releases the lease.
+- Renewal is a conditional update on job ID, current lease token/generation and an **unexpired lease based on database time**, while the worker owns the job in either `running` **or** `pause_requested`. A pause request does not revoke the current lease: the worker keeps heartbeating until it commits the current bounded unit, records the checkpoint, transitions to `paused`, and releases the lease.
 - Renewal must use a separate short-lived database session/connection from long-running stage work; it must not reuse a session that holds a source-write or extraction transaction.
-- A renewal that updates zero rows means ownership has been lost. The worker must stop before committing further local effects.
+- A renewal that updates zero rows means ownership has been lost. The worker must stop before committing further local effects. **An expired lease cannot be renewed even if no other worker has reclaimed it:** only a new atomic claim creates a fresh lease generation.
 - The lease TTL, heartbeat interval, network timeout budget, and shutdown grace period must be measured and selected together; the provisional ratio is not a production setting.
 
 ### 5.2 Fencing is required, not optional
@@ -230,7 +234,7 @@ This is the most important replay hazard in the current pipeline:
 
 - screening and full extraction call an external provider;
 - up to three full extraction calls can be in flight;
-- candidate and SourceRef rows are currently created during the run and committed together at the end;
+- candidate/SourceRef rows are inserted during extraction and **may be committed by the shared-session progress callback before the final pipeline commit**; crash recovery must account for partial committed results;
 - the current “already extracted” check is based on whether an Artifact has a SourceRef;
 - `DecisionRepository.create_candidate()` always inserts a new candidate, and SourceRef creation has no unique idempotency key.
 
@@ -240,7 +244,7 @@ Proposed direction:
 
 - introduce a durable extraction-attempt/result record keyed by a deterministic operation identity such as `workspace_id + artifact_id + artifact_content_hash + extractor_version + prompt_version + provider/model`;
 - record request fingerprint and attempt state before/after external calls;
-- persist a normalized extraction result, candidate, SourceRefs, and completed checkpoint atomically;
+- persist a normalized extraction outcome **including successful empty/no-decision results**, any candidate/SourceRefs, and the completed checkpoint atomically;
 - add database uniqueness for the extraction operation identity and appropriate SourceRef identity;
 - make reprocessing policy explicit when the source content, prompt, extractor, or model changes.
 
@@ -252,8 +256,10 @@ Retries must be stage- and failure-specific:
 
 | Failure | Proposed policy |
 | --- | --- |
-| GitHub transient connect/read/TLS/429/5xx | Bounded retry with exponential backoff and jitter; honor provider Retry-After where valid |
-| GitHub 401/403/404, invalid repository, invalid input | Fail fast; no blind retry |
+| GitHub transient connect/read/TLS/5xx | Bounded retry with exponential backoff and jitter, respecting total request/time budget |
+| GitHub `403`/`429` confirmed primary/secondary rate limit | Inspect `Retry-After`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` and documented rate-limit error signals; respect reset/Retry-After or at least 60 seconds for a secondary limit with no header; bounded backoff and total budget |
+| GitHub `401`, confirmed permission/revocation `403`, inaccessible `404`, invalid input | Fail closed without blind retry; a private-resource `404` can conceal lack of access |
+| Ambiguous `403` without clear rate-limit evidence | Classify as ambiguous, retain sanitized metadata, and stop or allow at most an explicitly bounded diagnostic retry; never loop indefinitely |
 | Database serialization/deadlock/transient connection error | Retry only the current idempotent transaction after re-reading the fenced job state |
 | Embedding timeout | Treat result as uncertain unless provider idempotency is available; bounded policy |
 | LLM timeout/provider error | Record attempt and cost/unknown-outcome state; no unbounded automatic replay |
@@ -264,7 +270,7 @@ A job-level attempt limit must not multiply an already bounded per-request retry
 
 ## 7. Enqueue idempotency and workspace exclusivity
 
-The current enqueue path checks for an active job before inserting, but that check alone is vulnerable to concurrent enqueue requests.
+The current enqueue path checks for an active job before inserting, but that check alone is vulnerable to concurrent enqueue requests. The current webhook handler also checks for an active job in a **separate session/transaction** before calling `queue_github_import()`, and `trigger_delivery_id` has no verified database uniqueness constraint; both need a single transactional protocol.
 
 Before multi-worker rollout:
 
