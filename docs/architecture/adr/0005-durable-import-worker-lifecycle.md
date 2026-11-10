@@ -2,14 +2,14 @@
 
 ## Status
 
-**Proposed — direction endorsed, NOT accepted as implementation authority.**
+**Accepted — design approved on 2026-11-10. This acceptance authorizes the architecture decision only; it does NOT authorize implementation, schema migration, runtime configuration, deployment, feature-flag enablement, or PR merge.**
 
 On 2026-11-10 the maintainer endorsed PostgreSQL 17 as the primary durable queue backend and SQLite as an explicitly supported *local single-worker* mode. This is architecture-direction approval only. All recovery, factual, and release gates remain open; no runtime/schema/flag/deployment changes are authorized.
 
 - Date: 2026-11-10
 - Baseline: `main@3eb0eb94ee518164623b7f9dc85b91742985c055`
 - Workstream: B07 — Worker reliability
-- Authorization: ADR design and technical analysis only. No runtime code, schema, configuration, deployment, or feature-flag changes are authorized by this document.
+- Authorization: ADR-0005 is accepted as a design decision only. B07 implementation, schema migration, runtime configuration, deployment, feature-flag changes, and PR merge require separate explicit maintainer authorization.
 - Related blocker: [Issue #36](https://github.com/luzay-max/DecisionAtlas/issues/36)
 - Related integration boundary: [PR #47](https://github.com/luzay-max/DecisionAtlas/pull/47), which remains integration-only and must never be merged.
 
@@ -568,7 +568,7 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 - [ ] Define RPO/RTO per failure mode and acceptance for database storage/replica failure; test post-crash recovery without assuming every acknowledged async/replicated commit survives.
 - [ ] Monitor queue bloat, WAL, autovacuum, CPU/connections, and API latency under load; do not assert a measured capacity before tests.
 
-**Review disposition:** PostgreSQL 17 main queue plus supported SQLite local single-worker is **direction approved only**. ADR-0005 remains **Proposed** pending a separate, genuinely independent design review of these protocols and the unresolved schema/replay choices. No code, schema, migration, #34 action, #36 flag enablement, #47 merge, C01, paid model call or production deployment is authorized.
+**Review disposition:** PostgreSQL 17 main queue plus supported SQLite local single-worker is the **Accepted architecture decision** (2026-11-10), following independent Design PASS on fixed commit `4a3a458903910766c4b2daa727c13e6c823ab044`. Acceptance is limited to this ADR's design. No code, schema, migration, #34 action, #36 flag enablement, #47 merge, C01, paid model call or production deployment is authorized.
 
 ## 19. Lease admission, fresh-clock sampling and commit linearization (second design review)
 
