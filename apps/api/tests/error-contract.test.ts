@@ -48,6 +48,26 @@ describe("normalized BFF API error contract", () => {
     });
   });
 
+  it("allows only the fixed #36 reason fields when upstream 503 includes diagnostics", () => {
+    const normalized = normalizeApiErrorPayload(503, {
+      detail: {
+        message: "Import pause/resume is disabled pending worker lifecycle validation",
+        nested: { detail: "nested diagnostic detail" },
+      },
+      error: "database password=SYNTHETIC_SECRET",
+      stack: "internal /srv/private/file.py",
+      debug: { connection: "postgres://user:SYNTHETIC_SECRET@internal/db" },
+      accessToken: "FILTERED",
+    });
+
+    expect(normalized).toEqual({
+      code: "service_unavailable",
+      message: "Import pause/resume is disabled pending worker lifecycle validation",
+      detail: "Import pause/resume is disabled pending worker lifecycle validation",
+    });
+    expect(JSON.stringify(normalized)).not.toMatch(/SYNTHETIC_SECRET|private\\/file|nested diagnostic detail/);
+  });
+
   it("wraps scalar error bodies in detail without double-parsing JSON strings", () => {
     expect(normalizeApiErrorPayload(403, '"123"', "application/json")).toEqual({
       detail: "123",
@@ -143,6 +163,38 @@ describe("normalized BFF API error contract", () => {
         message: "User account is disabled",
         detail: "User account is disabled",
       });
+    } finally {
+      global.fetch = originalFetch;
+      await app.close();
+    }
+  });
+
+  it("does not expose upstream diagnostics through the #36 HTTP 503 exception", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue(Response.json({
+      detail: {
+        message: "Import pause/resume is disabled pending worker lifecycle validation",
+        nested: { detail: "nested diagnostic detail" },
+      },
+      error: "database password=SYNTHETIC_SECRET",
+      stack: "internal /srv/private/file.py",
+      debug: { connection: "postgres://user:SYNTHETIC_SECRET@internal/db" },
+      accessToken: "FILTERED",
+    }, { status: 503 }));
+    const app = buildServer();
+    try {
+      const response = await app.inject({
+        method: "GET",
+        url: "/team/accounts",
+        headers: { cookie: "decisionatlas_session=worker-token" },
+      });
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toEqual({
+        code: "service_unavailable",
+        message: "Import pause/resume is disabled pending worker lifecycle validation",
+        detail: "Import pause/resume is disabled pending worker lifecycle validation",
+      });
+      expect(response.body).not.toMatch(/SYNTHETIC_SECRET|private\\/file|nested diagnostic detail/);
     } finally {
       global.fetch = originalFetch;
       await app.close();
