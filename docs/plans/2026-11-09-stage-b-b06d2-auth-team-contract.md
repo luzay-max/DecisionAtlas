@@ -1,6 +1,6 @@
 # B06d-2 — Auth / Team generated contract
 
-**Status:** Implementation slice in progress; independent review and merge approval remain separate gates.
+**Status:** MERGED and accepted on 2026-11-09; independent technical review and post-merge main validation passed.
 
 ## Scope
 
@@ -31,6 +31,19 @@ Complete the existing Auth and Team API contracts without adding or duplicating 
 - TypeScript negative tests reject invalid routes/methods, missing request fields, invalid path params, wrong field types and response credential fields.
 - Web type aliases use generated DTOs and existing UI/session tests pass with complete wire fixtures.
 - Full Windows CI and PostgreSQL 17 CI must pass on the exact PR head before independent review.
+
+## Disposition and final verification
+
+- PR [#56](https://github.com/luzay-max/DecisionAtlas/pull/56) was merged after explicit maintainer approval.
+- Reviewed PR head: `7a14979a30868c8872205ba8a81f61f493de7137`.
+- Merge commit / verified `main` HEAD: `6b107f77c016e8f6e258b6c527206c1a212af7bf`.
+- Independent technical review: PASS; no blocking findings on the reviewed head.
+- Exact-head pre-merge validation passed: Windows full CI #42585866128, PostgreSQL 17 #42585866199, Bootstrap concurrency PG17 #42585866189.
+- Post-merge validation on the merge commit passed:
+  - [Main full CI #42592357235](https://github.com/luzay-max/DecisionAtlas/actions/runs/42592357235) — SUCCESS.
+  - [PostgreSQL 17 merged-schema #42592357358](https://github.com/luzay-max/DecisionAtlas/actions/runs/42592357358) — SUCCESS.
+  - [Bootstrap concurrency PG17 #42592357079](https://github.com/luzay-max/DecisionAtlas/actions/runs/42592357079) — SUCCESS.
+- No database migration, backfill, production rollout, credential reset, or worker enablement was performed.
 
 ## Boundaries
 
