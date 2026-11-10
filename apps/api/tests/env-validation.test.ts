@@ -31,7 +31,10 @@ describe("Fastify API environment validation", () => {
     "ftp://engine.example",
     "https://user:password@engine.example",
     "https://engine.example?token=secret",
+    "https://engine.example?",
     "https://engine.example#fragment",
+    "https://engine.example#",
+    " https://engine.example ",
     "/relative-engine",
   ])("rejects unsafe ENGINE_BASE_URL values", (value) => {
     let message = "";
