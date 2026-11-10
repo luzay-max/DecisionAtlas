@@ -1,6 +1,6 @@
 # B06e — API error contract and environment validation
 
-**Status:** Implementation in progress in [Draft PR #58](https://github.com/luzay-max/DecisionAtlas/pull/58); exact-head CI and independent review are pending. No merge or production authorization.
+**Status:** Implementation in progress in [Draft PR #58](https://github.com/luzay-max/DecisionAtlas/pull/58); production CORS fail-fast and credential/log redaction hardening are included. Latest exact-head CI is running; no merge or production authorization.
 
 ## Context
 
@@ -48,7 +48,7 @@ The implementation must:
 - Map 401 → `unauthenticated`, 403 → `forbidden`, 400/422 → `invalid_request`, 404 → `not_found`, 409 → `conflict`, 502/504 → `upstream_unavailable`, 503 → `service_unavailable`; other 4xx → `request_rejected`, other 5xx → `internal_error`.
 - Give BFF-owned validation/auth/origin failures the same code/message fields while retaining their current legacy fields.
 - Keep success payloads, response statuses, cookie behavior and all route authorization unchanged.
-- Return a generic public message for network/transport failures; keep diagnostic exception details in server logs only. Never include request bodies, passwords, cookies, session tokens, GitHub tokens, API keys or raw environment values in the error response or logs.
+- Return a generic public message for network/transport failures; keep only safe error type/code metadata in server logs; never log raw exception messages/stacks, request bodies, passwords, cookies, session tokens, GitHub tokens, API keys or raw environment values.
 - Update Web error parsing to prefer the new `message`, then fall back to legacy `detail` / `error`.
 
 The error DTO belongs to the BFF contract, not the Engine success OpenAPI models. Do not add a second manually maintained copy in Web; export/reuse one shared type from the contract package or a clearly scoped API-contract module.
@@ -58,9 +58,9 @@ The error DTO belongs to the BFF contract, not the Engine success OpenAPI models
 Strengthen the BFF `getEnv` schema and startup behavior:
 
 - `PORT`: integer in 1–65535.
-- `ENGINE_BASE_URL`: absolute HTTP(S) URL with no embedded credentials, query or fragment.
+- `ENGINE_BASE_URL`: absolute HTTP(S) URL with no embedded credentials, query, fragment or surrounding whitespace.
 - `AUTH_COOKIE_NAME`: valid cookie-token name; reject separators, whitespace and control characters.
-- `CORS_ALLOWED_ORIGINS`: comma-separated exact HTTP(S) origins only (no wildcard, path, query, fragment or credentials); empty remains valid for same-origin deployments.
+- `CORS_ALLOWED_ORIGINS`: comma-separated exact HTTP(S) origins only (no wildcard, path, query, fragment or credentials); in production at least one explicit origin is required. For same-origin reverse-proxy deployments, list the public Web origin because state-changing browser requests include an Origin header. Empty is allowed only in development/test.
 - Preserve current development/test defaults and boolean parsing.
 - In `APP_ENV=production`, require an explicitly configured `ENGINE_BASE_URL`; do not silently use the local development default.
 - In `APP_ENV=production`, reject `AUTO_BOOTSTRAP_AUTH=true`; anonymous bootstrap is a local-only convenience and must fail closed in production.
@@ -85,9 +85,9 @@ This slice is limited to the Fastify BFF environment contract. Engine database/p
 - Unit tests for status-to-code mapping and legacy-field preservation.
 - BFF route tests for 400/401/403/404/409/422 and upstream 500/502/503/504.
 - FastAPI `detail` string, object and validation-array bodies; JSON scalar and plain-text error bodies.
-- Transport timeout/network rejection returns 502 with generic public message and no internal error detail. 500/502/504 responses must not echo exception messages or secrets. The deliberate 503 feature-disabled response (especially #36 pause/resume) must retain its safe explanatory detail and remain HTTP 503.
+- Transport timeout/network rejection returns 502 with generic public message and no internal error detail. 500/502/504 responses must not echo exception messages or secrets; logs retain only safe error type/code metadata. The deliberate 503 feature-disabled response (especially #36 pause/resume) must retain its safe explanatory detail and remain HTTP 503.
 - Verify status codes do not change and existing UI callers can read both new and legacy forms.
-- Verify passwords, session cookies/tokens, GitHub tokens, API keys and request bodies never appear in response or logs.
+- Verify passwords, session cookies/tokens, GitHub tokens, API keys and request bodies never appear in response or logs; cover snake_case, kebab-case and camelCase credential-key variants and ensure raw exception messages/stacks are not logged.
 
 ### Environment contract
 - Table-driven tests for valid/invalid port, Engine URL, cookie name and origin allowlist.
