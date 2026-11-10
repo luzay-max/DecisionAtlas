@@ -113,10 +113,12 @@ export function normalizeApiErrorPayload(status: number, payload: unknown, conte
       status === 503
       && detailMessage === "Import pause/resume is disabled pending worker lifecycle validation";
     if (isPauseResumeDisabled) {
+      // #36 is the only 5xx exception: return the fixed public reason only.
+      // Never spread upstream fields here; nested diagnostics can contain secrets.
       return {
-        ...legacy,
         code,
         message: detailMessage,
+        detail: detailMessage,
       } as ApiErrorResponse;
     }
 
