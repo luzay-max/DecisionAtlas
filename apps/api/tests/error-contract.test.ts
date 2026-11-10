@@ -59,14 +59,27 @@ describe("normalized BFF API error contract", () => {
       detail: [
         { loc: ["body", "password"], msg: "invalid", type: "value_error", input: "plain-password" },
         { loc: ["header", "authorization"], msg: "invalid", token: "secret-token" },
+        {
+          access_token: "access-secret",
+          refreshToken: "refresh-secret",
+          client_secret: "client-secret",
+          apiKey: "api-secret",
+          "x-github-token": "github-secret",
+          sessionCookie: "cookie-secret",
+          safe_field: "preserved",
+        },
       ],
     });
     expect(JSON.stringify(normalized)).not.toContain("plain-password");
     expect(JSON.stringify(normalized)).not.toContain("secret-token");
+    for (const secret of ["access-secret", "refresh-secret", "client-secret", "api-secret", "github-secret", "cookie-secret"]) {
+      expect(JSON.stringify(normalized)).not.toContain(secret);
+    }
     expect(normalized.code).toBe("invalid_request");
     expect(normalized.detail).toEqual([
       { loc: ["body", "password"], msg: "invalid", type: "value_error" },
       { loc: ["header", "authorization"], msg: "invalid" },
+      { safe_field: "preserved" },
     ]);
   });
 
