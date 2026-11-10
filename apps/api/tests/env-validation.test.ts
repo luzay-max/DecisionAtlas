@@ -82,7 +82,20 @@ describe("Fastify API environment validation", () => {
     expect(getEnv(asEnv({
       APP_ENV: "production",
       ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: "https://atlas.example",
     })).APP_ENV).toBe("production");
+  });
+
+  it("requires at least one explicit CORS origin in production", () => {
+    expect(() => getEnv(asEnv({
+      APP_ENV: "production",
+      ENGINE_BASE_URL: "http://engine:8000",
+    }))).toThrow("CORS_ALLOWED_ORIGINS");
+    expect(() => getEnv(asEnv({
+      APP_ENV: "production",
+      ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: ", ,",
+    }))).toThrow("CORS_ALLOWED_ORIGINS");
   });
 
   it("rejects anonymous auto-bootstrap in production", () => {
