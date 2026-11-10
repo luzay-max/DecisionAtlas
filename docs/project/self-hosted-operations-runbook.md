@@ -11,12 +11,13 @@ This runbook defines first setup, backup, restore, upgrade, and rollback expecta
 1. Prepare PostgreSQL and Redis on the customer-controlled server.
 2. Copy `templates/self-hosted.env.example` to `.env`.
 3. Fill `DATABASE_URL`, `REDIS_URL`, `ENGINE_BASE_URL`, and `API_BASE_URL`.
-4. Configure optional provider keys only on backend/server-side surfaces.
-5. Start DecisionAtlas with the package startup scripts.
-6. Confirm Web, API, and Engine health.
-7. Initialize the first admin account using the bootstrap/admin flow.
-8. Run readiness checks before inviting reviewer or viewer users.
-9. For paid pilots or customer delivery, prepare a private entitlement record from `templates/self-hosted-entitlement.example.json`.
+4. Keep `APP_ENV=production` and `AUTO_BOOTSTRAP_AUTH=false`; set `CORS_ALLOWED_ORIGINS` to the exact public Web origin(s), never `*`.
+5. Configure optional provider keys only on backend/server-side surfaces.
+6. Start DecisionAtlas with the package startup scripts.
+7. Confirm Web, API, and Engine health.
+8. Initialize the first admin account using the deployment-specific admin flow; do not enable anonymous API bootstrap on a public deployment.
+9. Run readiness checks before inviting reviewer or viewer users.
+10. For paid pilots or customer delivery, prepare a private entitlement record from `templates/self-hosted-entitlement.example.json`.
 
 ## First Admin Boundary
 
