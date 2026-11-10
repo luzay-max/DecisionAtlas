@@ -121,7 +121,7 @@ This slice is limited to the Fastify BFF environment contract. Engine database/p
 - B06d-1: Imports generated contract, merged in PR #55.
 - B06d-2: Auth/Team generated contract, merged in PR #56 at `6b107f77c016e8f6e258b6c527206c1a212af7bf`; post-merge Windows full CI, PostgreSQL 17 merged-schema CI and Bootstrap concurrency PG17 all passed on that exact main commit.
 
-B06e is the next proposed Stage B contract slice. It does not start B07 or C01 and does not relax any existing boundary.
+B06e has now been implemented, independently reviewed, merged, and validated on main. This acceptance does not start B07 or C01 and does not relax any existing boundary.
 
 
 ## Disposition and final verification — 2026-11-10
