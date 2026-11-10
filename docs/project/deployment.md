@@ -44,13 +44,13 @@ DecisionAtlas remains designed around a single-machine demo or preview deploymen
 | `REDIS_URL` | Redis connection string |
 | `ENGINE_BASE_URL` | Explicit absolute HTTP(S) Engine URL; production does not use the localhost fallback |
 | `API_BASE_URL` | API service URL |
-| `APP_ENV` | Set to `production` for hosted/self-hosted production; `NODE_ENV` alone does not enable the API's production checks |
+| `APP_ENV` | Set to `production` for hosted/self-hosted production. If omitted while `NODE_ENV=production`, the API automatically applies production checks; an explicit non-production `APP_ENV` is rejected |
 | `AUTO_BOOTSTRAP_AUTH` | Keep `false` on public/production deployments; `true` is only for isolated local demo/test use |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated exact HTTP(S) Web origins; do not use wildcards |
 
 For hosted operation, `DATABASE_URL`, `REDIS_URL`, and provider credentials belong on host-managed or backend service surfaces. Browser-facing config should only receive the web/API URLs it needs to call the API.
 
-The Fastify API validates `PORT` (1–65535), `ENGINE_BASE_URL`, `AUTH_COOKIE_NAME`, and the CORS origin list before listening. With `APP_ENV=production`, startup fails if `ENGINE_BASE_URL` is not explicitly set, `CORS_ALLOWED_ORIGINS` has no entries, or `AUTO_BOOTSTRAP_AUTH=true`. Even behind a same-origin reverse proxy, list the public Web origin explicitly because browsers send an Origin header on state-changing requests. Use `templates/self-hosted.env.example` as the production-oriented starting point; do not copy the development `.env.example` unchanged into a public deployment.
+The Fastify API validates `PORT` (1–65535), `ENGINE_BASE_URL`, `AUTH_COOKIE_NAME`, and the CORS origin list before listening. Production mode is selected by `APP_ENV=production` or, when `APP_ENV` is omitted, `NODE_ENV=production`. The API rejects `NODE_ENV=production` combined with an explicit non-production `APP_ENV`. In production, startup fails if `ENGINE_BASE_URL` is not explicitly set, `CORS_ALLOWED_ORIGINS` has no entries, or `AUTO_BOOTSTRAP_AUTH=true`. Even behind a same-origin reverse proxy, list the public Web origin explicitly because browsers send an Origin header on state-changing requests. Use `templates/self-hosted.env.example` as the production-oriented starting point; do not copy the development `.env.example` unchanged into a public deployment.
 
 **For Live Provider Mode:**
 
