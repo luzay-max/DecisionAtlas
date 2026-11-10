@@ -102,6 +102,7 @@ describe("Fastify API environment validation", () => {
     expect(() => getEnv(asEnv({
       APP_ENV: "production",
       ENGINE_BASE_URL: "http://engine:8000",
+      CORS_ALLOWED_ORIGINS: "https://atlas.example",
       AUTO_BOOTSTRAP_AUTH: "true",
     }))).toThrow("AUTO_BOOTSTRAP_AUTH");
   });
