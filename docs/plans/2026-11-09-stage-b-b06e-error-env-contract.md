@@ -29,6 +29,7 @@ type ApiErrorCode =
   | "conflict"
   | "request_rejected"
   | "upstream_unavailable"
+  | "service_unavailable"
   | "internal_error";
 
 type ApiErrorResponse = {
@@ -43,7 +44,7 @@ type ApiErrorResponse = {
 The implementation must:
 
 - Preserve the existing HTTP status code for each response; the new code is descriptive and must not become a status remapping mechanism.
-- Preserve legacy `detail`, `error` and `issues` fields for 4xx responses where present so existing consumers can migrate incrementally. For 5xx, do not expose upstream exception details; return a generic public message and retain diagnostics only in server logs.
+- Preserve legacy `detail`, `error` and `issues` fields for 4xx responses where present so existing consumers can migrate incrementally. For 5xx, do not expose upstream exception details; return a generic public message and retain only safe error type/code metadata in server logs.
 - Put scalar upstream error bodies in `detail` rather than dropping or double-parsing them.
 - Map 401 → `unauthenticated`, 403 → `forbidden`, 400/422 → `invalid_request`, 404 → `not_found`, 409 → `conflict`, 502/504 → `upstream_unavailable`, 503 → `service_unavailable`; other 4xx → `request_rejected`, other 5xx → `internal_error`.
 - Give BFF-owned validation/auth/origin failures the same code/message fields while retaining their current legacy fields.
