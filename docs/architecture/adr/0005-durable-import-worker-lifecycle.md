@@ -93,7 +93,7 @@ For PostgreSQL, claim work in a short transaction using a row-locking pattern su
 
 An equivalent single-statement CTE plus `UPDATE ... RETURNING` is acceptable if concurrency tests prove the same contract. The implementation must not rely on an application-side “select then update” race.
 
-PostgreSQL database time should be authoritative for lease comparisons. Worker wall clocks must not decide whether a lease is expired. `SKIP LOCKED` avoids competing row locks, but does not guarantee FIFO/fairness, a lease, table-level lock freedom or idempotency.
+PostgreSQL database time should be authoritative for lease comparisons. **Acquire the job row lock first, then obtain a fresh database clock sample (e.g., `SELECT clock_timestamp()` after lock acquisition)**; neither transaction-start `now()`/`CURRENT_TIMESTAMP` nor a statement-start timestamp from a statement that waited on a lock is safe for expiry validation. The bounded-write-transaction rule in §19 defines when a validated commit may complete after expiry. `SKIP LOCKED` avoids competing row locks, but does not guarantee FIFO/fairness, a lease, table-level lock freedom or idempotency.
 
 ### 3.3 SQLite remains a supported local single-worker mode
 
@@ -173,7 +173,7 @@ Names and exact nullability are not final schema decisions. No migration is auth
 ### 5.1 Heartbeat
 
 - A claimed worker renews its lease at a cadence materially shorter than the lease TTL (provisional target: heartbeat around one-third of the TTL).
-- Renewal is a conditional update on job ID, current lease token/generation and an **unexpired lease based on database time**, while the worker owns the job in either `running` **or** `pause_requested`. A pause request does not revoke the current lease: the worker keeps heartbeating until it commits the current bounded unit, records the checkpoint, transitions to `paused`, and releases the lease.
+- Renewal is a conditional update on job ID, current lease token/generation and an **unexpired lease checked with a fresh post-lock database time**, while the worker owns the job in either `running` **or** `pause_requested`. A pause request does not revoke the current lease: the worker keeps heartbeating until it commits the current bounded unit, records the checkpoint, transitions to `paused`, and releases the lease.
 - Renewal must use a separate short-lived database session/connection from long-running stage work; it must not reuse a session that holds a source-write or extraction transaction.
 - A renewal that updates zero rows means ownership has been lost. The worker must stop before committing further local effects. **An expired lease cannot be renewed even if no other worker has reclaimed it:** only a new atomic claim creates a fresh lease generation.
 - The lease TTL, heartbeat interval, network timeout budget, and shutdown grace period must be measured and selected together; the provisional ratio is not a production setting.
@@ -182,7 +182,7 @@ Names and exact nullability are not final schema decisions. No migration is auth
 
 A lease timeout alone does not stop a paused, partitioned, or slow worker from waking up later. Every state transition and every durable stage write must be fenced.
 
-Before a worker commits a unit of work, it must validate the current lease token/generation inside the same database transaction that commits the domain writes and checkpoint. The transaction must serialize against a reclaiming worker (for example by locking the job row on PostgreSQL). A pause request may allow the current bounded unit to finish, but it must prevent the worker from starting another unit. The current unit's effects, checkpoint, `pause_requested -> paused` transition, and lease release must be committed atomically. An expired `pause_requested` lease is handled by the same fenced recovery inspection as an expired `running` lease. A stale token must be unable to:
+Before a worker performs **any** domain write in a bounded commit unit, it must lock the job row, obtain post-lock database time, and validate its lease token/generation inside the same transaction that commits the domain writes and checkpoint. The transaction must serialize against a reclaiming worker (for example by locking the job row on PostgreSQL). A pause request may allow the current bounded unit to finish, but it must prevent the worker from starting another unit. The current unit's effects, checkpoint, `pause_requested -> paused` transition, and lease release must be committed atomically. An expired `pause_requested` lease is handled by the same fenced recovery inspection as an expired `running` lease. A stale token must be unable to:
 
 - update job progress or terminal state;
 - publish staged Artifacts;
@@ -338,7 +338,7 @@ All tests must use isolated databases and deterministic synchronization (barrier
 - [ ] Pause acknowledgement commits stage effects and checkpoint atomically, then releases the lease.
 - [ ] Resume returns the job to claimable state and exactly one worker continues from the checkpoint.
 - [ ] Heartbeat renewal is conditional on the current lease token/generation, remains valid during `pause_requested`, and stops only after the pause checkpoint releases the lease.
-- [ ] Expired lease can be reclaimed; a stale worker with the old token cannot commit job state or any domain effect.
+- [ ] Expired lease can be reclaimed; a stale worker with the old token cannot commit job state or any domain effect. Prove post-row-lock fresh clock sampling, lock wait crossing expiry, admitted unit committing just after expiry within timeout, concurrent heartbeat/reaper, unknown commit and old worker restoration.
 - [ ] Worker SIGTERM at every stage boundary checkpoints/relinquishes safely; hard process kill is recovered according to stage policy.
 - [ ] Crash after source fetch, after staging, during publication, after one Artifact index, during extraction, after provider response but before result persistence, and after result persistence each has a deterministic expected outcome.
 - [ ] Artifact, chunk, candidate, and SourceRef writes are idempotent under duplicate delivery and lease reclaim.
@@ -452,7 +452,7 @@ SQLite claim has the same logical CAS transition but only after the process acqu
 - Ownership is represented by `job_id + lease_generation/token + worker_id`; the token/generation changes on **every** successful claim or recovery reclaim.
 - Heartbeat in a separate **short-lived** DB session may renew only when job status is `running` or `pause_requested`, token/generation matches, and `database_time < lease_expires_at`. It atomically advances heartbeat/expiry. No old or already expired lease may renew, even if no new worker has claimed the job.
 - A heartbeat failure or zero-row CAS causes the worker to stop initiating work and refuse further writes. It does **not** erase already-sent provider requests.
-- A reaper may consider an expired job for recovery only under a DB row lock/CAS. It must **advance the generation and invalidate the old owner** before releasing the row; eligibility for automatic replay is decided separately by persisted checkpoint, stage and unknown-effects policy.
+- A reaper may consider an expired job for recovery only after it has acquired the DB row lock/CAS and **resampled the database clock after any lock wait**. It must **advance the generation and invalidate the old owner** before releasing the row; eligibility for automatic replay is decided separately by persisted checkpoint, stage and unknown-effects policy. A write transaction that locked/validated during an unexpired lease may finish after the deadline only within its enforced bounded transaction window; the reaper waits and rechecks its final committed state.
 - For `pause_requested`, the same owner keeps renewing until it safely commits the current bounded stage unit/checkpoint, changes to `paused` and releases the lease. If it expires before acknowledgement, the reaper must preserve the pause intent and classify recovery rather than pretending the job was already paused.
 - Heartbeat/lease TTL, backoff and shutdown grace are **TBD after measurements** of DB write latency, remote call timeouts and worst uninterruptible stage durations. “Heartbeat at one-third of lease TTL” is only a provisional ratio; no fixed seconds or throughput/RTO promise is approved.
 - Database outage, lost connection, SIGTERM, hard kill, lease expiry, and delayed old-worker wake-up each need a deterministic transition plus a fenced/restart acceptance test.
@@ -463,9 +463,9 @@ Lease recovery is not a blanket permission to replay. The automatic recovery sta
 
 Every future write unit (Artifact batch publication, ArtifactChunks, extraction-result/Decision/SourceRef publication, checkpoint, progress, terminal status) must:
 
-1. Start a short transaction.
-2. Lock the owning ImportJob row or perform an equivalent atomic DB-time lease/owner CAS **in the same transaction**.
-3. Verify current generation/token, unexpired lease, eligible state and pause intent. If the token is stale or expired, abort **without any domain write**.
+1. Start a **fresh clean Session** and short transaction with no pending ORM work; do not attach staged Artifacts/Decisions/SourceRefs first.
+2. Lock the owning ImportJob row or perform an equivalent atomic DB-time lease/owner CAS **in the same transaction**. SQLAlchemy 2.x autoflush may emit SQL *before* a mapped query; enforce lock-first sequencing (clean Session and/or explicit `no_autoflush`) and forbid called repositories from committing/rolling back on their own.
+3. **After the row lock is actually granted**, sample fresh PostgreSQL `clock_timestamp()` (not a cached `now()` or statement-start value), then verify current generation/token, `sample_time < lease_expires_at`, eligible state and pause intent. If the token is stale/expired at this admission check, abort **without any domain write**. An admitted, bounded transaction may commit just after expiry under §19; it does not permit starting another unit on that expired lease.
 4. Write the domain effects **and** durable checkpoint/result/lease transition in that very transaction; commit.
 5. Return success to the worker only after commit; if commit outcome is unknown, reread durable operation identities rather than blindly repeating effects.
 
@@ -486,7 +486,7 @@ External HTTP/LLM calls cannot be fenced retroactively; fencing controls **local
 
 The current check “any SourceRef exists for Artifact” cannot establish that a specific **content version** has completed extraction. A successful screening-out or no-decision result must also be persisted to avoid unbounded model calls after crash.
 
-The current pipeline may already have **partially committed legacy candidate/SourceRef rows** via progress callbacks. Before first automatic replay, migration/preflight design must detect these and define safe reconciliation, review-state preservation, de-duplication, and no deletion of independently reviewed human decisions. Do not assume that a new future unique key retroactively identifies old rows. The operation fingerprint is **not** a substitute for Stage C's broader source-versioning design.
+The current pipeline may already have **partially committed legacy candidate/SourceRef rows** via progress callbacks. Before first automatic replay, migration/preflight design must detect these and define safe reconciliation, review-state preservation, de-duplication, and no deletion of independently reviewed human decisions. **If historical results lack a provable operation identity, quarantine the affected workspace/source, including fresh enqueues, until explicit operator disposition; never synthesize historical provenance by hashing today's Artifact content.** Do not assume that a new future unique key retroactively identifies old rows. The operation fingerprint is **not** a substitute for Stage C's broader source-versioning design. The initial cutover must stop and fence off all legacy execution entry points: adding a generation check only in the new Worker cannot restrain old binaries (§20).
 
 ### 14.7 Protocol F — external request budget and uncertain results
 
@@ -507,7 +507,7 @@ The current pipeline may already have **partially committed legacy candidate/Sou
 | Complete fetch staged but publication not committed | Verify staging integrity, resume publication from checkpoint; never publish incomplete coverage |
 | Crash during fenced publication transaction | PostgreSQL transaction either committed or rolled back; reread operation identity/checkpoint before retry |
 | Some Artifacts indexed | Skip already committed content/model-version units; continue missing Artifacts only |
-| Extraction progress callback already committed some candidates | Detect persistent candidate/SourceRef rows using legacy preflight + new operation identities; do not regenerate duplicates or overwrite reviewed decisions |
+| Extraction progress callback already committed some candidates | If original extraction identity is not independently provable, quarantine workspace/source; no automatic old-job replay **or new job bypass**, no retroactive fingerprint assignment, preserve reviewed decisions and SourceRefs |
 | Provider request dispatched, outcome unknown | Mark `manual_intervention/outcome_unknown` unless provider supports real idempotent reconciliation |
 | Pause requested and worker dies before checkpoint | Keep intent and reaper fencing; do **not** present `paused` as acknowledged until a valid checkpoint is recorded |
 | Old worker wakes after lease expiry/reclaim | No state/checkpoint/Artifact/chunk/candidate/SourceRef write may commit under expired token |
@@ -517,7 +517,7 @@ No automatic replay of a stage with unknowable paid effects, missing operation i
 
 ## 15. Queue-library comparison and initial execution choice
 
-Choosing PostgreSQL does not require writing a generic queue framework from scratch. **The backend direction is agreed; framework adoption is intentionally undecided until review.**
+Choosing PostgreSQL does not require writing a generic queue framework from scratch. **First implementation direction: bounded project-specific domain queue, not Procrastinate.** The backend direction is approved, but neither this ADR nor any implementation is approved. Procrastinate remains a candidate only for a later documented reevaluation under §22.
 
 | Candidate | Same-transaction enqueue | Fit for project-specific lease/fencing, pause, checkpoints | SQLite semantics | Main tradeoff |
 | --- | --- | --- | --- | --- |
@@ -527,7 +527,7 @@ Choosing PostgreSQL does not require writing a generic queue framework from scra
 
 **Design-review acceptance questions:** Does Procrastinate's external-connection pattern work with the project's actual SQLAlchemy/psycopg version and transaction context (without hidden commits)? Can it expose/fence a domain ImportJob generation for each row write, and produce the required pause/resume acknowledgement? Can the project avoid duplicate authority between Procrastinate's job table and ImportJob? What additional DB connections, migration and maintenance requirements result? No unverified framework API compatibility may be assumed.
 
-**Current proposal:** one domain state machine, PostgreSQL 17 and SQLite implement different claim adapters, PostgreSQL polling with backoff/jitter first; **do not add Procrastinate or Redis dependencies in this ADR-only PR**. If future evidence favors Procrastinate, amend the ADR before implementation. An independent queue-library evaluation can be documentary and does not require runtime changes.
+**Initial design choice:** use a **scope-limited, domain-specific queue** over authoritative `ImportJob`; separate PostgreSQL/SQLite claim adapters but one business state machine, and bounded database polling with backoff/jitter. **Do not adopt Procrastinate in the first version** and do not introduce it or Redis in this ADR PR. Procrastinate is not rejected forever; reevaluate only after fixed-version transaction integration, lifecycle/fencing, stale-retry policy, Windows behavior and net-maintenance benefit are demonstrated (§22).
 
 A later `LISTEN/NOTIFY` optimization may only wake pollers; it is never the source of truth. Initial listener startup must first commit `LISTEN`, then recheck DB state to close the startup race; a missed notice or broken listening connection must always fall back to DB polling.
 
@@ -536,7 +536,7 @@ A later `LISTEN/NOTIFY` optimization may only wake pollers; it is never the sour
 SQLite is a real supported local/single-machine mode, **not** a promise of multi-process HA:
 
 - Require the API and worker to access the same **absolute, canonical local database path**, not two relative URLs that silently create different files.
-- Use OS-backed exclusive lifetime ownership over that canonical file identity. The second worker **fails startup**. Test concurrent starts from independent processes, restart after SIGKILL, alternate path aliases, and a local-volume container scenario if supported. Document platform-specific lock acquisition for Windows/Linux.
+- **Chosen protocol (§21):** dedicated persistent sibling worker-ownership lock file, `flock(LOCK_EX|LOCK_NB)` on local Linux/POSIX targets and Windows `LockFileEx` exclusive nonblocking byte-range lock, held for the entire task-executor lifetime. This is an **execution eligibility** lock, not a SQLite write transaction. The second worker **fails startup**. Reject unverified path aliases and lock-file replacement; control descriptor/handle inheritance. All execution entry points must participate; legacy noncooperating executors are prohibited during cutover. Test Windows/Linux process behavior separately.
 - Keep a durable owner/generation record for diagnostics and CAS, but stale owner timestamps or existence of a lock file alone do **not** establish that a process owns the DB.
 - At most one executing import task for that database in v1. API and worker may be separate **same-host** processes; no network file system.
 - Existing `busy_timeout=30000` is insufficient proof of pause responsiveness. Initialization does not explicitly set WAL; measure the actual pragma on each relevant connection, ensure positive lock-contention tests and configuration/checkpoint choices before claiming WAL behavior.
@@ -563,14 +563,111 @@ SQLite is a real supported local/single-machine mode, **not** a promise of multi
 - [ ] Persist extraction outcomes including **zero-result** and already committed legacy candidate data; safe restart does not duplicate Decisions/SourceRefs or reset human review state.
 - [ ] Classify confirmed GitHub 403 permissions versus primary/secondary rate limit and unknown 403, applying bounded Retry-After/reset logic without blind retries.
 - [ ] Default unknown paid-model outcomes to manual reconciliation, and demonstrate budget ceilings and no implicit duplicate billing claim.
-- [ ] Reject a second SQLite worker process at startup; prove API/worker local-host file semantics and observe actual journal mode. Test that queued restart is safe while incomplete work is not blindly replayed.
-- [ ] Compare custom queue and Procrastinate on actual SQLAlchemy/psycopg compatibility, domain state authority, pause/lease fencing, migration, and SQLite adapter cost; record why the eventual implementation choice wins.
+- [ ] Reject a second SQLite worker process at startup using `flock` / `LockFileEx` over a **stable, nonreplaced** sidecar; prove alias rejection, child-handle inheritance protection, old-entry bypass prevention, cross-platform release on crash, same-host file semantics and actual journal mode. Test queued restart versus quarantined incomplete work.
+- [ ] Record initial **non-adoption of Procrastinate**, then run fixed-version reevaluation only if justified: SQLAlchemy 2.x/psycopg 3 transaction bridge, domain authority and fencing, pause/stalled recovery controls, Windows/Unix shutdown, migration overhead and total lifecycle maintenance cost.
 - [ ] Define RPO/RTO per failure mode and acceptance for database storage/replica failure; test post-crash recovery without assuming every acknowledged async/replicated commit survives.
 - [ ] Monitor queue bloat, WAL, autovacuum, CPU/connections, and API latency under load; do not assert a measured capacity before tests.
 
 **Review disposition:** PostgreSQL 17 main queue plus supported SQLite local single-worker is **direction approved only**. ADR-0005 remains **Proposed** pending a separate, genuinely independent design review of these protocols and the unresolved schema/replay choices. No code, schema, migration, #34 action, #36 flag enablement, #47 merge, C01, paid model call or production deployment is authorized.
 
+## 19. Lease admission, fresh-clock sampling and commit linearization (second design review)
+
+**Decision: a short write unit admitted while a lease is live may finish after its expiry, but no new unit can begin after expiry.** A reaper must acquire the **same ImportJob row lock**, wait for an admitted unit to complete, and then recheck the *committed* state with a *fresh* clock. This gives a serialization boundary without pretending the lease timer can roll back a transaction already in progress.
+
+### 19.1 Exact PostgreSQL protocol
+
+1. Before any domain mutations, create a **fresh, clean SQLAlchemy Session** and begin a short transaction. Its identity map must contain no dirty/pending Artifact, Chunk, Decision, SourceRef or job changes. The transaction uses explicit bounded `lock_timeout` / `statement_timeout` (and monitored transaction elapsed time); numeric values must be based on tests, not guesses.
+2. Lock the ImportJob row with an appropriate `SELECT ... FOR UPDATE`, or atomically serialize with an equivalent row-level conditional operation. **Only after the row lock is granted**, evaluate `SELECT clock_timestamp()` in a *subsequent* statement. PostgreSQL `now()`/`CURRENT_TIMESTAMP` use transaction start; `statement_timestamp()` uses statement start, which may predate a lock wait. Neither is sufficient after that wait. A `clock_timestamp()` embedded in the same waiting statement is not a substitute for explicitly sampling **after** lock acquisition.
+3. Reject immediately if owner ID/generation mismatch, job state disallows the unit, or fresh `clock_timestamp() >= lease_expires_at`. A lease that expired while **waiting for the lock** cannot newly authorize writes even if the original statement started before expiry.
+4. If admission succeeds while unexpired, write **only that bounded unit** (including its domain rows and checkpoint/result) and commit or roll back atomically. No provider/network request occurs inside this transaction; internal repositories must not `commit()`/`rollback()`/open an unrelated session. `no_autoflush` can additionally guard the admission query, but is **not** a substitute for a clean Session: ORM flush before lock breaks the required order and must fail code review/tests.
+5. Once admitted, the short transaction **may commit after `lease_expires_at`** (example: validates at 10:00:29 with expiry at 10:00:30, commits at 10:00:31) **only within an enforced upper bound**. The lease is not renewed by this admission; the worker may not start a second write unit without a new valid lease. If that unit overruns the configured bounded transaction/lock budget, cancel and roll back rather than extending ownership indefinitely.
+6. Renewal and reclaim use the same row-level serialization. A heartbeat unable to acquire the row lock may miss a renewal; the admitted write unit must be bounded and sized with a lease/heartbeat safety margin. A timed-out/failed heartbeat is **not** evidence that a new worker may write; recovery must lock the row and reclassify.
+7. A reaper blocks (under its own finite lock timeout) until the admitted unit releases its row lock. After obtaining it, the reaper **rereads status, generation, checkpoint and a fresh `clock_timestamp()`**. If the unit already marked the job completed/paused, do not reclaim. Otherwise invalidate the old generation, then enter stage-specific recovery/quarantine. If reclaim won the lock first, the old worker's eventual admission check fails; no old domain write is allowed.
+8. **Unknown COMMIT outcome** (connection lost near commit): do not treat it as an automatic rollback. A newly started transaction rereads the persisted operation identity, results and checkpoint; if ambiguous, mark for operator review, not blind replay.
+
+**Linearization points:** claim/reclaim/heartbeat take effect on their committed row updates; an admitted domain unit becomes visible on its own transaction commit. A post-expiry admitted commit is allowed as above because reclaim cannot pass that row lock and must reread the result. The distinction between **lease expiry** and **commit admission** must be reflected in all tests and operator descriptions; do not claim “no commit after the timestamp.”
+
+### 19.2 Required deterministic tests
+
+- Worker waits on locked job row; lease expires while waiting; newly acquired lock + fresh time rejects the write (including versions using stale transaction/statement timestamps as negative controls).
+- Worker admits at 10:00:29, lease expires 10:00:30, bounded unit commits 10:00:31; reaper waits, then sees the new checkpoint and only then classifies next action.
+- Reaper obtains lock first after expiry; late worker fails admission and writes nothing.
+- Heartbeat versus reaper, heartbeat blocked behind legitimate bounded write, and post-expiry renewal rejection.
+- Dirty SQLAlchemy Session would autoflush before the lock; lock-first clean Session protects against this; repository-level hidden commits fail explicit transaction-contract tests.
+- Old worker resumes after new generation; unknown commit result is resolved by operation-key readback, not a duplicate insert.
+- Explicit lock/statement/transaction timeouts terminate an oversized write unit; confirm normal API and heartbeat latency remains bounded.
+
+## 20. Legacy-partial-result quarantine and exclusive migration cutover
+
+**Decision: unverifiable legacy extraction data is quarantined, not silently retrofitted with modern operation identities.** Historic rows may lack the exact source version, model, prompt, parameters and operation intent in effect when they were created. Hashing the *current* Artifact and assigning that fingerprint to historical Decisions/SourceRefs would invent provenance.
+
+### 20.1 Recovery/re-enqueue decision table
+
+| Persisted condition | Automatic claim/replay | Required disposition |
+| --- | --- | --- |
+| `queued` and **provably never executed**, no legacy effects/unknown sends, old executors stopped | Yes, after new protocol's clean-queue verification and unique workspace ownership | Claim under the new generation |
+| B07-native checkpoint + complete immutable operation identity and all effects prove idempotent | Yes, only permitted stage(s) | Compare checkpoint/result keys, new generation and budget before resuming |
+| Legacy `running`/`paused`/`failed`/incomplete job with unassignable committed candidates/refs or unknown stage progress | **No** | Quarantine job and affected workspace/source; exact evidence inventory + operator snapshot/approval needed |
+| Prior human-reviewed Decision/SourceRef | **Never automatically delete, merge, overwrite or regress review state** | Preserve audit and references; operator determines any supersession or new import policy |
+| Provider request/billing outcome unknown, without documented idempotency key/reconciliation | **No paid retry by default** | Durable unknown-outcome record and manual disposition |
+| New job for an affected workspace with unresolved legacy quarantine | **No, even with a new job ID** | Enqueue and claim must enforce a durable workspace/source quarantine gate; explicitly recorded operator clearance first |
+
+Quarantine is a **database-enforced or equivalently transactional state**, not an in-memory warning or UI-only filter. The enqueue transaction and every claim must read it under serialization with workspace active-job ownership. A rejected or parked new task must not bypass quarantine by changing repo spelling, job ID, webhook delivery, provider path, or retry mode. Domain/workspace/source identity normalization and owner scope must be considered. Where the prior operation cannot be tied to a specific source, quarantine conservatively at workspace level.
+
+### 20.2 First deployment cutover protocol (future implementation only)
+
+1. Enter a controlled maintenance window, **block new enqueue** (including Webhooks, CLI, schedules and API import routes), and stop all old import-capable instances, not just the new Worker. Inventory running FastAPI `BackgroundTasks`, CLI/recovery scripts, manual import commands, webhooks and any unattended entry points.
+2. Ensure no old write transactions or provider calls remain active, with a finite drain/shutdown procedure and operator evidence. Merely waiting for a legacy status timeout is insufficient: old binaries do **not** understand generations and cannot be fenced by a new worker's checks.
+3. Prevent the old executor from **restarting**: deployment manifests/process managers and entrypoint runtime/version gates must reject mixed execution epochs. Any allowed new write entry point must implement generation checks and the SQLite ownership gate. If reliable exclusion cannot be demonstrated, **do not enable automatic recovery or new workers**.
+4. Back up the DB and record schema/binary versions plus exact active-job and domain-row snapshots. Inventory old jobs and partial candidate/SourceRef rows. Distinguish truly never-started queued jobs from jobs with missing/ambiguous execution history; when uncertain, quarantine.
+5. Under the later separately approved migration, create future identity/quarantine records without inventing legacy fingerprints or altering reviewed decisions. Block **new** tasks for quarantined workspaces/sources until operator disposition is durably recorded. Require bounded read-only inspection default; any repair/deletion/upsert must have a separately authorized audit trail and rollback/backup.
+6. Only after version exclusivity, schema compatibility, operator inventory and rollback rehearsal pass may the independent Worker be switched on. Old versions may **not** be restarted against the upgraded DB as a rollback shortcut. A rollback must first stop new writers and pass an explicit reverse-compatibility/restore plan.
+
+No current GitHub commit, schema, migration or runtime cutover was performed by this ADR. **The approved design direction is not a cutover authorization.**
+
+### 20.3 Acceptance
+
+Reproduce: partially committed legacy candidates; absent prompt/model/source revision; empty-result legacy extraction; manually accepted/superseded decision; new manual import while a workspace is quarantined; webhook replay with a different delivery; legacy API/CLI execution trying to bypass the gate; mixed-version worker after deployment rollback. Every automatic bypass is a failing test.
+
+## 21. SQLite concrete execution-ownership lock contract
+
+**Chosen protocol, subject to OS integration validation:** a persistent sibling `<canonical-db-path>.worker.lock` file is a **worker-execution eligibility lock**, never a long-held SQLite transaction/database-write lock.
+
+- **Identity and supported paths:** resolve database URL to one absolute canonical local filesystem file before any import worker/API execution path is enabled. Resolve symlink/junction components, but **reject** database or lock sidecar paths reached through symlinks/reparse points, hardlinks/multiple-link file identity, network drives and unverified container mount aliases until an identity-unification proof exists. On POSIX check `realpath`, device/inode and link count; on Windows check the volume/file identity, link count and reparse status with supported Win32 APIs. An uninspectable/ambiguous path is **startup error**, not a silent second lock.
+- **Stable lock file:** create-once/open-existing `<canonical-db-path>.worker.lock` in the same local directory, with restrictive permissions. Lock it without truncating/replacing it. Verify the opened file's stable file ID/inode equals the path's currently resolved identity after acquisition and periodically before work; on mismatch **stop**. The lock file must **not be deleted, renamed, recreated, unlinked or manually “cleaned up”** during normal running, shutdown, crash repair, DB swap or migration; its existence alone does not indicate ownership.
+- **Linux (and only tested POSIX variants):** acquire `flock(fd, LOCK_EX | LOCK_NB)` over the opened sidecar. Hold the same open file description for the **whole execution-owning process lifetime**, fail immediately if busy, and release by explicit unlock/close on orderly shutdown. Use `FD_CLOEXEC` and close/invalidate inherited lock descriptors in forked children; `fork` duplicates an open-file description and can unintentionally keep the lock held after the parent exits. Prohibit subprocesses from inheriting the execution entitlement.
+- **Windows:** acquire an exclusive, fail-immediately `LockFileEx` byte-range lock on the same stable sidecar, retaining its non-inheritable file handle for the entire executing lifetime; release with `UnlockFileEx`/close. Use non-inheritable handles (`HANDLE_FLAG_INHERIT` cleared) and verify children cannot accidentally retain or impersonate ownership. Never rely on POSIX `flock` behavior on Windows. Test Windows service stop, force-terminate and new-process acquisition separately.
+- **Mandatory application cooperation:** OS locks are advisory for noncooperating programs (especially Linux `flock`). **Every** task-executing entrance—new worker, legacy `BackgroundTasks`, direct `run_github_import` or CLI/manual script, webhook-triggered execution, scheduled runner and tests that actually execute imports—must call the shared ownership gate **before** any task work. A duplicate execution inside the same process also requires an in-process single-task guard. A DB session from an API handler may still serve ordinary reads, but may not execute imports without the gate. Legacy binaries unaware of the lock are excluded using §20 cutover, not presumed safe.
+- **Recovery and file lifecycle:** worker crash causes OS release once all owning descriptors/handles close; test actual process death, not marker-file deletion. Any DB replacement, backup restore, migration, file move or lock-sidecar change requires stopping *all* related API/workers/CLI, verifying no open holders, then a coordinated maintenance/restore protocol; the persistent lock file is never replaced while any executable could still use the old identity.
+- **Failure-closed defaults:** if platform lock semantics, local path identity, containment, child inheritance or all-entry participation is not proven, refuse Worker startup. This is a *design* for supported Windows/Linux; no live cross-platform behavior has been tested in this ADR phase. SQLite pause/resume remains disabled pending #36 acceptance. `busy_timeout` and WAL do not create ownership or multi-writer execution safety.
+
+### 21.1 Required OS tests
+
+Two workers racing startup; same-process duplicate task; SIGKILL/TerminateProcess then fresh worker; `fork` child, `exec` child and Windows subprocess with inherited-handle attempts; symlink/junction and hardlink aliases, relative vs absolute and case aliases, unsupported network/container mount; swapping/unlinking the lock file while held; replacing/restoring the database; old `BackgroundTasks`/CLI/webhook bypass; same-host separate API/worker; observed PRAGMA journal mode and 30-second busy timeout. Fail closed rather than making an untested locking guarantee.
+
+## 22. Procrastinate disposition and reevaluation gate
+
+**First-version decision: do not adopt Procrastinate.** Preserve it as a candidate, not as an automatic downgrade or impossible option. A scope-limited domain job queue over `ImportJob` is preferred because DecisionAtlas must in any case implement Fencing for every domain write, legacy quarantine, unknown-paid-outcome policy, pause acknowledgement, and SQLite's separate claim adapter.
+
+**Concrete integration concerns:**
+
+1. The Procrastinate external-connection API can defer tasks within a caller-owned PostgreSQL transaction, but its documented SQLAlchemy connector is **`SQLAlchemyPsycopg2Connector`**. Other connectors accept psycopg 3 native connections; neither fact proves a direct compatibility path with the project's SQLAlchemy 2.x + psycopg 3 `Session` and its commit/rollback/pool ownership. No compatible fixed-version integration has been executed.
+2. Procrastinate tracks Worker heartbeat and finds stalled jobs, but its documented stalled-task recovery example performs **application-chosen retry**. It cannot infer legacy partial commits, settled human review, missing source fingerprints or ambiguous paid-provider requests. Its scheduler state must never overwrite the **authoritative `ImportJob` business state**, and domain Fencing is still required.
+3. Official Windows documentation warns that Unix-style graceful signal shutdown is not equivalent on Windows; Windows CI/desktop support would need separate process-abort and recovery tests. The framework cannot replace SQLite mode just because the PostgreSQL variant works.
+4. Maintaining two authoritative job truths or two incompatible lifecycle state machines would be unacceptable. If Procrastinate is evaluated later, `ImportJob` remains the only authority for domain eligibility/checkpoint/outcome; framework records can control delivery only.
+
+**Reevaluation only when all are satisfied:** pin and document a tested Procrastinate release; show same-transaction SQLAlchemy 2.x/psycopg 3 enqueue/rollback without hidden commits or double-authority; demonstrate lease/recovery/fencing across every domain write; prove configurable “no replay on unknown paid/legacy” policy; pass Windows/Linux shutdown/recovery and SQLite adapter compatibility matrix; measure actual code/operations complexity improvement over bounded custom queue; obtain independent review and separate maintainer approval. Until then: **no Procrastinate dependency, worker code or additional queue infrastructure.**
+
 ## References
+
+- [PostgreSQL 17 date/time functions: transaction, statement, actual clock](https://www.postgresql.org/docs/17/functions-datetime.html)
+- [SQLAlchemy 2.0 Session autoflush and transaction boundaries](https://docs.sqlalchemy.org/en/20/orm/session_basics.html)
+- [Linux flock open-file-description inheritance and advisory semantics](https://man7.org/linux/man-pages/man2/flock.2.html)
+- [Windows LockFileEx](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-lockfileex)
+- [Windows non-inheritable handles](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-sethandleinformation)
+- [Procrastinate external DB connection and SQLAlchemy connector types](https://procrastinate.readthedocs.io/en/stable/howto/production/external_connection.html)
+- [Procrastinate stalled-job retry policy](https://procrastinate.readthedocs.io/en/stable/howto/production/retry_stalled_jobs.html)
+- [Procrastinate Windows process limitations](https://procrastinate.readthedocs.io/en/stable/howto/basics/windows.html)
 
 - [GitHub webhook delivery ID and redelivery](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks)
 - [GitHub REST API primary/secondary rate-limit guidance](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
