@@ -86,6 +86,12 @@ export function getEnv(env: NodeJS.ProcessEnv = process.env): ApiEnv {
   if (parsed.APP_ENV === "production" && !env.ENGINE_BASE_URL?.trim()) {
     throw new Error("Invalid API environment configuration: ENGINE_BASE_URL is required in production");
   }
+  if (
+    parsed.APP_ENV === "production"
+    && !parsed.CORS_ALLOWED_ORIGINS.split(",").some((origin) => origin.trim().length > 0)
+  ) {
+    throw new Error("Invalid API environment configuration: CORS_ALLOWED_ORIGINS is required in production");
+  }
   if (parsed.APP_ENV === "production" && parsed.AUTO_BOOTSTRAP_AUTH) {
     throw new Error("Invalid API environment configuration: AUTO_BOOTSTRAP_AUTH must be false in production");
   }
