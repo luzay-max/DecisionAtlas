@@ -311,18 +311,19 @@ class ImportHistoryQuarantine(Base):
     __tablename__ = "import_history_quarantines"
     __table_args__ = (
         CheckConstraint(
-            "length(trim(owner_scope)) > 0",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
             name="ck_import_history_quarantine_owner_scope",
         ),
         CheckConstraint(
             "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
             "AND length(trim(canonical_repo_key)) > 0 "
+            "AND canonical_repo_key = trim(canonical_repo_key) "
             "AND canonical_repo_key = lower(canonical_repo_key)) OR "
             "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
             name="ck_import_history_quarantine_scope_key",
         ),
         CheckConstraint(
-            "length(trim(reason_code)) > 0",
+            "length(trim(reason_code)) > 0 AND reason_code = trim(reason_code)",
             name="ck_import_history_quarantine_reason_code",
         ),
         CheckConstraint(
@@ -397,23 +398,26 @@ class GitHubWebhookDelivery(Base):
             name="ck_github_webhook_delivery_installation_id",
         ),
         CheckConstraint(
-            "length(trim(delivery_id)) > 0",
+            "length(trim(delivery_id)) > 0 AND delivery_id = trim(delivery_id)",
             name="ck_github_webhook_delivery_delivery_id",
         ),
         CheckConstraint(
-            "owner_scope IS NULL OR length(trim(owner_scope)) > 0",
+            "owner_scope IS NULL OR (length(trim(owner_scope)) > 0 "
+            "AND owner_scope = trim(owner_scope))",
             name="ck_github_webhook_delivery_owner_scope",
         ),
         CheckConstraint(
-            "length(trim(event_name)) > 0",
+            "length(trim(event_name)) > 0 AND event_name = trim(event_name)",
             name="ck_github_webhook_delivery_event_name",
         ),
         CheckConstraint(
-            "length(trim(disposition)) > 0",
+            "length(trim(disposition)) > 0 AND disposition = trim(disposition)",
             name="ck_github_webhook_delivery_disposition",
         ),
         CheckConstraint(
-            "length(payload_sha256) = 64 AND payload_sha256 = lower(payload_sha256)",
+            "length(payload_sha256) = 64 "
+            "AND payload_sha256 = lower(payload_sha256) "
+            "AND payload_sha256 = trim(payload_sha256)",
             name="ck_github_webhook_delivery_payload_sha256_length",
         ),
         Index(
