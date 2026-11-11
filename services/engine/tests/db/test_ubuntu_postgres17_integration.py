@@ -83,9 +83,15 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         columns = {column["name"] for column in inspect(connection).get_columns("source_refs")}
         assert "artifact_revision_id" not in columns
 
-        import_job_columns = {
-            column["name"] for column in inspect(connection).get_columns("import_jobs")
+        import_job_column_types = {
+            column["name"]: column["type"]
+            for column in inspect(connection).get_columns("import_jobs")
         }
+        for field in ("heartbeat_at", "lease_expires_at", "available_at", "pause_requested_at"):
+            assert getattr(import_job_column_types[field], "timezone", False), (
+                f"{field} must preserve an absolute instant on PostgreSQL"
+            )
+        import_job_columns = set(import_job_column_types)
         assert {
             "protocol_version", "worker_id", "lease_token", "lease_generation",
             "heartbeat_at", "lease_expires_at", "attempt_count", "available_at",
