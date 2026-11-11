@@ -30,19 +30,19 @@ def upgrade() -> None:
         "import_jobs",
         sa.Column("lease_generation", sa.Integer(), nullable=False, server_default="0"),
     )
-    op.add_column("import_jobs", sa.Column("heartbeat_at", sa.DateTime(), nullable=True))
-    op.add_column("import_jobs", sa.Column("lease_expires_at", sa.DateTime(), nullable=True))
+    op.add_column("import_jobs", sa.Column("heartbeat_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column("import_jobs", sa.Column("lease_expires_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column(
         "import_jobs",
         sa.Column("attempt_count", sa.Integer(), nullable=False, server_default="0"),
     )
-    op.add_column("import_jobs", sa.Column("available_at", sa.DateTime(), nullable=True))
+    op.add_column("import_jobs", sa.Column("available_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column(
         "import_jobs",
         sa.Column("checkpoint_version", sa.Integer(), nullable=False, server_default="0"),
     )
     op.add_column("import_jobs", sa.Column("checkpoint_json", sa.JSON(), nullable=True))
-    op.add_column("import_jobs", sa.Column("pause_requested_at", sa.DateTime(), nullable=True))
+    op.add_column("import_jobs", sa.Column("pause_requested_at", sa.DateTime(timezone=True), nullable=True))
     op.add_column("import_jobs", sa.Column("last_failure_category", sa.String(length=80), nullable=True))
 
     op.create_index(
