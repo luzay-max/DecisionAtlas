@@ -336,6 +336,15 @@ def downgrade() -> None:
         "uq_github_app_installations_installation_id",
         table_name="github_app_installations",
     )
+    with op.batch_alter_table("github_app_installations") as batch_op:
+        batch_op.drop_constraint(
+            "ck_github_app_installations_installation_id",
+            type_="check",
+        )
+        batch_op.drop_constraint(
+            "ck_github_app_installations_owner_scope",
+            type_="check",
+        )
     op.drop_index(
         "ix_import_history_quarantine_lookup",
         table_name="import_history_quarantines",
