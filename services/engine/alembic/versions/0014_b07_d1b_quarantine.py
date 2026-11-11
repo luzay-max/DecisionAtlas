@@ -259,6 +259,10 @@ def upgrade() -> None:
             "ck_github_app_installations_owner_scope",
             "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
         )
+        batch_op.create_check_constraint(
+            "ck_github_app_installations_installation_id",
+            "length(trim(installation_id)) > 0 AND installation_id = trim(installation_id)",
+        )
 
     # Installation IDs are platform-global identities. The preflight above
     # prevents arbitrary selection/merging before this unique constraint.
@@ -274,7 +278,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("installation_id", sa.String(length=255), nullable=False),
         sa.Column("delivery_id", sa.String(length=255), nullable=False),
-        sa.Column("owner_scope", sa.String(length=120), nullable=True),
+        sa.Column("owner_scope", sa.String(length=120), nullable=False),
         sa.Column("event_name", sa.String(length=100), nullable=False),
         sa.Column("payload_sha256", sa.String(length=64), nullable=False),
         sa.Column("disposition", sa.String(length=40), nullable=False),
@@ -296,8 +300,7 @@ def upgrade() -> None:
             name="ck_github_webhook_delivery_delivery_id",
         ),
         sa.CheckConstraint(
-            "owner_scope IS NULL OR (length(trim(owner_scope)) > 0 "
-            "AND owner_scope = trim(owner_scope))",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
             name="ck_github_webhook_delivery_owner_scope",
         ),
         sa.CheckConstraint(
