@@ -105,6 +105,10 @@ class GitHubAppInstallation(Base):
             "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
             name="ck_github_app_installations_owner_scope",
         ),
+        CheckConstraint(
+            "length(trim(installation_id)) > 0 AND installation_id = trim(installation_id)",
+            name="ck_github_app_installations_installation_id",
+        ),
         Index("uq_github_app_installations_installation_id", "installation_id", unique=True),
     )
 
@@ -409,8 +413,7 @@ class GitHubWebhookDelivery(Base):
             name="ck_github_webhook_delivery_delivery_id",
         ),
         CheckConstraint(
-            "owner_scope IS NULL OR (length(trim(owner_scope)) > 0 "
-            "AND owner_scope = trim(owner_scope))",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
             name="ck_github_webhook_delivery_owner_scope",
         ),
         CheckConstraint(
@@ -437,7 +440,7 @@ class GitHubWebhookDelivery(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     installation_id: Mapped[str] = mapped_column(String(255), nullable=False)
     delivery_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    owner_scope: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
     event_name: Mapped[str] = mapped_column(String(100), nullable=False)
     payload_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     disposition: Mapped[str] = mapped_column(String(40), nullable=False)
