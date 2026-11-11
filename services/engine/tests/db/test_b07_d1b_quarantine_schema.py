@@ -97,16 +97,16 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         ).mappings().all()
         assert [dict(row) for row in quarantines] == [
             {
-                "owner_scope": "scope-repo",
-                "scope_kind": "repository",
-                "canonical_repo_key": "acme/decisionatlas",
+                "owner_scope": "scope-conflict",
+                "scope_kind": "owner_scope",
+                "canonical_repo_key": None,
                 "status": "active",
                 "reason_code": "legacy_history_unverified",
             },
             {
-                "owner_scope": "scope-conflict",
-                "scope_kind": "owner_scope",
-                "canonical_repo_key": None,
+                "owner_scope": "scope-repo",
+                "scope_kind": "repository",
+                "canonical_repo_key": "acme/decisionatlas",
                 "status": "active",
                 "reason_code": "legacy_history_unverified",
             },
