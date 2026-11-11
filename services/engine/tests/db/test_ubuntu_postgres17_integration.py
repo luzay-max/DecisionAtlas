@@ -335,6 +335,44 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                         "(owner_scope, installation_id) VALUES ('other-owner', '170001')"
                     )
                 )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE import_history_quarantines SET status='cleared' "
+                        "WHERE owner_scope='b07-pg17-legacy'"
+                    )
+                )
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "UPDATE import_history_quarantines "
+                    "SET status='cleared', cleared_at=clock_timestamp(), "
+                    "cleared_by='pg17-reviewer', "
+                    "clearance_rationale='Reviewed legacy partial results' "
+                    "WHERE owner_scope='b07-pg17-legacy' AND scope_kind='repository'"
+                )
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO import_history_quarantines "
+                    "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                    "VALUES ('b07-pg17-legacy', 'repository', 'b07-legacy/repo', "
+                    "'active', 'operator-discovered-history')"
+                )
+            )
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='b07-pg17-legacy' AND status='cleared'"
+            )
+        ) == 1
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='b07-pg17-legacy' AND status='active'"
+            )
+        ) == 1
         with engine.begin() as connection:
             connection.execute(
                 text(
