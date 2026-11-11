@@ -72,6 +72,18 @@ def _canonical_repository(value: str | None) -> str | None:
 
 
 def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
+    invalid_installations = bind.execute(
+        sa.text(
+            "SELECT id FROM github_app_installations "
+            "WHERE installation_id IS NULL OR length(trim(installation_id)) = 0"
+        )
+    ).scalars().all()
+    if invalid_installations:
+        raise RuntimeError(
+            "B07-D1b migration blocked: GitHub installations have empty installation_id "
+            f"values on rows: {', '.join(str(value) for value in invalid_installations)}"
+        )
+
     duplicates = bind.execute(
         sa.text(
             "SELECT installation_id, COUNT(*) AS row_count "
