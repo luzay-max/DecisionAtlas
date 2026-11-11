@@ -82,6 +82,19 @@ def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
 
 def upgrade() -> None:
     bind = op.get_bind()
+    # Freeze the identity/history inputs for the duration of preflight and
+    # backfill. PostgreSQL SHARE locks block concurrent DML; SQLite IMMEDIATE
+    # acquires its writer reservation before the first read.
+    if bind.dialect.name == "postgresql":
+        bind.execute(
+            sa.text(
+                "LOCK TABLE import_jobs, workspaces, github_app_installations "
+                "IN SHARE MODE"
+            )
+        )
+    elif bind.dialect.name == "sqlite":
+        bind.exec_driver_sql("BEGIN IMMEDIATE")
+
     legacy_rows = _preflight(bind)
 
     op.create_table(
