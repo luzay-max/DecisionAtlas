@@ -121,6 +121,25 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         assert connection.scalar(
             text("SELECT COUNT(*) FROM import_jobs WHERE protocol_version='legacy'")
         ) == 5
+        historical_jobs = connection.execute(
+            text("SELECT job_id, repo FROM import_jobs ORDER BY job_id")
+        ).all()
+        assert historical_jobs == [
+            ("d1b-conflicting-one", "acme/repo-one"),
+            ("d1b-conflicting-two", "acme/repo-two"),
+            ("d1b-legacy-one", "https://github.com/acme/decisionatlas.git"),
+            ("d1b-legacy-two", "ACME/DECISIONATLAS"),
+            ("d1b-legacy-unknown", "https://gitlab.example/acme/private"),
+        ]
+        workspace_identities = connection.execute(
+            text("SELECT slug, repo_identity FROM workspaces ORDER BY slug")
+        ).all()
+        assert workspace_identities == [
+            ("d1b-conflicting", None),
+            ("d1b-first", "Acme/DecisionAtlas"),
+            ("d1b-second", None),
+            ("d1b-unknown", None),
+        ]
         assert connection.scalar(
             text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='9001'")
         ) == 1
