@@ -43,6 +43,7 @@ def test_canonical_github_repository_accepts_only_supported_aliases(
         "owner/.",
         "owner/..",
         "owner/.git",
+        "owner/*",
         "owner/repo?query=1",
         "owner/repo#fragment",
         "https://github.com/owner/repo?",
