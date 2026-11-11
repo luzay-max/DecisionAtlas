@@ -11,6 +11,7 @@ from uuid import uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, delete, event, inspect, select, text
 from sqlalchemy.orm import Session
@@ -52,6 +53,9 @@ def password_concurrency_database(request, tmp_path, monkeypatch) -> str:
             pytest.skip("PostgreSQL 17 password concurrency test requires the isolated CI URL")
 
     monkeypatch.setenv("DATABASE_URL", url)
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", url)
+    expected_version = ScriptDirectory.from_config(config).get_current_head()
     engine = _engine(url)
     try:
         with engine.connect() as connection:
@@ -67,16 +71,14 @@ def password_concurrency_database(request, tmp_path, monkeypatch) -> str:
         # Close the inspection connection before Alembic writes. In particular,
         # an open SQLite read transaction must not hold the schema migration.
         if current_version is None:
-            config = Config("alembic.ini")
-            config.set_main_option("sqlalchemy.url", url)
             command.upgrade(config, "head")
         else:
-            assert current_version == "0012_review_audit_events", (
+            assert current_version == expected_version, (
                 "Refuse to run password concurrency tests against an unexpected schema"
             )
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0012_review_audit_events"
+                expected_version
             )
     finally:
         engine.dispose()
