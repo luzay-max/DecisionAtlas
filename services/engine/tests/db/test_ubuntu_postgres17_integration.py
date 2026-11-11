@@ -309,8 +309,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             text("SELECT COUNT(*) FROM import_history_quarantines WHERE status='active'")
         ) == 2
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO import_history_quarantines "
                         "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
@@ -319,8 +319,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     )
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO import_history_quarantines "
                         "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
@@ -328,23 +328,23 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     )
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO github_app_installations "
                         "(owner_scope, installation_id) VALUES ('other-owner', '170001')"
                     )
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "UPDATE import_history_quarantines SET status='cleared' "
                         "WHERE owner_scope='b07-pg17-legacy'"
                     )
                 )
-        with engine.begin() as connection:
-            connection.execute(
+        with engine.begin() as write_connection:
+            write_connection.execute(
                 text(
                     "UPDATE import_history_quarantines "
                     "SET status='cleared', cleared_at=clock_timestamp(), "
@@ -353,7 +353,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     "WHERE owner_scope='b07-pg17-legacy' AND scope_kind='repository'"
                 )
             )
-            connection.execute(
+            write_connection.execute(
                 text(
                     "INSERT INTO import_history_quarantines "
                     "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
@@ -373,8 +373,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 "WHERE owner_scope='b07-pg17-legacy' AND status='active'"
             )
         ) == 1
-        with engine.begin() as connection:
-            connection.execute(
+        with engine.begin() as write_connection:
+            write_connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
                     "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
@@ -383,8 +383,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 {"digest": "c" * 64},
             )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
@@ -393,8 +393,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     {"digest": "c" * 64},
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
@@ -403,8 +403,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     {"digest": "e" * 64},
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
@@ -412,8 +412,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     )
                 )
         with pytest.raises(IntegrityError):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
@@ -422,8 +422,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     {"digest": "f" * 64},
                 )
         with pytest.raises(RuntimeError, match="force transaction rollback"):
-            with engine.begin() as connection:
-                connection.execute(
+            with engine.begin() as write_connection:
+                write_connection.execute(
                     text(
                         "INSERT INTO import_jobs "
                         "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
@@ -432,7 +432,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     ),
                     {"workspace_id": legacy_workspace.id},
                 )
-                connection.execute(
+                write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition, job_id) "
