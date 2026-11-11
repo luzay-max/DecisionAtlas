@@ -284,3 +284,26 @@ def test_d1b_migration_fails_closed_when_legacy_owner_scope_is_unresolved(
             "0013_import_job_lifecycle"
         )
     engine.dispose()
+
+
+
+def test_d1b_migration_fails_closed_on_empty_installation_identity(
+    tmp_path: Path, monkeypatch
+) -> None:
+    url = f"sqlite:///{tmp_path / 'd1b-empty-installation.db'}"
+    config = _config_for(url, monkeypatch)
+    command.upgrade(config, "0013_import_job_lifecycle")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        session.add(
+            GitHubAppInstallation(owner_scope="scope-empty", installation_id=" ")
+        )
+        session.commit()
+
+    with pytest.raises(RuntimeError, match="empty installation_id"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+    engine.dispose()
