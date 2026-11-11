@@ -67,6 +67,7 @@ def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
         if row["workspace_id"] is None
         or row["owner_scope"] is None
         or not str(row["owner_scope"]).strip()
+        or str(row["owner_scope"]) != str(row["owner_scope"]).strip()
     ]
     if unresolved:
         raise RuntimeError(
@@ -94,18 +95,19 @@ def upgrade() -> None:
         sa.Column("cleared_by", sa.String(length=255), nullable=True),
         sa.Column("clearance_rationale", sa.Text(), nullable=True),
         sa.CheckConstraint(
-            "length(trim(owner_scope)) > 0",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
             name="ck_import_history_quarantine_owner_scope",
         ),
         sa.CheckConstraint(
             "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
             "AND length(trim(canonical_repo_key)) > 0 "
+            "AND canonical_repo_key = trim(canonical_repo_key) "
             "AND canonical_repo_key = lower(canonical_repo_key)) OR "
             "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
             name="ck_import_history_quarantine_scope_key",
         ),
         sa.CheckConstraint(
-            "length(trim(reason_code)) > 0",
+            "length(trim(reason_code)) > 0 AND reason_code = trim(reason_code)",
             name="ck_import_history_quarantine_reason_code",
         ),
         sa.CheckConstraint(
@@ -247,23 +249,26 @@ def upgrade() -> None:
             name="ck_github_webhook_delivery_installation_id",
         ),
         sa.CheckConstraint(
-            "length(trim(delivery_id)) > 0",
+            "length(trim(delivery_id)) > 0 AND delivery_id = trim(delivery_id)",
             name="ck_github_webhook_delivery_delivery_id",
         ),
         sa.CheckConstraint(
-            "owner_scope IS NULL OR length(trim(owner_scope)) > 0",
+            "owner_scope IS NULL OR (length(trim(owner_scope)) > 0 "
+            "AND owner_scope = trim(owner_scope))",
             name="ck_github_webhook_delivery_owner_scope",
         ),
         sa.CheckConstraint(
-            "length(trim(event_name)) > 0",
+            "length(trim(event_name)) > 0 AND event_name = trim(event_name)",
             name="ck_github_webhook_delivery_event_name",
         ),
         sa.CheckConstraint(
-            "length(trim(disposition)) > 0",
+            "length(trim(disposition)) > 0 AND disposition = trim(disposition)",
             name="ck_github_webhook_delivery_disposition",
         ),
         sa.CheckConstraint(
-            "length(payload_sha256) = 64 AND payload_sha256 = lower(payload_sha256)",
+            "length(payload_sha256) = 64 "
+            "AND payload_sha256 = lower(payload_sha256) "
+            "AND payload_sha256 = trim(payload_sha256)",
             name="ck_github_webhook_delivery_payload_sha256_length",
         ),
         sa.UniqueConstraint(
