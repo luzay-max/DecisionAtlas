@@ -513,6 +513,14 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         assert connection.scalar(
             text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='170001'")
         ) == 1
+        remaining_checks = {
+            item["name"]
+            for item in inspect(connection).get_check_constraints("github_app_installations")
+        }
+        assert not {
+            "ck_github_app_installations_owner_scope",
+            "ck_github_app_installations_installation_id",
+        } & remaining_checks
 
     command.downgrade(config, "0012_review_audit_events")
     with engine.connect() as connection:
