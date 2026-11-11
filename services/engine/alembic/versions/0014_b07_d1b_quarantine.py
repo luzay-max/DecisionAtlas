@@ -25,6 +25,19 @@ def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
     installation_rows = bind.execute(
         sa.text("SELECT id, installation_id, owner_scope FROM github_app_installations")
     ).mappings().all()
+    invalid_installation_scopes = [
+        row["id"]
+        for row in installation_rows
+        if row["owner_scope"] is None
+        or not str(row["owner_scope"]).strip()
+        or str(row["owner_scope"]) != str(row["owner_scope"]).strip()
+    ]
+    if invalid_installation_scopes:
+        raise RuntimeError(
+            "B07-D1b migration blocked: GitHub installations have empty or padded owner_scope "
+            f"values on rows: {', '.join(str(value) for value in invalid_installation_scopes)}"
+        )
+
     invalid_installations = [
         row["id"]
         for row in installation_rows
@@ -237,6 +250,14 @@ def upgrade() -> None:
                 }
                 for owner, kind, repo in sorted(inserts)
             ],
+        )
+
+    # The installation's owner scope is an authoritative routing identity.
+    # Reject malformed legacy values above and prevent new ones at the DB layer.
+    with op.batch_alter_table("github_app_installations") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_github_app_installations_owner_scope",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
         )
 
     # Installation IDs are platform-global identities. The preflight above
