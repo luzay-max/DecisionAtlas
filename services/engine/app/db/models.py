@@ -394,7 +394,7 @@ class GitHubWebhookDelivery(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    installation_id: Mapped[str] = mapped_column(ForeignKey("github_app_installations.installation_id"), nullable=False)
+    installation_id: Mapped[str] = mapped_column(String(255), nullable=False)
     delivery_id: Mapped[str] = mapped_column(String(255), nullable=False)
     owner_scope: Mapped[str | None] = mapped_column(String(120), nullable=True)
     event_name: Mapped[str] = mapped_column(String(100), nullable=False)
