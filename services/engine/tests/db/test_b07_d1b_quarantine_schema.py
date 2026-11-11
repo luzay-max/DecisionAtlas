@@ -137,9 +137,81 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                 text(
                     "INSERT INTO github_webhook_deliveries "
                     "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-1', 'push', :digest, 'quarantined')"
+                ),
+                {"digest": "b" * 64},
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
                     "VALUES ('9001', 'delivery-2', 'push', 'short', 'quarantined')"
                 )
             )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', '', 'push', :digest, 'quarantined')"
+                ),
+                {"digest": "a" * 64},
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-3', 'push', :digest, 'quarantined')"
+                ),
+                {"digest": "A" * 64},
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_app_installations "
+                    "(owner_scope, installation_id) VALUES ('other-scope', '9001')"
+                )
+            )
+
+    with pytest.raises(RuntimeError, match="force transaction rollback"):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO import_jobs "
+                    "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                    "VALUES ('d1b-atomic-rollback', :workspace_id, 'acme/decisionatlas', "
+                    "'full', 'queued', 'webhook', 0)"
+                ),
+                {"workspace_id": first.id},
+            )
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition, job_id) "
+                    "VALUES ('9001', 'delivery-rollback', 'scope-repo', 'push', :digest, 'queued', "
+                    "'d1b-atomic-rollback')"
+                ),
+                {"digest": "d" * 64},
+            )
+            raise RuntimeError("force transaction rollback")
+
+    with engine.connect() as connection:
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_jobs WHERE job_id='d1b-atomic-rollback'")
+        ) == 0
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM github_webhook_deliveries WHERE delivery_id='delivery-rollback'")
+        ) == 0
 
     with pytest.raises(IntegrityError):
         with engine.begin() as connection:
@@ -152,8 +224,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                 )
             )
 
-    # A scope-wide active row and a repository active row cannot coexist for
-    # the same owner scope; the application gate must check both predicates.
+    # Duplicate scope-wide active rows are rejected. A repository-specific row
+    # may coexist, so the runtime gate must always check scope-wide isolation too.
     with pytest.raises(IntegrityError):
         with engine.begin() as connection:
             connection.execute(
