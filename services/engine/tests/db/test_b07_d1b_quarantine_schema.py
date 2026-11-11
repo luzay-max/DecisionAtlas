@@ -38,7 +38,10 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         unknown = Workspace(
             slug="d1b-unknown", name="Unknown identity", owner_scope="scope-wide",
         )
-        session.add_all([first, second, unknown])
+        conflicting = Workspace(
+            slug="d1b-conflicting", name="Conflicting legacy jobs", owner_scope="scope-conflict",
+        )
+        session.add_all([first, second, unknown, conflicting])
         session.flush()
         session.execute(
             text(
@@ -61,6 +64,16 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     "job_id": "d1b-legacy-unknown",
                     "workspace_id": unknown.id,
                     "repo": "https://gitlab.example/acme/private",
+                },
+                {
+                    "job_id": "d1b-conflicting-one",
+                    "workspace_id": conflicting.id,
+                    "repo": "acme/repo-one",
+                },
+                {
+                    "job_id": "d1b-conflicting-two",
+                    "workspace_id": conflicting.id,
+                    "repo": "acme/repo-two",
                 },
             ],
         )
@@ -91,6 +104,13 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                 "reason_code": "legacy_history_unverified",
             },
             {
+                "owner_scope": "scope-conflict",
+                "scope_kind": "owner_scope",
+                "canonical_repo_key": None,
+                "status": "active",
+                "reason_code": "legacy_history_unverified",
+            },
+            {
                 "owner_scope": "scope-wide",
                 "scope_kind": "owner_scope",
                 "canonical_repo_key": None,
@@ -100,7 +120,7 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         ]
         assert connection.scalar(
             text("SELECT COUNT(*) FROM import_jobs WHERE protocol_version='legacy'")
-        ) == 3
+        ) == 5
         assert connection.scalar(
             text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='9001'")
         ) == 1
@@ -285,7 +305,7 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         assert "github_webhook_deliveries" not in tables
         assert connection.scalar(
             text("SELECT COUNT(*) FROM import_jobs WHERE protocol_version='legacy'")
-        ) == 3
+        ) == 5
         assert connection.scalar(
             text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='9001'")
         ) == 1
