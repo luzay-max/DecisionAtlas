@@ -284,6 +284,43 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                         "'active', 'duplicate')"
                     )
                 )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO import_history_quarantines "
+                        "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                        "VALUES ('b07-pg17-unknown', 'owner_scope', NULL, 'active', 'duplicate')"
+                    )
+                )
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
+                ),
+                {"digest": "c" * 64},
+            )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'push', :digest, 'quarantined')"
+                    ),
+                    {"digest": "c" * 64},
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-2', 'push', 'short', 'ignored')"
+                    )
+                )
 
     # Downgrade only the new lifecycle schema and prove the legacy job survives.
     command.downgrade(config, "0013_import_job_lifecycle")
