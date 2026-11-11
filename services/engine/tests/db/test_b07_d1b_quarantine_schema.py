@@ -207,6 +207,17 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-padded', ' scope-repo ', 'push', :digest, 'ignored')"
+                ),
+                {"digest": "a" * 64},
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
                     "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
                     "VALUES ('9001', 'delivery-3', 'push', :digest, 'quarantined')"
                 ),
@@ -272,6 +283,25 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     "INSERT INTO import_history_quarantines "
                     "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
                     "VALUES ('scope-wide', 'owner_scope', NULL, 'active', 'duplicate-scope')"
+                )
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO import_history_quarantines "
+                    "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                    "VALUES (' scope-repo ', 'repository', 'acme/other', 'active', 'padded-scope')"
+                )
+            )
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO import_history_quarantines "
+                    "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                    "VALUES ('scope-repo', 'repository', ' ACME/OTHER ', 'active', 'padded-key')"
                 )
             )
 
@@ -437,6 +467,41 @@ def test_d1b_migration_fails_closed_when_legacy_workspace_is_missing(
                 "'full', 'queued', 'manual', 0)"
             )
         )
+
+    with pytest.raises(RuntimeError, match="unresolved workspace/owner scope"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+    engine.dispose()
+
+
+
+def test_d1b_migration_fails_closed_on_padded_owner_scope(
+    tmp_path: Path, monkeypatch
+) -> None:
+    url = f"sqlite:///{tmp_path / 'd1b-padded-owner-scope.db'}"
+    config = _config_for(url, monkeypatch)
+    command.upgrade(config, "0013_import_job_lifecycle")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        workspace = Workspace(
+            slug="d1b-padded-owner", name="Padded owner scope",
+            owner_scope=" scope-padded ",
+        )
+        session.add(workspace)
+        session.flush()
+        session.execute(
+            text(
+                "INSERT INTO import_jobs "
+                "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                "VALUES ('d1b-padded-owner-job', :workspace_id, 'acme/repo', "
+                "'full', 'queued', 'manual', 0)"
+            ),
+            {"workspace_id": workspace.id},
+        )
+        session.commit()
 
     with pytest.raises(RuntimeError, match="unresolved workspace/owner scope"):
         command.upgrade(config, "head")
