@@ -56,6 +56,7 @@ def test_canonical_github_repository_accepts_only_supported_aliases(
         "https://github.com/owner/repo%2Fextra",
         "https://user@github.com/owner/repo",
         "https://github.com:443/owner/repo",
+        "https://github.com:/owner/repo",
         "https://[invalid/owner/repo",
         "bad_owner/repo",
         "bad..owner/repo",
