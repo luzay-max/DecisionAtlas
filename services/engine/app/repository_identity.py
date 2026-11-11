@@ -18,7 +18,12 @@ def canonical_github_repository(value: str | None) -> str | None:
     if value is None:
         return None
     candidate = value.strip()
-    if not candidate or "?" in candidate or "#" in candidate:
+    if (
+        not candidate
+        or "?" in candidate
+        or "#" in candidate
+        or any(ord(char) <= 0x20 or ord(char) == 0x7F for char in candidate)
+    ):
         return None
 
     if "://" in candidate:
