@@ -149,6 +149,17 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         indexes = {item["name"] for item in inspect(connection).get_indexes("github_app_installations")}
         assert "uq_github_app_installations_installation_id" in indexes
 
+    for invalid_scope in ("", " scope-padded "):
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations (owner_scope, installation_id) "
+                        "VALUES (:owner_scope, 'invalid-scope-installation')"
+                    ),
+                    {"owner_scope": invalid_scope},
+                )
+
     with Session(engine) as session:
         session.execute(
             text(
@@ -438,6 +449,32 @@ def test_d1b_migration_fails_closed_when_legacy_owner_scope_is_unresolved(
         )
     engine.dispose()
 
+
+
+@pytest.mark.parametrize("owner_scope", ["", " scope-padded "])
+def test_d1b_migration_fails_closed_on_empty_or_padded_installation_owner_scope(
+    tmp_path: Path, monkeypatch, owner_scope: str
+) -> None:
+    url = f"sqlite:///{tmp_path / 'd1b-invalid-installation-owner.db'}"
+    config = _config_for(url, monkeypatch)
+    command.upgrade(config, "0013_import_job_lifecycle")
+    engine = create_engine(url)
+    with Session(engine) as session:
+        session.add(
+            GitHubAppInstallation(owner_scope=owner_scope, installation_id="9002")
+        )
+        session.commit()
+
+    with pytest.raises(RuntimeError, match="empty or padded owner_scope"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+        tables = set(inspect(connection).get_table_names())
+        assert "import_history_quarantines" not in tables
+        assert "github_webhook_deliveries" not in tables
+    engine.dispose()
 
 
 def test_d1b_migration_fails_closed_on_empty_installation_identity(
