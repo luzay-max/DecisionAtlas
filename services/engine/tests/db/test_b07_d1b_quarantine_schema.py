@@ -389,6 +389,14 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         assert connection.scalar(
             text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='9001'")
         ) == 1
+        remaining_checks = {
+            item["name"]
+            for item in inspect(connection).get_check_constraints("github_app_installations")
+        }
+        assert not {
+            "ck_github_app_installations_owner_scope",
+            "ck_github_app_installations_installation_id",
+        } & remaining_checks
     engine.dispose()
 
 
