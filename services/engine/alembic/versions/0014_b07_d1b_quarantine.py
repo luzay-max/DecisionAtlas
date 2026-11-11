@@ -22,13 +22,16 @@ depends_on = None
 
 
 def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
-    invalid_installations = bind.execute(
-        sa.text(
-            "SELECT id FROM github_app_installations "
-            "WHERE installation_id IS NULL OR length(trim(installation_id)) = 0 "
-            "OR installation_id <> trim(installation_id)"
-        )
-    ).scalars().all()
+    installation_rows = bind.execute(
+        sa.text("SELECT id, installation_id FROM github_app_installations")
+    ).mappings().all()
+    invalid_installations = [
+        row["id"]
+        for row in installation_rows
+        if row["installation_id"] is None
+        or not str(row["installation_id"]).strip()
+        or str(row["installation_id"]) != str(row["installation_id"]).strip()
+    ]
     if invalid_installations:
         raise RuntimeError(
             "B07-D1b migration blocked: GitHub installations have empty or padded installation_id "
