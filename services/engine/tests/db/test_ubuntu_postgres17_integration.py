@@ -56,13 +56,27 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         )
         session.add_all([legacy_workspace, unknown_workspace])
         session.flush()
-        session.add(
-            GitHubAppInstallation(
-                owner_scope="b07-pg17-legacy",
-                installation_id="170001",
-                account_login="b07-legacy",
-                account_type="Organization",
-            )
+        session.add_all(
+            [
+                GitHubAppInstallation(
+                    owner_scope="b07-pg17-legacy",
+                    installation_id="170001",
+                    account_login="b07-legacy",
+                    account_type="Organization",
+                ),
+                GitHubAppInstallation(
+                    owner_scope="duplicate-owner-a",
+                    installation_id="duplicate-170002",
+                    account_login="duplicate-a",
+                    account_type="Organization",
+                ),
+                GitHubAppInstallation(
+                    owner_scope="duplicate-owner-b",
+                    installation_id="duplicate-170002",
+                    account_login="duplicate-b",
+                    account_type="Organization",
+                ),
+            ]
         )
         session.execute(
             text(
@@ -90,6 +104,26 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             ],
         )
         session.commit()
+
+    # Duplicate installation identities across owner scopes must block the
+    # migration before any D1b DDL is applied.
+    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+        assert not inspect(connection).has_table("import_history_quarantines")
+        assert not inspect(connection).has_table("github_webhook_deliveries")
+    with Session(engine) as session:
+        session.execute(
+            text(
+                "DELETE FROM github_app_installations "
+                "WHERE installation_id='duplicate-170002'"
+            )
+        )
+        session.commit()
+
     command.upgrade(config, "head")
 
     with engine.connect() as connection:
@@ -293,6 +327,14 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                         "VALUES ('b07-pg17-unknown', 'owner_scope', NULL, 'active', 'duplicate')"
                     )
                 )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations "
+                        "(owner_scope, installation_id) VALUES ('other-owner', '170001')"
+                    )
+                )
         with engine.begin() as connection:
             connection.execute(
                 text(
@@ -318,9 +360,56 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     text(
                         "INSERT INTO github_webhook_deliveries "
                         "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'push', :digest, 'quarantined')"
+                    ),
+                    {"digest": "e" * 64},
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
                         "VALUES ('170001', 'pg-delivery-2', 'push', 'short', 'ignored')"
                     )
                 )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', '', 'push', :digest, 'ignored')"
+                    ),
+                    {"digest": "f" * 64},
+                )
+        with pytest.raises(RuntimeError, match="force transaction rollback"):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO import_jobs "
+                        "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                        "VALUES ('b07-pg17-atomic-rollback', :workspace_id, 'b07-legacy/repo', "
+                        "'full', 'queued', 'webhook', 0)"
+                    ),
+                    {"workspace_id": legacy_workspace.id},
+                )
+                connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition, job_id) "
+                        "VALUES ('170001', 'pg-delivery-rollback', 'b07-pg17-legacy', 'push', "
+                        ":digest, 'queued', 'b07-pg17-atomic-rollback')"
+                    ),
+                    {"digest": "f" * 64},
+                )
+                raise RuntimeError("force transaction rollback")
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_jobs WHERE job_id='b07-pg17-atomic-rollback'")
+        ) == 0
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM github_webhook_deliveries WHERE delivery_id='pg-delivery-rollback'")
+        ) == 0
 
     # Downgrade only the new lifecycle schema and prove the legacy job survives.
     command.downgrade(config, "0013_import_job_lifecycle")
