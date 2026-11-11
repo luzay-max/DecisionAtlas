@@ -57,6 +57,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         )
         session.add_all([legacy_workspace, unknown_workspace])
         session.flush()
+        legacy_workspace_id = legacy_workspace.id
         session.add_all(
             [
                 GitHubAppInstallation(
@@ -431,7 +432,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                         "VALUES ('b07-pg17-atomic-rollback', :workspace_id, 'b07-legacy/repo', "
                         "'full', 'queued', 'webhook', 0)"
                     ),
-                    {"workspace_id": legacy_workspace.id},
+                    {"workspace_id": legacy_workspace_id},
                 )
                 write_connection.execute(
                     text(
