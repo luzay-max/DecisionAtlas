@@ -159,6 +159,16 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     ),
                     {"owner_scope": invalid_scope},
                 )
+    for invalid_id in ("", " 9003 "):
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations (owner_scope, installation_id) "
+                        "VALUES ('scope-repo', :installation_id)"
+                    ),
+                    {"installation_id": invalid_id},
+                )
 
     with Session(engine) as session:
         session.execute(
@@ -176,8 +186,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('9001', 'delivery-1', 'push', :digest, 'quarantined')"
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-1', 'scope-repo', 'push', :digest, 'quarantined')"
                 ),
                 {"digest": "a" * 64},
             )
@@ -187,8 +197,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('9001', 'delivery-1', 'push', :digest, 'quarantined')"
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-1', 'scope-repo', 'push', :digest, 'quarantined')"
                 ),
                 {"digest": "b" * 64},
             )
@@ -198,8 +208,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('9001', 'delivery-2', 'push', 'short', 'quarantined')"
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-2', 'scope-repo', 'push', 'short', 'quarantined')"
                 )
             )
 
@@ -208,8 +218,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('9001', '', 'push', :digest, 'quarantined')"
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', '', 'scope-repo', 'push', :digest, 'quarantined')"
                 ),
                 {"digest": "a" * 64},
             )
@@ -230,8 +240,8 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
             connection.execute(
                 text(
                     "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('9001', 'delivery-3', 'push', :digest, 'quarantined')"
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('9001', 'delivery-3', 'scope-repo', 'push', :digest, 'quarantined')"
                 ),
                 {"digest": "A" * 64},
             )
