@@ -304,6 +304,15 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     "VALUES ('scope-repo', 'repository', ' ACME/OTHER ', 'active', 'padded-key')"
                 )
             )
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "INSERT INTO import_history_quarantines "
+                    "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                    "VALUES ('scope-repo', 'repository', '*', 'active', 'reserved-wildcard')"
+                )
+            )
 
     # Clearance requires operator identity, time and a non-empty rationale.
     with pytest.raises(IntegrityError):
