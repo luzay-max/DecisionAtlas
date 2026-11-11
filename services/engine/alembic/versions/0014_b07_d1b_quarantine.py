@@ -8,6 +8,7 @@ Create Date: 2026-11-11
 from __future__ import annotations
 
 import re
+from typing import Any
 from urllib.parse import urlsplit
 
 from alembic import op
@@ -70,7 +71,7 @@ def _canonical_repository(value: str | None) -> str | None:
     return f"{owner.lower()}/{repository.lower()}"
 
 
-def _preflight(bind: sa.Connection) -> list[dict[str, object]]:
+def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
     duplicates = bind.execute(
         sa.text(
             "SELECT installation_id, COUNT(*) AS row_count "
@@ -173,7 +174,7 @@ def upgrade() -> None:
 
     # Backfill every pre-existing job conservatively. Conflicting identity
     # evidence within one workspace escalates to owner-scope quarantine.
-    by_workspace: dict[int, dict[str, object]] = {}
+    by_workspace: dict[int, dict[str, Any]] = {}
     for row in legacy_rows:
         workspace_id = int(row["workspace_id"])
         state = by_workspace.setdefault(
