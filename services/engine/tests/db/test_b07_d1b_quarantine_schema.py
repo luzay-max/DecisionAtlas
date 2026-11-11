@@ -377,8 +377,10 @@ def test_d1b_migration_fails_closed_on_duplicate_installation_ids(
         )
         session.commit()
 
-    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id"):
+    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id") as exc_info:
         command.upgrade(config, "head")
+    assert "scope-a" in str(exc_info.value)
+    assert "scope-b" in str(exc_info.value)
 
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
