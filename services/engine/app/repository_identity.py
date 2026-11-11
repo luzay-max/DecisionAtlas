@@ -31,6 +31,7 @@ def canonical_github_repository(value: str | None) -> str | None:
             parsed.scheme.lower() != "https"
             or parsed.hostname is None
             or parsed.hostname.lower() != "github.com"
+            or parsed.netloc.lower() != "github.com"
             or parsed.username is not None
             or parsed.password is not None
             or port is not None
