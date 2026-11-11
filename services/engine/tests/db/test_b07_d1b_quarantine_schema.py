@@ -379,3 +379,30 @@ def test_d1b_migration_fails_closed_on_empty_installation_identity(
             "0013_import_job_lifecycle"
         )
     engine.dispose()
+
+
+
+def test_d1b_migration_fails_closed_when_legacy_workspace_is_missing(
+    tmp_path: Path, monkeypatch
+) -> None:
+    url = f"sqlite:///{tmp_path / 'd1b-missing-workspace.db'}"
+    config = _config_for(url, monkeypatch)
+    command.upgrade(config, "0013_import_job_lifecycle")
+    engine = create_engine(url)
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "INSERT INTO import_jobs "
+                "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                "VALUES ('d1b-missing-workspace', 999999, 'acme/repo', "
+                "'full', 'queued', 'manual', 0)"
+            )
+        )
+
+    with pytest.raises(RuntimeError, match="unresolved workspace/owner scope"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+    engine.dispose()
