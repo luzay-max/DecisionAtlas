@@ -43,8 +43,9 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", url)
     expected_version = ScriptDirectory.from_config(config).get_current_head()
-    # Exercise the upgrade with a pre-existing job, not only an empty schema.
-    command.upgrade(config, "0012_review_audit_events")
+    # Seed the pre-existing job after 0013 so the duplicate-installation
+    # preflight isolates the D1b revision rather than rolling back the chain.
+    command.upgrade(config, "0013_import_job_lifecycle")
     with Session(engine) as session:
         legacy_workspace = Workspace(
             slug="b07-pg17-legacy", name="B07 legacy workspace",
