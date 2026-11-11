@@ -43,6 +43,31 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", url)
     expected_version = ScriptDirectory.from_config(config).get_current_head()
+    # Exercise the upgrade with a pre-existing job, not only an empty schema.
+    command.upgrade(config, "0012_review_audit_events")
+    with Session(engine) as session:
+        legacy_workspace = Workspace(
+            slug="b07-pg17-legacy", name="B07 legacy workspace",
+            owner_scope="b07-pg17-legacy", access_source_type="public",
+        )
+        session.add(legacy_workspace)
+        session.flush()
+        session.execute(
+            text(
+                "INSERT INTO import_jobs "
+                "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                "VALUES (:job_id, :workspace_id, :repo, :mode, :status, :sync_origin, 0)"
+            ),
+            {
+                "job_id": "b07-pg17-legacy-queued",
+                "workspace_id": legacy_workspace.id,
+                "repo": "example/legacy",
+                "mode": "full",
+                "status": "queued",
+                "sync_origin": "manual",
+            },
+        )
+        session.commit()
     command.upgrade(config, "head")
 
     with engine.connect() as connection:
@@ -67,6 +92,29 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             "checkpoint_version", "checkpoint_json", "pause_requested_at",
             "last_failure_category",
         }.issubset(import_job_columns)
+        legacy = connection.execute(
+            text(
+                "SELECT protocol_version, worker_id, lease_token, lease_generation, "
+                "heartbeat_at, lease_expires_at, attempt_count, available_at, "
+                "checkpoint_version, checkpoint_json, pause_requested_at, "
+                "last_failure_category FROM import_jobs "
+                "WHERE job_id = 'b07-pg17-legacy-queued'"
+            )
+        ).mappings().one()
+        assert legacy["protocol_version"] == "legacy"
+        assert legacy["worker_id"] is None
+        assert legacy["lease_token"] is None
+        assert legacy["lease_generation"] == 0
+        assert legacy["heartbeat_at"] is None
+        assert legacy["lease_expires_at"] is None
+        assert legacy["attempt_count"] == 0
+        assert legacy["available_at"] is None
+        assert legacy["checkpoint_version"] == 0
+        assert legacy["checkpoint_json"] is None
+        assert legacy["pause_requested_at"] is None
+        assert legacy["last_failure_category"] is None
+        indexes = {index["name"] for index in inspect(connection).get_indexes("import_jobs")}
+        assert {"ix_import_jobs_claimable", "ix_import_jobs_lease_expiry"}.issubset(indexes)
 
     with Session(engine) as session:
         public = Workspace(
@@ -170,4 +218,16 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             text("SELECT COUNT(*) FROM review_audit_events WHERE target_id=:id"),
             {"id": accepted_id},
         ) == 1
+
+    # Downgrade only the new lifecycle schema and prove the legacy job survives.
+    command.downgrade(config, "0012_review_audit_events")
+    with engine.connect() as connection:
+        columns = {column["name"] for column in inspect(connection).get_columns("import_jobs")}
+        assert "protocol_version" not in columns
+        assert "lease_generation" not in columns
+        indexes = {index["name"] for index in inspect(connection).get_indexes("import_jobs")}
+        assert not {"ix_import_jobs_claimable", "ix_import_jobs_lease_expiry"} & indexes
+        assert connection.scalar(
+            text("SELECT job_id FROM import_jobs WHERE job_id = 'b07-pg17-legacy-queued'")
+        ) == "b07-pg17-legacy-queued"
     engine.dispose()
