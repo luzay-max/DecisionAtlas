@@ -126,6 +126,29 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 "WHERE installation_id='duplicate-170002'"
             )
         )
+        session.add(
+            GitHubAppInstallation(
+                owner_scope=" ",
+                installation_id="invalid-owner-scope-170003",
+            )
+        )
+        session.commit()
+
+    with pytest.raises(RuntimeError, match="empty or padded owner_scope"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+        assert not inspect(connection).has_table("import_history_quarantines")
+
+    with Session(engine) as session:
+        session.execute(
+            text(
+                "DELETE FROM github_app_installations "
+                "WHERE installation_id='invalid-owner-scope-170003'"
+            )
+        )
         session.commit()
 
     command.upgrade(config, "head")
@@ -162,6 +185,11 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             index["name"] for index in inspect(connection).get_indexes("github_app_installations")
         }
         assert "uq_github_app_installations_installation_id" in installation_indexes
+        installation_constraints = {
+            constraint["name"]
+            for constraint in inspect(connection).get_check_constraints("github_app_installations")
+        }
+        assert "ck_github_app_installations_owner_scope" in installation_constraints
         # Explicitly enforce the maintainer's blocked #34 migration boundary.
         assert not {"artifact_revisions", "artifact_current_revisions",
                     "artifact_extraction_runs"} & tables
@@ -337,6 +365,14 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     text(
                         "INSERT INTO github_app_installations "
                         "(owner_scope, installation_id) VALUES ('other-owner', '170001')"
+                    )
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations "
+                        "(owner_scope, installation_id) VALUES (' scope-padded ', '170003')"
                     )
                 )
         with pytest.raises(IntegrityError):
