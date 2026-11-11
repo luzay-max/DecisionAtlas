@@ -248,7 +248,12 @@ def upgrade() -> None:
     op.create_table(
         "github_webhook_deliveries",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("installation_id", sa.String(length=255), nullable=False),
+        sa.Column(
+            "installation_id",
+            sa.String(length=255),
+            sa.ForeignKey("github_app_installations.installation_id"),
+            nullable=False,
+        ),
         sa.Column("delivery_id", sa.String(length=255), nullable=False),
         sa.Column("owner_scope", sa.String(length=120), nullable=True),
         sa.Column("event_name", sa.String(length=100), nullable=False),
