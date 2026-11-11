@@ -85,6 +85,7 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                 account_type="Organization",
             )
         )
+        first_workspace_id = first.id
         session.commit()
 
     command.upgrade(config, "head")
@@ -242,7 +243,7 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     "VALUES ('d1b-atomic-rollback', :workspace_id, 'acme/decisionatlas', "
                     "'full', 'queued', 'webhook', 0)"
                 ),
-                {"workspace_id": first.id},
+                {"workspace_id": first_workspace_id},
             )
             connection.execute(
                 text(
