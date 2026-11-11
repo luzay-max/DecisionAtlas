@@ -190,6 +190,7 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             for constraint in inspect(connection).get_check_constraints("github_app_installations")
         }
         assert "ck_github_app_installations_owner_scope" in installation_constraints
+        assert "ck_github_app_installations_installation_id" in installation_constraints
         # Explicitly enforce the maintainer's blocked #34 migration boundary.
         assert not {"artifact_revisions", "artifact_current_revisions",
                     "artifact_extraction_runs"} & tables
@@ -375,6 +376,17 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                         "(owner_scope, installation_id) VALUES (' scope-padded ', '170003')"
                     )
                 )
+        for invalid_installation_id in ("", " 170004 "):
+            with pytest.raises(IntegrityError):
+                with engine.begin() as write_connection:
+                    write_connection.execute(
+                        text(
+                            "INSERT INTO github_app_installations "
+                            "(owner_scope, installation_id) VALUES "
+                            "('b07-pg17-legacy', :installation_id)"
+                        ),
+                        {"installation_id": invalid_installation_id},
+                    )
         with pytest.raises(IntegrityError):
             with engine.begin() as write_connection:
                 write_connection.execute(
@@ -427,8 +439,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
-                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                        "VALUES ('170001', 'pg-delivery-1', 'push', :digest, 'quarantined')"
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
                     ),
                     {"digest": "c" * 64},
                 )
@@ -437,8 +449,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
-                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                        "VALUES ('170001', 'pg-delivery-1', 'push', :digest, 'quarantined')"
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
                     ),
                     {"digest": "e" * 64},
                 )
@@ -447,8 +459,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
-                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                        "VALUES ('170001', 'pg-delivery-2', 'push', 'short', 'ignored')"
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-2', 'b07-pg17-legacy', 'push', 'short', 'ignored')"
                     )
                 )
         with pytest.raises(IntegrityError):
@@ -456,8 +468,8 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                 write_connection.execute(
                     text(
                         "INSERT INTO github_webhook_deliveries "
-                        "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                        "VALUES ('170001', '', 'push', :digest, 'ignored')"
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', '', 'b07-pg17-legacy', 'push', :digest, 'ignored')"
                     ),
                     {"digest": "f" * 64},
                 )
