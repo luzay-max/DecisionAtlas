@@ -16,7 +16,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, ReviewAuditEvent, SourceRef, Workspace
+from app.db.models import Artifact, Decision, GitHubAppInstallation, ReviewAuditEvent, SourceRef, Workspace
 from app.repositories.decisions import DecisionRepository
 from app.retrieval.full_text import full_text_search
 
@@ -43,31 +43,114 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", url)
     expected_version = ScriptDirectory.from_config(config).get_current_head()
-    # Exercise the upgrade with a pre-existing job, not only an empty schema.
-    command.upgrade(config, "0012_review_audit_events")
+    # Seed the pre-existing job after 0013 so the duplicate-installation
+    # preflight isolates the D1b revision rather than rolling back the chain.
+    command.upgrade(config, "0013_import_job_lifecycle")
     with Session(engine) as session:
         legacy_workspace = Workspace(
             slug="b07-pg17-legacy", name="B07 legacy workspace",
             owner_scope="b07-pg17-legacy", access_source_type="public",
         )
-        session.add(legacy_workspace)
+        unknown_workspace = Workspace(
+            slug="b07-pg17-unknown", name="B07 unknown repository",
+            owner_scope="b07-pg17-unknown", access_source_type="public",
+        )
+        session.add_all([legacy_workspace, unknown_workspace])
         session.flush()
+        legacy_workspace_id = legacy_workspace.id
+        session.add_all(
+            [
+                GitHubAppInstallation(
+                    owner_scope="b07-pg17-legacy",
+                    installation_id="170001",
+                    account_login="b07-legacy",
+                    account_type="Organization",
+                ),
+                GitHubAppInstallation(
+                    owner_scope="duplicate-owner-a",
+                    installation_id="duplicate-170002",
+                    account_login="duplicate-a",
+                    account_type="Organization",
+                ),
+                GitHubAppInstallation(
+                    owner_scope="duplicate-owner-b",
+                    installation_id="duplicate-170002",
+                    account_login="duplicate-b",
+                    account_type="Organization",
+                ),
+            ]
+        )
         session.execute(
             text(
                 "INSERT INTO import_jobs "
                 "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
                 "VALUES (:job_id, :workspace_id, :repo, :mode, :status, :sync_origin, 0)"
             ),
-            {
-                "job_id": "b07-pg17-legacy-queued",
-                "workspace_id": legacy_workspace.id,
-                "repo": "example/legacy",
-                "mode": "full",
-                "status": "queued",
-                "sync_origin": "manual",
-            },
+            [
+                {
+                    "job_id": "b07-pg17-legacy-queued",
+                    "workspace_id": legacy_workspace.id,
+                    "repo": "https://github.com/B07-Legacy/Repo.git",
+                    "mode": "full",
+                    "status": "queued",
+                    "sync_origin": "manual",
+                },
+                {
+                    "job_id": "b07-pg17-unknown-queued",
+                    "workspace_id": unknown_workspace.id,
+                    "repo": "https://gitlab.example/private/repo",
+                    "mode": "full",
+                    "status": "queued",
+                    "sync_origin": "manual",
+                },
+            ],
         )
         session.commit()
+
+    # Duplicate installation identities across owner scopes must block the
+    # migration before any D1b DDL is applied.
+    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id") as exc_info:
+        command.upgrade(config, "head")
+    assert "duplicate-owner-a" in str(exc_info.value)
+    assert "duplicate-owner-b" in str(exc_info.value)
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+        assert not inspect(connection).has_table("import_history_quarantines")
+        assert not inspect(connection).has_table("github_webhook_deliveries")
+    with Session(engine) as session:
+        session.execute(
+            text(
+                "DELETE FROM github_app_installations "
+                "WHERE installation_id='duplicate-170002'"
+            )
+        )
+        session.add(
+            GitHubAppInstallation(
+                owner_scope=" ",
+                installation_id="invalid-owner-scope-170003",
+            )
+        )
+        session.commit()
+
+    with pytest.raises(RuntimeError, match="empty or padded owner_scope"):
+        command.upgrade(config, "head")
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
+            "0013_import_job_lifecycle"
+        )
+        assert not inspect(connection).has_table("import_history_quarantines")
+
+    with Session(engine) as session:
+        session.execute(
+            text(
+                "DELETE FROM github_app_installations "
+                "WHERE installation_id='invalid-owner-scope-170003'"
+            )
+        )
+        session.commit()
+
     command.upgrade(config, "head")
 
     with engine.connect() as connection:
@@ -76,7 +159,38 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         )
         tables = set(inspect(connection).get_table_names())
         assert {"workspaces", "artifacts", "decisions", "source_refs",
-                "review_audit_events", "drift_alerts"}.issubset(tables)
+                "review_audit_events", "drift_alerts", "import_history_quarantines",
+                "github_webhook_deliveries"}.issubset(tables)
+        quarantines = connection.execute(
+            text(
+                "SELECT owner_scope, scope_kind, canonical_repo_key, status "
+                "FROM import_history_quarantines ORDER BY owner_scope"
+            )
+        ).mappings().all()
+        assert [dict(row) for row in quarantines] == [
+            {
+                "owner_scope": "b07-pg17-legacy",
+                "scope_kind": "repository",
+                "canonical_repo_key": "b07-legacy/repo",
+                "status": "active",
+            },
+            {
+                "owner_scope": "b07-pg17-unknown",
+                "scope_kind": "owner_scope",
+                "canonical_repo_key": None,
+                "status": "active",
+            },
+        ]
+        installation_indexes = {
+            index["name"] for index in inspect(connection).get_indexes("github_app_installations")
+        }
+        assert "uq_github_app_installations_installation_id" in installation_indexes
+        installation_constraints = {
+            constraint["name"]
+            for constraint in inspect(connection).get_check_constraints("github_app_installations")
+        }
+        assert "ck_github_app_installations_owner_scope" in installation_constraints
+        assert "ck_github_app_installations_installation_id" in installation_constraints
         # Explicitly enforce the maintainer's blocked #34 migration boundary.
         assert not {"artifact_revisions", "artifact_current_revisions",
                     "artifact_extraction_runs"} & tables
@@ -224,8 +338,190 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             text("SELECT COUNT(*) FROM review_audit_events WHERE target_id=:id"),
             {"id": accepted_id},
         ) == 1
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_history_quarantines WHERE status='active'")
+        ) == 2
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO import_history_quarantines "
+                        "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                        "VALUES ('b07-pg17-legacy', 'repository', 'b07-legacy/repo', "
+                        "'active', 'duplicate')"
+                    )
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO import_history_quarantines "
+                        "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                        "VALUES ('b07-pg17-unknown', 'owner_scope', NULL, 'active', 'duplicate')"
+                    )
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations "
+                        "(owner_scope, installation_id) VALUES ('other-owner', '170001')"
+                    )
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_app_installations "
+                        "(owner_scope, installation_id) VALUES (' scope-padded ', '170003')"
+                    )
+                )
+        for invalid_installation_id in ("", " 170004 "):
+            with pytest.raises(IntegrityError):
+                with engine.begin() as write_connection:
+                    write_connection.execute(
+                        text(
+                            "INSERT INTO github_app_installations "
+                            "(owner_scope, installation_id) VALUES "
+                            "('b07-pg17-legacy', :installation_id)"
+                        ),
+                        {"installation_id": invalid_installation_id},
+                    )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "UPDATE import_history_quarantines SET status='cleared' "
+                        "WHERE owner_scope='b07-pg17-legacy'"
+                    )
+                )
+        with engine.begin() as write_connection:
+            write_connection.execute(
+                text(
+                    "UPDATE import_history_quarantines "
+                    "SET status='cleared', cleared_at=clock_timestamp(), "
+                    "cleared_by='pg17-reviewer', "
+                    "clearance_rationale='Reviewed legacy partial results' "
+                    "WHERE owner_scope='b07-pg17-legacy' AND scope_kind='repository'"
+                )
+            )
+            write_connection.execute(
+                text(
+                    "INSERT INTO import_history_quarantines "
+                    "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                    "VALUES ('b07-pg17-legacy', 'repository', 'b07-legacy/repo', "
+                    "'active', 'operator-discovered-history')"
+                )
+            )
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='b07-pg17-legacy' AND status='cleared'"
+            )
+        ) == 1
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='b07-pg17-legacy' AND status='active'"
+            )
+        ) == 1
+        with engine.begin() as write_connection:
+            write_connection.execute(
+                text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                    "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
+                ),
+                {"digest": "c" * 64},
+            )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
+                    ),
+                    {"digest": "c" * 64},
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-1', 'b07-pg17-legacy', 'push', :digest, 'quarantined')"
+                    ),
+                    {"digest": "e" * 64},
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', 'pg-delivery-2', 'b07-pg17-legacy', 'push', 'short', 'ignored')"
+                    )
+                )
+        with pytest.raises(IntegrityError):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition) "
+                        "VALUES ('170001', '', 'b07-pg17-legacy', 'push', :digest, 'ignored')"
+                    ),
+                    {"digest": "f" * 64},
+                )
+        with pytest.raises(RuntimeError, match="force transaction rollback"):
+            with engine.begin() as write_connection:
+                write_connection.execute(
+                    text(
+                        "INSERT INTO import_jobs "
+                        "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                        "VALUES ('b07-pg17-atomic-rollback', :workspace_id, 'b07-legacy/repo', "
+                        "'full', 'queued', 'webhook', 0)"
+                    ),
+                    {"workspace_id": legacy_workspace_id},
+                )
+                write_connection.execute(
+                    text(
+                        "INSERT INTO github_webhook_deliveries "
+                        "(installation_id, delivery_id, owner_scope, event_name, payload_sha256, disposition, job_id) "
+                        "VALUES ('170001', 'pg-delivery-rollback', 'b07-pg17-legacy', 'push', "
+                        ":digest, 'queued', 'b07-pg17-atomic-rollback')"
+                    ),
+                    {"digest": "f" * 64},
+                )
+                raise RuntimeError("force transaction rollback")
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_jobs WHERE job_id='b07-pg17-atomic-rollback'")
+        ) == 0
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM github_webhook_deliveries WHERE delivery_id='pg-delivery-rollback'")
+        ) == 0
 
     # Downgrade only the new lifecycle schema and prove the legacy job survives.
+    command.downgrade(config, "0013_import_job_lifecycle")
+    with engine.connect() as connection:
+        tables = set(inspect(connection).get_table_names())
+        assert "import_history_quarantines" not in tables
+        assert "github_webhook_deliveries" not in tables
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_jobs WHERE job_id LIKE 'b07-pg17-%'")
+        ) == 2
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='170001'")
+        ) == 1
+        remaining_checks = {
+            item["name"]
+            for item in inspect(connection).get_check_constraints("github_app_installations")
+        }
+        assert not {
+            "ck_github_app_installations_owner_scope",
+            "ck_github_app_installations_installation_id",
+        } & remaining_checks
+
     command.downgrade(config, "0012_review_audit_events")
     with engine.connect() as connection:
         columns = {column["name"] for column in inspect(connection).get_columns("import_jobs")}

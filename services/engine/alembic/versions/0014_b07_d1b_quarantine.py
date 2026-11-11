@@ -1,0 +1,360 @@
+"""add legacy history quarantine and webhook delivery ledger
+
+Revision ID: 0014_b07_d1b_quarantine
+Revises: 0013_import_job_lifecycle
+Create Date: 2026-11-11
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from alembic import op
+import sqlalchemy as sa
+
+from app.repository_identity import canonical_github_repository
+
+
+revision = "0014_b07_d1b_quarantine"
+down_revision = "0013_import_job_lifecycle"
+branch_labels = None
+depends_on = None
+
+
+def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
+    installation_rows = bind.execute(
+        sa.text("SELECT id, installation_id, owner_scope FROM github_app_installations")
+    ).mappings().all()
+    invalid_installation_scopes = [
+        row["id"]
+        for row in installation_rows
+        if row["owner_scope"] is None
+        or not str(row["owner_scope"]).strip()
+        or str(row["owner_scope"]) != str(row["owner_scope"]).strip()
+    ]
+    if invalid_installation_scopes:
+        raise RuntimeError(
+            "B07-D1b migration blocked: GitHub installations have empty or padded owner_scope "
+            f"values on rows: {', '.join(str(value) for value in invalid_installation_scopes)}"
+        )
+
+    invalid_installations = [
+        row["id"]
+        for row in installation_rows
+        if row["installation_id"] is None
+        or not str(row["installation_id"]).strip()
+        or str(row["installation_id"]) != str(row["installation_id"]).strip()
+    ]
+    if invalid_installations:
+        raise RuntimeError(
+            "B07-D1b migration blocked: GitHub installations have empty or padded installation_id "
+            f"values on rows: {', '.join(str(value) for value in invalid_installations)}"
+        )
+
+    installations_by_id: dict[str, list[dict[str, Any]]] = {}
+    for row in installation_rows:
+        installations_by_id.setdefault(str(row["installation_id"]), []).append(dict(row))
+    duplicates = {
+        installation_id: rows
+        for installation_id, rows in installations_by_id.items()
+        if len(rows) > 1
+    }
+    if duplicates:
+        details = "; ".join(
+            f"{installation_id}: "
+            + ", ".join(
+                f"row={row['id']} owner_scope={row['owner_scope']!r}" for row in rows
+            )
+            for installation_id, rows in sorted(duplicates.items())
+        )
+        raise RuntimeError(
+            "B07-D1b migration blocked: duplicate GitHub installation_id values "
+            f"require operator resolution: {details}"
+        )
+
+    rows = bind.execute(
+        sa.text(
+            "SELECT j.job_id, j.repo AS job_repo, w.id AS workspace_id, "
+            "w.owner_scope, w.repo_identity, w.repo_url "
+            "FROM import_jobs AS j "
+            "LEFT JOIN workspaces AS w ON w.id = j.workspace_id "
+            "ORDER BY j.id"
+        )
+    ).mappings().all()
+
+    unresolved = [
+        str(row["job_id"])
+        for row in rows
+        if row["workspace_id"] is None
+        or row["owner_scope"] is None
+        or not str(row["owner_scope"]).strip()
+        or str(row["owner_scope"]) != str(row["owner_scope"]).strip()
+    ]
+    if unresolved:
+        raise RuntimeError(
+            "B07-D1b migration blocked: legacy jobs have unresolved workspace/owner scope: "
+            + ", ".join(unresolved)
+        )
+    return [dict(row) for row in rows]
+
+
+def upgrade() -> None:
+    bind = op.get_bind()
+    # Freeze the identity/history inputs for the duration of preflight and
+    # backfill. PostgreSQL SHARE locks block concurrent DML; SQLite IMMEDIATE
+    # acquires its writer reservation before the first read.
+    if bind.dialect.name == "postgresql":
+        bind.execute(
+            sa.text(
+                "LOCK TABLE import_jobs, workspaces, github_app_installations "
+                "IN SHARE MODE"
+            )
+        )
+    elif bind.dialect.name == "sqlite":
+        bind.exec_driver_sql("BEGIN IMMEDIATE")
+
+    legacy_rows = _preflight(bind)
+
+    op.create_table(
+        "import_history_quarantines",
+        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column("owner_scope", sa.String(length=120), nullable=False),
+        sa.Column("scope_kind", sa.String(length=20), nullable=False),
+        sa.Column("canonical_repo_key", sa.String(length=255), nullable=True),
+        sa.Column("status", sa.String(length=20), nullable=False, server_default="active"),
+        sa.Column("reason_code", sa.String(length=80), nullable=False),
+        sa.Column("created_by", sa.String(length=255), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("cleared_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("cleared_by", sa.String(length=255), nullable=True),
+        sa.Column("clearance_rationale", sa.Text(), nullable=True),
+        sa.CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_import_history_quarantine_owner_scope",
+        ),
+        sa.CheckConstraint(
+            "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
+            "AND length(trim(canonical_repo_key)) > 0 "
+            "AND canonical_repo_key = trim(canonical_repo_key) "
+            "AND canonical_repo_key = lower(canonical_repo_key) "
+            "AND canonical_repo_key NOT LIKE '%*%') OR "
+            "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
+            name="ck_import_history_quarantine_scope_key",
+        ),
+        sa.CheckConstraint(
+            "length(trim(reason_code)) > 0 AND reason_code = trim(reason_code)",
+            name="ck_import_history_quarantine_reason_code",
+        ),
+        sa.CheckConstraint(
+            "status IN ('active', 'cleared')",
+            name="ck_import_history_quarantine_status",
+        ),
+        sa.CheckConstraint(
+            "(status = 'active' AND cleared_at IS NULL AND cleared_by IS NULL "
+            "AND clearance_rationale IS NULL) OR "
+            "(status = 'cleared' AND cleared_at IS NOT NULL "
+            "AND cleared_by IS NOT NULL AND length(trim(cleared_by)) > 0 "
+            "AND clearance_rationale IS NOT NULL "
+            "AND length(trim(clearance_rationale)) > 0)",
+            name="ck_import_history_quarantine_clearance",
+        ),
+    )
+    op.create_index(
+        "uq_import_history_quarantine_active_repo",
+        "import_history_quarantines",
+        ["owner_scope", "canonical_repo_key"],
+        unique=True,
+        sqlite_where=sa.text("status = 'active' AND scope_kind = 'repository'"),
+        postgresql_where=sa.text("status = 'active' AND scope_kind = 'repository'"),
+    )
+    op.create_index(
+        "uq_import_history_quarantine_active_scope",
+        "import_history_quarantines",
+        ["owner_scope"],
+        unique=True,
+        sqlite_where=sa.text("status = 'active' AND scope_kind = 'owner_scope'"),
+        postgresql_where=sa.text("status = 'active' AND scope_kind = 'owner_scope'"),
+    )
+    op.create_index(
+        "ix_import_history_quarantine_lookup",
+        "import_history_quarantines",
+        ["owner_scope", "scope_kind", "canonical_repo_key", "status"],
+    )
+
+    # Backfill every pre-existing job conservatively. Conflicting identity
+    # evidence within one workspace escalates to owner-scope quarantine.
+    by_workspace: dict[int, dict[str, Any]] = {}
+    for row in legacy_rows:
+        workspace_id = int(row["workspace_id"])
+        state = by_workspace.setdefault(
+            workspace_id,
+            {
+                "owner_scope": str(row["owner_scope"]),
+                "keys": set(),
+                "ambiguous": False,
+            },
+        )
+        if state["owner_scope"] != str(row["owner_scope"]):
+            raise RuntimeError(
+                f"B07-D1b migration blocked: workspace {workspace_id} has conflicting owner scopes"
+            )
+
+        values = [
+            row["repo_identity"],
+            row["repo_url"],
+            row["job_repo"],
+        ]
+        parsed: set[str] = set()
+        malformed = False
+        for value in values:
+            if value is None or not str(value).strip():
+                continue
+            canonical = canonical_github_repository(str(value))
+            if canonical is None:
+                malformed = True
+            else:
+                parsed.add(canonical)
+        if malformed or len(parsed) != 1:
+            state["ambiguous"] = True
+        else:
+            state["keys"].update(parsed)
+
+    inserts: set[tuple[str, str, str | None]] = set()
+    for state in by_workspace.values():
+        owner_scope = str(state["owner_scope"])
+        keys = state["keys"]
+        if state["ambiguous"] or len(keys) != 1:
+            inserts.add((owner_scope, "owner_scope", None))
+        else:
+            inserts.add((owner_scope, "repository", next(iter(keys))))
+
+    # A scope-wide quarantine subsumes repository quarantines in that scope.
+    scope_wide = {owner for owner, kind, _ in inserts if kind == "owner_scope"}
+    inserts = {
+        item for item in inserts
+        if item[1] == "owner_scope" or item[0] not in scope_wide
+    }
+    if inserts:
+        bind.execute(
+            sa.text(
+                "INSERT INTO import_history_quarantines "
+                "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                "VALUES (:owner_scope, :scope_kind, :canonical_repo_key, 'active', "
+                "'legacy_history_unverified')"
+            ),
+            [
+                {
+                    "owner_scope": owner,
+                    "scope_kind": kind,
+                    "canonical_repo_key": repo,
+                }
+                for owner, kind, repo in sorted(inserts)
+            ],
+        )
+
+    # The installation's owner scope is an authoritative routing identity.
+    # Reject malformed legacy values above and prevent new ones at the DB layer.
+    with op.batch_alter_table("github_app_installations") as batch_op:
+        batch_op.create_check_constraint(
+            "ck_github_app_installations_owner_scope",
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+        )
+        batch_op.create_check_constraint(
+            "ck_github_app_installations_installation_id",
+            "length(trim(installation_id)) > 0 AND installation_id = trim(installation_id)",
+        )
+
+    # Installation IDs are platform-global identities. The preflight above
+    # prevents arbitrary selection/merging before this unique constraint.
+    op.create_index(
+        "uq_github_app_installations_installation_id",
+        "github_app_installations",
+        ["installation_id"],
+        unique=True,
+    )
+
+    op.create_table(
+        "github_webhook_deliveries",
+        sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
+        sa.Column("installation_id", sa.String(length=255), nullable=False),
+        sa.Column("delivery_id", sa.String(length=255), nullable=False),
+        sa.Column("owner_scope", sa.String(length=120), nullable=False),
+        sa.Column("event_name", sa.String(length=100), nullable=False),
+        sa.Column("payload_sha256", sa.String(length=64), nullable=False),
+        sa.Column("disposition", sa.String(length=40), nullable=False),
+        sa.Column(
+            "job_id",
+            sa.String(length=64),
+            sa.ForeignKey("import_jobs.job_id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        sa.Column("received_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.CheckConstraint(
+            "length(trim(installation_id)) > 0 "
+            "AND installation_id = trim(installation_id)",
+            name="ck_github_webhook_delivery_installation_id",
+        ),
+        sa.CheckConstraint(
+            "length(trim(delivery_id)) > 0 AND delivery_id = trim(delivery_id)",
+            name="ck_github_webhook_delivery_delivery_id",
+        ),
+        sa.CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_github_webhook_delivery_owner_scope",
+        ),
+        sa.CheckConstraint(
+            "length(trim(event_name)) > 0 AND event_name = trim(event_name)",
+            name="ck_github_webhook_delivery_event_name",
+        ),
+        sa.CheckConstraint(
+            "length(trim(disposition)) > 0 AND disposition = trim(disposition)",
+            name="ck_github_webhook_delivery_disposition",
+        ),
+        sa.CheckConstraint(
+            "length(payload_sha256) = 64 "
+            "AND payload_sha256 = lower(payload_sha256) "
+            "AND payload_sha256 = trim(payload_sha256)",
+            name="ck_github_webhook_delivery_payload_sha256_length",
+        ),
+        sa.UniqueConstraint(
+            "installation_id", "delivery_id",
+            name="uq_github_webhook_delivery_installation_delivery",
+        ),
+    )
+    op.create_index(
+        "ix_github_webhook_deliveries_owner_received",
+        "github_webhook_deliveries",
+        ["owner_scope", "received_at"],
+    )
+
+
+def downgrade() -> None:
+    op.drop_index("ix_github_webhook_deliveries_owner_received", table_name="github_webhook_deliveries")
+    op.drop_table("github_webhook_deliveries")
+    op.drop_index(
+        "uq_github_app_installations_installation_id",
+        table_name="github_app_installations",
+    )
+    with op.batch_alter_table("github_app_installations") as batch_op:
+        batch_op.drop_constraint(
+            "ck_github_app_installations_installation_id",
+            type_="check",
+        )
+        batch_op.drop_constraint(
+            "ck_github_app_installations_owner_scope",
+            type_="check",
+        )
+    op.drop_index(
+        "ix_import_history_quarantine_lookup",
+        table_name="import_history_quarantines",
+    )
+    op.drop_index(
+        "uq_import_history_quarantine_active_scope",
+        table_name="import_history_quarantines",
+    )
+    op.drop_index(
+        "uq_import_history_quarantine_active_repo",
+        table_name="import_history_quarantines",
+    )
+    op.drop_table("import_history_quarantines")

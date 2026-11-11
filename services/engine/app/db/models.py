@@ -2,7 +2,20 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -87,6 +100,17 @@ class AuthSession(Base):
 
 class GitHubAppInstallation(Base):
     __tablename__ = "github_app_installations"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_github_app_installations_owner_scope",
+        ),
+        CheckConstraint(
+            "length(trim(installation_id)) > 0 AND installation_id = trim(installation_id)",
+            name="ck_github_app_installations_installation_id",
+        ),
+        Index("uq_github_app_installations_installation_id", "installation_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -292,3 +316,138 @@ class ImportJob(Base):
     checkpoint_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     pause_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_failure_category: Mapped[str | None] = mapped_column(String(80), nullable=True)
+
+class ImportHistoryQuarantine(Base):
+    __tablename__ = "import_history_quarantines"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_import_history_quarantine_owner_scope",
+        ),
+        CheckConstraint(
+            "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
+            "AND length(trim(canonical_repo_key)) > 0 "
+            "AND canonical_repo_key = trim(canonical_repo_key) "
+            "AND canonical_repo_key = lower(canonical_repo_key) "
+            "AND canonical_repo_key NOT LIKE '%*%') OR "
+            "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
+            name="ck_import_history_quarantine_scope_key",
+        ),
+        CheckConstraint(
+            "length(trim(reason_code)) > 0 AND reason_code = trim(reason_code)",
+            name="ck_import_history_quarantine_reason_code",
+        ),
+        CheckConstraint(
+            "status IN ('active', 'cleared')",
+            name="ck_import_history_quarantine_status",
+        ),
+        CheckConstraint(
+            "(status = 'active' AND cleared_at IS NULL AND cleared_by IS NULL "
+            "AND clearance_rationale IS NULL) OR "
+            "(status = 'cleared' AND cleared_at IS NOT NULL "
+            "AND cleared_by IS NOT NULL AND length(trim(cleared_by)) > 0 "
+            "AND clearance_rationale IS NOT NULL "
+            "AND length(trim(clearance_rationale)) > 0)",
+            name="ck_import_history_quarantine_clearance",
+        ),
+        Index(
+            "uq_import_history_quarantine_active_repo",
+            "owner_scope",
+            "canonical_repo_key",
+            unique=True,
+            sqlite_where=text(
+                "status = 'active' AND scope_kind = 'repository'"
+            ),
+            postgresql_where=text(
+                "status = 'active' AND scope_kind = 'repository'"
+            ),
+        ),
+        Index(
+            "uq_import_history_quarantine_active_scope",
+            "owner_scope",
+            unique=True,
+            sqlite_where=text(
+                "status = 'active' AND scope_kind = 'owner_scope'"
+            ),
+            postgresql_where=text(
+                "status = 'active' AND scope_kind = 'owner_scope'"
+            ),
+        ),
+        Index(
+            "ix_import_history_quarantine_lookup",
+            "owner_scope",
+            "scope_kind",
+            "canonical_repo_key",
+            "status",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
+    scope_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    canonical_repo_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", server_default="active")
+    reason_code: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    cleared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cleared_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    clearance_rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class GitHubWebhookDelivery(Base):
+    __tablename__ = "github_webhook_deliveries"
+    __table_args__ = (
+        UniqueConstraint(
+            "installation_id",
+            "delivery_id",
+            name="uq_github_webhook_delivery_installation_delivery",
+        ),
+        CheckConstraint(
+            "length(trim(installation_id)) > 0 "
+            "AND installation_id = trim(installation_id)",
+            name="ck_github_webhook_delivery_installation_id",
+        ),
+        CheckConstraint(
+            "length(trim(delivery_id)) > 0 AND delivery_id = trim(delivery_id)",
+            name="ck_github_webhook_delivery_delivery_id",
+        ),
+        CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_github_webhook_delivery_owner_scope",
+        ),
+        CheckConstraint(
+            "length(trim(event_name)) > 0 AND event_name = trim(event_name)",
+            name="ck_github_webhook_delivery_event_name",
+        ),
+        CheckConstraint(
+            "length(trim(disposition)) > 0 AND disposition = trim(disposition)",
+            name="ck_github_webhook_delivery_disposition",
+        ),
+        CheckConstraint(
+            "length(payload_sha256) = 64 "
+            "AND payload_sha256 = lower(payload_sha256) "
+            "AND payload_sha256 = trim(payload_sha256)",
+            name="ck_github_webhook_delivery_payload_sha256_length",
+        ),
+        Index(
+            "ix_github_webhook_deliveries_owner_received",
+            "owner_scope",
+            "received_at",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    installation_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    delivery_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
+    event_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    disposition: Mapped[str] = mapped_column(String(40), nullable=False)
+    job_id: Mapped[str | None] = mapped_column(
+        ForeignKey("import_jobs.job_id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
