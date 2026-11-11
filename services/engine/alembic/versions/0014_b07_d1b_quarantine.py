@@ -123,7 +123,8 @@ def upgrade() -> None:
             "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
             "AND length(trim(canonical_repo_key)) > 0 "
             "AND canonical_repo_key = trim(canonical_repo_key) "
-            "AND canonical_repo_key = lower(canonical_repo_key)) OR "
+            "AND canonical_repo_key = lower(canonical_repo_key) "
+            "AND canonical_repo_key NOT LIKE '%*%') OR "
             "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
             name="ck_import_history_quarantine_scope_key",
         ),
