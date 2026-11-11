@@ -109,8 +109,10 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
 
     # Duplicate installation identities across owner scopes must block the
     # migration before any D1b DDL is applied.
-    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id"):
+    with pytest.raises(RuntimeError, match="duplicate GitHub installation_id") as exc_info:
         command.upgrade(config, "head")
+    assert "duplicate-owner-a" in str(exc_info.value)
+    assert "duplicate-owner-b" in str(exc_info.value)
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
             "0013_import_job_lifecycle"
