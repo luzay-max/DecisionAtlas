@@ -2,7 +2,20 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import (\n    CheckConstraint,\n    DateTime,\n    Float,\n    ForeignKey,\n    Index,\n    Integer,\n    JSON,\n    String,\n    Text,\n    UniqueConstraint,\n    func,\n    text,\n)
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
