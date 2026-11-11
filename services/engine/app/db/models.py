@@ -311,10 +311,19 @@ class ImportHistoryQuarantine(Base):
     __tablename__ = "import_history_quarantines"
     __table_args__ = (
         CheckConstraint(
+            "length(trim(owner_scope)) > 0",
+            name="ck_import_history_quarantine_owner_scope",
+        ),
+        CheckConstraint(
             "(scope_kind = 'repository' AND canonical_repo_key IS NOT NULL "
-            "AND length(canonical_repo_key) > 0) OR "
+            "AND length(trim(canonical_repo_key)) > 0 "
+            "AND canonical_repo_key = lower(canonical_repo_key)) OR "
             "(scope_kind = 'owner_scope' AND canonical_repo_key IS NULL)",
             name="ck_import_history_quarantine_scope_key",
+        ),
+        CheckConstraint(
+            "length(trim(reason_code)) > 0",
+            name="ck_import_history_quarantine_reason_code",
         ),
         CheckConstraint(
             "status IN ('active', 'cleared')",
@@ -383,7 +392,28 @@ class GitHubWebhookDelivery(Base):
             name="uq_github_webhook_delivery_installation_delivery",
         ),
         CheckConstraint(
-            "length(payload_sha256) = 64",
+            "length(trim(installation_id)) > 0 "
+            "AND installation_id = trim(installation_id)",
+            name="ck_github_webhook_delivery_installation_id",
+        ),
+        CheckConstraint(
+            "length(trim(delivery_id)) > 0",
+            name="ck_github_webhook_delivery_delivery_id",
+        ),
+        CheckConstraint(
+            "owner_scope IS NULL OR length(trim(owner_scope)) > 0",
+            name="ck_github_webhook_delivery_owner_scope",
+        ),
+        CheckConstraint(
+            "length(trim(event_name)) > 0",
+            name="ck_github_webhook_delivery_event_name",
+        ),
+        CheckConstraint(
+            "length(trim(disposition)) > 0",
+            name="ck_github_webhook_delivery_disposition",
+        ),
+        CheckConstraint(
+            "length(payload_sha256) = 64 AND payload_sha256 = lower(payload_sha256)",
             name="ck_github_webhook_delivery_payload_sha256_length",
         ),
         Index(
