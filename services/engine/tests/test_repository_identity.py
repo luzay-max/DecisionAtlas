@@ -61,6 +61,8 @@ def test_canonical_github_repository_accepts_only_supported_aliases(
         "bad_owner/repo",
         "bad..owner/repo",
         "owner/repo with spaces",
+        "https://github.com/ow\nner/repo",
+        "https://github.com/owner/re\tpo",
         "owner/" + ("r" * 101),
         ("o" * 40) + "/repo",
     ],
