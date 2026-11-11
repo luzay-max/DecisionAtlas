@@ -10,6 +10,7 @@ import os
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 import pytest
 from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.exc import IntegrityError
@@ -41,11 +42,12 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
 
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", url)
+    expected_version = ScriptDirectory.from_config(config).get_current_head()
     command.upgrade(config, "head")
 
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0013_import_job_lifecycle"
+            expected_version
         )
         tables = set(inspect(connection).get_table_names())
         assert {"workspaces", "artifacts", "decisions", "source_refs",
