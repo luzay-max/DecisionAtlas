@@ -100,7 +100,13 @@ class AuthSession(Base):
 
 class GitHubAppInstallation(Base):
     __tablename__ = "github_app_installations"
-    __table_args__ = (Index("uq_github_app_installations_installation_id", "installation_id", unique=True),)
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(owner_scope)) > 0 AND owner_scope = trim(owner_scope)",
+            name="ck_github_app_installations_owner_scope",
+        ),
+        Index("uq_github_app_installations_installation_id", "installation_id", unique=True),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     owner_scope: Mapped[str] = mapped_column(String(120), nullable=False)
