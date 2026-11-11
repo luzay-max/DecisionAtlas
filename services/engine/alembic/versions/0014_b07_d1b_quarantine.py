@@ -38,16 +38,21 @@ def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
             f"values on rows: {', '.join(str(value) for value in invalid_installations)}"
         )
 
-    duplicates = bind.execute(
-        sa.text(
-            "SELECT installation_id, COUNT(*) AS row_count "
-            "FROM github_app_installations "
-            "GROUP BY installation_id HAVING COUNT(*) > 1"
-        )
-    ).mappings().all()
+    installations_by_id: dict[str, list[dict[str, Any]]] = {}
+    for row in installation_rows:
+        installations_by_id.setdefault(str(row["installation_id"]), []).append(dict(row))
+    duplicates = {
+        installation_id: rows
+        for installation_id, rows in installations_by_id.items()
+        if len(rows) > 1
+    }
     if duplicates:
-        details = ", ".join(
-            f"{row['installation_id']} ({row['row_count']} rows)" for row in duplicates
+        details = "; ".join(
+            f"{installation_id}: "
+            + ", ".join(
+                f"row={row['id']} owner_scope={row['owner_scope']!r}" for row in rows
+            )
+            for installation_id, rows in sorted(duplicates.items())
         )
         raise RuntimeError(
             "B07-D1b migration blocked: duplicate GitHub installation_id values "
