@@ -372,7 +372,7 @@ def test_d1b_migration_fails_closed_on_empty_installation_identity(
         )
         session.commit()
 
-    with pytest.raises(RuntimeError, match="empty installation_id"):
+    with pytest.raises(RuntimeError, match="empty or padded installation_id"):
         command.upgrade(config, "head")
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
