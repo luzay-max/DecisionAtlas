@@ -145,6 +145,17 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         with engine.begin() as connection:
             connection.execute(
                 text(
+                    "INSERT INTO github_webhook_deliveries "
+                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
+                    "VALUES ('missing-installation', 'delivery-3', 'push', :digest, 'ignored')"
+                ),
+                {"digest": "b" * 64},
+            )
+
+    with pytest.raises(IntegrityError):
+        with engine.begin() as connection:
+            connection.execute(
+                text(
                     "INSERT INTO import_history_quarantines "
                     "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
                     "VALUES ('scope-repo', 'repository', 'acme/decisionatlas', "
@@ -173,6 +184,38 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
                     "WHERE owner_scope='scope-repo'"
                 )
             )
+
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "UPDATE import_history_quarantines "
+                "SET status='cleared', cleared_at=CURRENT_TIMESTAMP, "
+                "cleared_by='operator@example.test', "
+                "clearance_rationale='Reviewed historical partial results' "
+                "WHERE owner_scope='scope-repo' AND scope_kind='repository'"
+            )
+        )
+        connection.execute(
+            text(
+                "INSERT INTO import_history_quarantines "
+                "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                "VALUES ('scope-repo', 'repository', 'acme/decisionatlas', "
+                "'active', 'newly-discovered-legacy-source')"
+            )
+        )
+    with engine.connect() as connection:
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='scope-repo' AND status='cleared'"
+            )
+        ) == 1
+        assert connection.scalar(
+            text(
+                "SELECT COUNT(*) FROM import_history_quarantines "
+                "WHERE owner_scope='scope-repo' AND status='active'"
+            )
+        ) == 1
 
     command.downgrade(config, "0013_import_job_lifecycle")
     with engine.connect() as connection:
