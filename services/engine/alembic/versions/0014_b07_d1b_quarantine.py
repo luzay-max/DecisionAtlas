@@ -45,10 +45,16 @@ def _canonical_repository(value: str | None) -> str | None:
         ):
             return None
         path = parsed.path
+        if not path.startswith("/"):
+            return None
+        path = path[1:]
+        if path.endswith("/"):
+            path = path[:-1]
     else:
         path = candidate
+        if path.startswith("/") or path.endswith("/"):
+            return None
 
-    path = path.strip("/")
     if path.endswith(".git"):
         path = path[:-4]
     parts = path.split("/")
