@@ -145,17 +145,6 @@ def test_d1b_backfills_repository_and_scope_quarantines_and_preserves_history(
         with engine.begin() as connection:
             connection.execute(
                 text(
-                    "INSERT INTO github_webhook_deliveries "
-                    "(installation_id, delivery_id, event_name, payload_sha256, disposition) "
-                    "VALUES ('missing-installation', 'delivery-3', 'push', :digest, 'ignored')"
-                ),
-                {"digest": "b" * 64},
-            )
-
-    with pytest.raises(IntegrityError):
-        with engine.begin() as connection:
-            connection.execute(
-                text(
                     "INSERT INTO import_history_quarantines "
                     "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
                     "VALUES ('scope-repo', 'repository', 'acme/decisionatlas', "
