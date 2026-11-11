@@ -7,12 +7,12 @@ Create Date: 2026-11-11
 
 from __future__ import annotations
 
-import re
 from typing import Any
-from urllib.parse import urlsplit
 
 from alembic import op
 import sqlalchemy as sa
+
+from app.repository_identity import canonical_github_repository
 
 
 revision = "0014_b07_d1b_quarantine"
@@ -21,61 +21,12 @@ branch_labels = None
 depends_on = None
 
 
-_REPOSITORY_PART = re.compile(r"^[A-Za-z0-9_.-]+$")
-
-
-def _canonical_repository(value: str | None) -> str | None:
-    """Return a strict GitHub owner/repo key; never guess malformed identities."""
-    if value is None:
-        return None
-    candidate = value.strip()
-    if not candidate:
-        return None
-
-    if "://" in candidate:
-        parsed = urlsplit(candidate)
-        if (
-            parsed.scheme.lower() != "https"
-            or parsed.hostname is None
-            or parsed.hostname.lower() != "github.com"
-            or parsed.username is not None
-            or parsed.password is not None
-            or parsed.port is not None
-            or parsed.query
-            or parsed.fragment
-        ):
-            return None
-        path = parsed.path
-        if not path.startswith("/"):
-            return None
-        path = path[1:]
-        if path.endswith("/"):
-            path = path[:-1]
-    else:
-        path = candidate
-        if path.startswith("/") or path.endswith("/"):
-            return None
-
-    if path.endswith(".git"):
-        path = path[:-4]
-    parts = path.split("/")
-    if len(parts) != 2:
-        return None
-    owner, repository = parts
-    if not owner or not repository:
-        return None
-    if owner in {".", ".."} or repository in {".", ".."}:
-        return None
-    if not _REPOSITORY_PART.fullmatch(owner) or not _REPOSITORY_PART.fullmatch(repository):
-        return None
-    return f"{owner.lower()}/{repository.lower()}"
-
-
 def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
     invalid_installations = bind.execute(
         sa.text(
             "SELECT id FROM github_app_installations "
-            "WHERE installation_id IS NULL OR length(trim(installation_id)) = 0"
+            "WHERE installation_id IS NULL OR length(trim(installation_id)) = 0 "
+            "OR installation_id <> trim(installation_id)"
         )
     ).scalars().all()
     if invalid_installations:
@@ -212,7 +163,7 @@ def upgrade() -> None:
         for value in values:
             if value is None or not str(value).strip():
                 continue
-            canonical = _canonical_repository(str(value))
+            canonical = canonical_github_repository(str(value))
             if canonical is None:
                 malformed = True
             else:
