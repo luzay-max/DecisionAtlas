@@ -16,7 +16,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models import Artifact, Decision, ReviewAuditEvent, SourceRef, Workspace
+from app.db.models import Artifact, Decision, GitHubAppInstallation, ReviewAuditEvent, SourceRef, Workspace
 from app.repositories.decisions import DecisionRepository
 from app.retrieval.full_text import full_text_search
 
@@ -50,22 +50,44 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             slug="b07-pg17-legacy", name="B07 legacy workspace",
             owner_scope="b07-pg17-legacy", access_source_type="public",
         )
-        session.add(legacy_workspace)
+        unknown_workspace = Workspace(
+            slug="b07-pg17-unknown", name="B07 unknown repository",
+            owner_scope="b07-pg17-unknown", access_source_type="public",
+        )
+        session.add_all([legacy_workspace, unknown_workspace])
         session.flush()
+        session.add(
+            GitHubAppInstallation(
+                owner_scope="b07-pg17-legacy",
+                installation_id="170001",
+                account_login="b07-legacy",
+                account_type="Organization",
+            )
+        )
         session.execute(
             text(
                 "INSERT INTO import_jobs "
                 "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
                 "VALUES (:job_id, :workspace_id, :repo, :mode, :status, :sync_origin, 0)"
             ),
-            {
-                "job_id": "b07-pg17-legacy-queued",
-                "workspace_id": legacy_workspace.id,
-                "repo": "example/legacy",
-                "mode": "full",
-                "status": "queued",
-                "sync_origin": "manual",
-            },
+            [
+                {
+                    "job_id": "b07-pg17-legacy-queued",
+                    "workspace_id": legacy_workspace.id,
+                    "repo": "https://github.com/B07-Legacy/Repo.git",
+                    "mode": "full",
+                    "status": "queued",
+                    "sync_origin": "manual",
+                },
+                {
+                    "job_id": "b07-pg17-unknown-queued",
+                    "workspace_id": unknown_workspace.id,
+                    "repo": "https://gitlab.example/private/repo",
+                    "mode": "full",
+                    "status": "queued",
+                    "sync_origin": "manual",
+                },
+            ],
         )
         session.commit()
     command.upgrade(config, "head")
@@ -76,7 +98,32 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
         )
         tables = set(inspect(connection).get_table_names())
         assert {"workspaces", "artifacts", "decisions", "source_refs",
-                "review_audit_events", "drift_alerts"}.issubset(tables)
+                "review_audit_events", "drift_alerts", "import_history_quarantines",
+                "github_webhook_deliveries"}.issubset(tables)
+        quarantines = connection.execute(
+            text(
+                "SELECT owner_scope, scope_kind, canonical_repo_key, status "
+                "FROM import_history_quarantines ORDER BY owner_scope"
+            )
+        ).mappings().all()
+        assert [dict(row) for row in quarantines] == [
+            {
+                "owner_scope": "b07-pg17-legacy",
+                "scope_kind": "repository",
+                "canonical_repo_key": "b07-legacy/repo",
+                "status": "active",
+            },
+            {
+                "owner_scope": "b07-pg17-unknown",
+                "scope_kind": "owner_scope",
+                "canonical_repo_key": None,
+                "status": "active",
+            },
+        ]
+        installation_indexes = {
+            index["name"] for index in inspect(connection).get_indexes("github_app_installations")
+        }
+        assert "uq_github_app_installations_installation_id" in installation_indexes
         # Explicitly enforce the maintainer's blocked #34 migration boundary.
         assert not {"artifact_revisions", "artifact_current_revisions",
                     "artifact_extraction_runs"} & tables
@@ -224,8 +271,33 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             text("SELECT COUNT(*) FROM review_audit_events WHERE target_id=:id"),
             {"id": accepted_id},
         ) == 1
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_history_quarantines WHERE status='active'")
+        ) == 2
+        with pytest.raises(IntegrityError):
+            with engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO import_history_quarantines "
+                        "(owner_scope, scope_kind, canonical_repo_key, status, reason_code) "
+                        "VALUES ('b07-pg17-legacy', 'repository', 'b07-legacy/repo', "
+                        "'active', 'duplicate')"
+                    )
+                )
 
     # Downgrade only the new lifecycle schema and prove the legacy job survives.
+    command.downgrade(config, "0013_import_job_lifecycle")
+    with engine.connect() as connection:
+        tables = set(inspect(connection).get_table_names())
+        assert "import_history_quarantines" not in tables
+        assert "github_webhook_deliveries" not in tables
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM import_jobs WHERE job_id LIKE 'b07-pg17-%'")
+        ) == 2
+        assert connection.scalar(
+            text("SELECT COUNT(*) FROM github_app_installations WHERE installation_id='170001'")
+        ) == 1
+
     command.downgrade(config, "0012_review_audit_events")
     with engine.connect() as connection:
         columns = {column["name"] for column in inspect(connection).get_columns("import_jobs")}
