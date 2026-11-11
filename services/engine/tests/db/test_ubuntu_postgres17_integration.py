@@ -1,4 +1,4 @@
-"""B04: isolated PostgreSQL 17 integration of the *merged* 0012 schema.
+"""B04/B07: isolated PostgreSQL 17 integration of the current migrated schema.
 
 This is intentionally not F06b/#34. Uses a fresh, ephemeral public/synthetic
 GitHub Actions service DB only; no private sources, paid provider or migration
@@ -10,6 +10,7 @@ import os
 
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 import pytest
 from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.exc import IntegrityError
@@ -41,11 +42,37 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
 
     config = Config("alembic.ini")
     config.set_main_option("sqlalchemy.url", url)
+    expected_version = ScriptDirectory.from_config(config).get_current_head()
+    # Exercise the upgrade with a pre-existing job, not only an empty schema.
+    command.upgrade(config, "0012_review_audit_events")
+    with Session(engine) as session:
+        legacy_workspace = Workspace(
+            slug="b07-pg17-legacy", name="B07 legacy workspace",
+            owner_scope="b07-pg17-legacy", access_source_type="public",
+        )
+        session.add(legacy_workspace)
+        session.flush()
+        session.execute(
+            text(
+                "INSERT INTO import_jobs "
+                "(job_id, workspace_id, repo, mode, status, sync_origin, imported_count) "
+                "VALUES (:job_id, :workspace_id, :repo, :mode, :status, :sync_origin, 0)"
+            ),
+            {
+                "job_id": "b07-pg17-legacy-queued",
+                "workspace_id": legacy_workspace.id,
+                "repo": "example/legacy",
+                "mode": "full",
+                "status": "queued",
+                "sync_origin": "manual",
+            },
+        )
+        session.commit()
     command.upgrade(config, "head")
 
     with engine.connect() as connection:
         assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-            "0012_review_audit_events"
+            expected_version
         )
         tables = set(inspect(connection).get_table_names())
         assert {"workspaces", "artifacts", "decisions", "source_refs",
@@ -55,6 +82,45 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
                     "artifact_extraction_runs"} & tables
         columns = {column["name"] for column in inspect(connection).get_columns("source_refs")}
         assert "artifact_revision_id" not in columns
+
+        import_job_column_types = {
+            column["name"]: column["type"]
+            for column in inspect(connection).get_columns("import_jobs")
+        }
+        for field in ("heartbeat_at", "lease_expires_at", "available_at", "pause_requested_at"):
+            assert getattr(import_job_column_types[field], "timezone", False), (
+                f"{field} must preserve an absolute instant on PostgreSQL"
+            )
+        import_job_columns = set(import_job_column_types)
+        assert {
+            "protocol_version", "worker_id", "lease_token", "lease_generation",
+            "heartbeat_at", "lease_expires_at", "attempt_count", "available_at",
+            "checkpoint_version", "checkpoint_json", "pause_requested_at",
+            "last_failure_category",
+        }.issubset(import_job_columns)
+        legacy = connection.execute(
+            text(
+                "SELECT protocol_version, worker_id, lease_token, lease_generation, "
+                "heartbeat_at, lease_expires_at, attempt_count, available_at, "
+                "checkpoint_version, checkpoint_json, pause_requested_at, "
+                "last_failure_category FROM import_jobs "
+                "WHERE job_id = 'b07-pg17-legacy-queued'"
+            )
+        ).mappings().one()
+        assert legacy["protocol_version"] == "legacy"
+        assert legacy["worker_id"] is None
+        assert legacy["lease_token"] is None
+        assert legacy["lease_generation"] == 0
+        assert legacy["heartbeat_at"] is None
+        assert legacy["lease_expires_at"] is None
+        assert legacy["attempt_count"] == 0
+        assert legacy["available_at"] is None
+        assert legacy["checkpoint_version"] == 0
+        assert legacy["checkpoint_json"] is None
+        assert legacy["pause_requested_at"] is None
+        assert legacy["last_failure_category"] is None
+        indexes = {index["name"] for index in inspect(connection).get_indexes("import_jobs")}
+        assert {"ix_import_jobs_claimable", "ix_import_jobs_lease_expiry"}.issubset(indexes)
 
     with Session(engine) as session:
         public = Workspace(
@@ -158,4 +224,16 @@ def test_pg17_current_schema_migrate_review_audit_and_scoped_retrieval(monkeypat
             text("SELECT COUNT(*) FROM review_audit_events WHERE target_id=:id"),
             {"id": accepted_id},
         ) == 1
+
+    # Downgrade only the new lifecycle schema and prove the legacy job survives.
+    command.downgrade(config, "0012_review_audit_events")
+    with engine.connect() as connection:
+        columns = {column["name"] for column in inspect(connection).get_columns("import_jobs")}
+        assert "protocol_version" not in columns
+        assert "lease_generation" not in columns
+        indexes = {index["name"] for index in inspect(connection).get_indexes("import_jobs")}
+        assert not {"ix_import_jobs_claimable", "ix_import_jobs_lease_expiry"} & indexes
+        assert connection.scalar(
+            text("SELECT job_id FROM import_jobs WHERE job_id = 'b07-pg17-legacy-queued'")
+        ) == "b07-pg17-legacy-queued"
     engine.dispose()
