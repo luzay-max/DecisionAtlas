@@ -23,7 +23,7 @@ depends_on = None
 
 def _preflight(bind: sa.Connection) -> list[dict[str, Any]]:
     installation_rows = bind.execute(
-        sa.text("SELECT id, installation_id FROM github_app_installations")
+        sa.text("SELECT id, installation_id, owner_scope FROM github_app_installations")
     ).mappings().all()
     invalid_installations = [
         row["id"]
